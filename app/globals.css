@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+html, body {
+  height: 100%;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
