@@ -177,9 +177,9 @@ export function ReplyList({
                         {r.leadName}
                       </span>
                     </div>
-                    <span className="text-[10px] text-gray-400 shrink-0">
-                      {timeAgo(r.receivedAt)}
-                    </span>
+                  <span className="text-[10px] text-gray-400 shrink-0" suppressHydrationWarning>
+  {timeAgo(r.receivedAt)}
+</span>
                   </div>
 
                   {/* Row 2: workspace + badge */}

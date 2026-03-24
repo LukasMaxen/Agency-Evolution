@@ -218,8 +218,9 @@ export function NotificationFeed({
                     {isAnalyzing ? "..." : "AI"}
                   </button>
                 )}
-                <span className="text-[10px] text-gray-400">{timeAgo(n.receivedAt)}</span>
-              </div>
+<span className="text-[10px] text-gray-400" suppressHydrationWarning>
+  {timeAgo(n.receivedAt)}
+</span>              </div>
             </div>
 
             <p className="text-[11px] text-gray-400 mb-0.5 truncate">

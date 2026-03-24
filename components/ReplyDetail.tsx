@@ -4,11 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { Reply, TEMPLATES, WORKSPACES, AIAnalysis } from "@/lib/mock-data";
 import { analyzeReply, INTENT_CONFIG } from "@/lib/ai-analysis";
 import { AIBadge } from "@/components/AIBadge";
+import { CalendlySlotPicker } from "@/components/CalendlySlotPicker";
 import { getInitials, timeAgo, applyTemplate, buildEmailBisonUrl } from "@/lib/utils";
 import { WorkspaceAvatar } from "./WorkspaceAvatar";
 import {
   ExternalLink, ChevronDown, LayoutTemplate,
-  Send, CheckCircle, XCircle, Check, Sparkles, Loader2, RefreshCw,
+  Send, CheckCircle, XCircle, Check, Sparkles,
+  Loader2, RefreshCw, Calendar, Pencil, X,
 } from "lucide-react";
 
 interface Props {
@@ -19,7 +21,10 @@ interface Props {
   onAIAnalyzed?: (replyId: string, analysis: AIAnalysis) => void;
 }
 
-export function ReplyDetail({ reply, aiAnalysis: initialAI, onMarkInterested, onReplySent, onAIAnalyzed }: Props) {
+export function ReplyDetail({
+  reply, aiAnalysis: initialAI,
+  onMarkInterested, onReplySent, onAIAnalyzed,
+}: Props) {
   const [replyText, setReplyText] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<(typeof TEMPLATES)[0] | null>(null);
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -27,35 +32,63 @@ export function ReplyDetail({ reply, aiAnalysis: initialAI, onMarkInterested, on
   const [sent, setSent] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | undefined>(initialAI);
   const [analyzing, setAnalyzing] = useState(false);
+  const [showCalendly, setShowCalendly] = useState(false);
+  const [aiDraftMode, setAiDraftMode] = useState<"preview" | "editing" | "dismissed" | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const workspace = WORKSPACES.find((w) => w.id === reply.workspaceId)!;
   const emailBisonUrl = buildEmailBisonUrl(workspace.instanceUrl, reply.emailBisonId);
 
-  // Reset when reply changes
   useEffect(() => {
     setReplyText("");
     setSelectedTemplate(null);
     setTemplateOpen(false);
     setSent(false);
     setAiAnalysis(initialAI);
-  }, [reply.id, initialAI]);
+    setShowCalendly(false);
+    setAiDraftMode(null);
+  }, [reply.id]);
 
-  // Auto-apply AI suggestion when analysis arrives
   useEffect(() => {
-    if (aiAnalysis && !replyText) {
-      // Pre-select the template
-      if (aiAnalysis.suggestedTemplateId) {
-        const t = TEMPLATES.find((t) => t.id === aiAnalysis.suggestedTemplateId);
-        if (t) setSelectedTemplate(t);
-      }
-      // Pre-fill the suggested reply
-      if (aiAnalysis.suggestedReply) {
-        setReplyText(aiAnalysis.suggestedReply);
-      }
+    if (!initialAI && reply.id) {
+      runAI();
+    } else if (initialAI) {
+      applyAIResult(initialAI);
     }
-  }, [aiAnalysis]);
+  }, [reply.id]);
+
+  async function runAI() {
+    if (analyzing) return;
+    setAnalyzing(true);
+    try {
+      const analysis = await analyzeReply(
+        reply.leadName, reply.leadEmail, reply.campaign, reply.message
+      );
+      setAiAnalysis(analysis);
+      onAIAnalyzed?.(reply.id, analysis);
+      applyAIResult(analysis);
+    } catch (err) {
+      console.error("AI error:", err);
+      setAiDraftMode("dismissed");
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  function applyAIResult(analysis: AIAnalysis) {
+    if (analysis.suggestedTemplateId) {
+      const t = TEMPLATES.find((t) => t.id === analysis.suggestedTemplateId);
+      if (t) setSelectedTemplate(t);
+    }
+    if (analysis.suggestedReply) {
+      setReplyText(analysis.suggestedReply);
+      setAiDraftMode("preview");
+    }
+    if (analysis.intent === "interested_urgent" || analysis.intent === "interested") {
+      setShowCalendly(true);
+    }
+  }
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -67,26 +100,11 @@ export function ReplyDetail({ reply, aiAnalysis: initialAI, onMarkInterested, on
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  async function handleAnalyze() {
-    if (analyzing) return;
-    setAnalyzing(true);
-    try {
-      const analysis = await analyzeReply(
-        reply.leadName, reply.leadEmail, reply.campaign, reply.message
-      );
-      setAiAnalysis(analysis);
-      onAIAnalyzed?.(reply.id, analysis);
-    } catch (err) {
-      console.error("AI error:", err);
-    } finally {
-      setAnalyzing(false);
-    }
-  }
-
   function pickTemplate(t: (typeof TEMPLATES)[0]) {
     setSelectedTemplate(t);
     setReplyText(applyTemplate(t.body, reply.leadName));
     setTemplateOpen(false);
+    setAiDraftMode("dismissed");
     textareaRef.current?.focus();
   }
 
@@ -101,45 +119,11 @@ export function ReplyDetail({ reply, aiAnalysis: initialAI, onMarkInterested, on
   }
 
   const intentCfg = aiAnalysis ? INTENT_CONFIG[aiAnalysis.intent] : null;
+  const isAIPreview = aiDraftMode === "preview";
+  const isEditing = aiDraftMode === "editing" || aiDraftMode === "dismissed";
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#f8f7f5" }}>
-
-      {/* AI analysis banner — shown when analyzed */}
-      {aiAnalysis && (
-        <div
-          className="px-6 py-3 flex items-center justify-between gap-4 shrink-0"
-          style={{
-            background: intentCfg!.bg,
-            borderBottom: `1px solid ${intentCfg!.border}`,
-          }}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <AIBadge intent={aiAnalysis.intent} size="md" />
-            <span className="text-xs truncate" style={{ color: intentCfg!.color }}>
-              {aiAnalysis.summary}
-            </span>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {aiAnalysis.suggestedTemplateId && (
-              <span className="text-[11px]" style={{ color: intentCfg!.color }}>
-                Suggested:{" "}
-                <span className="font-semibold">
-                  {TEMPLATES.find((t) => t.id === aiAnalysis.suggestedTemplateId)?.name}
-                </span>
-              </span>
-            )}
-            <button
-              onClick={handleAnalyze}
-              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md"
-              style={{ background: "white", color: intentCfg!.color, border: `1px solid ${intentCfg!.border}` }}
-            >
-              <RefreshCw size={9} />
-              Re-analyze
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <div className="px-6 py-4 shrink-0" style={{ background: "#ffffff", borderBottom: "1px solid #ede9e3" }}>
@@ -160,34 +144,24 @@ export function ReplyDetail({ reply, aiAnalysis: initialAI, onMarkInterested, on
           <div className="flex items-center gap-2 shrink-0">
             <div className="flex items-center gap-1.5">
               <WorkspaceAvatar workspace={workspace} size={18} />
-              <span className="text-xs font-medium" style={{ color: workspace.color }}>{workspace.name}</span>
+              <span className="text-xs font-medium" style={{ color: workspace.color }}>
+                {workspace.name}
+              </span>
             </div>
-
-            {/* AI analyze button */}
-            {!aiAnalysis && (
-              <button
-                onClick={handleAnalyze}
-                disabled={analyzing}
-                className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg transition-colors"
-                style={{
-                  background: "#faf5ff", color: analyzing ? "#a78bfa" : "#7c3aed",
-                  border: "1px solid #ddd6fe",
-                  cursor: analyzing ? "not-allowed" : "pointer",
-                }}
-              >
-                {analyzing ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                {analyzing ? "Analyzing..." : "AI analyze"}
-              </button>
-            )}
-
             <a
               href={emailBisonUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg transition-colors"
               style={{ border: "1px solid #e5e7eb", color: "#6b7280", background: "#ffffff" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "#1a56db"; (e.currentTarget as HTMLAnchorElement).style.color = "#1a56db"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "#e5e7eb"; (e.currentTarget as HTMLAnchorElement).style.color = "#6b7280"; }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = "#1a56db";
+                (e.currentTarget as HTMLAnchorElement).style.color = "#1a56db";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = "#e5e7eb";
+                (e.currentTarget as HTMLAnchorElement).style.color = "#6b7280";
+              }}
             >
               <ExternalLink size={11} />
               View in EmailBison
@@ -198,7 +172,7 @@ export function ReplyDetail({ reply, aiAnalysis: initialAI, onMarkInterested, on
         {/* Meta pills */}
         <div className="flex flex-wrap gap-1.5 mt-3">
           {[reply.campaign, `Via ${reply.senderEmail}`, timeAgo(reply.receivedAt)].map((t) => (
-            <span key={t} className="text-[11px] px-2 py-0.5 rounded-md"
+            <span key={t} className="text-[11px] px-2 py-0.5 rounded-md" suppressHydrationWarning
               style={{ background: "#f1f5f9", color: "#64748b", border: "1px solid #e2e8f0" }}>
               {t}
             </span>
@@ -208,15 +182,21 @@ export function ReplyDetail({ reply, aiAnalysis: initialAI, onMarkInterested, on
 
       {/* Message */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{reply.subject}</p>
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+          {reply.subject}
+        </p>
 
         <div className="rounded-xl p-4"
           style={{ background: "#ffffff", border: "1px solid #ede9e3", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           <div className="flex justify-between items-center mb-2.5">
             <span className="text-xs font-semibold text-gray-700">{reply.leadName}</span>
-            <span className="text-[11px] text-gray-400">{timeAgo(reply.receivedAt)}</span>
+            <span className="text-[11px] text-gray-400" suppressHydrationWarning>
+              {timeAgo(reply.receivedAt)}
+            </span>
           </div>
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{reply.message}</p>
+          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+            {reply.message}
+          </p>
         </div>
 
         {/* Mark interested */}
@@ -232,7 +212,7 @@ export function ReplyDetail({ reply, aiAnalysis: initialAI, onMarkInterested, on
               fontWeight: reply.interested === true ? 600 : 400,
             }}
           >
-            <CheckCircle size={12} />Interested
+            <CheckCircle size={12} /> Interested
           </button>
           <button
             onClick={() => onMarkInterested(reply.id, reply.interested === false ? null : false)}
@@ -244,95 +224,220 @@ export function ReplyDetail({ reply, aiAnalysis: initialAI, onMarkInterested, on
               fontWeight: reply.interested === false ? 600 : 400,
             }}
           >
-            <XCircle size={12} />Not interested
+            <XCircle size={12} /> Not interested
           </button>
         </div>
       </div>
 
       {/* Composer */}
-      <div className="px-6 py-4 shrink-0 space-y-3"
-        style={{ background: "#ffffff", borderTop: "1px solid #ede9e3" }}>
+      <div className="shrink-0" style={{ background: "#ffffff", borderTop: "1px solid #ede9e3" }}>
 
-        {/* AI draft label */}
-        {aiAnalysis?.suggestedReply && replyText === aiAnalysis.suggestedReply && (
-          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "#7c3aed" }}>
-            <Sparkles size={11} />
-            AI-drafted reply — review and edit before sending
-          </div>
+        {/* Calendly slot picker */}
+        {showCalendly && (
+          <CalendlySlotPicker
+            leadName={reply.leadName}
+            leadEmail={reply.leadEmail}
+            onInsertReply={(text) => {
+              setReplyText(text);
+              setAiDraftMode("editing");
+              textareaRef.current?.focus();
+            }}
+          />
         )}
 
-        {/* Template picker */}
-        <div ref={dropdownRef} className="relative w-fit">
-          <button
-            onClick={() => setTemplateOpen((p) => !p)}
-            className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg transition-colors"
-            style={{
-              background: "#f8f7f5", border: "1px solid #e5e7eb",
-              color: selectedTemplate ? "#111827" : "#9ca3af",
-            }}
-          >
-            <LayoutTemplate size={12} />
-            {selectedTemplate ? selectedTemplate.name : "Use a template"}
-            <ChevronDown size={11} className="text-gray-400" />
-          </button>
+        <div className="px-6 py-4 space-y-3">
 
-          {templateOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-60 rounded-xl overflow-hidden z-20"
-              style={{ background: "#ffffff", border: "1px solid #e5e7eb", boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}>
-              {TEMPLATES.map((t) => (
-                <button key={t.id} onClick={() => pickTemplate(t)}
-                  className="w-full text-left px-4 py-2.5 text-xs transition-colors flex items-center justify-between"
-                  style={{ color: "#374151", borderBottom: "1px solid #f3f4f6" }}
-                  onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#f8f7f5")}
-                  onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
-                >
-                  {t.name}
-                  {aiAnalysis?.suggestedTemplateId === t.id && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full"
-                      style={{ background: "#faf5ff", color: "#7c3aed" }}>AI pick</span>
-                  )}
-                </button>
-              ))}
+          {/* AI analyzing state */}
+          {analyzing && (
+            <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl"
+              style={{ background: "#faf5ff", border: "1px solid #ede9fe" }}>
+              <Loader2 size={13} className="animate-spin" style={{ color: "#7c3aed" }} />
+              <div>
+                <p className="text-xs font-medium" style={{ color: "#7c3aed" }}>
+                  AI is reading this reply...
+                </p>
+                <p className="text-[11px] mt-0.5" style={{ color: "#a78bfa" }}>
+                  Drafting a personalized response based on what {reply.leadName.split(" ")[0]} said
+                </p>
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Textarea */}
-        <textarea
-          ref={textareaRef}
-          value={replyText}
-          onChange={(e) => setReplyText(e.target.value)}
-          placeholder={analyzing ? "AI is drafting your reply..." : "Write your reply or use a template..."}
-          rows={5}
-          className="w-full text-sm px-3.5 py-3 rounded-xl resize-none focus:outline-none leading-relaxed transition-colors"
-          style={{
-            background: analyzing ? "#faf5ff" : "#f8f7f5",
-            border: `1px solid ${analyzing ? "#ddd6fe" : "#e5e7eb"}`,
-            color: "#111827",
-          }}
-          onFocus={(e) => (e.target.style.borderColor = "#93c5fd")}
-          onBlur={(e) => (e.target.style.borderColor = analyzing ? "#ddd6fe" : "#e5e7eb")}
-        />
+          {/* AI draft preview card */}
+          {!analyzing && isAIPreview && aiAnalysis && intentCfg && (
+            <div className="rounded-xl overflow-hidden"
+              style={{ border: `1px solid ${intentCfg.border}` }}>
 
-        {/* Send row */}
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] text-gray-400">
-            Via <span className="text-gray-500">{reply.senderEmail}</span>
-          </p>
-          <button
-            onClick={handleSend}
-            disabled={!replyText.trim() || sending || sent}
-            className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-lg transition-all"
-            style={{
-              background: sent ? "#059669" : replyText.trim() && !sending ? "#1a56db" : "#e5e7eb",
-              color: replyText.trim() || sent ? "#ffffff" : "#9ca3af",
-              cursor: replyText.trim() && !sending && !sent ? "pointer" : "not-allowed",
-            }}
-          >
-            {sent ? <><Check size={13} />Sent</>
-              : sending ? <><div className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />Sending</>
-              : <><Send size={13} />Send reply</>}
-          </button>
+              {/* Card header */}
+              <div className="flex items-center justify-between px-3.5 py-2.5"
+                style={{ background: intentCfg.bg, borderBottom: `1px solid ${intentCfg.border}` }}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Sparkles size={12} style={{ color: intentCfg.color }} />
+                  <span className="text-xs font-semibold" style={{ color: intentCfg.color }}>
+                    AI reply ready
+                  </span>
+                  <AIBadge intent={aiAnalysis.intent} />
+                  <span className="text-[11px] truncate" style={{ color: intentCfg.color }}>
+                    · {aiAnalysis.summary}
+                  </span>
+                </div>
+                {aiAnalysis.suggestedTemplateId && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
+                    style={{ background: "white", color: intentCfg.color, border: `1px solid ${intentCfg.border}` }}>
+                    {TEMPLATES.find(t => t.id === aiAnalysis.suggestedTemplateId)?.name}
+                  </span>
+                )}
+              </div>
+
+              {/* Draft preview */}
+              <div className="px-3.5 py-3" style={{ background: "#fafaf9" }}>
+                <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap line-clamp-3">
+                  {replyText}
+                </p>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-2 px-3.5 py-2.5"
+                style={{ borderTop: `1px solid ${intentCfg.border}`, background: intentCfg.bg }}>
+                <button
+                  onClick={() => {
+                    setAiDraftMode("editing");
+                    setTimeout(() => textareaRef.current?.focus(), 50);
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
+                  style={{ background: intentCfg.color, color: "#fff", border: "none", cursor: "pointer" }}
+                >
+                  <Pencil size={11} />
+                  Edit &amp; send
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={sending || sent}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
+                  style={{
+                    background: sent ? "#059669" : "#ffffff",
+                    color: sent ? "#fff" : intentCfg.color,
+                    border: `1px solid ${intentCfg.border}`,
+                    cursor: "pointer",
+                  }}
+                >
+                  {sent ? <><Check size={11} /> Sent!</> : <><Send size={11} /> Send as-is</>}
+                </button>
+                <button
+                  onClick={() => { setReplyText(""); setAiDraftMode("dismissed"); }}
+                  className="flex items-center gap-1 text-[11px] ml-auto"
+                  style={{ color: "#9ca3af", background: "transparent", border: "none", cursor: "pointer" }}
+                >
+                  <X size={11} />
+                  Write myself
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Manual editing mode */}
+          {!analyzing && isEditing && (
+            <>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div ref={dropdownRef} className="relative">
+                  <button
+                    onClick={() => setTemplateOpen((p) => !p)}
+                    className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg transition-colors"
+                    style={{ background: "#f8f7f5", border: "1px solid #e5e7eb", color: selectedTemplate ? "#111827" : "#9ca3af" }}
+                  >
+                    <LayoutTemplate size={12} />
+                    {selectedTemplate ? selectedTemplate.name : "Use a template"}
+                    <ChevronDown size={11} className="text-gray-400" />
+                  </button>
+
+                  {templateOpen && (
+                    <div className="absolute bottom-full left-0 mb-2 w-60 rounded-xl overflow-hidden z-20"
+                      style={{ background: "#ffffff", border: "1px solid #e5e7eb", boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}>
+                      {TEMPLATES.map((t) => (
+                        <button key={t.id} onClick={() => pickTemplate(t)}
+                          className="w-full text-left px-4 py-2.5 text-xs transition-colors flex items-center justify-between"
+                          style={{ color: "#374151", borderBottom: "1px solid #f3f4f6" }}
+                          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#f8f7f5")}
+                          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
+                        >
+                          {t.name}
+                          {aiAnalysis?.suggestedTemplateId === t.id && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                              style={{ background: "#faf5ff", color: "#7c3aed" }}>AI pick</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setShowCalendly((p) => !p)}
+                  className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg transition-all"
+                  style={{
+                    background: showCalendly ? "#d1fae5" : "#f8f7f5",
+                    border: `1px solid ${showCalendly ? "#6ee7b7" : "#e5e7eb"}`,
+                    color: showCalendly ? "#065f46" : "#6b7280",
+                  }}
+                >
+                  <Calendar size={12} />
+                  {showCalendly ? "Hide slots" : "Check availability"}
+                </button>
+
+                {aiAnalysis && (
+                  <button
+                    onClick={() => applyAIResult(aiAnalysis)}
+                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ml-auto"
+                    style={{ background: "#faf5ff", color: "#7c3aed", border: "1px solid #ddd6fe" }}
+                  >
+                    <Sparkles size={11} />
+                    Restore AI draft
+                  </button>
+                )}
+              </div>
+
+              <textarea
+                ref={textareaRef}
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Write your reply or use a template..."
+                rows={4}
+                className="w-full text-sm px-3.5 py-3 rounded-xl resize-none focus:outline-none leading-relaxed"
+                style={{ background: "#f8f7f5", border: "1px solid #e5e7eb", color: "#111827" }}
+                onFocus={(e) => (e.target.style.borderColor = "#93c5fd")}
+                onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
+              />
+
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-gray-400">
+                  Via <span className="text-gray-500">{reply.senderEmail}</span>
+                </p>
+                <button
+                  onClick={handleSend}
+                  disabled={!replyText.trim() || sending || sent}
+                  className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-lg transition-all"
+                  style={{
+                    background: sent ? "#059669" : replyText.trim() && !sending ? "#1a56db" : "#e5e7eb",
+                    color: replyText.trim() || sent ? "#ffffff" : "#9ca3af",
+                    cursor: replyText.trim() && !sending && !sent ? "pointer" : "not-allowed",
+                  }}
+                >
+                  {sent ? <><Check size={13} /> Sent</>
+                    : sending ? <><div className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Sending</>
+                    : <><Send size={13} /> Send reply</>}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Initial state */}
+          {!analyzing && aiDraftMode === null && (
+            <div className="flex items-center gap-2 py-2">
+              <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#7c3aed" }} />
+              <span className="text-xs text-gray-400">Preparing AI draft...</span>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
