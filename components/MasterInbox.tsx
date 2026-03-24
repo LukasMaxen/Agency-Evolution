@@ -105,8 +105,8 @@ export function MasterInbox() {
               <span className="text-white text-[10px] font-bold tracking-tight">MI</span>
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-900 leading-none">Master Inbox</p>
-              <p className="text-[10px] text-gray-400 mt-0.5 leading-none">EmailBison</p>
+              <p className="text-xs font-semibold text-gray-900 leading-none">AI Reply Desk</p>
+              <p className="text-[10px] text-gray-400 mt-0.5 leading-none">Inbox Manager</p>
             </div>
           </div>
         </div>

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Master Inbox — EmailBison",
-  description: "Centralized inbox for all EmailBison workspace replies",
+  title: "AI Reply Desk",
+  description: "AI-powered reply management for all EmailBison workspaces",
 };
 
 export default function RootLayout({
