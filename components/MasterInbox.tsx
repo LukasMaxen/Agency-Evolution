@@ -6,9 +6,10 @@ import { ReplyList } from "@/components/ReplyList";
 import { ReplyDetail } from "@/components/ReplyDetail";
 import { EmptyState } from "@/components/EmptyState";
 import { NotificationFeed } from "@/components/NotificationFeed";
-import { Inbox, Bell } from "lucide-react";
+import { ReplyDashboard } from "@/components/ReplyDashboard";
+import { Inbox, Bell, BarChart2 } from "lucide-react";
 
-type View = "inbox" | "notifications";
+type View = "inbox" | "notifications" | "dashboard";
 
 export function MasterInbox() {
   const [view, setView] = useState<View>("notifications");
@@ -18,7 +19,6 @@ export function MasterInbox() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterWorkspace, setFilterWorkspace] = useState("all");
-  // Map replyId -> AIAnalysis so it persists across view switches
   const [aiCache, setAiCache] = useState<Record<string, AIAnalysis>>({});
 
   const selectedReply = selectedId ? replies.find((r) => r.id === selectedId) ?? null : null;
@@ -56,19 +56,16 @@ export function MasterInbox() {
     if (reply) handleSelect(reply);
   }
 
-  // Called when AI analysis completes — store in cache + update notification
   function handleAIAnalyzed(replyId: string, analysis: AIAnalysis) {
     setAiCache((prev) => ({ ...prev, [replyId]: analysis }));
     setNotifications((prev) =>
       prev.map((n) => (n.replyId === replyId ? { ...n, aiAnalysis: analysis } : n))
     );
-    // Auto-mark interested if urgent
     if (analysis.intent === "interested_urgent" || analysis.intent === "interested") {
       setReplies((prev) =>
         prev.map((r) => (r.id === replyId && r.interested === null ? { ...r, interested: true } : r))
       );
     }
-    // Auto-mark not interested if unsubscribe
     if (analysis.intent === "unsubscribe") {
       setReplies((prev) =>
         prev.map((r) => (r.id === replyId && r.interested === null ? { ...r, interested: false } : r))
@@ -76,7 +73,6 @@ export function MasterInbox() {
     }
   }
 
-  // Update notification (used by feed for per-item AI analysis)
   function handleUpdateNotification(id: string, updates: Partial<Notification>) {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, ...updates } : n))
@@ -88,8 +84,9 @@ export function MasterInbox() {
   }
 
   const NAV: { id: View; label: string; icon: React.ElementType; badge: number }[] = [
-    { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount },
-    { id: "inbox", label: "Inbox", icon: Inbox, badge: newRepliesCount },
+    { id: "notifications", label: "Notifications", icon: Bell,      badge: unreadCount },
+    { id: "inbox",         label: "Inbox",          icon: Inbox,     badge: newRepliesCount },
+    { id: "dashboard",     label: "Dashboard",      icon: BarChart2, badge: 0 },
   ];
 
   return (
@@ -102,11 +99,11 @@ export function MasterInbox() {
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
               style={{ background: "#1a56db" }}>
-              <span className="text-white text-[10px] font-bold tracking-tight">MI</span>
+              <span className="text-white text-[10px] font-bold tracking-tight">AI</span>
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-900 leading-none">AI Reply Desk</p>
-              <p className="text-[10px] text-gray-400 mt-0.5 leading-none">Inbox Manager</p>
+              <p className="text-[10px] text-gray-400 mt-0.5 leading-none">by PalcoLabs</p>
             </div>
           </div>
         </div>
@@ -136,9 +133,9 @@ export function MasterInbox() {
         ))}
       </div>
 
-      {/* Main */}
+      {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {view === "notifications" ? (
+        {view === "notifications" && (
           <NotificationFeed
             notifications={notifications}
             onMarkRead={handleMarkRead}
@@ -146,7 +143,9 @@ export function MasterInbox() {
             onOpenReply={handleOpenReply}
             onUpdateNotification={handleUpdateNotification}
           />
-        ) : (
+        )}
+
+        {view === "inbox" && (
           <>
             <ReplyList
               replies={replies}
@@ -172,6 +171,10 @@ export function MasterInbox() {
               <EmptyState />
             )}
           </>
+        )}
+
+        {view === "dashboard" && (
+          <ReplyDashboard />
         )}
       </div>
     </div>
