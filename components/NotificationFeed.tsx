@@ -220,7 +220,8 @@ export function NotificationFeed({
                 )}
 <span className="text-[10px] text-gray-400" suppressHydrationWarning>
   {timeAgo(n.receivedAt)}
-</span>              </div>
+</span>
+              </div>
             </div>
 
             <p className="text-[11px] text-gray-400 mb-0.5 truncate">
