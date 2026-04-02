@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Reply, Notification, AIAnalysis, WORKSPACES } from "@/lib/mock-data";
 import { analyzeReply } from "@/lib/ai-analysis";
 import { ReplyList } from "@/components/ReplyList";
@@ -58,6 +58,10 @@ export function MasterInbox() {
   const [loading, setLoading]             = useState(true);
   const [lastRefresh, setLastRefresh]     = useState<Date>(new Date());
 
+  // Tracks which reply IDs have already been analyzed — persists across renders
+  // without triggering re-renders (unlike state)
+  const analyzedIds = useRef<Set<string>>(new Set());
+
   const selectedReply   = selectedId ? replies.find(r => r.id === selectedId) ?? null : null;
   const unreadCount     = notifications.filter(n => !n.read).length;
   const newRepliesCount = replies.filter(r => r.status === "new").length;
@@ -69,6 +73,7 @@ export function MasterInbox() {
       if (!res.ok) return;
       const data = await res.json();
       const mapped = (data.replies ?? []).map(dbRowToReply);
+
       setReplies(prev => {
         return mapped.map((r: Reply) => {
           const existing = prev.find(p => p.id === r.id);
@@ -84,17 +89,19 @@ export function MasterInbox() {
           return r;
         });
       });
+
       setNotifications(prev => {
         return mapped.map((r: Reply) => {
           const existing = prev.find(p => p.replyId === r.id);
-          // Preserve existing aiAnalysis if already analyzed
           const notif = replyToNotification(r);
+          // Preserve existing AI analysis across refreshes
           if (existing?.aiAnalysis) {
             return { ...notif, aiAnalysis: existing.aiAnalysis };
           }
           return notif;
         });
       });
+
       setLastRefresh(new Date());
     } catch (err) {
       console.error("[fetch] error:", err);
@@ -111,9 +118,10 @@ export function MasterInbox() {
   }, [fetchReplies]);
 
   // ── Auto-analyze new unread replies one at a time ─────────────────────────
+  // Uses a ref to track analyzed IDs so refreshes don't trigger re-analysis
   useEffect(() => {
     const newUnanalyzed = replies.filter(
-      r => r.status === "new" && !aiCache[r.id]
+      r => r.status === "new" && !analyzedIds.current.has(r.id)
     );
     if (newUnanalyzed.length === 0) return;
 
@@ -122,9 +130,12 @@ export function MasterInbox() {
     async function analyzeSequentially() {
       for (const reply of newUnanalyzed) {
         if (cancelled) break;
-        if (aiCache[reply.id]) continue;
+        if (analyzedIds.current.has(reply.id)) continue;
+
+        // Mark immediately before API call to prevent duplicate calls
+        analyzedIds.current.add(reply.id);
+
         try {
-          // Use FULL message — not snippet
           const analysis = await analyzeReply(
             reply.leadName,
             reply.leadEmail,
@@ -133,7 +144,6 @@ export function MasterInbox() {
           );
           if (!cancelled) {
             handleAIAnalyzed(reply.id, analysis);
-            // Auto-save to DB
             if (analysis.intent === "interested_urgent" || analysis.intent === "interested") {
               fetch("/api/replies", {
                 method: "PATCH",
@@ -150,16 +160,19 @@ export function MasterInbox() {
             }
           }
         } catch (err) {
+          // Remove so it can retry on next cycle
+          analyzedIds.current.delete(reply.id);
           console.error("[auto-analyze]", err);
         }
-        // 1.5s delay between each
+
+        // 1.5s between each to be gentle on the API
         await new Promise(r => setTimeout(r, 1500));
       }
     }
 
     analyzeSequentially();
     return () => { cancelled = true; };
-  }, [replies, aiCache]);
+  }, [replies]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -189,10 +202,17 @@ export function MasterInbox() {
   }
 
   function handleMarkUnread(id: string) {
+    // Remove from analyzed set so it gets re-analyzed
+    analyzedIds.current.delete(id);
     setReplies(prev => prev.map(r => r.id === id ? { ...r, status: "new" } : r));
     setNotifications(prev =>
-      prev.map(n => n.replyId === id ? { ...n, read: false } : n)
+      prev.map(n => n.replyId === id ? { ...n, read: false, aiAnalysis: undefined } : n)
     );
+    setAiCache(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
     fetch("/api/replies", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
