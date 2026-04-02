@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Notification, WORKSPACES } from "@/lib/mock-data";
-import { analyzeReply, INTENT_CONFIG, URGENCY_ORDER } from "@/lib/ai-analysis";
+import { analyzeReply, INTENT_CONFIG } from "@/lib/ai-analysis";
 import { AIBadge } from "@/components/AIBadge";
 import { timeAgo } from "@/lib/utils";
 import {
@@ -26,7 +26,6 @@ const EVENT_CONFIG = {
   reply_sent:            { label: "Replied by you", icon: Send,          dot: "#8b5cf6" },
 } as const;
 
-// Priority section definitions
 const SECTIONS = [
   {
     id: "booking",
@@ -97,39 +96,46 @@ export function NotificationFeed({
     return true;
   });
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const analyzedCount = notifications.filter((n) => n.aiAnalysis).length;
-  const anyAnalyzing = Object.values(analyzing).some(Boolean);
+  const unreadCount   = notifications.filter(n => !n.read).length;
+  const analyzedCount = notifications.filter(n => n.aiAnalysis).length;
+  const anyAnalyzing  = Object.values(analyzing).some(Boolean);
 
   async function handleAnalyze(n: Notification) {
     if (analyzing[n.id] || n.aiAnalysis) return;
-    setAnalyzing((p) => ({ ...p, [n.id]: true }));
+    setAnalyzing(p => ({ ...p, [n.id]: true }));
     try {
-      const analysis = await analyzeReply(n.leadName, n.leadEmail, n.campaign, n.snippet);
+      // Use full message, fall back to snippet
+      const analysis = await analyzeReply(
+        n.leadName,
+        n.leadEmail,
+        n.campaign,
+        n.message ?? n.snippet
+      );
       onUpdateNotification(n.id, { aiAnalysis: analysis });
     } catch (err) {
       console.error("AI analysis failed:", err);
     } finally {
-      setAnalyzing((p) => ({ ...p, [n.id]: false }));
+      setAnalyzing(p => ({ ...p, [n.id]: false }));
     }
   }
 
   async function handleAnalyzeAll() {
     const unanalyzed = notifications.filter(
-      (n) => !n.aiAnalysis && !analyzing[n.id] && n.event === "reply_received"
+      n => !n.aiAnalysis && !analyzing[n.id] && n.event === "reply_received"
     );
-    for (const n of unanalyzed) await handleAnalyze(n);
+    for (const n of unanalyzed) {
+      await handleAnalyze(n);
+      await new Promise(r => setTimeout(r, 1500));
+    }
   }
 
-  const activeWorkspaceIds = [...new Set(notifications.map((n) => n.workspaceId))];
-  const activeWorkspaces = WORKSPACES.filter((w) => activeWorkspaceIds.includes(w.id));
+  const activeWorkspaceIds = [...new Set(notifications.map(n => n.workspaceId))];
+  const activeWorkspaces   = WORKSPACES.filter(w => activeWorkspaceIds.includes(w.id));
 
-  // Assign each notification to exactly one section (first match wins)
   function getSectionItems(sectionId: string) {
-    const section = SECTIONS.find((s) => s.id === sectionId)!;
-    return baseFiltered.filter((n) => {
-      // Check prior sections don't claim it
-      const sectionIndex = SECTIONS.findIndex((s) => s.id === sectionId);
+    const section = SECTIONS.find(s => s.id === sectionId)!;
+    return baseFiltered.filter(n => {
+      const sectionIndex = SECTIONS.findIndex(s => s.id === sectionId);
       for (let i = 0; i < sectionIndex; i++) {
         if (SECTIONS[i].match(n)) return false;
       }
@@ -138,7 +144,7 @@ export function NotificationFeed({
   }
 
   function NotificationCard({ n }: { n: Notification }) {
-    const ws = WORKSPACES.find((w) => w.id === n.workspaceId)!;
+    const ws  = WORKSPACES.find(w => w.id === n.workspaceId) ?? WORKSPACES[0];
     const cfg = EVENT_CONFIG[n.event];
     const Icon = cfg.icon;
     const isAnalyzing = analyzing[n.id];
@@ -167,11 +173,6 @@ export function NotificationFeed({
                 {ai.summary}
               </span>
             </div>
-            {ai.suggestedTemplateId && (
-              <span className="text-[10px] shrink-0" style={{ color: intentCfg.color }}>
-                Template: {{ t1: "Schedule call", t2: "Send deck", t3: "More info", t4: "Decline", t5: "Follow up", t6: "Confirm" }[ai.suggestedTemplateId]}
-              </span>
-            )}
           </div>
         )}
 
@@ -181,9 +182,8 @@ export function NotificationFeed({
           role="button"
           tabIndex={0}
           onClick={() => { onMarkRead(n.id); onOpenReply(n.replyId); }}
-          onKeyDown={(e) => e.key === "Enter" && (onMarkRead(n.id), onOpenReply(n.replyId))}
+          onKeyDown={e => e.key === "Enter" && (onMarkRead(n.id), onOpenReply(n.replyId))}
         >
-          {/* Avatar */}
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 mt-0.5"
             style={{ background: ws.color + "18", color: ws.color, border: `1.5px solid ${ws.color}30` }}
@@ -209,7 +209,7 @@ export function NotificationFeed({
               <div className="flex items-center gap-2 shrink-0">
                 {n.event === "reply_received" && !ai && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleAnalyze(n); }}
+                    onClick={e => { e.stopPropagation(); handleAnalyze(n); }}
                     disabled={isAnalyzing}
                     className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md transition-colors"
                     style={{ background: "#faf5ff", color: isAnalyzing ? "#a78bfa" : "#7c3aed", border: "1px solid #ede9fe" }}
@@ -218,9 +218,9 @@ export function NotificationFeed({
                     {isAnalyzing ? "..." : "AI"}
                   </button>
                 )}
-<span className="text-[10px] text-gray-400" suppressHydrationWarning>
-  {timeAgo(n.receivedAt)}
-</span>
+                <span className="text-[10px] text-gray-400" suppressHydrationWarning>
+                  {timeAgo(n.receivedAt)}
+                </span>
               </div>
             </div>
 
@@ -261,7 +261,8 @@ export function NotificationFeed({
                 disabled={anyAnalyzing}
                 className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg transition-colors"
                 style={{
-                  background: "#faf5ff", color: anyAnalyzing ? "#a78bfa" : "#7c3aed",
+                  background: "#faf5ff",
+                  color: anyAnalyzing ? "#a78bfa" : "#7c3aed",
                   border: "1px solid #ddd6fe",
                   cursor: anyAnalyzing ? "not-allowed" : "pointer",
                 }}
@@ -270,7 +271,7 @@ export function NotificationFeed({
                 {anyAnalyzing ? "Analyzing..." : `AI analyze${analyzedCount > 0 ? ` (${analyzedCount} done)` : " all"}`}
               </button>
               <button
-                onClick={() => setShowRead((p) => !p)}
+                onClick={() => setShowRead(p => !p)}
                 className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg"
                 style={{ background: showRead ? "#f1f5f9" : "transparent", color: showRead ? "#374151" : "#9ca3af", border: "1px solid #e5e7eb" }}
               >
@@ -288,7 +289,7 @@ export function NotificationFeed({
             </div>
           </div>
 
-          {/* Workspace pills */}
+          {/* Workspace filter pills */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <button onClick={() => setFilterWorkspace("all")}
               className="text-[11px] px-2.5 py-1 rounded-full transition-colors"
@@ -299,9 +300,9 @@ export function NotificationFeed({
               }}>
               All
             </button>
-            {activeWorkspaces.map((w) => {
-              const hasUnread = notifications.some((n) => n.workspaceId === w.id && !n.read);
-              const isActive = filterWorkspace === w.id;
+            {activeWorkspaces.map(w => {
+              const hasUnread = notifications.some(n => n.workspaceId === w.id && !n.read);
+              const isActive  = filterWorkspace === w.id;
               return (
                 <button key={w.id}
                   onClick={() => setFilterWorkspace(isActive ? "all" : w.id)}
@@ -323,10 +324,9 @@ export function NotificationFeed({
         </div>
       </div>
 
-      {/* Feed — centered */}
+      {/* Feed */}
       <div className="flex-1 overflow-y-auto py-6 px-4">
         <div className="max-w-3xl mx-auto space-y-6">
-
           {baseFiltered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center"
@@ -338,14 +338,12 @@ export function NotificationFeed({
               </p>
             </div>
           ) : (
-            SECTIONS.map((section) => {
+            SECTIONS.map(section => {
               const items = getSectionItems(section.id);
               if (items.length === 0) return null;
               const SectionIcon = section.icon;
-
               return (
                 <div key={section.id}>
-                  {/* Section header */}
                   <div
                     className="flex items-center gap-3 px-4 py-3 rounded-xl mb-3"
                     style={{ background: section.bg, border: `1px solid ${section.border}` }}
@@ -373,12 +371,8 @@ export function NotificationFeed({
                       </p>
                     </div>
                   </div>
-
-                  {/* Cards */}
                   <div className="space-y-1.5 pl-1">
-                    {items.map((n) => (
-                      <NotificationCard key={n.id} n={n} />
-                    ))}
+                    {items.map(n => <NotificationCard key={n.id} n={n} />)}
                   </div>
                 </div>
               );

@@ -66,12 +66,13 @@ export type Notification = {
   leadEmail: string;
   campaign: string;
   snippet: string;
+  message: string;
   receivedAt: Date;
   read: boolean;
   aiAnalysis?: AIAnalysis;
 };
 
-// ─── Workspaces (your real clients) ──────────────────────────────────────────
+// ─── Workspaces ───────────────────────────────────────────────────────────────
 
 export const WORKSPACES: Workspace[] = [
   { id: "w1",  name: "Larsen Digital",   slug: "larsen-digital",   color: "#185FA5", initials: "LD", instanceUrl: "https://send.emailagencyevolution.com" },
@@ -126,7 +127,7 @@ export const TEMPLATES: Template[] = [
   },
 ];
 
-// ─── Empty arrays — real data comes from DB ───────────────────────────────────
+// ─── Empty — real data comes from DB ─────────────────────────────────────────
 
 export const MOCK_REPLIES: Reply[] = [];
 export const MOCK_NOTIFICATIONS: Notification[] = [];

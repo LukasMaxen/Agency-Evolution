@@ -40,6 +40,7 @@ function replyToNotification(reply: Reply): Notification {
     leadEmail:   reply.leadEmail,
     campaign:    reply.campaign,
     snippet:     reply.message.slice(0, 100),
+    message:     reply.message,
     receivedAt:  reply.receivedAt,
     read:        reply.status !== "new",
   };
@@ -83,7 +84,17 @@ export function MasterInbox() {
           return r;
         });
       });
-      setNotifications(mapped.map(replyToNotification));
+      setNotifications(prev => {
+        return mapped.map((r: Reply) => {
+          const existing = prev.find(p => p.replyId === r.id);
+          // Preserve existing aiAnalysis if already analyzed
+          const notif = replyToNotification(r);
+          if (existing?.aiAnalysis) {
+            return { ...notif, aiAnalysis: existing.aiAnalysis };
+          }
+          return notif;
+        });
+      });
       setLastRefresh(new Date());
     } catch (err) {
       console.error("[fetch] error:", err);
@@ -92,10 +103,8 @@ export function MasterInbox() {
     }
   }, []);
 
-  // Initial load
   useEffect(() => { fetchReplies(); }, [fetchReplies]);
 
-  // Auto-refresh every 30 seconds
   useEffect(() => {
     const interval = setInterval(fetchReplies, 30000);
     return () => clearInterval(interval);
@@ -115,6 +124,7 @@ export function MasterInbox() {
         if (cancelled) break;
         if (aiCache[reply.id]) continue;
         try {
+          // Use FULL message — not snippet
           const analysis = await analyzeReply(
             reply.leadName,
             reply.leadEmail,
@@ -123,18 +133,14 @@ export function MasterInbox() {
           );
           if (!cancelled) {
             handleAIAnalyzed(reply.id, analysis);
-            // Auto-save interested status to DB for hot leads
-            if (
-              analysis.intent === "interested_urgent" ||
-              analysis.intent === "interested"
-            ) {
+            // Auto-save to DB
+            if (analysis.intent === "interested_urgent" || analysis.intent === "interested") {
               fetch("/api/replies", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: reply.id, interested: true }),
               }).catch(console.error);
             }
-            // Auto-save not interested for unsubscribes
             if (analysis.intent === "unsubscribe") {
               fetch("/api/replies", {
                 method: "PATCH",
@@ -146,7 +152,7 @@ export function MasterInbox() {
         } catch (err) {
           console.error("[auto-analyze]", err);
         }
-        // Wait 1.5 seconds between each to be gentle on the API
+        // 1.5s delay between each
         await new Promise(r => setTimeout(r, 1500));
       }
     }
@@ -202,7 +208,6 @@ export function MasterInbox() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }
 
-  // Opening from notification does NOT mark as read
   function handleOpenReply(replyId: string) {
     setView("inbox");
     setSelectedId(replyId);
@@ -245,7 +250,6 @@ export function MasterInbox() {
       <div className="w-48 shrink-0 flex flex-col py-5 px-3 gap-0.5"
         style={{ background: "#ffffff", borderRight: "1px solid #ede9e3" }}>
 
-        {/* Brand */}
         <div className="px-3 mb-6">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
@@ -254,7 +258,7 @@ export function MasterInbox() {
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-900 leading-none">AI Reply Desk</p>
-              <p className="text-[10px] text-gray-400 mt-0.5 leading-none">by Agency Evolution</p>
+              <p className="text-[10px] text-gray-400 mt-0.5 leading-none">by PalcoLabs</p>
             </div>
           </div>
         </div>
@@ -283,7 +287,6 @@ export function MasterInbox() {
           </button>
         ))}
 
-        {/* Last refresh time */}
         <div className="mt-auto px-3 pb-2">
           <div className="flex items-center gap-1.5">
             <RefreshCw size={10} className="text-gray-300" />
