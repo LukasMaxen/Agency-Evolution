@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Reply, Notification, AIAnalysis, WORKSPACES } from "@/lib/mock-data";
+import { analyzeReply } from "@/lib/ai-analysis";
 import { ReplyList } from "@/components/ReplyList";
 import { ReplyDetail } from "@/components/ReplyDetail";
 import { EmptyState } from "@/components/EmptyState";
@@ -60,6 +61,7 @@ export function MasterInbox() {
   const unreadCount     = notifications.filter(n => !n.read).length;
   const newRepliesCount = replies.filter(r => r.status === "new").length;
 
+  // ── Fetch replies from DB ─────────────────────────────────────────────────
   const fetchReplies = useCallback(async () => {
     try {
       const res = await fetch("/api/replies?limit=100");
@@ -90,12 +92,70 @@ export function MasterInbox() {
     }
   }, []);
 
+  // Initial load
   useEffect(() => { fetchReplies(); }, [fetchReplies]);
 
+  // Auto-refresh every 30 seconds
   useEffect(() => {
     const interval = setInterval(fetchReplies, 30000);
     return () => clearInterval(interval);
   }, [fetchReplies]);
+
+  // ── Auto-analyze new unread replies one at a time ─────────────────────────
+  useEffect(() => {
+    const newUnanalyzed = replies.filter(
+      r => r.status === "new" && !aiCache[r.id]
+    );
+    if (newUnanalyzed.length === 0) return;
+
+    let cancelled = false;
+
+    async function analyzeSequentially() {
+      for (const reply of newUnanalyzed) {
+        if (cancelled) break;
+        if (aiCache[reply.id]) continue;
+        try {
+          const analysis = await analyzeReply(
+            reply.leadName,
+            reply.leadEmail,
+            reply.campaign,
+            reply.message
+          );
+          if (!cancelled) {
+            handleAIAnalyzed(reply.id, analysis);
+            // Auto-save interested status to DB for hot leads
+            if (
+              analysis.intent === "interested_urgent" ||
+              analysis.intent === "interested"
+            ) {
+              fetch("/api/replies", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: reply.id, interested: true }),
+              }).catch(console.error);
+            }
+            // Auto-save not interested for unsubscribes
+            if (analysis.intent === "unsubscribe") {
+              fetch("/api/replies", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: reply.id, interested: false }),
+              }).catch(console.error);
+            }
+          }
+        } catch (err) {
+          console.error("[auto-analyze]", err);
+        }
+        // Wait 1.5 seconds between each to be gentle on the API
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    }
+
+    analyzeSequentially();
+    return () => { cancelled = true; };
+  }, [replies, aiCache]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   function handleSelect(reply: Reply) {
     setSelectedId(reply.id);
@@ -122,7 +182,6 @@ export function MasterInbox() {
     setReplies(prev => prev.map(r => r.id === id ? { ...r, status: "replied" } : r));
   }
 
-  // Mark as unread — restores blue dot in inbox list
   function handleMarkUnread(id: string) {
     setReplies(prev => prev.map(r => r.id === id ? { ...r, status: "new" } : r));
     setNotifications(prev =>
