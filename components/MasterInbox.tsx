@@ -11,7 +11,6 @@ import { Inbox, Bell, BarChart2, RefreshCw } from "lucide-react";
 
 type View = "inbox" | "notifications" | "dashboard";
 
-// Convert DB row to app Reply type
 function dbRowToReply(r: any): Reply {
   const workspace = WORKSPACES.find(w => w.slug === r.workspaceSlug || w.id === r.workspaceId);
   return {
@@ -30,7 +29,6 @@ function dbRowToReply(r: any): Reply {
   };
 }
 
-// Convert reply to notification
 function replyToNotification(reply: Reply): Notification {
   return {
     id:          `notif-${reply.id}`,
@@ -47,22 +45,21 @@ function replyToNotification(reply: Reply): Notification {
 }
 
 export function MasterInbox() {
-  const [view, setView]               = useState<View>("notifications");
-  const [replies, setReplies]         = useState<Reply[]>([]);
+  const [view, setView]                   = useState<View>("notifications");
+  const [replies, setReplies]             = useState<Reply[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [selectedId, setSelectedId]   = useState<string | null>(null);
-  const [search, setSearch]           = useState("");
-  const [filterStatus, setFilterStatus]     = useState("all");
+  const [selectedId, setSelectedId]       = useState<string | null>(null);
+  const [search, setSearch]               = useState("");
+  const [filterStatus, setFilterStatus]       = useState("all");
   const [filterWorkspace, setFilterWorkspace] = useState("all");
-  const [aiCache, setAiCache]         = useState<Record<string, AIAnalysis>>({});
-  const [loading, setLoading]         = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [aiCache, setAiCache]             = useState<Record<string, AIAnalysis>>({});
+  const [loading, setLoading]             = useState(true);
+  const [lastRefresh, setLastRefresh]     = useState<Date>(new Date());
 
-  const selectedReply = selectedId ? replies.find(r => r.id === selectedId) ?? null : null;
-  const unreadCount   = notifications.filter(n => !n.read).length;
+  const selectedReply   = selectedId ? replies.find(r => r.id === selectedId) ?? null : null;
+  const unreadCount     = notifications.filter(n => !n.read).length;
   const newRepliesCount = replies.filter(r => r.status === "new").length;
 
-  // Fetch real replies from DB
   const fetchReplies = useCallback(async () => {
     try {
       const res = await fetch("/api/replies?limit=100");
@@ -70,7 +67,6 @@ export function MasterInbox() {
       const data = await res.json();
       const mapped = (data.replies ?? []).map(dbRowToReply);
       setReplies(prev => {
-        // Preserve local status changes (read/replied) for existing replies
         return mapped.map((r: Reply) => {
           const existing = prev.find(p => p.id === r.id);
           if (existing) {
@@ -94,12 +90,8 @@ export function MasterInbox() {
     }
   }, []);
 
-  // Initial load
-  useEffect(() => {
-    fetchReplies();
-  }, [fetchReplies]);
+  useEffect(() => { fetchReplies(); }, [fetchReplies]);
 
-  // Auto-refresh every 30 seconds
   useEffect(() => {
     const interval = setInterval(fetchReplies, 30000);
     return () => clearInterval(interval);
@@ -109,7 +101,6 @@ export function MasterInbox() {
     setSelectedId(reply.id);
     if (reply.status === "new") {
       setReplies(prev => prev.map(r => r.id === reply.id ? { ...r, status: "read" } : r));
-      // Persist to DB
       fetch("/api/replies", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -131,6 +122,19 @@ export function MasterInbox() {
     setReplies(prev => prev.map(r => r.id === id ? { ...r, status: "replied" } : r));
   }
 
+  // Mark as unread — restores blue dot in inbox list
+  function handleMarkUnread(id: string) {
+    setReplies(prev => prev.map(r => r.id === id ? { ...r, status: "new" } : r));
+    setNotifications(prev =>
+      prev.map(n => n.replyId === id ? { ...n, read: false } : n)
+    );
+    fetch("/api/replies", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "new" }),
+    }).catch(console.error);
+  }
+
   function handleMarkRead(id: string) {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   }
@@ -139,11 +143,11 @@ export function MasterInbox() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }
 
+  // Opening from notification does NOT mark as read
   function handleOpenReply(replyId: string) {
-  setView("inbox");
-  setSelectedId(replyId);
-  // Do NOT mark as read here — inbox manager must explicitly mark it
-}
+    setView("inbox");
+    setSelectedId(replyId);
+  }
 
   function handleAIAnalyzed(replyId: string, analysis: AIAnalysis) {
     setAiCache(prev => ({ ...prev, [replyId]: analysis }));
@@ -191,7 +195,7 @@ export function MasterInbox() {
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-900 leading-none">AI Reply Desk</p>
-              <p className="text-[10px] text-gray-400 mt-0.5 leading-none">by Agency Evolution</p>
+              <p className="text-[10px] text-gray-400 mt-0.5 leading-none">by PalcoLabs</p>
             </div>
           </div>
         </div>
@@ -220,7 +224,7 @@ export function MasterInbox() {
           </button>
         ))}
 
-        {/* Refresh indicator */}
+        {/* Last refresh time */}
         <div className="mt-auto px-3 pb-2">
           <div className="flex items-center gap-1.5">
             <RefreshCw size={10} className="text-gray-300" />
@@ -268,6 +272,7 @@ export function MasterInbox() {
                 onMarkInterested={handleMarkInterested}
                 onReplySent={handleReplySent}
                 onAIAnalyzed={handleAIAnalyzed}
+                onMarkUnread={handleMarkUnread}
               />
             ) : (
               <EmptyState />

@@ -10,10 +10,9 @@ import { WorkspaceAvatar } from "./WorkspaceAvatar";
 import {
   ExternalLink, ChevronDown, LayoutTemplate,
   Send, CheckCircle, XCircle, Check, Sparkles,
-  Loader2, Calendar,
+  Loader2, Calendar, MailOpen,
 } from "lucide-react";
 
-// EmailBison template type
 interface EBTemplate {
   id: number;
   name: string;
@@ -27,23 +26,9 @@ interface Props {
   onReplySent: (id: string) => void;
   onAIAnalyzed?: (replyId: string, analysis: AIAnalysis) => void;
   onMarkUnread?: (id: string) => void;
-
 }
 
-// Resolve EmailBison merge tags with real lead data
-function resolveMergeTags(body: string, reply: Reply): string {
-  const firstName = reply.leadName.split(" ")[0] ?? reply.leadName;
-  const lastName  = reply.leadName.split(" ").slice(1).join(" ") ?? "";
-  return body
-    .replace(/\{FIRST_NAME\}/gi,    firstName)
-    .replace(/\{LAST_NAME\}/gi,     lastName)
-    .replace(/\{FULL_NAME\}/gi,     reply.leadName)
-    .replace(/\{EMAIL\}/gi,         reply.leadEmail)
-    .replace(/\{\{first_name\}\}/gi, firstName)
-    .replace(/\{\{last_name\}\}/gi,  lastName);
-}
-
-// Strip HTML tags and decode entities for plain text composer
+// Strip HTML tags — convert to plain text for composer
 function htmlToPlainText(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, "\n")
@@ -60,20 +45,33 @@ function htmlToPlainText(html: string): string {
     .trim();
 }
 
+// Resolve EmailBison merge tags with real lead data
+function resolveMergeTags(body: string, reply: Reply): string {
+  const firstName = reply.leadName.split(" ")[0] ?? reply.leadName;
+  const lastName  = reply.leadName.split(" ").slice(1).join(" ") ?? "";
+  return body
+    .replace(/\{FIRST_NAME\}/gi,     firstName)
+    .replace(/\{LAST_NAME\}/gi,      lastName)
+    .replace(/\{FULL_NAME\}/gi,      reply.leadName)
+    .replace(/\{EMAIL\}/gi,          reply.leadEmail)
+    .replace(/\{\{first_name\}\}/gi, firstName)
+    .replace(/\{\{last_name\}\}/gi,  lastName);
+}
+
 export function ReplyDetail({
   reply, aiAnalysis: initialAI,
   onMarkInterested, onReplySent, onAIAnalyzed, onMarkUnread,
 }: Props) {
-  const [replyText, setReplyText]       = useState("");
-  const [templates, setTemplates]       = useState<EBTemplate[]>([]);
+  const [replyText, setReplyText]               = useState("");
+  const [templates, setTemplates]               = useState<EBTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<EBTemplate | null>(null);
-  const [templateOpen, setTemplateOpen] = useState(false);
+  const [templateOpen, setTemplateOpen]         = useState(false);
   const [templatesLoading, setTemplatesLoading] = useState(false);
-  const [sending, setSending]           = useState(false);
-  const [sent, setSent]                 = useState(false);
-  const [aiAnalysis, setAiAnalysis]     = useState<AIAnalysis | undefined>(initialAI);
-  const [analyzing, setAnalyzing]       = useState(false);
-  const [showCalendly, setShowCalendly] = useState(false);
+  const [sending, setSending]                   = useState(false);
+  const [sent, setSent]                         = useState(false);
+  const [aiAnalysis, setAiAnalysis]             = useState<AIAnalysis | undefined>(initialAI);
+  const [analyzing, setAnalyzing]               = useState(false);
+  const [showCalendly, setShowCalendly]         = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -81,7 +79,6 @@ export function ReplyDetail({
     ?? { id: reply.workspaceId, name: "Unknown", slug: "unknown", color: "#6b7280", initials: "?", instanceUrl: "" };
   const emailBisonUrl = buildEmailBisonUrl(workspace.instanceUrl, reply.emailBisonId);
 
-  // Reset when reply changes
   useEffect(() => {
     setReplyText("");
     setSelectedTemplate(null);
@@ -89,11 +86,11 @@ export function ReplyDetail({
     setSent(false);
     setAiAnalysis(initialAI);
     setShowCalendly(false);
+    setTemplates([]);
   }, [reply.id]);
 
-  // Load real templates from EmailBison when template picker opens
   async function loadTemplates() {
-    if (templates.length > 0) return; // already loaded
+    if (templates.length > 0) return;
     setTemplatesLoading(true);
     try {
       const res = await fetch(`/api/templates?workspace=${workspace.slug}`);
@@ -151,7 +148,7 @@ export function ReplyDetail({
 
   function pickTemplate(t: EBTemplate) {
     setSelectedTemplate(t);
-    // Resolve merge tags with real lead data
+    // Strip HTML first, then resolve merge tags
     setReplyText(resolveMergeTags(htmlToPlainText(t.body), reply));
     setTemplateOpen(false);
     textareaRef.current?.focus();
@@ -282,8 +279,8 @@ export function ReplyDetail({
           </p>
         </div>
 
-        {/* Mark interested */}
-        <div className="flex items-center gap-2">
+        {/* Mark as row */}
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-gray-400">Mark as:</span>
           <button
             onClick={() => onMarkInterested(reply.id, reply.interested === true ? null : true)}
@@ -310,26 +307,26 @@ export function ReplyDetail({
             <XCircle size={12} /> Not interested
           </button>
 
-          {reply.status !== "new" && reply.status !== "replied" && (
-  <button
-    onClick={() => onMarkUnread?.(reply.id)}
-    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all ml-auto"
-    style={{
-      background: "#f8f7f5",
-      color: "#6b7280",
-      border: "1px solid #e5e7eb",
-    }}
-  >
-    Mark as unread
-  </button>
-)}
+          {/* Mark as unread — only shown if reply has been read and not yet replied */}
+          {reply.status === "read" && onMarkUnread && (
+            <button
+              onClick={() => onMarkUnread(reply.id)}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all ml-auto"
+              style={{
+                background: "#f8f7f5",
+                color: "#6b7280",
+                border: "1px solid #e5e7eb",
+              }}
+            >
+              <MailOpen size={12} /> Mark as unread
+            </button>
+          )}
         </div>
       </div>
 
       {/* Composer */}
       <div className="shrink-0" style={{ background: "#ffffff", borderTop: "1px solid #ede9e3" }}>
 
-        {/* Calendly slot picker */}
         {showCalendly && (
           <CalendlySlotPicker
             leadName={reply.leadName}
@@ -343,7 +340,6 @@ export function ReplyDetail({
 
         <div className="px-6 py-4 space-y-3">
 
-          {/* AI analyzing indicator */}
           {analyzing && (
             <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl"
               style={{ background: "#faf5ff", border: "1px solid #ede9fe" }}>
@@ -354,10 +350,9 @@ export function ReplyDetail({
             </div>
           )}
 
-          {/* Toolbar */}
           <div className="flex items-center gap-2 flex-wrap">
 
-            {/* Template picker — loads from EmailBison */}
+            {/* Template picker — loads real templates from EmailBison */}
             <div ref={dropdownRef} className="relative">
               <button
                 onClick={toggleTemplateOpen}
@@ -433,7 +428,6 @@ export function ReplyDetail({
             </button>
           </div>
 
-          {/* Textarea */}
           <textarea
             ref={textareaRef}
             value={replyText}
@@ -450,7 +444,6 @@ export function ReplyDetail({
             onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
           />
 
-          {/* Send row */}
           <div className="flex items-center justify-between">
             <p className="text-[11px] text-gray-400">
               Via <span className="text-gray-500">{reply.senderEmail}</span>
