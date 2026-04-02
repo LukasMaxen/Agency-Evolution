@@ -15,7 +15,7 @@ function extractCleanBody(textBody: string): string {
 
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ workspace: string }> }
+  context: { params: Promise<Record<string, string>> }
 ) {
   try {
     const { workspace: slug } = await context.params;
