@@ -26,6 +26,8 @@ interface Props {
   onMarkInterested: (id: string, value: boolean | null) => void;
   onReplySent: (id: string) => void;
   onAIAnalyzed?: (replyId: string, analysis: AIAnalysis) => void;
+  onMarkUnread?: (id: string) => void;
+
 }
 
 // Resolve EmailBison merge tags with real lead data
@@ -41,9 +43,26 @@ function resolveMergeTags(body: string, reply: Reply): string {
     .replace(/\{\{last_name\}\}/gi,  lastName);
 }
 
+// Strip HTML tags and decode entities for plain text composer
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export function ReplyDetail({
   reply, aiAnalysis: initialAI,
-  onMarkInterested, onReplySent, onAIAnalyzed,
+  onMarkInterested, onReplySent, onAIAnalyzed, onMarkUnread,
 }: Props) {
   const [replyText, setReplyText]       = useState("");
   const [templates, setTemplates]       = useState<EBTemplate[]>([]);
@@ -133,7 +152,7 @@ export function ReplyDetail({
   function pickTemplate(t: EBTemplate) {
     setSelectedTemplate(t);
     // Resolve merge tags with real lead data
-    setReplyText(resolveMergeTags(t.body, reply));
+    setReplyText(resolveMergeTags(htmlToPlainText(t.body), reply));
     setTemplateOpen(false);
     textareaRef.current?.focus();
   }
@@ -290,6 +309,20 @@ export function ReplyDetail({
           >
             <XCircle size={12} /> Not interested
           </button>
+
+          {reply.status !== "new" && reply.status !== "replied" && (
+  <button
+    onClick={() => onMarkUnread?.(reply.id)}
+    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all ml-auto"
+    style={{
+      background: "#f8f7f5",
+      color: "#6b7280",
+      border: "1px solid #e5e7eb",
+    }}
+  >
+    Mark as unread
+  </button>
+)}
         </div>
       </div>
 

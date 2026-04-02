@@ -140,10 +140,10 @@ export function MasterInbox() {
   }
 
   function handleOpenReply(replyId: string) {
-    setView("inbox");
-    const reply = replies.find(r => r.id === replyId);
-    if (reply) handleSelect(reply);
-  }
+  setView("inbox");
+  setSelectedId(replyId);
+  // Do NOT mark as read here — inbox manager must explicitly mark it
+}
 
   function handleAIAnalyzed(replyId: string, analysis: AIAnalysis) {
     setAiCache(prev => ({ ...prev, [replyId]: analysis }));
