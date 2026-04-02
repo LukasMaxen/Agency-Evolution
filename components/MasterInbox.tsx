@@ -258,7 +258,7 @@ export function MasterInbox() {
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-900 leading-none">AI Reply Desk</p>
-              <p className="text-[10px] text-gray-400 mt-0.5 leading-none">by PalcoLabs</p>
+              <p className="text-[10px] text-gray-400 mt-0.5 leading-none">by Agency Evolution</p>
             </div>
           </div>
         </div>
