@@ -95,15 +95,35 @@ export function ReplyDetail({
     textareaRef.current?.focus();
   }
 
-  async function handleSend() {
-    if (!replyText.trim() || sending || sent) return;
-    setSending(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setSending(false);
+async function handleSend() {
+  if (!replyText.trim() || sending || sent) return;
+  setSending(true);
+  try {
+    const res = await fetch("/api/send-reply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        replyId: reply.id,
+        message: replyText,
+        emailType: "reply",
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error ?? "Failed to send");
+    }
+
     setSent(true);
     onReplySent(reply.id);
     setTimeout(() => setSent(false), 3000);
+  } catch (err: any) {
+    console.error("[send]", err);
+    alert(`Failed to send: ${err.message}`);
+  } finally {
+    setSending(false);
   }
+}
 
   const intentCfg = aiAnalysis ? INTENT_CONFIG[aiAnalysis.intent] : null;
 
