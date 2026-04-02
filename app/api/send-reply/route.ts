@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+// Resolve EmailBison merge tags with real lead data
+function resolveMergeTags(body: string, leadName: string, leadEmail: string, leadCompany: string | null, leadTitle: string | null): string {
+  const firstName = leadName.split(" ")[0] ?? leadName;
+  const lastName  = leadName.split(" ").slice(1).join(" ") ?? "";
+
+  return body
+    .replace(/\{FIRST_NAME\}/gi,   firstName)
+    .replace(/\{LAST_NAME\}/gi,    lastName)
+    .replace(/\{FULL_NAME\}/gi,    leadName)
+    .replace(/\{EMAIL\}/gi,        leadEmail)
+    .replace(/\{COMPANY\}/gi,      leadCompany ?? "")
+    .replace(/\{TITLE\}/gi,        leadTitle ?? "")
+    .replace(/\{\{first_name\}\}/gi, firstName)
+    .replace(/\{\{last_name\}\}/gi,  lastName)
+    .replace(/\{\{company\}\}/gi,    leadCompany ?? "")
+    .replace(/\{\{title\}\}/gi,      leadTitle ?? "");
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { replyId, message, emailType } = await req.json();
@@ -12,7 +30,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get reply + workspace API key
+    // Get reply + workspace details
     const result = await pool.query(
       `SELECT r.*, w.email_bison_api_key, w.email_bison_instance_url
        FROM replies r
@@ -25,17 +43,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Reply not found" }, { status: 404 });
     }
 
-    const reply = result.rows[0];
-    const apiKey = reply.email_bison_api_key;
+    const reply    = result.rows[0];
+    const apiKey   = reply.email_bison_api_key;
     const instanceUrl = reply.email_bison_instance_url;
     const emailBisonReplyId = reply.email_bison_reply_id;
+    const senderEmailId     = reply.sender_email_id;
 
-    if (!apiKey || !emailBisonReplyId) {
-      return NextResponse.json(
-        { error: "Workspace not configured or reply ID missing" },
-        { status: 400 }
-      );
+    if (!apiKey) {
+      return NextResponse.json({ error: "Workspace API key not configured" }, { status: 400 });
     }
+
+    if (!emailBisonReplyId) {
+      return NextResponse.json({ error: "EmailBison reply ID missing — this may be a test reply" }, { status: 400 });
+    }
+
+    if (!senderEmailId) {
+      return NextResponse.json({ error: "Sender email ID missing from reply" }, { status: 400 });
+    }
+
+    // Resolve merge tags in the message
+    const resolvedMessage = resolveMergeTags(
+      message,
+      reply.lead_name,
+      reply.lead_email,
+      reply.lead_company,
+      reply.lead_title
+    );
+
+    // Build to_emails — reply to the lead
+    const toEmails = [{
+      name: reply.lead_name ?? null,
+      email_address: reply.to_email ?? reply.lead_email,
+    }];
 
     // Send via EmailBison API
     const ebResponse = await fetch(
@@ -48,8 +87,11 @@ export async function POST(req: NextRequest) {
           "Accept": "application/json",
         },
         body: JSON.stringify({
-          reply_all: true,
-          message: message,
+          message: resolvedMessage,
+          sender_email_id: senderEmailId,
+          to_emails: toEmails,
+          inject_previous_email_body: true,
+          content_type: "text",
         }),
       }
     );
@@ -58,7 +100,7 @@ export async function POST(req: NextRequest) {
       const errText = await ebResponse.text();
       console.error("[send-reply] EmailBison error:", errText);
       return NextResponse.json(
-        { error: `EmailBison API error: ${ebResponse.status}` },
+        { error: `EmailBison API error ${ebResponse.status}: ${errText}` },
         { status: ebResponse.status }
       );
     }
@@ -77,17 +119,17 @@ export async function POST(req: NextRequest) {
         reply.lead_name,
         emailType ?? "reply",
         reply.subject ?? "",
-        message,
+        resolvedMessage,
       ]
     );
 
-    // Update reply status to replied
+    // Update reply status
     await pool.query(
       "UPDATE replies SET status = 'replied' WHERE id = $1",
       [replyId]
     );
 
-    // If follow-up, update fu tracking
+    // Update follow_up tracking if this is a follow-up
     if (emailType && emailType.startsWith("fu_")) {
       const fuStep = parseInt(emailType.replace("fu_", "")) || 1;
       await pool.query(

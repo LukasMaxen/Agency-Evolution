@@ -52,25 +52,29 @@ export async function POST(
       const receivedAt      = reply.date_received ? new Date(reply.date_received) : new Date();
 
       await pool.query(
-        `INSERT INTO replies (
-          id, workspace_id, workspace_slug, email_bison_id,
-          email_bison_reply_id, email_bison_lead_id,
-          lead_email, lead_name, lead_company, lead_title,
-          sender_email, campaign, subject, message,
-          received_at, status, interested
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'new',NULL)
-        ON CONFLICT (id) DO NOTHING`,
-        [
-          replyUuid, workspace.id, slug, replyUuid,
-          reply.id, lead.id,
-          leadEmail, leadName,
-          lead.company ?? null, lead.title ?? null,
-          senderEmail?.email ?? "",
-          campaign?.name ?? "",
-          reply.email_subject ?? "",
-          message, receivedAt,
-        ]
-      );
+  `INSERT INTO replies (
+    id, workspace_id, workspace_slug, email_bison_id,
+    email_bison_reply_id, email_bison_lead_id,
+    lead_email, lead_name, lead_company, lead_title,
+    sender_email, sender_email_id,
+    to_email, to_name,
+    campaign, subject, message,
+    received_at, status, interested
+  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'new',NULL)
+  ON CONFLICT (id) DO NOTHING`,
+  [
+    replyUuid, workspace.id, slug, replyUuid,
+    reply.id, lead.id,
+    leadEmail, leadName,
+    lead.company ?? null, lead.title ?? null,
+    senderEmail?.email ?? "", senderEmail?.id ?? null,
+    reply.primary_to_email_address ?? leadEmail,
+    leadName,
+    campaign?.name ?? "",
+    reply.email_subject ?? "",
+    message, receivedAt,
+  ]
+);
 
       await pool.query(
         `INSERT INTO follow_ups (

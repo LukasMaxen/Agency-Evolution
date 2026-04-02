@@ -1,17 +1,24 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Reply, TEMPLATES, WORKSPACES, AIAnalysis } from "@/lib/mock-data";
+import { Reply, WORKSPACES, AIAnalysis } from "@/lib/mock-data";
 import { analyzeReply, INTENT_CONFIG } from "@/lib/ai-analysis";
 import { AIBadge } from "@/components/AIBadge";
 import { CalendlySlotPicker } from "@/components/CalendlySlotPicker";
-import { getInitials, timeAgo, applyTemplate, buildEmailBisonUrl } from "@/lib/utils";
+import { getInitials, timeAgo, buildEmailBisonUrl } from "@/lib/utils";
 import { WorkspaceAvatar } from "./WorkspaceAvatar";
 import {
   ExternalLink, ChevronDown, LayoutTemplate,
   Send, CheckCircle, XCircle, Check, Sparkles,
   Loader2, Calendar,
 } from "lucide-react";
+
+// EmailBison template type
+interface EBTemplate {
+  id: number;
+  name: string;
+  body: string;
+}
 
 interface Props {
   reply: Reply;
@@ -21,24 +28,41 @@ interface Props {
   onAIAnalyzed?: (replyId: string, analysis: AIAnalysis) => void;
 }
 
+// Resolve EmailBison merge tags with real lead data
+function resolveMergeTags(body: string, reply: Reply): string {
+  const firstName = reply.leadName.split(" ")[0] ?? reply.leadName;
+  const lastName  = reply.leadName.split(" ").slice(1).join(" ") ?? "";
+  return body
+    .replace(/\{FIRST_NAME\}/gi,    firstName)
+    .replace(/\{LAST_NAME\}/gi,     lastName)
+    .replace(/\{FULL_NAME\}/gi,     reply.leadName)
+    .replace(/\{EMAIL\}/gi,         reply.leadEmail)
+    .replace(/\{\{first_name\}\}/gi, firstName)
+    .replace(/\{\{last_name\}\}/gi,  lastName);
+}
+
 export function ReplyDetail({
   reply, aiAnalysis: initialAI,
   onMarkInterested, onReplySent, onAIAnalyzed,
 }: Props) {
-  const [replyText, setReplyText] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState<(typeof TEMPLATES)[0] | null>(null);
+  const [replyText, setReplyText]       = useState("");
+  const [templates, setTemplates]       = useState<EBTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<EBTemplate | null>(null);
   const [templateOpen, setTemplateOpen] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | undefined>(initialAI);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [sending, setSending]           = useState(false);
+  const [sent, setSent]                 = useState(false);
+  const [aiAnalysis, setAiAnalysis]     = useState<AIAnalysis | undefined>(initialAI);
+  const [analyzing, setAnalyzing]       = useState(false);
   const [showCalendly, setShowCalendly] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const workspace = WORKSPACES.find((w) => w.id === reply.workspaceId)!;
+  const workspace = WORKSPACES.find((w) => w.id === reply.workspaceId)
+    ?? { id: reply.workspaceId, name: "Unknown", slug: "unknown", color: "#6b7280", initials: "?", instanceUrl: "" };
   const emailBisonUrl = buildEmailBisonUrl(workspace.instanceUrl, reply.emailBisonId);
 
+  // Reset when reply changes
   useEffect(() => {
     setReplyText("");
     setSelectedTemplate(null);
@@ -47,6 +71,28 @@ export function ReplyDetail({
     setAiAnalysis(initialAI);
     setShowCalendly(false);
   }, [reply.id]);
+
+  // Load real templates from EmailBison when template picker opens
+  async function loadTemplates() {
+    if (templates.length > 0) return; // already loaded
+    setTemplatesLoading(true);
+    try {
+      const res = await fetch(`/api/templates?workspace=${workspace.slug}`);
+      if (!res.ok) throw new Error("Failed to load templates");
+      const data = await res.json();
+      setTemplates(data.templates ?? []);
+    } catch (err) {
+      console.error("[templates]", err);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }
+
+  function toggleTemplateOpen() {
+    const next = !templateOpen;
+    setTemplateOpen(next);
+    if (next) loadTemplates();
+  }
 
   async function runAI() {
     if (analyzing) return;
@@ -66,10 +112,6 @@ export function ReplyDetail({
   }
 
   function applyAIResult(analysis: AIAnalysis) {
-    if (analysis.suggestedTemplateId) {
-      const t = TEMPLATES.find((t) => t.id === analysis.suggestedTemplateId);
-      if (t) setSelectedTemplate(t);
-    }
     if (analysis.suggestedReply) {
       setReplyText(analysis.suggestedReply);
     }
@@ -88,49 +130,50 @@ export function ReplyDetail({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  function pickTemplate(t: (typeof TEMPLATES)[0]) {
+  function pickTemplate(t: EBTemplate) {
     setSelectedTemplate(t);
-    setReplyText(applyTemplate(t.body, reply.leadName));
+    // Resolve merge tags with real lead data
+    setReplyText(resolveMergeTags(t.body, reply));
     setTemplateOpen(false);
     textareaRef.current?.focus();
   }
 
-async function handleSend() {
-  if (!replyText.trim() || sending || sent) return;
-  setSending(true);
-  try {
-    const res = await fetch("/api/send-reply", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        replyId: reply.id,
-        message: replyText,
-        emailType: "reply",
-      }),
-    });
+  async function handleSend() {
+    if (!replyText.trim() || sending || sent) return;
+    setSending(true);
+    try {
+      const res = await fetch("/api/send-reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          replyId: reply.id,
+          message: replyText,
+          emailType: "reply",
+        }),
+      });
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error ?? "Failed to send");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to send");
+      }
+
+      setSent(true);
+      onReplySent(reply.id);
+      setTimeout(() => setSent(false), 3000);
+    } catch (err: any) {
+      console.error("[send]", err);
+      alert(`Failed to send: ${err.message}`);
+    } finally {
+      setSending(false);
     }
-
-    setSent(true);
-    onReplySent(reply.id);
-    setTimeout(() => setSent(false), 3000);
-  } catch (err: any) {
-    console.error("[send]", err);
-    alert(`Failed to send: ${err.message}`);
-  } finally {
-    setSending(false);
   }
-}
 
   const intentCfg = aiAnalysis ? INTENT_CONFIG[aiAnalysis.intent] : null;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#f8f7f5" }}>
 
-      {/* AI banner — shows after analysis */}
+      {/* AI banner */}
       {aiAnalysis && intentCfg && (
         <div
           className="px-6 py-2.5 flex items-center justify-between gap-4 shrink-0"
@@ -143,12 +186,6 @@ async function handleSend() {
               {aiAnalysis.summary}
             </span>
           </div>
-          {aiAnalysis.suggestedTemplateId && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full shrink-0"
-              style={{ background: "white", color: intentCfg.color, border: `1px solid ${intentCfg.border}` }}>
-              Template: {TEMPLATES.find(t => t.id === aiAnalysis.suggestedTemplateId)?.name}
-            </span>
-          )}
         </div>
       )}
 
@@ -284,13 +321,13 @@ async function handleSend() {
             </div>
           )}
 
-          {/* Toolbar — always visible */}
+          {/* Toolbar */}
           <div className="flex items-center gap-2 flex-wrap">
 
-            {/* Template picker */}
+            {/* Template picker — loads from EmailBison */}
             <div ref={dropdownRef} className="relative">
               <button
-                onClick={() => setTemplateOpen((p) => !p)}
+                onClick={toggleTemplateOpen}
                 className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg transition-colors"
                 style={{
                   background: "#f8f7f5",
@@ -304,22 +341,27 @@ async function handleSend() {
               </button>
 
               {templateOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-60 rounded-xl overflow-hidden z-20"
+                <div className="absolute bottom-full left-0 mb-2 w-64 rounded-xl overflow-hidden z-20"
                   style={{ background: "#ffffff", border: "1px solid #e5e7eb", boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}>
-                  {TEMPLATES.map((t) => (
-                    <button key={t.id} onClick={() => pickTemplate(t)}
-                      className="w-full text-left px-4 py-2.5 text-xs transition-colors flex items-center justify-between"
-                      style={{ color: "#374151", borderBottom: "1px solid #f3f4f6" }}
-                      onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#f8f7f5")}
-                      onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
-                    >
-                      {t.name}
-                      {aiAnalysis?.suggestedTemplateId === t.id && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full"
-                          style={{ background: "#faf5ff", color: "#7c3aed" }}>AI pick</span>
-                      )}
-                    </button>
-                  ))}
+                  {templatesLoading ? (
+                    <div className="flex items-center gap-2 px-4 py-3">
+                      <Loader2 size={11} className="animate-spin text-gray-400" />
+                      <span className="text-xs text-gray-400">Loading templates...</span>
+                    </div>
+                  ) : templates.length === 0 ? (
+                    <p className="text-xs text-gray-400 px-4 py-3">No templates found</p>
+                  ) : (
+                    templates.map((t) => (
+                      <button key={t.id} onClick={() => pickTemplate(t)}
+                        className="w-full text-left px-4 py-2.5 text-xs transition-colors"
+                        style={{ color: "#374151", borderBottom: "1px solid #f3f4f6" }}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#f8f7f5")}
+                        onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
+                      >
+                        {t.name}
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -338,7 +380,7 @@ async function handleSend() {
               {showCalendly ? "Hide slots" : "Check availability"}
             </button>
 
-            {/* Write reply with AI — always visible */}
+            {/* Write reply with AI */}
             <button
               onClick={runAI}
               disabled={analyzing}
@@ -356,10 +398,9 @@ async function handleSend() {
                 : <><Sparkles size={12} /> Write reply with AI</>
               }
             </button>
-
           </div>
 
-          {/* Textarea — always visible */}
+          {/* Textarea */}
           <textarea
             ref={textareaRef}
             value={replyText}
