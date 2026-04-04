@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
 
     const result = await pool.query(query, values);
 
-    // Map DB rows to app Reply type
     const replies = result.rows.map((r) => ({
       id:            r.id,
       workspaceId:   r.workspace_id,
@@ -43,6 +42,8 @@ export async function GET(req: NextRequest) {
       receivedAt:    r.received_at,
       status:        r.status,
       interested:    r.interested,
+      // Include cached AI result so the frontend never re-calls the AI
+      aiAnalysis:    r.ai_analysis ?? null,
     }));
 
     return NextResponse.json({ replies });
@@ -52,7 +53,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Mark reply status or interested
 export async function PATCH(req: NextRequest) {
   try {
     const { id, status, interested } = await req.json();

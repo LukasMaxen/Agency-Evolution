@@ -106,6 +106,7 @@ export function NotificationFeed({
     try {
       // Use full message, fall back to snippet
       const analysis = await analyzeReply(
+        n.replyId,
         n.leadName,
         n.leadEmail,
         n.campaign,

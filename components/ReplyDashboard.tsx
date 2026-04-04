@@ -1,22 +1,51 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import {
-  DASHBOARD_REPLIES, FOLLOW_UP_LEADS, MEETING_LEADS, WORKSPACE_COLORS,
-  DashboardReply, FollowUpLead, MeetingLead,
-} from "@/lib/dashboard-data";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { WORKSPACES } from "@/lib/mock-data";
-import { X } from "lucide-react";
+import { X, RefreshCw, Loader2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type DateFilter = "today" | "yesterday" | "7days" | "30days" | "all";
+type DateFilter  = "today" | "yesterday" | "7days" | "30days" | "all";
 type QueueFilter = "today" | "tomorrow" | "yesterday" | "7days" | "30days" | "all";
-type ModalType = "replies" | "interested" | "followup" | "meetings" | null;
+type ModalType   = "replies" | "interested" | "followup" | "meetings" | null;
+
+interface DashboardReply {
+  id: string;
+  name: string;
+  email: string;
+  workspaceId: string;
+  message: string;
+  date: string;
+  type: "interested" | "not_interested" | "neutral";
+}
+
+interface FollowUpLead {
+  id: string;
+  name: string;
+  email: string;
+  workspaceId: string;
+  firstReplied: string;
+  lastFUSent: string | null;
+  fuStep: number;
+  totalEmails: number;
+  nextFUDue: string;
+  meetingBooked: boolean;
+}
+
+interface MeetingLead {
+  id: string;
+  name: string;
+  email: string;
+  workspaceId: string;
+  meetingDate: string;
+  durationMinutes: number;
+  status: string;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function diffDays(date: Date): number {
+function diffDays(date: string | Date): number {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   const d = new Date(date);
@@ -24,11 +53,13 @@ function diffDays(date: Date): number {
   return Math.round((d.getTime() - now.getTime()) / 86400000);
 }
 
-function fmtDate(d: Date): string {
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+function fmtDate(d: string | Date): string {
+  return new Date(d).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
 }
 
-function inDateRange(date: Date, filter: DateFilter): boolean {
+function inDateRange(date: string, filter: DateFilter): boolean {
   const d = diffDays(date);
   if (filter === "today")     return d === 0;
   if (filter === "yesterday") return d === -1;
@@ -37,7 +68,7 @@ function inDateRange(date: Date, filter: DateFilter): boolean {
   return true;
 }
 
-function inQueueRange(date: Date, filter: QueueFilter): boolean {
+function inQueueRange(date: string, filter: QueueFilter): boolean {
   const d = diffDays(date);
   if (filter === "today")     return d === 0;
   if (filter === "tomorrow")  return d === 1;
@@ -47,7 +78,7 @@ function inQueueRange(date: Date, filter: QueueFilter): boolean {
   return true;
 }
 
-function getFUStatus(lead: FollowUpLead): { label: string; bg: string; color: string; border: string; order: number } {
+function getFUStatus(lead: FollowUpLead) {
   const d = diffDays(lead.nextFUDue);
   if (d < 0)   return { label: "Overdue",   bg: "#fee2e2", color: "#991b1b", border: "#fca5a5", order: 0 };
   if (d === 0) return { label: "Due today", bg: "#fef3c7", color: "#92400e", border: "#fcd34d", order: 1 };
@@ -55,21 +86,22 @@ function getFUStatus(lead: FollowUpLead): { label: string; bg: string; color: st
   return              { label: "Upcoming",  bg: "#f1f5f9", color: "#475569", border: "#e2e8f0", order: 3 };
 }
 
-function clientName(workspaceId: string): string {
-  return WORKSPACES.find(w => w.id === workspaceId)?.name ?? workspaceId;
+function wsInfo(slugOrId: string): { name: string; color: string } {
+  const ws = WORKSPACES.find(w => w.slug === slugOrId || w.id === slugOrId);
+  return { name: ws?.name ?? slugOrId, color: ws?.color ?? "#6b7280" };
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ClientBadge({ workspaceId }: { workspaceId: string }) {
-  const color = WORKSPACE_COLORS[workspaceId] ?? "#6b7280";
+  const { name, color } = wsInfo(workspaceId);
   return (
     <span style={{
       fontSize: 10, padding: "2px 8px", borderRadius: 20,
       background: color + "18", color, border: `1px solid ${color}30`,
       whiteSpace: "nowrap",
     }}>
-      {clientName(workspaceId)}
+      {name}
     </span>
   );
 }
@@ -97,8 +129,9 @@ function DateFilterBar({ value, onChange, options }: {
   );
 }
 
-function MetricCard({ label, value, color, sub, onClick }: {
-  label: string; value: number; color: string; sub: string; onClick: () => void;
+function MetricCard({ label, value, color, sub, onClick, loading }: {
+  label: string; value: number; color: string; sub: string;
+  onClick: () => void; loading: boolean;
 }) {
   return (
     <div onClick={onClick}
@@ -110,7 +143,10 @@ function MetricCard({ label, value, color, sub, onClick }: {
       onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.borderColor = "#ede9e3"}
     >
       <p style={{ fontSize: 11, color: "#6b7280", marginBottom: 6 }}>{label}</p>
-      <p style={{ fontSize: 26, fontWeight: 500, color }}>{value}</p>
+      {loading
+        ? <div style={{ height: 36, display: "flex", alignItems: "center" }}><Loader2 size={18} className="animate-spin" style={{ color }} /></div>
+        : <p style={{ fontSize: 26, fontWeight: 500, color }}>{value}</p>
+      }
       <p style={{ fontSize: 10, color, marginTop: 4 }}>{sub} →</p>
     </div>
   );
@@ -128,10 +164,10 @@ function Modal({ type, replies, fuLeads, meetings, onClose }: {
   if (!type) return null;
 
   const titles: Record<NonNullable<ModalType>, string> = {
-    replies:   `All replies (${replies.length})`,
-    interested:`Interested leads (${replies.filter(r => r.type === "interested").length})`,
-    followup:  `Follow-ups due (${fuLeads.length})`,
-    meetings:  `Meetings booked (${meetings.length})`,
+    replies:    `All replies (${replies.length})`,
+    interested: `Interested leads (${replies.filter(r => r.type === "interested").length})`,
+    followup:   `Follow-ups due (${fuLeads.length})`,
+    meetings:   `Meetings booked (${meetings.length})`,
   };
 
   return (
@@ -148,18 +184,14 @@ function Modal({ type, replies, fuLeads, meetings, onClose }: {
         width: "100%", maxWidth: 640, maxHeight: "80vh",
         display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
-        {/* Modal header */}
         <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <p style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary, #111827)" }}>{titles[type]}</p>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: 18, lineHeight: 1, padding: "2px 6px" }}>
+          <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{titles[type]}</p>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af" }}>
             <X size={16} />
           </button>
         </div>
 
-        {/* Modal body */}
         <div style={{ overflowY: "auto", padding: "12px 20px", flex: 1 }}>
-
-          {/* Replies or Interested */}
           {(type === "replies" || type === "interested") && (() => {
             const items = type === "interested" ? replies.filter(r => r.type === "interested") : replies;
             if (items.length === 0) return <p style={{ color: "#9ca3af", fontSize: 12, textAlign: "center", padding: 24 }}>No items in this period</p>;
@@ -184,7 +216,6 @@ function Modal({ type, replies, fuLeads, meetings, onClose }: {
             });
           })()}
 
-          {/* Follow-ups */}
           {type === "followup" && (() => {
             if (fuLeads.length === 0) return <p style={{ color: "#9ca3af", fontSize: 12, textAlign: "center", padding: 24 }}>No follow-ups in this period</p>;
             return fuLeads.map(l => {
@@ -205,7 +236,6 @@ function Modal({ type, replies, fuLeads, meetings, onClose }: {
             });
           })()}
 
-          {/* Meetings */}
           {type === "meetings" && (() => {
             if (meetings.length === 0) return <p style={{ color: "#9ca3af", fontSize: 12, textAlign: "center", padding: 24 }}>No meetings booked</p>;
             return meetings.map(m => {
@@ -221,59 +251,90 @@ function Modal({ type, replies, fuLeads, meetings, onClose }: {
                     </div>
                     <span style={{ fontSize: 11, fontWeight: 500, color: mColor }}>{mLabel}</span>
                   </div>
-                  <p style={{ fontSize: 11, color: "#6b7280" }}>{m.email} · {m.totalEmails} emails sent · First replied {fmtDate(m.firstReplied)}</p>
+                  <p style={{ fontSize: 11, color: "#6b7280" }}>{m.email} · {m.durationMinutes ?? 30} min</p>
                 </div>
               );
             });
           })()}
-
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function ReplyDashboard() {
+  const [replies,   setReplies]   = useState<DashboardReply[]>([]);
+  const [followUps, setFollowUps] = useState<FollowUpLead[]>([]);
+  const [meetings,  setMeetings]  = useState<MeetingLead[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState<string | null>(null);
+
   const [clientFilter, setClientFilter] = useState("all");
   const [metricFilter, setMetricFilter] = useState<DateFilter>("today");
-  const [queueFilter, setQueueFilter] = useState<QueueFilter>("today");
+  const [queueFilter,  setQueueFilter]  = useState<QueueFilter>("today");
   const [modal, setModal] = useState<ModalType>(null);
 
-  const today = new Date();
+  const fetchDashboard = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/dashboard");
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "Failed to load dashboard");
+      }
+      const data = await res.json();
+      setReplies(data.replies ?? []);
+      setFollowUps(data.followUps ?? []);
+      setMeetings(data.meetings ?? []);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  // Filtered data
+  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+
+  const allClients = useMemo(() => {
+    const slugs = new Set([
+      ...replies.map(r => r.workspaceId),
+      ...followUps.map(f => f.workspaceId),
+      ...meetings.map(m => m.workspaceId),
+    ]);
+    return Array.from(slugs).map(slug => wsInfo(slug).name).filter(Boolean).sort();
+  }, [replies, followUps, meetings]);
+
+  function matchesClient(workspaceId: string): boolean {
+    if (clientFilter === "all") return true;
+    return wsInfo(workspaceId).name === clientFilter;
+  }
+
   const filteredReplies = useMemo(() =>
-    DASHBOARD_REPLIES.filter(r =>
-      (clientFilter === "all" || clientName(r.workspaceId) === clientFilter) &&
-      inDateRange(r.date, metricFilter)
-    ), [clientFilter, metricFilter]);
+    replies.filter(r => matchesClient(r.workspaceId) && inDateRange(r.date, metricFilter)),
+    [replies, clientFilter, metricFilter]
+  );
 
   const filteredFULeads = useMemo(() =>
-    FOLLOW_UP_LEADS.filter(l =>
-      (clientFilter === "all" || clientName(l.workspaceId) === clientFilter) &&
-      inQueueRange(l.nextFUDue, queueFilter)
-    ).sort((a, b) => getFUStatus(a).order - getFUStatus(b).order || a.nextFUDue.getTime() - b.nextFUDue.getTime()),
-    [clientFilter, queueFilter]);
+    followUps
+      .filter(l => matchesClient(l.workspaceId) && inQueueRange(l.nextFUDue, queueFilter))
+      .sort((a, b) => getFUStatus(a).order - getFUStatus(b).order || new Date(a.nextFUDue).getTime() - new Date(b.nextFUDue).getTime()),
+    [followUps, clientFilter, queueFilter]
+  );
 
   const filteredMeetings = useMemo(() =>
-    MEETING_LEADS.filter(m => clientFilter === "all" || clientName(m.workspaceId) === clientFilter)
-    .sort((a, b) => a.meetingDate.getTime() - b.meetingDate.getTime()),
-    [clientFilter]);
+    meetings
+      .filter(m => matchesClient(m.workspaceId))
+      .sort((a, b) => new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime()),
+    [meetings, clientFilter]
+  );
 
-  // Modal data — always uses metric filter for replies/interested/followup
-  const modalReplies = useMemo(() =>
-    DASHBOARD_REPLIES.filter(r =>
-      (clientFilter === "all" || clientName(r.workspaceId) === clientFilter) &&
-      inDateRange(r.date, metricFilter)
-    ), [clientFilter, metricFilter]);
-
-  const modalFULeads = useMemo(() =>
-    FOLLOW_UP_LEADS.filter(l =>
-      (clientFilter === "all" || clientName(l.workspaceId) === clientFilter) &&
-      inQueueRange(l.nextFUDue, queueFilter)
-    ), [clientFilter, queueFilter]);
+  const overdueCount = useMemo(() =>
+    followUps.filter(l => matchesClient(l.workspaceId) && diffDays(l.nextFUDue) <= 0).length,
+    [followUps, clientFilter]
+  );
 
   const metricOptions = [
     { key: "today",     label: "Today" },
@@ -292,7 +353,20 @@ export function ReplyDashboard() {
     { key: "all",       label: "All" },
   ];
 
-  const allClients = Array.from(new Set(WORKSPACES.map(w => w.name))).sort();
+  const today = new Date();
+
+  if (error) {
+    return (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "#f8f7f5" }}>
+        <p style={{ fontSize: 13, color: "#991b1b" }}>Failed to load dashboard</p>
+        <p style={{ fontSize: 11, color: "#9ca3af", maxWidth: 360, textAlign: "center" }}>{error}</p>
+        <button onClick={fetchDashboard}
+          style={{ fontSize: 12, padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer", color: "#374151" }}>
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ flex: 1, overflowY: "auto", background: "#f8f7f5", padding: 20 }}>
@@ -315,42 +389,20 @@ export function ReplyDashboard() {
             <option value="all">All clients</option>
             {allClients.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
+          <button onClick={fetchDashboard} disabled={loading}
+            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, padding: "5px 10px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", color: "#6b7280", cursor: "pointer" }}>
+            <RefreshCw size={11} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
         </div>
       </div>
 
       {/* Metric cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
-        <MetricCard
-          label="Total replies"
-          value={filteredReplies.length}
-          color="#1a56db"
-          sub="Click to see all replies"
-          onClick={() => setModal("replies")}
-        />
-        <MetricCard
-          label="New interested"
-          value={filteredReplies.filter(r => r.type === "interested").length}
-          color="#16a34a"
-          sub="Click to see interested leads"
-          onClick={() => setModal("interested")}
-        />
-        <MetricCard
-          label="Follow-ups due"
-          value={FOLLOW_UP_LEADS.filter(l =>
-            (clientFilter === "all" || clientName(l.workspaceId) === clientFilter) &&
-            diffDays(l.nextFUDue) <= 0
-          ).length}
-          color="#dc2626"
-          sub="Click to see follow-up queue"
-          onClick={() => setModal("followup")}
-        />
-        <MetricCard
-          label="Meetings booked"
-          value={filteredMeetings.length}
-          color="#1a56db"
-          sub="Click to see all meetings"
-          onClick={() => setModal("meetings")}
-        />
+        <MetricCard label="Total replies"   value={filteredReplies.length}                                      color="#1a56db" sub="Click to see all replies"      onClick={() => setModal("replies")}   loading={loading} />
+        <MetricCard label="New interested"  value={filteredReplies.filter(r => r.type === "interested").length} color="#16a34a" sub="Click to see interested leads" onClick={() => setModal("interested")} loading={loading} />
+        <MetricCard label="Follow-ups due"  value={overdueCount}                                                color="#dc2626" sub="Click to see follow-up queue"  onClick={() => setModal("followup")}  loading={loading} />
+        <MetricCard label="Meetings booked" value={filteredMeetings.length}                                     color="#1a56db" sub="Click to see all meetings"     onClick={() => setModal("meetings")}  loading={loading} />
       </div>
 
       {/* Follow-up queue */}
@@ -364,74 +416,67 @@ export function ReplyDashboard() {
         </div>
 
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
-            <thead>
-              <tr style={{ background: "#f8f7f5" }}>
-                {["Lead", "Email", "Client", "First replied", "Last FU sent", "Emails sent", "Next FU due", "Status", "Action"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 10, fontWeight: 500, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredFULeads.length === 0 ? (
-                <tr>
-                  <td colSpan={9} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
-                    No follow-ups for this period
-                  </td>
+          {loading ? (
+            <div style={{ padding: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <Loader2 size={14} className="animate-spin" style={{ color: "#9ca3af" }} />
+              <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading...</span>
+            </div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
+              <thead>
+                <tr style={{ background: "#f8f7f5" }}>
+                  {["Lead", "Email", "Client", "First replied", "Last FU sent", "Emails sent", "Next FU due", "Status", "Action"].map(h => (
+                    <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 10, fontWeight: 500, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
                 </tr>
-              ) : filteredFULeads.map(l => {
-                const s = getFUStatus(l);
-                const d = diffDays(l.nextFUDue);
-                const dLabel = d < 0
-                  ? <span style={{ color: "#dc2626", fontWeight: 500 }}>{Math.abs(d)}d overdue</span>
-                  : d === 0 ? <span style={{ color: "#d97706", fontWeight: 500 }}>Today</span>
-                  : d === 1 ? <span style={{ color: "#d97706" }}>Tomorrow</span>
-                  : <span style={{ color: "#6b7280" }}>in {d}d</span>;
-                const rowBg = s.order === 0 ? "#fff8f8" : s.order === 1 ? "#fffdf0" : "#ffffff";
-                const borderLeft = s.order <= 1 ? `3px solid ${s.border}` : "3px solid transparent";
-                return (
-                  <tr key={l.id} style={{ background: rowBg, borderLeft }}>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 12, fontWeight: 500, color: "#111827" }}>{l.name}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 11, color: "#6b7280" }}>{l.email}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <ClientBadge workspaceId={l.workspaceId} />
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 11, color: "#374151" }}>{fmtDate(l.firstReplied)}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 11, color: "#374151" }}>{fmtDate(l.lastFUSent)}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{l.totalEmails}</span>
-                      <span style={{ fontSize: 10, color: "#9ca3af", marginLeft: 4 }}>emails</span>
-                      <span style={{ fontSize: 10, background: "#f1f5f9", color: "#475569", padding: "1px 6px", borderRadius: 20, marginLeft: 4 }}>
-                        FU {l.fuStep}
-                      </span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: "#374151", display: "block" }}>{fmtDate(l.nextFUDue)}</span>
-                      <span style={{ fontSize: 10, display: "block", marginTop: 1 }}>{dLabel}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 20, fontWeight: 500, background: s.bg, color: s.color, border: `1px solid ${s.border}`, whiteSpace: "nowrap" }}>
-                        {s.label}
-                      </span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <button style={{ fontSize: 10, fontWeight: 500, padding: "5px 10px", borderRadius: 7, border: "none", background: "#1a56db", color: "#ffffff", cursor: "pointer", whiteSpace: "nowrap" }}>
-                        Send FU {l.fuStep + 1}
-                      </button>
+              </thead>
+              <tbody>
+                {filteredFULeads.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+                      No follow-ups for this period
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ) : filteredFULeads.map(l => {
+                  const s = getFUStatus(l);
+                  const d = diffDays(l.nextFUDue);
+                  const dLabel = d < 0
+                    ? <span style={{ color: "#dc2626", fontWeight: 500 }}>{Math.abs(d)}d overdue</span>
+                    : d === 0 ? <span style={{ color: "#d97706", fontWeight: 500 }}>Today</span>
+                    : d === 1 ? <span style={{ color: "#d97706" }}>Tomorrow</span>
+                    : <span style={{ color: "#6b7280" }}>in {d}d</span>;
+                  const rowBg = s.order === 0 ? "#fff8f8" : s.order === 1 ? "#fffdf0" : "#ffffff";
+                  const borderLeft = s.order <= 1 ? `3px solid ${s.border}` : "3px solid transparent";
+                  return (
+                    <tr key={l.id} style={{ background: rowBg, borderLeft }}>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, fontWeight: 500, color: "#111827" }}>{l.name}</span></td>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#6b7280" }}>{l.email}</span></td>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><ClientBadge workspaceId={l.workspaceId} /></td>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#374151" }}>{fmtDate(l.firstReplied)}</span></td>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#374151" }}>{l.lastFUSent ? fmtDate(l.lastFUSent) : "—"}</span></td>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{l.totalEmails}</span>
+                        <span style={{ fontSize: 10, color: "#9ca3af", marginLeft: 4 }}>emails</span>
+                        <span style={{ fontSize: 10, background: "#f1f5f9", color: "#475569", padding: "1px 6px", borderRadius: 20, marginLeft: 4 }}>FU {l.fuStep}</span>
+                      </td>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#374151", display: "block" }}>{fmtDate(l.nextFUDue)}</span>
+                        <span style={{ fontSize: 10, display: "block", marginTop: 1 }}>{dLabel}</span>
+                      </td>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                        <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 20, fontWeight: 500, background: s.bg, color: s.color, border: `1px solid ${s.border}`, whiteSpace: "nowrap" }}>{s.label}</span>
+                      </td>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                        <button style={{ fontSize: 10, fontWeight: 500, padding: "5px 10px", borderRadius: 7, border: "none", background: "#1a56db", color: "#ffffff", cursor: "pointer", whiteSpace: "nowrap" }}>
+                          Send FU {l.fuStep + 1}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -441,64 +486,60 @@ export function ReplyDashboard() {
           <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Meetings booked</p>
           <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Leads who booked a meeting</p>
         </div>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#f8f7f5" }}>
-              {["Lead", "Email", "Client", "First replied", "Total emails", "Meeting date", "Status"].map(h => (
-                <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 10, fontWeight: 500, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredMeetings.length === 0 ? (
-              <tr>
-                <td colSpan={7} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
-                  No meetings booked
-                </td>
+        {loading ? (
+          <div style={{ padding: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Loader2 size={14} className="animate-spin" style={{ color: "#9ca3af" }} />
+            <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading...</span>
+          </div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f8f7f5" }}>
+                {["Lead", "Email", "Client", "Meeting date", "Duration", "Status"].map(h => (
+                  <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 10, fontWeight: 500, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
               </tr>
-            ) : filteredMeetings.map(m => {
-              const md = diffDays(m.meetingDate);
-              const mLabel = md < 0 ? "Completed" : md === 0 ? "Today!" : `in ${md}d`;
-              const mColor = md < 0 ? "#9ca3af" : md === 0 ? "#16a34a" : "#1a56db";
-              return (
-                <tr key={m.id} style={{ background: "#ffffff" }}>
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: "#111827" }}>{m.name}</span>
-                  </td>
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                    <span style={{ fontSize: 11, color: "#6b7280" }}>{m.email}</span>
-                  </td>
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                    <ClientBadge workspaceId={m.workspaceId} />
-                  </td>
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                    <span style={{ fontSize: 11, color: "#374151" }}>{fmtDate(m.firstReplied)}</span>
-                  </td>
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{m.totalEmails}</span>
-                    <span style={{ fontSize: 10, color: "#9ca3af", marginLeft: 4 }}>emails</span>
-                  </td>
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: "#374151" }}>{fmtDate(m.meetingDate)}</span>
-                    <span style={{ fontSize: 10, color: mColor, marginLeft: 6, fontWeight: 500 }}>{mLabel}</span>
-                  </td>
-                  <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                    <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 20, fontWeight: 500, background: "#d1fae5", color: "#065f46", border: "1px solid #6ee7b7", whiteSpace: "nowrap" }}>
-                      Meeting booked
-                    </span>
-                  </td>
+            </thead>
+            <tbody>
+              {filteredMeetings.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No meetings booked</td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ) : filteredMeetings.map(m => {
+                const md = diffDays(m.meetingDate);
+                const mLabel = md < 0 ? "Completed" : md === 0 ? "Today!" : `in ${md}d`;
+                const mColor = md < 0 ? "#9ca3af" : md === 0 ? "#16a34a" : "#1a56db";
+                return (
+                  <tr key={m.id} style={{ background: "#ffffff" }}>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, fontWeight: 500, color: "#111827" }}>{m.name}</span></td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#6b7280" }}>{m.email}</span></td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><ClientBadge workspaceId={m.workspaceId} /></td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: "#374151" }}>{fmtDate(m.meetingDate)}</span>
+                      <span style={{ fontSize: 10, color: mColor, marginLeft: 6, fontWeight: 500 }}>{mLabel}</span>
+                    </td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#374151" }}>{m.durationMinutes ?? 30} min</span></td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                      <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 20, fontWeight: 500,
+                        background: m.status === "completed" ? "#f1f5f9" : "#d1fae5",
+                        color: m.status === "completed" ? "#475569" : "#065f46",
+                        border: `1px solid ${m.status === "completed" ? "#e2e8f0" : "#6ee7b7"}`,
+                        whiteSpace: "nowrap" }}>
+                        {m.status === "completed" ? "Completed" : "Scheduled"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* Modal */}
       <Modal
         type={modal}
-        replies={modalReplies}
-        fuLeads={modalFULeads}
+        replies={filteredReplies}
+        fuLeads={filteredFULeads}
         meetings={filteredMeetings}
         onClose={() => setModal(null)}
       />

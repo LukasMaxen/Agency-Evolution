@@ -30,7 +30,7 @@ function dbRowToReply(r: any): Reply {
   };
 }
 
-function replyToNotification(reply: Reply): Notification {
+function replyToNotification(reply: Reply, aiAnalysis?: AIAnalysis): Notification {
   return {
     id:          `notif-${reply.id}`,
     replyId:     reply.id,
@@ -43,6 +43,7 @@ function replyToNotification(reply: Reply): Notification {
     message:     reply.message,
     receivedAt:  reply.receivedAt,
     read:        reply.status !== "new",
+    aiAnalysis,
   };
 }
 
@@ -58,21 +59,39 @@ export function MasterInbox() {
   const [loading, setLoading]             = useState(true);
   const [lastRefresh, setLastRefresh]     = useState<Date>(new Date());
 
-  // Tracks which reply IDs have already been analyzed — persists across renders
-  // without triggering re-renders (unlike state)
+  // Tracks IDs already analyzed (or pre-loaded from DB) — prevents re-analysis
   const analyzedIds = useRef<Set<string>>(new Set());
 
   const selectedReply   = selectedId ? replies.find(r => r.id === selectedId) ?? null : null;
   const unreadCount     = notifications.filter(n => !n.read).length;
   const newRepliesCount = replies.filter(r => r.status === "new").length;
 
-  // ── Fetch replies from DB ─────────────────────────────────────────────────
+  // ── Fetch replies — pre-populate AI cache from DB results ─────────────────
   const fetchReplies = useCallback(async () => {
     try {
       const res = await fetch("/api/replies?limit=100");
       if (!res.ok) return;
       const data = await res.json();
-      const mapped = (data.replies ?? []).map(dbRowToReply);
+      const rows: any[] = data.replies ?? [];
+
+      // Pre-populate aiCache from any results already stored in DB
+      // This is the key optimization — we mark these as analyzed immediately
+      // so the auto-analyze effect never fires API calls for them
+      const dbCache: Record<string, AIAnalysis> = {};
+      for (const row of rows) {
+        if (row.aiAnalysis) {
+          dbCache[row.id] = {
+            ...row.aiAnalysis,
+            analyzedAt: new Date(row.aiAnalysis.analyzedAt ?? Date.now()),
+          };
+          analyzedIds.current.add(row.id);
+        }
+      }
+
+      // Merge with existing in-memory cache (in-memory wins if both exist)
+      setAiCache(prev => ({ ...dbCache, ...prev }));
+
+      const mapped = rows.map(dbRowToReply);
 
       setReplies(prev => {
         return mapped.map((r: Reply) => {
@@ -93,11 +112,8 @@ export function MasterInbox() {
       setNotifications(prev => {
         return mapped.map((r: Reply) => {
           const existing = prev.find(p => p.replyId === r.id);
-          const notif = replyToNotification(r);
-          // Preserve existing AI analysis across refreshes
-          if (existing?.aiAnalysis) {
-            return { ...notif, aiAnalysis: existing.aiAnalysis };
-          }
+          const aiAnalysis = dbCache[r.id] ?? existing?.aiAnalysis;
+          const notif = replyToNotification(r, aiAnalysis);
           return notif;
         });
       });
@@ -117,8 +133,9 @@ export function MasterInbox() {
     return () => clearInterval(interval);
   }, [fetchReplies]);
 
-  // ── Auto-analyze new unread replies one at a time ─────────────────────────
-  // Uses a ref to track analyzed IDs so refreshes don't trigger re-analysis
+  // ── Auto-analyze: only truly new, unanalyzed replies ─────────────────────
+  // analyzedIds is pre-populated from DB on every fetch, so this only
+  // fires for replies that genuinely have no cached result yet
   useEffect(() => {
     const newUnanalyzed = replies.filter(
       r => r.status === "new" && !analyzedIds.current.has(r.id)
@@ -132,11 +149,11 @@ export function MasterInbox() {
         if (cancelled) break;
         if (analyzedIds.current.has(reply.id)) continue;
 
-        // Mark immediately before API call to prevent duplicate calls
         analyzedIds.current.add(reply.id);
 
         try {
           const analysis = await analyzeReply(
+            reply.id,        // ← pass replyId so the API can cache + check cache
             reply.leadName,
             reply.leadEmail,
             reply.campaign,
@@ -160,12 +177,10 @@ export function MasterInbox() {
             }
           }
         } catch (err) {
-          // Remove so it can retry on next cycle
           analyzedIds.current.delete(reply.id);
           console.error("[auto-analyze]", err);
         }
 
-        // 1.5s between each to be gentle on the API
         await new Promise(r => setTimeout(r, 1500));
       }
     }
@@ -202,7 +217,6 @@ export function MasterInbox() {
   }
 
   function handleMarkUnread(id: string) {
-    // Remove from analyzed set so it gets re-analyzed
     analyzedIds.current.delete(id);
     setReplies(prev => prev.map(r => r.id === id ? { ...r, status: "new" } : r));
     setNotifications(prev =>

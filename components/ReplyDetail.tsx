@@ -115,7 +115,7 @@ export function ReplyDetail({
     setAnalyzing(true);
     try {
       const analysis = await analyzeReply(
-        reply.leadName, reply.leadEmail, reply.campaign, reply.message
+        reply.id, reply.leadName, reply.leadEmail, reply.campaign, reply.message
       );
       setAiAnalysis(analysis);
       onAIAnalyzed?.(reply.id, analysis);

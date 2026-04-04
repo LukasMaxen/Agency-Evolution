@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import pool from "@/lib/db";
 
 const SYSTEM_PROMPT = `You are an AI assistant for a B2B cold email agency managing outreach for private equity and investment banking firms.
 
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { leadName, leadEmail, campaign, message } = await req.json();
+  const { replyId, leadName, leadEmail, campaign, message } = await req.json();
 
   if (!leadName || !message) {
     return NextResponse.json(
@@ -53,6 +54,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // ── Cache check: if replyId provided, return stored result if it exists ──
+  if (replyId) {
+    try {
+      const cached = await pool.query(
+        "SELECT ai_analysis FROM replies WHERE id = $1 AND ai_analysis IS NOT NULL",
+        [replyId]
+      );
+      if (cached.rows.length > 0) {
+        const analysis = cached.rows[0].ai_analysis;
+        return NextResponse.json({ ...analysis, fromCache: true });
+      }
+    } catch {
+      // DB check failed — fall through to AI call
+    }
+  }
+
+  // ── Call Claude ───────────────────────────────────────────────────────────
   const userMessage = `Lead name: ${leadName}
 Lead email: ${leadEmail}
 Campaign: ${campaign}
@@ -85,13 +103,28 @@ Their reply: "${message}"`;
   const raw = data.content?.[0]?.text ?? "";
   const clean = raw.replace(/```json|```/g, "").trim();
 
+  let parsed: any;
   try {
-    const parsed = JSON.parse(clean);
-    return NextResponse.json(parsed);
+    parsed = JSON.parse(clean);
   } catch {
     return NextResponse.json(
       { error: "Failed to parse AI response", raw },
       { status: 500 }
     );
   }
+
+  // ── Persist result to DB so we never re-analyze this reply ───────────────
+  if (replyId) {
+    try {
+      await pool.query(
+        "UPDATE replies SET ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2",
+        [JSON.stringify(parsed), replyId]
+      );
+    } catch (err) {
+      console.error("[analyze] failed to cache result:", err);
+      // Non-fatal — still return the result
+    }
+  }
+
+  return NextResponse.json(parsed);
 }

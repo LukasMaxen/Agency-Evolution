@@ -1,16 +1,16 @@
 import { AIAnalysis, AIIntent, AIUrgency } from "./mock-data";
 
 export async function analyzeReply(
+  replyId: string,        // ← new: passed to API for cache lookup + storage
   leadName: string,
   leadEmail: string,
   campaign: string,
   message: string
 ): Promise<AIAnalysis> {
-  // Calls our own Next.js API route — no CORS, API key stays server-side
   const response = await fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ leadName, leadEmail, campaign, message }),
+    body: JSON.stringify({ replyId, leadName, leadEmail, campaign, message }),
   });
 
   if (!response.ok) {
@@ -43,7 +43,6 @@ export const INTENT_CONFIG: Record<
   unsubscribe:       { label: "Unsubscribe",    color: "#6b7280", bg: "#f9fafb", border: "#e5e7eb", dotColor: "#d1d5db" },
 };
 
-// Sort priority — urgent first
 export const URGENCY_ORDER: Record<string, number> = {
   interested_urgent: 0,
   interested:        1,
