@@ -10,8 +10,9 @@ import { WorkspaceAvatar } from "./WorkspaceAvatar";
 import {
   ExternalLink, ChevronDown, LayoutTemplate,
   Send, CheckCircle, XCircle, Check, Sparkles,
-  Loader2, Calendar, MailOpen,
+  Loader2, Calendar, MailOpen, CalendarCheck,
 } from "lucide-react";
+import { CallBookingModal } from "@/components/CallBookingModal";
 
 interface EBTemplate {
   id: number;
@@ -72,6 +73,9 @@ export function ReplyDetail({
   const [aiAnalysis, setAiAnalysis]             = useState<AIAnalysis | undefined>(initialAI);
   const [analyzing, setAnalyzing]               = useState(false);
   const [showCalendly, setShowCalendly]         = useState(false);
+  const [showCallModal, setShowCallModal]       = useState(false);
+  const [calls, setCalls]                       = useState<any[]>([]);
+  const [meetingBooked, setMeetingBooked]       = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -86,7 +90,14 @@ export function ReplyDetail({
     setSent(false);
     setAiAnalysis(initialAI);
     setShowCalendly(false);
+    setShowCallModal(false);
     setTemplates([]);
+    setMeetingBooked((reply as any).meetingBooked ?? false);
+    // Fetch call history for this reply
+    fetch(`/api/calls?replyId=${reply.id}`)
+      .then(r => r.json())
+      .then(d => setCalls(d.calls ?? []))
+      .catch(() => setCalls([]));
   }, [reply.id]);
 
   async function loadTemplates() {
@@ -307,6 +318,20 @@ export function ReplyDetail({
             <XCircle size={12} /> Not interested
           </button>
 
+          <button
+            onClick={() => setShowCallModal(true)}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all"
+            style={{
+              background: meetingBooked ? "#d1fae5" : "#f8f7f5",
+              color: meetingBooked ? "#065f46" : "#6b7280",
+              border: `1px solid ${meetingBooked ? "#6ee7b7" : "#e5e7eb"}`,
+              fontWeight: meetingBooked ? 600 : 400,
+            }}
+          >
+            <CalendarCheck size={12} />
+            {meetingBooked ? `Call booked${calls.length > 1 ? ` (${calls.length})` : ""}` : "Book a call"}
+          </button>
+
           {/* Mark as unread — only shown if reply has been read and not yet replied */}
           {reply.status === "read" && onMarkUnread && (
             <button
@@ -323,6 +348,26 @@ export function ReplyDetail({
           )}
         </div>
       </div>
+
+      {/* Call booking modal */}
+      {showCallModal && (
+        <CallBookingModal
+          replyId={reply.id}
+          workspaceSlug={workspace.slug}
+          leadName={reply.leadName}
+          leadEmail={reply.leadEmail}
+          existingCalls={calls}
+          onClose={() => setShowCallModal(false)}
+          onBooked={() => {
+            setMeetingBooked(true);
+            // Refresh call list
+            fetch(`/api/calls?replyId=${reply.id}`)
+              .then(r => r.json())
+              .then(d => setCalls(d.calls ?? []))
+              .catch(() => {});
+          }}
+        />
+      )}
 
       {/* Composer */}
       <div className="shrink-0" style={{ background: "#ffffff", borderTop: "1px solid #ede9e3" }}>

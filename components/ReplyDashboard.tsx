@@ -43,6 +43,28 @@ interface MeetingLead {
   status: string;
 }
 
+
+interface EmailStat {
+  workspaceId: string;
+  total: number;
+  today: number;
+  last7: number;
+  last30: number;
+  bounces: number;
+  bounces7: number;
+  bounces30: number;
+  bounceRate: string;
+}
+
+interface EmailTotals {
+  total: number;
+  today: number;
+  last7: number;
+  last30: number;
+  bounces: number;
+  bounceRate: string;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function diffDays(date: string | Date): number {
@@ -270,6 +292,8 @@ export function ReplyDashboard() {
   const [meetings,  setMeetings]  = useState<MeetingLead[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState<string | null>(null);
+  const [emailStats,  setEmailStats]  = useState<EmailStat[]>([]);
+  const [emailTotals, setEmailTotals] = useState<EmailTotals | null>(null);
 
   const [clientFilter, setClientFilter] = useState("all");
   const [metricFilter, setMetricFilter] = useState<DateFilter>("today");
@@ -289,6 +313,8 @@ export function ReplyDashboard() {
       setReplies(data.replies ?? []);
       setFollowUps(data.followUps ?? []);
       setMeetings(data.meetings ?? []);
+      setEmailStats(data.emailStats ?? []);
+      setEmailTotals(data.emailTotals ?? null);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -303,9 +329,10 @@ export function ReplyDashboard() {
       ...replies.map(r => r.workspaceId),
       ...followUps.map(f => f.workspaceId),
       ...meetings.map(m => m.workspaceId),
+      ...emailStats.map(e => e.workspaceId),
     ]);
     return Array.from(slugs).map(slug => wsInfo(slug).name).filter(Boolean).sort();
-  }, [replies, followUps, meetings]);
+  }, [replies, followUps, meetings, emailStats]);
 
   function matchesClient(workspaceId: string): boolean {
     if (clientFilter === "all") return true;
@@ -535,6 +562,94 @@ export function ReplyDashboard() {
           </table>
         )}
       </div>
+
+      {/* Emails Sent */}
+      <div style={{ background: "#ffffff", borderRadius: 12, border: "1px solid #ede9e3", overflow: "hidden", marginTop: 14 }}>
+        <div style={{ padding: "14px 16px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Emails sent</p>
+            <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Volume and bounce rate per workspace</p>
+          </div>
+          {emailTotals && (
+            <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: 10, color: "#9ca3af" }}>Today</p>
+                <p style={{ fontSize: 15, fontWeight: 500, color: "#1a56db" }}>{emailTotals.today.toLocaleString()}</p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: 10, color: "#9ca3af" }}>Last 7 days</p>
+                <p style={{ fontSize: 15, fontWeight: 500, color: "#1a56db" }}>{emailTotals.last7.toLocaleString()}</p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: 10, color: "#9ca3af" }}>All time</p>
+                <p style={{ fontSize: 15, fontWeight: 500, color: "#374151" }}>{emailTotals.total.toLocaleString()}</p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: 10, color: "#9ca3af" }}>Bounce rate</p>
+                <p style={{ fontSize: 15, fontWeight: 500, color: parseFloat(emailTotals.bounceRate) > 5 ? "#dc2626" : "#16a34a" }}>
+                  {emailTotals.bounceRate}%
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {loading ? (
+          <div style={{ padding: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Loader2 size={14} className="animate-spin" style={{ color: "#9ca3af" }} />
+            <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading...</span>
+          </div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f8f7f5" }}>
+                {["Client", "Today", "Last 7 days", "Last 30 days", "All time", "Bounces", "Bounce rate"].map(h => (
+                  <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 10, fontWeight: 500, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {emailStats.filter(e => matchesClient(e.workspaceId)).length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No email data yet</td>
+                </tr>
+              ) : emailStats.filter(e => matchesClient(e.workspaceId)).map(e => {
+                const rate = parseFloat(e.bounceRate);
+                const rateColor = rate > 5 ? "#dc2626" : rate > 2 ? "#d97706" : "#16a34a";
+                const rateBg    = rate > 5 ? "#fef2f2" : rate > 2 ? "#fffbeb" : "#f0fdf4";
+                return (
+                  <tr key={e.workspaceId} style={{ background: "#ffffff" }}>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                      <ClientBadge workspaceId={e.workspaceId} />
+                    </td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: "#1a56db" }}>{e.today.toLocaleString()}</span>
+                    </td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                      <span style={{ fontSize: 12, color: "#374151" }}>{e.last7.toLocaleString()}</span>
+                    </td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                      <span style={{ fontSize: 12, color: "#374151" }}>{e.last30.toLocaleString()}</span>
+                    </td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                      <span style={{ fontSize: 12, color: "#6b7280" }}>{e.total.toLocaleString()}</span>
+                    </td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                      <span style={{ fontSize: 12, color: "#dc2626" }}>{e.bounces.toLocaleString()}</span>
+                    </td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                      <span style={{ fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 20, background: rateBg, color: rateColor }}>
+                        {e.bounceRate}%
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
 
       <Modal
         type={modal}

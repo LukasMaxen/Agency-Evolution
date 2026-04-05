@@ -26,19 +26,27 @@ interface Props {
 }
 
 const TIMEZONES = [
-  { label: "IST (GMT+5:30)", value: "Asia/Kolkata", abbr: "IST" },
   { label: "EST (GMT-5)", value: "America/New_York", abbr: "EST" },
   { label: "CST (GMT-6)", value: "America/Chicago", abbr: "CST" },
+  { label: "MST (GMT-7)", value: "America/Denver", abbr: "MST" },
   { label: "PST (GMT-8)", value: "America/Los_Angeles", abbr: "PST" },
   { label: "GMT (GMT+0)", value: "Europe/London", abbr: "GMT" },
   { label: "CET (GMT+1)", value: "Europe/Paris", abbr: "CET" },
+  { label: "IST (GMT+5:30)", value: "Asia/Kolkata", abbr: "IST" },
   { label: "SGT (GMT+8)", value: "Asia/Singapore", abbr: "SGT" },
   { label: "AEST (GMT+10)", value: "Australia/Sydney", abbr: "AEST" },
 ];
 
+const EST = TIMEZONES[0]; // EST is always the default — all clients are US-based
+
 function detectUserTimezone(): (typeof TIMEZONES)[0] {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return TIMEZONES.find((t) => t.value === tz) ?? TIMEZONES[0];
+  // Only use browser timezone if it's a US zone, otherwise default to EST
+  const US_ZONES = ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles"];
+  if (US_ZONES.includes(tz)) {
+    return TIMEZONES.find((t) => t.value === tz) ?? EST;
+  }
+  return EST;
 }
 
 function convertSlotToTimezone(isoTime: string, tzValue: string, tzAbbr: string): { day: string; time: string; timezone: string } {
