@@ -616,9 +616,6 @@ export function ReplyDashboard() {
                   <td colSpan={8} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No email data yet</td>
                 </tr>
               ) : emailStats.filter(e => matchesClient(e.workspaceId)).map(e => {
-                const rate = parseFloat(e.bounceRate);
-                const rateColor = rate > 5 ? "#dc2626" : rate > 2 ? "#d97706" : "#16a34a";
-                const rateBg    = rate > 5 ? "#fef2f2" : rate > 2 ? "#fffbeb" : "#f0fdf4";
                 return (
                   <tr key={e.workspaceId} style={{ background: "#ffffff" }}>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
