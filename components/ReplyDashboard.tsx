@@ -47,22 +47,22 @@ interface MeetingLead {
 interface EmailStat {
   workspaceId: string;
   total: number;
+  yesterday: number;
   today: number;
   last7: number;
   last30: number;
-  bounces: number;
-  bounces7: number;
-  bounces30: number;
-  bounceRate: string;
+  replies: number;
+  interested: number;
 }
 
 interface EmailTotals {
   total: number;
+  yesterday: number;
   today: number;
   last7: number;
   last30: number;
-  bounces: number;
-  bounceRate: string;
+  replies: number;
+  interested: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -571,25 +571,27 @@ export function ReplyDashboard() {
             <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Volume and bounce rate per workspace</p>
           </div>
           {emailTotals && (
-            <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ textAlign: "right" }}>
-                <p style={{ fontSize: 10, color: "#9ca3af" }}>Today</p>
-                <p style={{ fontSize: 15, fontWeight: 500, color: "#1a56db" }}>{emailTotals.today.toLocaleString()}</p>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <p style={{ fontSize: 10, color: "#9ca3af" }}>Last 7 days</p>
-                <p style={{ fontSize: 15, fontWeight: 500, color: "#1a56db" }}>{emailTotals.last7.toLocaleString()}</p>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <p style={{ fontSize: 10, color: "#9ca3af" }}>All time</p>
-                <p style={{ fontSize: 15, fontWeight: 500, color: "#374151" }}>{emailTotals.total.toLocaleString()}</p>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <p style={{ fontSize: 10, color: "#9ca3af" }}>Bounce rate</p>
-                <p style={{ fontSize: 15, fontWeight: 500, color: parseFloat(emailTotals.bounceRate) > 5 ? "#dc2626" : "#16a34a" }}>
-                  {emailTotals.bounceRate}%
-                </p>
-              </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 0, flexWrap: "wrap" }}>
+              {[
+                { label: "Yesterday",   value: emailTotals.yesterday.toLocaleString(), color: "#374151" },
+                { label: "Today",       value: emailTotals.today.toLocaleString(),     color: "#1a56db" },
+                { label: "Last 7 days", value: emailTotals.last7.toLocaleString(),     color: "#1a56db" },
+                { label: "All time",    value: emailTotals.total.toLocaleString(),      color: "#374151" },
+                { label: "Replies",     value: emailTotals.replies.toLocaleString(),    color: "#0f6e56" },
+                { label: "Interested",  value: emailTotals.interested.toLocaleString(), color: "#16a34a" },
+              ].map((stat, i, arr) => (
+                <div key={stat.label} style={{
+                  display: "flex", alignItems: "center",
+                }}>
+                  <div style={{ textAlign: "right", padding: "0 20px" }}>
+                    <p style={{ fontSize: 10, color: "#9ca3af", whiteSpace: "nowrap" }}>{stat.label}</p>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: stat.color, marginTop: 2 }}>{stat.value}</p>
+                  </div>
+                  {i < arr.length - 1 && (
+                    <div style={{ width: 1, height: 28, background: "#e5e7eb", flexShrink: 0 }} />
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -603,7 +605,7 @@ export function ReplyDashboard() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f8f7f5" }}>
-                {["Client", "Today", "Last 7 days", "Last 30 days", "All time", "Bounces", "Bounce rate"].map(h => (
+                {["Client", "Yesterday", "Today", "Last 7 days", "Last 30 days", "All time", "Replies", "Interested"].map(h => (
                   <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 10, fontWeight: 500, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
@@ -611,7 +613,7 @@ export function ReplyDashboard() {
             <tbody>
               {emailStats.filter(e => matchesClient(e.workspaceId)).length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No email data yet</td>
+                  <td colSpan={8} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No email data yet</td>
                 </tr>
               ) : emailStats.filter(e => matchesClient(e.workspaceId)).map(e => {
                 const rate = parseFloat(e.bounceRate);
@@ -621,6 +623,9 @@ export function ReplyDashboard() {
                   <tr key={e.workspaceId} style={{ background: "#ffffff" }}>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
                       <ClientBadge workspaceId={e.workspaceId} />
+                    </td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                      <span style={{ fontSize: 12, color: "#374151" }}>{e.yesterday.toLocaleString()}</span>
                     </td>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
                       <span style={{ fontSize: 12, fontWeight: 500, color: "#1a56db" }}>{e.today.toLocaleString()}</span>
@@ -635,12 +640,10 @@ export function ReplyDashboard() {
                       <span style={{ fontSize: 12, color: "#6b7280" }}>{e.total.toLocaleString()}</span>
                     </td>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 12, color: "#dc2626" }}>{e.bounces.toLocaleString()}</span>
+                      <span style={{ fontSize: 12, color: "#0f6e56", fontWeight: 500 }}>{e.replies.toLocaleString()}</span>
                     </td>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 20, background: rateBg, color: rateColor }}>
-                        {e.bounceRate}%
-                      </span>
+                      <span style={{ fontSize: 12, color: "#16a34a", fontWeight: 500 }}>{e.interested.toLocaleString()}</span>
                     </td>
                   </tr>
                 );
