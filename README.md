@@ -1,4 +1,4 @@
-# Master Inbox — EmailBison
+# Agency Evolution - Master Inbox
 
 Centralized reply management dashboard for all EmailBison workspaces.
 
