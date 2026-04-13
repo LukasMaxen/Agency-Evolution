@@ -1,0 +1,29 @@
+#!/bin/bash
+# Auto-sync: pull latest from GitHub before committing
+# This ensures you're always working on the most recent version
+
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+
+echo "🔄 Checking GitHub for updates before committing..."
+
+# Fetch latest from remote silently
+git fetch origin "$BRANCH" --quiet 2>/dev/null
+
+# Check if local is behind remote
+BEHIND=$(git rev-list HEAD..origin/"$BRANCH" --count 2>/dev/null)
+
+if [ "$BEHIND" -gt 0 ]; then
+  echo "⬇️  Your branch is $BEHIND commit(s) behind GitHub. Pulling latest changes..."
+  git pull --rebase origin "$BRANCH"
+
+  if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Auto-pull failed due to merge conflicts."
+    echo "   Please resolve conflicts manually, then commit again."
+    exit 1
+  fi
+
+  echo "✅ Successfully pulled latest changes. Proceeding with commit..."
+else
+  echo "✅ Already up to date with GitHub."
+fi
