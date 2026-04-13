@@ -27,6 +27,13 @@ echo "   ✅ Git hooks active"
 # Step 2: Install LaunchAgent (runs auto-sync every 60 seconds, survives reboot)
 echo "2/3 Installing background auto-sync service..."
 mkdir -p "$HOME/Library/LaunchAgents"
+mkdir -p "$HOME/Library/Scripts"
+
+# Copy script to ~/Library/Scripts so background services can access it
+# (macOS blocks LaunchAgents from directly accessing the Desktop folder)
+SCRIPT_DEST="$HOME/Library/Scripts/agency-evolution-autosync.sh"
+cp "$PROJECT_DIR/scripts/auto-sync.sh" "$SCRIPT_DEST"
+chmod +x "$SCRIPT_DEST"
 
 cat > "$PLIST_PATH" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -38,7 +45,7 @@ cat > "$PLIST_PATH" <<PLIST
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>$PROJECT_DIR/scripts/auto-sync.sh</string>
+        <string>$SCRIPT_DEST</string>
         <string>$PROJECT_DIR</string>
     </array>
     <key>StartInterval</key>

@@ -10,6 +10,8 @@ if [ -z "$PROJECT_DIR" ]; then
   exit 1
 fi
 
+# Reset to home first to escape any inaccessible inherited working directory
+cd "$HOME" || exit 1
 cd "$PROJECT_DIR" || exit 1
 
 BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
