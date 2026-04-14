@@ -2,5 +2,9 @@
   "git.autofetch": true,
   "git.autofetchPeriod": 30,
   "git.confirmSync": false,
-  "git.showPushSuccessNotification": true
+  "git.showPushSuccessNotification": true,
+  "git.postCommitCommand": "push",
+  "git.enableSmartCommit": true,
+  "git.smartCommitChanges": "all",
+  "git.rebaseWhenSync": true
 }
