@@ -6,13 +6,19 @@ This file documents the full auto-sync setup for the Agency Evolution repo. Read
 
 ## What the System Does
 
-Every time any team member makes a commit in VS Code or the terminal:
-1. **Pre-commit hook** → automatically pulls the latest from GitHub first (avoids conflicts)
-2. **Commit happens**
-3. **Post-commit hook + VS Code setting** → automatically pushes to GitHub immediately
+Every time any team member saves a file in VS Code:
+1. **GitDoc** waits 30 seconds after the last save, then auto-commits
+2. **Pre-commit hook** → automatically pulls the latest from GitHub first (avoids conflicts)
+3. **Commit happens**
+4. **Post-commit hook + `git.postCommitCommand`** → automatically pushes to GitHub immediately
 
 Every 30 seconds in VS Code:
 - Auto-fetches from GitHub and shows a badge if teammates have pushed new changes
+
+**Required VS Code extension: GitDoc** (by Eric Amodio)
+- Install: VS Code Extensions → search "GitDoc" → Install
+- Enable: `Cmd+Shift+P` → "GitDoc: Enable"
+- The `.vscode/settings.json` already has all GitDoc settings configured
 
 ---
 
