@@ -6,5 +6,9 @@
   "git.postCommitCommand": "push",
   "git.enableSmartCommit": true,
   "git.smartCommitChanges": "all",
-  "git.rebaseWhenSync": true
+  "git.rebaseWhenSync": true,
+  "gitdoc.enabled": true,
+  "gitdoc.autoCommitDelay": 30000,
+  "gitdoc.autoPush": "onCommit",
+  "gitdoc.commitMessageFormat": "auto-sync: ${date} ${time}"
 }
