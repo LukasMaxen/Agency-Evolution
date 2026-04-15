@@ -4,6 +4,12 @@ Centralized reply management dashboard built for **Agency Evolution**, a B2B lea
 
 ---
 
+## Git Workflow
+
+For branching, pull requests, code review, and how to share features across all three team devices, see `skills/GIT_WORKFLOW_SKILL.md`. Read it before any task involving git branches, PRs, merging, or shipping new features/skills/context.
+
+---
+
 ## Client Context
 
 For client-specific context (offers, reply styles, Calendly links, target audiences) see `skills/SKILL.md`. Read it before any task involving reply generation, follow-up templates, AI prompt tuning, or client-specific logic.
