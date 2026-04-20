@@ -1,20 +1,32 @@
-# Agency Evolution — AI Reply Desk — CLAUDE.md
+# [COMPANY NAME] — AI Reply Desk — CLAUDE.md
 
-Centralized reply management dashboard built for **Agency Evolution**, a B2B lead gen agency managing 16+ EmailBison workspaces for PE/IB cold outreach clients.
+Centralized reply management dashboard and Business OS for **[COMPANY NAME]**, a buy-side sourcing partner managing 15+ EmailBison workspaces for PE/IB cold outreach clients.
+
+**Team:** Lukas Maxen (founder, AI/ops), Kasper Zacho (campaigns), Sunny Newar (tech + lead sourcing)
+
+---
+
+## Business OS — Department Folders
+
+All business context, workflows, and client information lives in `departments/`:
+
+| Folder | Owner | What's inside |
+|---|---|---|
+| `departments/lead-sourcing/` | Sunny + Kasper | ICP definition, list building workflows |
+| `departments/lead-enrichment/` | Sunny | Enrichment workflows, scoring |
+| `departments/campaign-strategy/` | Kasper | Per-client offer, angles, messaging (one file per client) |
+| `departments/campaign-management/` | Kasper | EmailBison workflows, integrations |
+| `departments/reply-management/` | Lukas | Reply process, FU templates, AI guidelines |
+| `departments/client-management/` | Lukas | Client roster, per-client profiles and Calendly links |
+| `departments/operations/` | Lukas | Tech stack, git workflow, AI framework, team |
+
+**Before any client task:** open the specific client file in `departments/campaign-strategy/[client].md` — never mix up client offers or messaging.
 
 ---
 
 ## Git Workflow
 
-For branching, pull requests, code review, and how to share features across all three team devices, see `skills/GIT_WORKFLOW_SKILL.md`. Read it before any task involving git branches, PRs, merging, or shipping new features/skills/context.
-
----
-
-## Client Context
-
-For client-specific context (offers, reply styles, Calendly links, target audiences) see `skills/SKILL.md`. Read it before any task involving reply generation, follow-up templates, AI prompt tuning, or client-specific logic.
-
-For the reply process, objection handling, and all 10 follow-up email templates per client see `skills/REPLIES.md`.
+For branching, PRs, code review, and team setup see `departments/operations/git-workflow.md`.
 
 ---
 
@@ -46,6 +58,7 @@ Workspace-level EmailBison credentials (`email_bison_api_key`, `email_bison_inst
 ## Project Structure
 
 ```
+departments/                          # Business OS — all workflows and client context
 app/
   page.tsx                          # Entry — renders <ReplyDashboard />
   layout.tsx                        # Root layout
@@ -91,12 +104,10 @@ lib/
 
 ## Database Tables
 
-Inferred from SQL queries across the codebase:
-
 | Table | Key Columns |
 |---|---|
 | `workspaces` | `id`, `slug`, `email_bison_api_key`, `email_bison_instance_url` |
-| `replies` | `id` (= EmailBison reply UUID), `workspace_id`, `workspace_slug`, `email_bison_id`, `email_bison_reply_id`, `email_bison_lead_id`, `lead_email`, `lead_name`, `lead_company`, `lead_title`, `sender_email`, `sender_email_id`, `to_email`, `to_name`, `campaign`, `subject`, `message`, `received_at`, `status`, `interested`, `meeting_booked`, `ai_analysis` (JSONB), `ai_analyzed_at` |
+| `replies` | `id`, `workspace_id`, `workspace_slug`, `email_bison_reply_id`, `lead_email`, `lead_name`, `lead_company`, `lead_title`, `sender_email`, `campaign`, `subject`, `message`, `received_at`, `status`, `interested`, `meeting_booked`, `ai_analysis` (JSONB), `ai_analyzed_at` |
 | `follow_ups` | `id`, `reply_id`, `workspace_slug`, `lead_name`, `lead_email`, `first_replied_at`, `fu_step`, `total_emails`, `last_fu_sent_at`, `next_fu_due`, `meeting_booked` |
 | `calls` | `id`, `reply_id`, `workspace_slug`, `lead_email`, `lead_name`, `source` (manual/calendly), `scheduled_at`, `status`, `outcome`, `notes`, `is_reschedule`, `original_call_id`, `created_at`, `updated_at` |
 | `emails_sent` | `id`, `workspace_slug`, `lead_email`, `lead_name`, `campaign_name`, `sender_email`, `sequence_step`, `sent_at` |
@@ -156,14 +167,14 @@ npm run lint     # ESLint
 
 ## Mock vs Live Data
 
-`lib/mock-data.ts` and `lib/dashboard-data.ts` contain realistic mock data for dev/demo mode. The app has a mix of components that pull from the DB (via API routes) and components that may still reference mock data. When connecting new features, always wire through the API routes — do not import mock data directly into components intended for production.
+`lib/mock-data.ts` and `lib/dashboard-data.ts` contain realistic mock data for dev/demo mode. When connecting new features, always wire through the API routes — do not import mock data directly into components intended for production.
 
 ---
 
 ## Architecture Notes
 
-- **No auth layer** — this is an internal tool for Agency Evolution. No login/session management.
+- **No auth layer** — internal tool only, no login/session management.
 - **No Prisma** — migrations must be run manually as raw SQL against the PostgreSQL instance.
-- **`ReplyDashboard.tsx`** is the main orchestrator (~34KB). It manages workspace selection, tab state, and data fetching. Edit carefully.
-- **`MasterInbox.tsx`** appears to be the earlier version of the inbox. `ReplyDashboard` is the current one.
+- **`ReplyDashboard.tsx`** is the main orchestrator (~34KB). Edit carefully.
+- **`MasterInbox.tsx`** is the earlier version of the inbox. `ReplyDashboard` is the current one.
 - Vercel (Hobby) → Hetzner PostgreSQL: ensure `DATABASE_URL` is set correctly in Vercel project settings and that the Hetzner firewall allows Vercel's outbound IPs (or is open on 5432).

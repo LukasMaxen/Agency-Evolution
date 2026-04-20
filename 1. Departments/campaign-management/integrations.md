@@ -1,4 +1,4 @@
-# Agency Evolution — External Integrations
+# Campaign Management — Integrations
 
 ## EmailBison
 
@@ -45,7 +45,7 @@ Used to let leads self-book discovery calls directly from the reply email.
 
 ### How It Works
 
-1. Operator includes Calendly link in reply (per client profile in SKILL.md)
+1. Operator includes Calendly link in reply (per client profile in `client-management/client-profiles.md`)
 2. Lead clicks → books a slot
 3. Calendly fires webhook → `POST /api/webhook/calendly`
 4. Booking recorded in `calls` table, `meeting_booked` flagged on reply and follow_up
@@ -60,23 +60,3 @@ Used to let leads self-book discovery calls directly from the reply email.
 
 - Operators can also log calls manually via `CallBookingModal.tsx`
 - Stored with `source: 'manual'` in `calls` table
-
----
-
-## Anthropic API (Claude)
-
-- Used for reply analysis in `/api/analyze`
-- Direct fetch calls (not via SDK) with `ANTHROPIC_API_KEY`
-- Model: `claude-haiku-4-5-20251001` for production analysis
-- Results cached in `replies.ai_analysis` (JSONB) to minimize API costs
-
----
-
-## PostgreSQL (Hetzner)
-
-- Raw `pg` pool, no ORM
-- `ssl: false` — direct Hetzner connection (not Supabase/RDS)
-- Pool config: max 10 connections
-- Connection string: `DATABASE_URL` env var
-- Migrations: manual raw SQL (no migration runner)
-- Vercel → Hetzner: ensure Hetzner firewall allows Vercel outbound IPs on port 5432

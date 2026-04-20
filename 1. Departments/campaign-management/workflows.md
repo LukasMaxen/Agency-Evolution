@@ -1,4 +1,4 @@
-# Agency Evolution — Core Business Workflows
+# Campaign Management — Workflows
 
 ## The Lead Journey
 
@@ -75,5 +75,5 @@ If no booking after initial reply → follow-up sequence (FU1–FU10, every 7 da
 | "Send me more info / a deck" | Send materials, follow up in 7 days if no response |
 | "Not the right time" | Acknowledge, ask when to follow up, add to FU sequence |
 | "Already working with someone" | Politely acknowledge, keep door open, don't push |
-| "What's the deal structure?" | Answer per client offer in SKILL.md, offer a call for details |
+| "What's the deal structure?" | Answer per client offer in campaign-strategy/, offer a call for details |
 | "Remove me" | Stop immediately, mark unsubscribe |

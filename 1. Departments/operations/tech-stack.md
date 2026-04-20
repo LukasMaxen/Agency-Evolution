@@ -1,4 +1,4 @@
-# Agency Evolution — Tech Stack & Infrastructure
+# Tech Stack & Infrastructure
 
 ## Application
 
