@@ -8,9 +8,9 @@ Centralized reply management dashboard and Business OS for **[COMPANY NAME]**, a
 
 ## Client Files
 
-Every client has a single file in `clients/[slug].md` — the source of truth for their offer, ICP, campaign strategy, reply guidelines, FU templates, Slack/email history, and campaign notes.
+Every client has a single file in `1. Departments/clients/[slug].md` — the source of truth for their offer, ICP, campaign strategy, reply guidelines, FU templates, Slack/email history, and campaign notes.
 
-**Before any client task:** read `clients/[client-slug].md` first.
+**Before any client task:** read `1. Departments/clients/[client-slug].md` first.
 
 To onboard a new client: follow `1. Departments/client-management/onboarding.md`.
 
