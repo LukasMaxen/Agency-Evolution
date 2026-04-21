@@ -28,5 +28,7 @@ New client signed → Onboarding checklist → DB + EmailBison setup → Profile
 
 ## Files in This Folder
 
-- [client-roster.md](client-roster.md) — all 15 active workspaces, slugs, shared infrastructure, onboarding steps
-- [client-profiles.md](client-profiles.md) — per-client context: offer, target audience, Calendly link, reply tone, signals, notes
+- [client-roster.md](client-roster.md) — all active workspaces, slugs, and shared infrastructure
+- [onboarding.md](onboarding.md) — full automated onboarding workflow (step-by-step, AI-executable)
+
+**All per-client context lives in:** `clients/[client-slug].md`

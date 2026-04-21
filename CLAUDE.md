@@ -6,21 +6,27 @@ Centralized reply management dashboard and Business OS for **[COMPANY NAME]**, a
 
 ---
 
+## Client Files
+
+Every client has a single file in `clients/[slug].md` — the source of truth for their offer, ICP, campaign strategy, reply guidelines, FU templates, Slack/email history, and campaign notes.
+
+**Before any client task:** read `clients/[client-slug].md` first.
+
+To onboard a new client: follow `1. Departments/client-management/onboarding.md`.
+
 ## Business OS — Department Folders
 
-All business context, workflows, and client information lives in `departments/`:
+Departments contain reusable skills and workflows — the HOW. Client-specific context lives in `clients/`.
 
 | Folder | Owner | What's inside |
 |---|---|---|
-| `departments/lead-sourcing/` | Sunny + Kasper | ICP definition, list building workflows |
-| `departments/lead-enrichment/` | Sunny | Enrichment workflows, scoring |
-| `departments/campaign-strategy/` | Kasper | Per-client offer, angles, messaging (one file per client) |
-| `departments/campaign-management/` | Kasper | EmailBison workflows, integrations |
-| `departments/reply-management/` | Lukas | Reply process, FU templates, AI guidelines |
-| `departments/client-management/` | Lukas | Client roster, per-client profiles and Calendly links |
-| `departments/operations/` | Lukas | Tech stack, git workflow, AI framework, team |
-
-**Before any client task:** open the specific client file in `departments/campaign-strategy/[client].md` — never mix up client offers or messaging.
+| `1. Departments/lead-sourcing/` | Sunny + Kasper | ICP process, list building methodology |
+| `1. Departments/lead-enrichment/` | Sunny | Enrichment workflows, scoring |
+| `1. Departments/campaign-strategy/` | Kasper | Strategy methodology, angle frameworks, sequence structure |
+| `1. Departments/campaign-management/` | Kasper | EmailBison workflows, integrations |
+| `1. Departments/reply-management/` | Lukas | Reply process, FU structure, AI guidelines |
+| `1. Departments/client-management/` | Lukas | Client roster, onboarding workflow |
+| `1. Departments/operations/` | Lukas | Tech stack, git workflow, AI framework, team |
 
 ---
 
