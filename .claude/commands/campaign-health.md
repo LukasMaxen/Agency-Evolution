@@ -1,0 +1,1 @@
+Run the campaign health check by reading and following the instructions in "1. Departments/campaign-management/SKILL_CampaignHealth.md"

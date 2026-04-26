@@ -8,9 +8,10 @@ import { ReplyDetail } from "@/components/ReplyDetail";
 import { EmptyState } from "@/components/EmptyState";
 import { NotificationFeed } from "@/components/NotificationFeed";
 import { ReplyDashboard } from "@/components/ReplyDashboard";
-import { Inbox, Bell, BarChart2, RefreshCw } from "lucide-react";
+import { CampaignHealth } from "@/components/CampaignHealth";
+import { Inbox, Bell, BarChart2, RefreshCw, Activity } from "lucide-react";
 
-type View = "inbox" | "notifications" | "dashboard";
+type View = "inbox" | "notifications" | "dashboard" | "campaigns";
 
 function dbRowToReply(r: any): Reply {
   const workspace = WORKSPACES.find(w => w.slug === r.workspaceSlug || w.id === r.workspaceId);
@@ -59,14 +60,12 @@ export function MasterInbox() {
   const [loading, setLoading]             = useState(true);
   const [lastRefresh, setLastRefresh]     = useState<Date>(new Date());
 
-  // Tracks IDs already analyzed (or pre-loaded from DB) — prevents re-analysis
   const analyzedIds = useRef<Set<string>>(new Set());
 
   const selectedReply   = selectedId ? replies.find(r => r.id === selectedId) ?? null : null;
   const unreadCount     = notifications.filter(n => !n.read).length;
   const newRepliesCount = replies.filter(r => r.status === "new").length;
 
-  // ── Fetch replies — pre-populate AI cache from DB results ─────────────────
   const fetchReplies = useCallback(async () => {
     try {
       const res = await fetch("/api/replies?limit=100");
@@ -74,9 +73,6 @@ export function MasterInbox() {
       const data = await res.json();
       const rows: any[] = data.replies ?? [];
 
-      // Pre-populate aiCache from any results already stored in DB
-      // This is the key optimization — we mark these as analyzed immediately
-      // so the auto-analyze effect never fires API calls for them
       const dbCache: Record<string, AIAnalysis> = {};
       for (const row of rows) {
         if (row.aiAnalysis) {
@@ -88,7 +84,6 @@ export function MasterInbox() {
         }
       }
 
-      // Merge with existing in-memory cache (in-memory wins if both exist)
       setAiCache(prev => ({ ...dbCache, ...prev }));
 
       const mapped = rows.map(dbRowToReply);
@@ -133,9 +128,6 @@ export function MasterInbox() {
     return () => clearInterval(interval);
   }, [fetchReplies]);
 
-  // ── Auto-analyze: only truly new, unanalyzed replies ─────────────────────
-  // analyzedIds is pre-populated from DB on every fetch, so this only
-  // fires for replies that genuinely have no cached result yet
   useEffect(() => {
     const newUnanalyzed = replies.filter(
       r => r.status === "new" && !analyzedIds.current.has(r.id)
@@ -153,7 +145,7 @@ export function MasterInbox() {
 
         try {
           const analysis = await analyzeReply(
-            reply.id,        // ← pass replyId so the API can cache + check cache
+            reply.id,
             reply.leadName,
             reply.leadEmail,
             reply.campaign,
@@ -188,8 +180,6 @@ export function MasterInbox() {
     analyzeSequentially();
     return () => { cancelled = true; };
   }, [replies]);
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
 
   function handleSelect(reply: Reply) {
     setSelectedId(reply.id);
@@ -276,6 +266,7 @@ export function MasterInbox() {
     { id: "notifications", label: "Notifications", icon: Bell,      badge: unreadCount },
     { id: "inbox",         label: "Inbox",          icon: Inbox,     badge: newRepliesCount },
     { id: "dashboard",     label: "Dashboard",      icon: BarChart2, badge: 0 },
+    { id: "campaigns",     label: "Campaigns",      icon: Activity,  badge: 0 },
   ];
 
   return (
@@ -378,6 +369,10 @@ export function MasterInbox() {
 
         {view === "dashboard" && (
           <ReplyDashboard />
+        )}
+
+        {view === "campaigns" && (
+          <CampaignHealth />
         )}
       </div>
     </div>
