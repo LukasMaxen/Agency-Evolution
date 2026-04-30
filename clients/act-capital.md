@@ -90,6 +90,69 @@ Never name Northern Coil (or any specific company being sold) in outreach until 
 
 ---
 
+## Active Sell-Side Mandates
+
+ACT Capital also runs **buyer outreach campaigns** — where they represent a company for sale and email PE firms, strategic acquirers, and investors. These are distinct from their normal sell-side sourcing campaigns (which email business owners). When a reply comes from a buyer/investor on one of these mandates, use the templates below — not the standard reply guidelines.
+
+**Core logic for mandate replies:**
+- Prospect expresses interest or asks for more info → send the correct teaser + calendar link
+- Prospect asks about price/valuation → stay vague, redirect to teaser and call
+- Prospect asks who the seller is → NDA framing: not able to share before NDA is in place
+- Prospect says not a fit → polite exit, 2–3 lines max
+
+---
+
+### Mandate 1 — Premium Tequila Company
+**Sender:** Jeff Zanardi, Managing Director, ACT Capital Advisors
+**Calendly:** https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting
+**Teaser:** https://www.actcapitaladvisors.com/open-deals/high-growth-premium-tequila-company/
+**Trigger keywords:** tequila, spirits, beverage, alcohol, premium brand, consumer goods
+
+**Reply template:**
+> Hi {FIRST_NAME},
+>
+> I appreciate the quick response. Here is the teaser for the opportunity: https://www.actcapitaladvisors.com/open-deals/high-growth-premium-tequila-company/
+>
+> Happy to walk you through the details on a quick call. Feel free to grab a time here: https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting or let me know what works for you and we will coordinate.
+>
+> {SENDER_EMAIL_SIGNATURE}
+
+---
+
+### Mandate 2 — Excavation & Civil Construction Company
+**Sender:** Jeff Zanardi, Managing Director, ACT Capital Advisors
+**Calendly:** https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting
+**Teaser:** https://www.actcapitaladvisors.com/open-deals/highly-profitable-excavation-civil-construction-company-in-the-southern-atlantic-region/
+**Trigger keywords:** excavation, civil construction, earthwork, grading, site prep, southern Atlantic
+
+**Reply template:**
+> Hi {FIRST_NAME},
+>
+> I appreciate the quick response. Here is the teaser for the opportunity: https://www.actcapitaladvisors.com/open-deals/highly-profitable-excavation-civil-construction-company-in-the-southern-atlantic-region/
+>
+> Happy to walk you through the details on a quick call. Feel free to grab a time here: https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting or let me know what works for you and we will coordinate.
+>
+> {SENDER_EMAIL_SIGNATURE}
+
+---
+
+### Mandate 3 — General Contractor & Construction Company
+**Sender:** Jeff Zanardi, Managing Director, ACT Capital Advisors
+**Calendly:** https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting
+**Teaser:** https://www.actcapitaladvisors.com/open-deals/highly-profitable-general-contractor-and-construction/
+**Trigger keywords:** general contractor, construction, design-build, commercial construction, California contractor
+
+**Reply template:**
+> Hi {FIRST_NAME},
+>
+> I appreciate the quick response. Here is the teaser for the opportunity: https://www.actcapitaladvisors.com/open-deals/highly-profitable-general-contractor-and-construction/
+>
+> Happy to walk you through the details on a quick call. Feel free to grab a time here: https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting or let me know what works for you and we will coordinate.
+>
+> {SENDER_EMAIL_SIGNATURE}
+
+---
+
 ## Reply Guidelines
 
 **Tone:**

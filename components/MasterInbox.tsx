@@ -8,7 +8,7 @@ import { ReplyDetail } from "@/components/ReplyDetail";
 import { EmptyState } from "@/components/EmptyState";
 import { NotificationFeed } from "@/components/NotificationFeed";
 import { ReplyDashboard } from "@/components/ReplyDashboard";
-import { CampaignHealth } from "@/components/CampaignHealth";
+import { LeadMonitoring } from "@/components/LeadMonitoring";
 import { LeadProgress } from "@/components/LeadProgress";
 import { Inbox, Bell, BarChart2, RefreshCw, Activity, TrendingUp } from "lucide-react";
 

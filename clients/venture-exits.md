@@ -16,7 +16,7 @@
 | **Primary contact** | Tim Enger |
 | **Contact email** | tenger@theventurexits.com |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | [link] |
+| **Calendly link** | https://calendly.com/tim-ventureexits/30min |
 | **Monthly retainer** | [amount] |
 
 ---
@@ -84,6 +84,35 @@ Outside geography, not an owner/decision-maker, outside sellable revenue range.
 **What doesn't work:**
 - Valuation promises, naming buyers upfront, commission-only framing
 - Construction campaigns: all failed at 0% interested — do not build new construction campaigns
+
+---
+
+## Active Sell-Side Mandates
+
+Venture Exits also runs **buyer outreach campaigns** — reaching out to PE firms, family offices, and strategic acquirers on behalf of companies they represent. Replies from buyers/investors on these mandates use the templates below.
+
+**Core logic for mandate replies:**
+- Prospect expresses interest or asks for more info → send the correct teaser + calendar link
+- Prospect asks about price/valuation → stay vague, redirect to teaser and call
+- Prospect asks who the seller is → NDA framing: not able to share before NDA is in place
+- Prospect says not a fit → polite exit, 2–3 lines max
+
+---
+
+### Mandate 1 — Yoga & Wellness Brand
+**Sender:** Tim Enger, Venture Exits
+**Calendly:** https://calendly.com/tim-ventureexits/30min
+**Teaser:** https://drive.google.com/file/d/1W16xGuzI26WwBNsHRL52C7O7GWTPBL1h/view?usp=sharing
+**Trigger keywords:** yoga, wellness, fitness, studio, community, health brand, TX, AZ, CO, Black Swan
+
+**Reply template:**
+> Hi {FIRST_NAME},
+>
+> I appreciate the quick response. Here is the teaser for the opportunity: https://drive.google.com/file/d/1W16xGuzI26WwBNsHRL52C7O7GWTPBL1h/view?usp=sharing
+>
+> Happy to walk you through the details on a quick call. Feel free to grab a time here: https://calendly.com/tim-ventureexits/30min or let me know what works for you and we will coordinate.
+>
+> {SENDER_EMAIL_SIGNATURE}
 
 ---
 

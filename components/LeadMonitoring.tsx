@@ -162,7 +162,7 @@ function WorkspaceSection({ ws }: { ws: WorkspaceResult }) {
   );
 }
 
-export function CampaignHealth() {
+export function LeadMonitoring() {
   const [data,     setData]     = useState<{ workspaces: WorkspaceResult[] } | null>(null);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
@@ -172,7 +172,7 @@ export function CampaignHealth() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/campaign-health?sendDays=${sendDays}`);
+      const res = await fetch(`/api/lead-monitoring?sendDays=${sendDays}`);
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Failed"); }
       setData(await res.json());
     } catch (err: any) {

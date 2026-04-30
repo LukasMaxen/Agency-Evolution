@@ -53,6 +53,28 @@ Hi [First Name],
 
 ---
 
+## Campaign Type Check — Do This First
+
+Before drafting any reply, identify the campaign type. Three types exist:
+
+| Campaign Type | Who We're Emailing | Our Role | Goal of Reply |
+|---|---|---|---|
+| **Sell-Side Mandates** | PE firms, strategic buyers, investors | We represent a company for sale | Send teaser + get them on a call |
+| **Acquisition Outreach** (Wrobel/Statera/ACT) | Business owners | We represent a buyer looking to acquire | Get the business owner on a call |
+| **SDR / Agency Evolution** | M&A advisors, boutique banks | We offer deal origination services | Get them on a call to pitch our service |
+
+**If it's a Sell-Side Mandate campaign:**
+1. Check the client file for active mandates and match to the correct one using trigger keywords
+2. Prospect interested or asks for more info → send the correct teaser + calendar link
+3. Prospect asks about price/valuation → stay vague, redirect to teaser and call ("Best discussed on a call")
+4. Prospect asks who the seller is → NDA framing: not able to share before NDA is in place
+5. Prospect not a fit → polite exit, 2–3 lines max
+6. Prospect tries to route through an intake form → clarify we are the advisor, not the company
+
+Active mandate clients: **ACT Capital** (3 mandates), **Venture Exits** (Yoga & Wellness), **ZEBS/Statera** (Seed Round). Read those client files for teaser links and reply templates.
+
+---
+
 ## Rules Claude must follow
 - Read the client file before drafting — never assume tone or offer details from memory
 - Match reply length to the lead's message — short reply = short email
