@@ -9,11 +9,11 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Active |
 | **EmailBison slug** | `911-restoration` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
+| **Primary contact** | Idan Shpizear |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
 | **Calendly link** | [link] |
@@ -24,19 +24,19 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+911 Restoration is a national franchise network in the water/fire/mold restoration space. Franchisees operate under the 911 Restoration brand and receive insurance-backed jobs directly — no cold outreach required on their end.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+Franchise recruitment — identifying trade business owners (plumbing, HVAC, construction, restoration) who could add a 911 Restoration franchise alongside their existing operation.
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+Insurance-backed lead flow with no cold outreach required. Top 25% of franchisees average 2M+ in gross revenue. SBA financing available. Designed to run alongside an existing trade business.
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+The lead flow is insurance-driven — franchisees don't have to chase work. This is the #1 hook. It removes the biggest objection trade owners have to adding a new revenue stream.
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+Do not promise specific revenue figures as guaranteed outcomes. Do not confirm territory availability without checking.
 
 ---
 
@@ -44,63 +44,69 @@
 
 | Field | Detail |
 |---|---|
-| **Industry** | |
-| **Company size** | |
-| **Geography** | |
-| **Job title / role** | |
-| **Revenue range** | |
-| **Other criteria** | |
+| **Industry** | Trades: plumbing, HVAC, construction, general contracting, restoration |
+| **Company size** | Small-to-mid size owner-operated businesses |
+| **Geography** | USA — target by {CITY} |
+| **Job title / role** | Owner, Founder, President |
+| **Revenue range** | [range] |
+| **Other criteria** | Must already be operating in the trades |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+Trade business owner in the US who could add a restoration franchise alongside their existing operation.
 
 **What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+Not in the trades, wrong geography, no ownership/decision-making authority.
 
 ---
 
 ## Campaign Strategy
 
-**Current angle:**
-[The core hook being used right now]
+**CTA rules:**
+- Step 1: "Worth a quick phone call?" — always specify PHONE CALL, never just "call" or "quick chat"
+- Step 2: "Any interest in adding an insurance-backed revenue stream to your trade business in {CITY}?" (optionally append: "Our top 25% of franchisees average 2M+ in gross revenue.")
+- Step 3: "Got 10 minutes for a phone call this week?"
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**P.S. line:**
+"If this isn't of interest, just let me know and I won't follow up."
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**Hooks ranked by effectiveness:**
+1. Insurance-backed lead flow — no cold outreach required
+2. Top 25% average 2M+ in gross revenue
+3. Runs alongside existing trade business
+4. SBA financing available
+5. No territory overlap with existing clients
 
-**A/B tests running:**
-[What's being tested and what's winning]
+**What works:**
+- Including the insurance-backed detail in step 2 — filters for qualified replies only
+- Specifying the city ({CITY}) in step 2
+- Specific revenue figures (2M+) rather than vague claims
 
-**What's working:**
-[Angles, lines, sequences that are getting replies]
+**What doesn't work:**
+- Territory urgency / demand angle ("territory won't stay open") — never use
+- "Your background in the trades is why I reached out" — overused, ignored
+- Vague step 2 questions without a qualifying detail
 
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**Variable usage:**
+- {FIRST_NAME} and {CITY} — standard
+- Never use territory scarcity as a hook
 
 ---
 
 ## Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+Conversational and warm. These are trade business owners, not finance executives — keep it approachable and direct.
 
 **Interested signal:**
-[What does an interested reply look like for this client?]
+Any reply asking about the franchise program, how it works, what the investment looks like, or territory availability.
 
 **Not interested signal:**
-[What disqualifies a lead in their reply?]
-
-**Common objections + how to handle:**
-
-| Objection | Response |
-|---|---|
-| | |
-| | |
+Happy with current business, not looking to expand, already a franchisee of another brand.
 
 **Things to never say:**
-[Client-specific no-go phrases or promises]
+- Never guarantee revenue outcomes
+- Never confirm territory availability without checking
+- Never make it sound like a distressed investment
 
 ---
 
@@ -153,23 +159,23 @@ Body:
 ## Lead Sourcing Notes
 
 **Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
+Apollo — trade industry filters
 
 **Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
+Industries: Plumbing, HVAC, Construction, General Contracting, Restoration. Title: Owner, Founder, President. Geography: USA.
 
 **Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+Non-trade industries, outside USA, corporate employees without ownership.
 
 ---
 
 ## Lead Enrichment Notes
 
 **Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+City ({CITY}) for step 2 personalization. Business type confirmation (trades only).
 
 **Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+{CITY} in step 2 is the primary personalisation. Keep it simple — don't over-personalize.
 
 ---
 
@@ -184,15 +190,11 @@ Body:
 ## Key Conversations
 
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
-
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
-
 [Date] From: [sender]
 Subject: [subject]
 [body]

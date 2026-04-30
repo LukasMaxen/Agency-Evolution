@@ -9,14 +9,14 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Active |
 | **EmailBison slug** | `act-capital` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
+| **Primary contact** | Jeff Zanardi, Managing Director |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | [link] |
+| **Calendly link** | https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting |
 | **Monthly retainer** | [amount] |
 
 ---
@@ -24,19 +24,19 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+ACT Capital Advisors is a sell-side M&A advisory firm based in Sacramento, California. They represent business owners looking to sell and connect them with qualified buyers in the $5M–$50M revenue range.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+Sell-side deal sourcing — identifying California-based business owners in their target sectors who are open to exploring a sale or exit.
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+Access to a network of qualified buyers actively pursuing acquisitions in the $5M–$50M revenue range across commercial, industrial, construction, and digital media sectors.
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+California-focused, deep regional buyer relationships, strong track record in commercial and industrial M&A.
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+No valuation guarantees. No naming buyers before a call. No commission-only arrangements.
 
 ---
 
@@ -44,63 +44,71 @@
 
 | Field | Detail |
 |---|---|
-| **Industry** | |
-| **Company size** | |
-| **Geography** | |
-| **Job title / role** | |
-| **Revenue range** | |
-| **Other criteria** | |
+| **Industry** | Commercial, industrial, construction, digital media |
+| **Company size** | $5M–$50M revenue |
+| **Geography** | California |
+| **Job title / role** | Owner, Founder, CEO, President |
+| **Revenue range** | $5M–$50M |
+| **Other criteria** | Owner-operated businesses with sellable EBITDA |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+California-based business owner in commercial, industrial, construction, or digital media, with revenue in the $5M–$50M range and openness to exploring a sale.
 
 **What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+Outside California, not an owner/decision-maker, revenue outside the target range.
 
 ---
 
 ## Campaign Strategy
 
-**Current angle:**
-[The core hook being used right now]
+**Campaign type:** Sell-side M&A
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**CTA rules:**
+- Step 1: "Want me to send over the teaser?"
+- Step 2: "Any interest in exploring a sale or exit for {COMPANY}?"
+- Step 3: "Want me to send the teaser before we close the process?"
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**Key rules:**
+- Include revenue figures AND EBITDA in step 1 — both matter to the seller
+- Use {STATE} not {CITY} for geographic personalization — broader feels more natural
+- Remove dollar signs from revenue figures to avoid spam filters
+- Never mention company names being sold (confidentiality)
+- Never name the buyer before a call
+- Preferred meeting format: Google Meet
 
-**A/B tests running:**
-[What's being tested and what's winning]
+**What works:**
+Teaser CTA outperforms call CTA. Specific revenue + EBITDA figures in step 1.
 
-**What's working:**
-[Angles, lines, sequences that are getting replies]
-
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**What doesn't work:**
+Valuation promises, naming buyers upfront, generic openers without sector/geography context.
 
 ---
 
 ## Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+Professional and direct. These are California business owners considering a significant transaction — be credible and concise.
 
 **Interested signal:**
-[What does an interested reply look like for this client?]
+Any reply asking about buyers, process, valuation, deal structure, or timeline.
 
 **Not interested signal:**
-[What disqualifies a lead in their reply?]
+"Not for sale", "not the right time", "happy with current situation."
 
 **Common objections + how to handle:**
 
 | Objection | Response |
 |---|---|
-| | |
-| | |
+| "Who is your buyer?" | NDA standard practice framing — call is the next step |
+| "What's the valuation?" | Can't answer without knowing more → pull to call |
+| "We're not for sale" | Acknowledge, keep door open, reframe as exploratory |
+| "Send me a proposal" | Brief context + redirect to call |
+| "What's your fee?" | Answer honestly if asked, never volunteer |
 
 **Things to never say:**
-[Client-specific no-go phrases or promises]
+- Never confirm buyer identity before a call
+- Never give a valuation estimate in writing
+- Never agree to commission-only
 
 ---
 
@@ -153,23 +161,23 @@ Body:
 ## Lead Sourcing Notes
 
 **Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
+Apollo, LinkedIn Sales Nav — owner/founder titles in commercial, industrial, construction, digital media.
 
 **Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
+Geography: California. Industries: Commercial Real Estate Services, Industrial Machinery, Construction, Digital Media. Revenue: $5M–$50M. Titles: Owner, Founder, CEO, President.
 
 **Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+Outside California, non-owners, companies outside the $5M–$50M range.
 
 ---
 
 ## Lead Enrichment Notes
 
 **Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+Revenue, EBITDA if available, company age, sector classification.
 
 **Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+{STATE} for geographic personalization. Revenue/sector details in step 1 body.
 
 ---
 
@@ -184,15 +192,11 @@ Body:
 ## Key Conversations
 
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
-
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
-
 [Date] From: [sender]
 Subject: [subject]
 [body]
@@ -201,4 +205,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+[Anything that doesn't fit above]

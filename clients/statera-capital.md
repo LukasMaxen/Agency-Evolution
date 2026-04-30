@@ -9,14 +9,15 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Active |
 | **EmailBison slug** | `statera-capital` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
+| **Primary contact** | Svetlin Petrov, Managing Partner |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | [link] |
+| **Calendly link (M&A)** | https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate |
+| **Calendly link (ZEBS)** | https://calendly.com/d/ct3h-sbj-xmb/zebs-s-seed-round-intro |
 | **Monthly retainer** | [amount] |
 
 ---
@@ -24,83 +25,126 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+Statera Capital is a PE-focused M&A advisory and deal-sourcing firm managed by Svetlin Petrov (based in Bulgaria, same timezone as Istanbul/Turkey). They run two distinct outreach tracks: buy-side M&A sourcing on behalf of SSC (a PE firm), and fundraising outreach for ZEBS International.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
-
-**Core value proposition:**
-[What's the main hook — why would a prospect care?]
-
-**What makes them different:**
-[Differentiators vs. competitors or alternatives]
+1. PE add-on acquisitions — sourcing targets for SSC's active acquisition mandates (managed IT, cybersecurity, label converters)
+2. Investment fundraising — finding EdTech investors for ZEBS International's Seed Round
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+Never name SSC or any of their portfolio companies (Brite, ID Images) in scripts. Never promise returns or valuations. No commission-only.
 
 ---
 
 ## Target Audience (ICP)
 
+### Track 1 — SSC PE Add-On Acquisitions
+
 | Field | Detail |
 |---|---|
-| **Industry** | |
-| **Company size** | |
-| **Geography** | |
-| **Job title / role** | |
-| **Revenue range** | |
-| **Other criteria** | |
+| **Industry** | Managed IT services, cybersecurity, label converters (pressure-sensitive/prime label) |
+| **Company size** | [fill in] |
+| **Geography** | [fill in] |
+| **Job title / role** | Owner, Founder, CEO |
+| **Revenue range** | [fill in] |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+Owner of a managed IT, cybersecurity, or label converting business that could be an acquisition target for a PE add-on.
 
-**What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+### Track 2 — ZEBS International Seed Round
+
+| Field | Detail |
+|---|---|
+| **Industry** | EdTech investing, venture capital, impact investing |
+| **Company size** | [fill in] |
+| **Geography** | [fill in — primarily EU-focused] |
+| **Job title / role** | Managing Partner, Investment Principal, Founder |
+| **Revenue range** | N/A — investors, not operators |
+
+**What qualifies a lead:**
+EdTech investor or fund with appetite for a Seed Round investment with strong fundamentals (300k+ pilot revenue, EU accreditation, 25 countries).
 
 ---
 
 ## Campaign Strategy
 
-**Current angle:**
-[The core hook being used right now]
+### Track 1 — SSC PE Add-On
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**Campaign type:** Buy-side M&A (PE add-on)
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**CTA rules:**
+- Step 1: "Would you be open to a short confidential call?"
+- Step 2: "Any interest in connecting with a buyer actively looking for a business like {COMPANY}?"
+- Step 3: "Open to a quick call to learn more?"
 
-**A/B tests running:**
-[What's being tested and what's winning]
+**Key rules:**
+- NEVER name SSC or any portfolio company (Brite, ID Images) in scripts
+- Replace with: "a private equity firm that recently acquired a platform business in the [sector] space"
+- Include: "Capital is in place and they are ready to move"
+- Currently seeking: Managed IT services, cybersecurity, label converters with pressure-sensitive/prime label focus
 
-**What's working:**
-[Angles, lines, sequences that are getting replies]
+### Track 2 — ZEBS International Seed Round
 
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**Campaign type:** Investment fundraising
+
+**CTA rules:**
+- Step 1: "Mind if I send over the teaser?"
+- Step 2: "Any interest in a Seed Round opportunity with 300k+ in revenue and EU accreditation already in place?"
+- Step 3: "Mind if I send over the teaser so you can form your own view?"
+
+**Key stats to always include:** 300k+ pilot revenue, ~35% margins, 25 countries, EU accreditation, Seed Round
+
+**Key hooks:**
+- Founding team: former Deputy Minister of Foreign Affairs + 20+ year EdTech operator
+- Reason for outreach: "Given your background in EdTech investing..."
+
+**Spam avoidance:**
+- Remove € symbol and ~ from tilde percentages — spam triggers
+- Replace "~35%" with "strong margins" or write out the number
+
+**What doesn't work:**
+- "Checks a lot of boxes" — assumes fit, avoid
+- Better: "Given your background, I thought this was worth putting in front of you"
+
+**ZEBS teaser link:**
+https://docs.google.com/presentation/d/11j96USFphexZ8Bmk543bjIHjHWD0HnBd04bw2_tyKcs/edit?usp=sharing
+
+---
+
+## SSC Buyer Context (Confidential — Internal Only)
+
+- PE firm: SSC (never name in outreach)
+- Recently acquired: Brite (IT/managed services), ID Images (label converting)
+- Currently seeking: Managed IT services, cybersecurity, label converters (pressure-sensitive/prime label)
+- Capital: committed and ready
+- Timeline: fast-moving
 
 ---
 
 ## Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+Professional and direct. Svetlin is based in Bulgaria — timezone awareness is important for scheduling.
 
-**Interested signal:**
-[What does an interested reply look like for this client?]
+**Interested signal (M&A track):**
+Any reply expressing openness to a conversation with a buyer.
 
-**Not interested signal:**
-[What disqualifies a lead in their reply?]
+**Interested signal (ZEBS track):**
+Any reply asking for the teaser or expressing interest in the investment.
 
 **Common objections + how to handle:**
 
 | Objection | Response |
 |---|---|
-| | |
-| | |
+| "Who is your buyer?" | NDA standard practice framing — call is next step |
+| "What's the valuation?" | Can't answer without knowing more → pull to call |
+| "We're not for sale" | Acknowledge, keep door open, reframe as exploratory |
+| "Send me the ZEBS teaser" | Send teaser link, follow up in 7 days |
 
 **Things to never say:**
-[Client-specific no-go phrases or promises]
+- Never name SSC in any client-facing communication
+- Never name Brite or ID Images in outreach
+- Never promise investment returns for ZEBS
 
 ---
 
@@ -153,23 +197,23 @@ Body:
 ## Lead Sourcing Notes
 
 **Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
+Apollo, LinkedIn Sales Nav.
 
-**Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
+**SSC search filters:**
+Industries: Managed IT Services, Cybersecurity, Label Manufacturing/Converters. Titles: Owner, Founder, CEO.
 
-**Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+**ZEBS search filters:**
+Industries: Venture Capital, EdTech, Impact Investing. Titles: Managing Partner, Investment Principal, Partner.
 
 ---
 
 ## Lead Enrichment Notes
 
-**Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+**SSC track:**
+Company revenue, sector fit confirmation, ownership status.
 
-**Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+**ZEBS track:**
+Investment focus/thesis, fund size if available.
 
 ---
 
@@ -184,15 +228,11 @@ Body:
 ## Key Conversations
 
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
-
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
-
 [Date] From: [sender]
 Subject: [subject]
 [body]
@@ -201,4 +241,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+Svetlin is based in Bulgaria (same timezone as Istanbul/Turkey). Factor this into scheduling and reply timing. Two separate Calendly links — use the correct one per campaign track.

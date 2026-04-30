@@ -9,12 +9,12 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Active |
 | **EmailBison slug** | `venture-exits` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
-| **Contact email** | [email] |
+| **Primary contact** | Tim Enger |
+| **Contact email** | tenger@theventurexits.com |
 | **Slack channel** | `#[channel-name]` |
 | **Calendly link** | [link] |
 | **Monthly retainer** | [amount] |
@@ -24,19 +24,19 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+Venture Exits is a sell-side M&A advisory firm based in Houston, TX. They represent business owners looking to sell and connect them with qualified buyers.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+Sell-side deal sourcing — identifying business owners in their target sectors who are open to exploring a sale or exit.
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+Access to a network of qualified PE and strategic buyers actively pursuing acquisitions. Sellers benefit from a managed process and competitive tension between buyers.
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+Houston-based with strong regional relationships and sector depth.
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+No valuation guarantees. No naming buyers before a call. No commission-only arrangements.
 
 ---
 
@@ -44,63 +44,69 @@
 
 | Field | Detail |
 |---|---|
-| **Industry** | |
-| **Company size** | |
-| **Geography** | |
-| **Job title / role** | |
-| **Revenue range** | |
-| **Other criteria** | |
+| **Industry** | [fill in] |
+| **Company size** | [fill in] |
+| **Geography** | Houston / Texas |
+| **Job title / role** | Owner, Founder, CEO |
+| **Revenue range** | [fill in] |
+| **Other criteria** | [fill in] |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+Business owner open to exploring a sale, in Venture Exits' target sectors and geography.
 
 **What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+Outside geography, not an owner/decision-maker, outside sellable revenue range.
 
 ---
 
 ## Campaign Strategy
 
-**Current angle:**
-[The core hook being used right now]
+**Campaign type:** Sell-side M&A
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**CTA rules:**
+- Step 1: "Want me to send over the teaser?"
+- Step 2: "Any interest in exploring a sale or exit for {COMPANY}?"
+- Step 3: "Want me to send the teaser before we close the process?"
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**Key rules:**
+- Include revenue figures and EBITDA in step 1
+- Use {STATE} not {CITY} for geographic personalization
+- Remove dollar signs from revenue figures to avoid spam filters
+- Never mention company names being sold (confidentiality)
+- Never name the buyer before a call
 
-**A/B tests running:**
-[What's being tested and what's winning]
+**What works:**
+Teaser CTA outperforms call CTA — lower friction entry into the conversation.
 
-**What's working:**
-[Angles, lines, sequences that are getting replies]
-
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**What doesn't work:**
+Valuation promises, naming buyers upfront, commission-only framing.
 
 ---
 
 ## Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+Professional and direct. These are business owners considering a significant transaction — be credible and concise.
 
 **Interested signal:**
-[What does an interested reply look like for this client?]
+Any reply asking about buyers, process, valuation, or next steps.
 
 **Not interested signal:**
-[What disqualifies a lead in their reply?]
+"Not for sale", "not ready", "happy with current situation."
 
 **Common objections + how to handle:**
 
 | Objection | Response |
 |---|---|
-| | |
-| | |
+| "Who is your buyer?" | NDA standard practice framing — call is the next step |
+| "What's the valuation?" | Can't answer without knowing more → pull to call |
+| "We're not for sale" | Acknowledge, keep door open, reframe as exploratory |
+| "Send me a proposal" | Brief context + redirect to call |
 
 **Things to never say:**
-[Client-specific no-go phrases or promises]
+- Never confirm buyer identity before a call
+- Never give a valuation estimate in writing
+- Never agree to commission-only
 
 ---
 
@@ -153,23 +159,23 @@ Body:
 ## Lead Sourcing Notes
 
 **Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
+Apollo, LinkedIn Sales Nav — owner/founder titles in target sectors.
 
 **Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
+[Fill in]
 
 **Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+Outside Texas, non-owners, companies outside sellable range.
 
 ---
 
 ## Lead Enrichment Notes
 
 **Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+Revenue, EBITDA, company age, owner tenure.
 
 **Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+{STATE} for geographic personalization. Revenue/sector details in step 1.
 
 ---
 
@@ -184,15 +190,11 @@ Body:
 ## Key Conversations
 
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
-
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
-
 [Date] From: [sender]
 Subject: [subject]
 [body]
@@ -201,4 +203,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+[Anything that doesn't fit above]

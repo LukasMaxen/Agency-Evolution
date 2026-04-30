@@ -9,11 +9,11 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Active |
 | **EmailBison slug** | `hahnbeck` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
+| **Primary contact** | Taliesen Hollywood |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
 | **Calendly link** | [link] |
@@ -24,19 +24,19 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+Hahnbeck is a UK-based buy-side M&A holding company. They acquire businesses on behalf of their holding structure (referred to in outreach as a "UK-based holding company" — never as a PE firm).
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+Buy-side deal sourcing — identifying business owners open to a sale or acquisition approach from an active buyer with committed capital.
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+A UK-based holding company with committed capital actively seeking acquisitions. Capital is in place and they are ready to move.
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+Holding company structure (not a PE fund) — longer holding period, different cultural fit for sellers who don't want to be flipped. Committed capital.
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+Never name the PE firm or any platform company (Brite, Graymar, etc.) in scripts. Never promise specific valuations. No commission-only.
 
 ---
 
@@ -44,63 +44,71 @@
 
 | Field | Detail |
 |---|---|
-| **Industry** | |
-| **Company size** | |
-| **Geography** | |
-| **Job title / role** | |
-| **Revenue range** | |
-| **Other criteria** | |
+| **Industry** | [fill in — varies by campaign] |
+| **Company size** | [fill in] |
+| **Geography** | UK (no {STATE} variable — use counties/regions) |
+| **Job title / role** | Owner, Founder, Director |
+| **Revenue range** | [fill in] |
+| **Other criteria** | UK-based businesses only |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+UK-based business owner in Hahnbeck's target sectors who may be open to an acquisition approach.
 
 **What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+Outside UK, not an owner/director, outside target sectors.
 
 ---
 
 ## Campaign Strategy
 
-**Current angle:**
-[The core hook being used right now]
+**Campaign type:** Buy-side M&A (holding company)
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**CTA rules:**
+- Step 1: "Would you be open to a short confidential call?"
+- Step 2: "Any interest in connecting with a buyer actively looking for a business like {COMPANY}?"
+- Step 3: "Open to a quick call to learn more?"
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**Key rules:**
+- NEVER name the PE firm or any platform company (Brite, Graymar, etc.) in scripts
+- Replace with: "a UK-based holding company" — always use this framing
+- Include: "Capital is in place and they are ready to move" — signals urgency without being pushy
+- For HLKT campaigns: describe as "UK-based holding company" not "PE buyer"
+- UK campaigns: NO {STATE} variable — UK has countries and counties, not states
+- Never name any of the acquired companies in cold outreach
 
-**A/B tests running:**
-[What's being tested and what's winning]
+**What works:**
+"Capital is in place and ready to move" phrasing. Confidential call framing. Holding company positioning (not PE).
 
-**What's working:**
-[Angles, lines, sequences that are getting replies]
-
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**What doesn't work:**
+Naming specific portfolio companies. Valuation promises. Aggressive urgency.
 
 ---
 
 ## Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+Professional and measured. UK business owners — slightly more formal than US counterparts.
 
 **Interested signal:**
-[What does an interested reply look like for this client?]
+Any reply asking about the buyer, deal structure, timeline, or expressing openness to a conversation.
 
 **Not interested signal:**
-[What disqualifies a lead in their reply?]
+"Not for sale", "not looking to exit", "happy as is."
 
 **Common objections + how to handle:**
 
 | Objection | Response |
 |---|---|
-| | |
-| | |
+| "Who is your buyer?" | NDA standard practice framing — call is next step |
+| "What's the valuation?" | Can't answer without knowing more → pull to call |
+| "We're not for sale" | Acknowledge, keep door open, reframe as exploratory |
+| "Send me more info" | Brief context + redirect to call |
 
 **Things to never say:**
-[Client-specific no-go phrases or promises]
+- Never name the PE firm or platform companies
+- Never confirm buyer identity before a call
+- Never give a valuation estimate in writing
+- Never agree to commission-only
 
 ---
 
@@ -153,23 +161,23 @@ Body:
 ## Lead Sourcing Notes
 
 **Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
+Apollo, LinkedIn Sales Nav — UK owner/director titles in target sectors.
 
 **Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
+Geography: United Kingdom. No {STATE} variable. Titles: Owner, Director, Founder, Managing Director.
 
 **Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+Outside UK, non-owners, corporate employees without decision authority.
 
 ---
 
 ## Lead Enrichment Notes
 
 **Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+UK county/region for geographic context. Sector and company age.
 
 **Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+No {STATE}. Use company name and sector for personalization where natural.
 
 ---
 
@@ -184,15 +192,11 @@ Body:
 ## Key Conversations
 
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
-
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
-
 [Date] From: [sender]
 Subject: [subject]
 [body]
@@ -201,4 +205,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+UK campaigns: no {STATE} variable. Always describe as "UK-based holding company" — never PE firm. Never name Brite, Graymar, or any portfolio company in outreach.

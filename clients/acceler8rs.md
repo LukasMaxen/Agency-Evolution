@@ -9,14 +9,14 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Active |
 | **EmailBison slug** | `acceler8rs` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
+| **Primary contact** | Lukas Maxen, Co-founder |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | [link] |
+| **Calendly link** | https://calendly.com/lukasm-acceler8rs/intro-meeting |
 | **Monthly retainer** | [amount] |
 
 ---
@@ -24,19 +24,27 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+Acceler8rs (Accelerators) is a consumer brand growth and exit planning company co-founded by Lukas Maxen. They work with eCommerce and DTC brands across three phases: growth, scaling, and exit.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+Finding DTC/eCommerce brand owners who want to grow their brand profitably, scale it with an operating partner, and eventually execute a high-value exit.
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+"Most agencies help you grow OR help you sell. We do both and everything in between." Full 3-phase coverage from finding PMF and building an acquisition engine through to a managed M&A exit.
+
+**The 3-Phase System:**
+1. **Grow** (Acceler8rs.com) — Find PMF, build profitable acquisition engine, generate cash flow
+2. **Scale** (LarsenDigitalMarketing.com) — Operating partner for 7-figure+ brands (P&L, forecasting, growth execution, KPI, often equity)
+3. **Exit** — M&A planning and transaction execution via investment banking partners
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+End-to-end: growth + scaling + exit in one relationship. The case study results are exceptional and verifiable.
+
+**Pricing (only mention if asked):**
+$3,500/month retainer + 10% of profitable ad spend.
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+Never guarantee specific revenue outcomes. Never volunteer pricing unprompted.
 
 ---
 
@@ -44,63 +52,74 @@
 
 | Field | Detail |
 |---|---|
-| **Industry** | |
-| **Company size** | |
-| **Geography** | |
-| **Job title / role** | |
-| **Revenue range** | |
-| **Other criteria** | |
+| **Industry** | eCommerce, DTC consumer brands |
+| **Company size** | Early-stage to 7-figure brands |
+| **Geography** | [fill in] |
+| **Job title / role** | Founder, Owner, CEO |
+| **Revenue range** | [fill in] |
+| **Other criteria** | Brand must have a product and some traction — not pre-revenue |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+eCommerce/DTC brand founder looking to grow, scale, or prepare for an exit.
 
 **What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+B2B SaaS, no product, service businesses without a brand.
 
 ---
 
 ## Campaign Strategy
 
-**Current angle:**
-[The core hook being used right now]
+**Campaign type:** eCommerce brand growth and exit
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**CTA rules:**
+- Step 1: "Want me to send over the case study?" or "Worth a quick call to walk through what that could look like for your brand?"
+- Step 2: "Any interest in working with a team that handles growth, scaling, and the exit end to end?"
+- Step 3: "Want me to send over the case study?"
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**Variable rules:**
+- Always use "your brand" — NEVER use {COMPANY} variable
+- This is non-negotiable across all Acceler8rs scripts
 
-**A/B tests running:**
-[What's being tested and what's winning]
+**Case studies to reference:**
+- Motel Margarita: £25k → £102k/month in 90 days
+- KyiKyi: £13k → £140k/month in 60 days
+- Headwaters Studio: £60k/year → £1M+/year in 24 months
+- General: Brand from $6,342 to $93,210/month in 4 months (use full numbers, not rounded)
 
-**What's working:**
-[Angles, lines, sequences that are getting replies]
+**Case study link:**
+https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
 
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**P.S. lines:**
+Do NOT include P.S. opt-out lines for Acceler8rs — consumer brand founders will use it to say no.
+
+**What works:**
+- Specific full numbers ($6,342 and $93,210, not "$6k and $93k")
+- Case study CTA outperforms direct call ask for cold DTC outreach
+- "Most agencies help you grow OR help you sell. We do both." is the strongest differentiator line
+- Recipient-focused openers outperform results-first openers
+
+**What doesn't work:**
+- {COMPANY} variable — always "your brand"
+- Rounded numbers — specificity is trustworthy
+- P.S. opt-out lines
 
 ---
 
 ## Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+Conversational and warm. DTC founders are entrepreneurs — not corporate, not formal. Keep it human.
 
 **Interested signal:**
-[What does an interested reply look like for this client?]
+Any reply showing curiosity about the model, asking about results, asking what working together looks like.
 
 **Not interested signal:**
-[What disqualifies a lead in their reply?]
-
-**Common objections + how to handle:**
-
-| Objection | Response |
-|---|---|
-| | |
-| | |
+Happy with current agency, not looking to grow, B2B pivot, shutting down.
 
 **Things to never say:**
-[Client-specific no-go phrases or promises]
+- Never guarantee specific revenue outcomes
+- Never volunteer pricing before they ask
+- Never use {COMPANY} — it's always "your brand"
 
 ---
 
@@ -153,23 +172,23 @@ Body:
 ## Lead Sourcing Notes
 
 **Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
+Apollo, LinkedIn Sales Nav — DTC/eCommerce founder titles.
 
 **Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
+Industries: eCommerce, Consumer Goods, Apparel, Health & Wellness, Beauty. Titles: Founder, Owner, CEO. Exclude: B2B SaaS, services, non-product brands.
 
 **Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+B2B businesses, service companies, pre-revenue brands.
 
 ---
 
 ## Lead Enrichment Notes
 
 **Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+Brand/product type, revenue range if available, existing team size.
 
 **Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+"your brand" always — no {COMPANY}. Reference their product category where natural.
 
 ---
 
@@ -184,15 +203,11 @@ Body:
 ## Key Conversations
 
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
-
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
-
 [Date] From: [sender]
 Subject: [subject]
 [body]
@@ -201,4 +216,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+LinkedIn for Lukas skews toward Agency Evolution (B2B/PE), not Acceler8rs. Keep messaging and positioning separate between the two. Never mix Agency Evolution framing into Acceler8rs outreach.

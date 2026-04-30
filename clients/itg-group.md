@@ -9,11 +9,11 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Active |
 | **EmailBison slug** | `itg-group` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
+| **Primary contact** | Roberto Giamminola |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
 | **Calendly link** | [link] |
@@ -24,19 +24,19 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+ITG China Division supplies industrial loom parts to textile manufacturers globally. They offer high-quality replacement parts at competitive prices, directly from China.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+Finding textile manufacturers (weavers, loom operators) who need loom parts and could switch or supplement their current supplier with ITG.
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+Cut loom parts costs without changing suppliers or sacrificing reliability.
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+Direct from China source, competitive pricing, wide compatibility across loom brands and models.
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+[fill in]
 
 ---
 
@@ -44,63 +44,72 @@
 
 | Field | Detail |
 |---|---|
-| **Industry** | |
-| **Company size** | |
-| **Geography** | |
-| **Job title / role** | |
-| **Revenue range** | |
-| **Other criteria** | |
+| **Industry** | Textile manufacturing, weaving |
+| **Company size** | [fill in] |
+| **Geography** | Global (EU-focused) |
+| **Job title / role** | Plant Manager, Procurement Manager, Owner, Operations Director |
+| **Revenue range** | [fill in] |
+| **Other criteria** | Must be actively running loom-based manufacturing |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+Textile manufacturer actively running industrial looms who buys replacement parts — could be a Picanol, Sulzer, Dornier, Tsudakoma, or other brand.
 
 **What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+Not in textile manufacturing, not running looms, purely trading company with no manufacturing.
 
 ---
 
 ## Campaign Strategy
 
-**Current angle:**
-[The core hook being used right now]
+**Campaign type:** Industrial parts supply (B2B)
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**CTA rules — NON-NEGOTIABLE:**
+- Step 1: "Which loom brand and model are you currently running?" (qualifying question IS the CTA)
+- Step 2: "Any interest in cutting loom parts costs without changing suppliers or sacrificing reliability?"
+- Step 3: "Which loom brand and model are you currently running?" + credentials + catalog offer
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**Greeting rules — NON-NEGOTIABLE:**
+- Always open with "Dear Sir" — NEVER use {FIRST_NAME}
+- This is non-negotiable for all ITG scripts
 
-**A/B tests running:**
-[What's being tested and what's winning]
+**Key rules:**
+- The step 1 CTA is a qualifying question, not a call ask — never change this
+- Subject lines: lead with benefit, not company name — "Loom parts for {COMPANY}" not "ITG Textile parts"
+- Step 2 is question-only — no additional pitch, no separate CTA
 
-**What's working:**
-[Angles, lines, sequences that are getting replies]
+**What works:**
+- The qualifying question filters for genuinely active loom operators
+- "Dear Sir" opener is culturally appropriate for this market
+- Benefit-led subject lines outperform company-name subject lines
 
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**What doesn't work:**
+- {FIRST_NAME} opener — always "Dear Sir"
+- Call CTA at step 1 — the qualifying question IS the conversion mechanism
+- Padding step 2 with features
 
 ---
 
 ## Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+Formal and professional. These are industrial manufacturing managers — keep it direct and technical where needed.
 
 **Interested signal:**
-[What does an interested reply look like for this client?]
+Any reply that names their loom brand/model, asks about pricing, or requests a catalog.
 
 **Not interested signal:**
-[What disqualifies a lead in their reply?]
+Different supplier locked in, not running looms, wrong product category.
 
 **Common objections + how to handle:**
 
 | Objection | Response |
 |---|---|
-| | |
-| | |
+| "We're happy with our current supplier" | Acknowledge, offer comparison pricing, leave door open |
+| "Send me a catalog" | Send catalog, follow up in 7 days |
+| "What's the price for [part]?" | Get the loom brand/model first, then provide pricing |
 
 **Things to never say:**
-[Client-specific no-go phrases or promises]
+- Never use {FIRST_NAME} in any ITG communication — always "Dear Sir"
 
 ---
 
@@ -153,23 +162,23 @@ Body:
 ## Lead Sourcing Notes
 
 **Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
+Apollo, LinkedIn Sales Nav, textile industry directories.
 
 **Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
+Industries: Textile Manufacturing, Weaving. Titles: Plant Manager, Procurement Manager, Operations Manager, Owner. Geography: EU focus.
 
 **Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+Non-manufacturing companies, trading companies without production facilities.
 
 ---
 
 ## Lead Enrichment Notes
 
 **Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+Loom brand/model if available. Company size (number of looms). Geography.
 
 **Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+{COMPANY} in subject line. No {FIRST_NAME} — always "Dear Sir."
 
 ---
 
@@ -184,15 +193,11 @@ Body:
 ## Key Conversations
 
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
-
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
-
 [Date] From: [sender]
 Subject: [subject]
 [body]
@@ -201,4 +206,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+Always "Dear Sir" — never {FIRST_NAME}. This is the single most important rule for this client. The qualifying question (loom brand/model) is the conversion mechanism — don't replace it with a call ask.

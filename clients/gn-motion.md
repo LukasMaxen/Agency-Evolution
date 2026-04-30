@@ -9,14 +9,14 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Active |
 | **EmailBison slug** | `gn-motion` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
+| **Primary contact** | Romain Guillon, Founder/Owner |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | [link] |
+| **Calendly link** | https://app.iclosed.io/e/GNMOTION/30min |
 | **Monthly retainer** | [amount] |
 
 ---
@@ -24,19 +24,19 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+GN Motion produces high-end CGI videos for consumer and product brands. They work across cosmetics, fashion, jewelry, tech, and luxury categories. Romain operates in both French and English markets.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+Finding brand marketing teams or founders who need premium CGI/3D video content for product launches and brand campaigns.
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+A complimentary (never "free") CGI sample matched to the prospect's specific product — zero commitment, high signal. Then use the prep call to convert to a paid client.
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+Reference clients include Audemars Piguet, Starbucks, L'Oréal (Revitalift launch). The sample offer de-risks the conversation — prospects see quality before committing.
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+Never call the sample "free" — always "complimentary." Never overpromise on turnaround times without checking. Never say "efficacy" for cosmetics — too clinical.
 
 ---
 
@@ -44,63 +44,100 @@
 
 | Field | Detail |
 |---|---|
-| **Industry** | |
-| **Company size** | |
-| **Geography** | |
-| **Job title / role** | |
-| **Revenue range** | |
-| **Other criteria** | |
+| **Industry** | Cosmetics, fashion, jewelry, tech, luxury consumer brands |
+| **Company size** | [fill in] |
+| **Geography** | English and French markets |
+| **Job title / role** | Marketing Director, Brand Manager, Founder, Head of Content |
+| **Revenue range** | [fill in] |
+| **Other criteria** | Must have a physical product that benefits from CGI/3D video |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+Brand marketing decision-maker or founder with a physical product in cosmetics, fashion, jewelry, or tech — someone who would benefit from premium CGI video.
 
 **What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+Service businesses, B2B SaaS, no physical product, brands that use only UGC/lifestyle content.
 
 ---
 
 ## Campaign Strategy
 
-**Current angle:**
-[The core hook being used right now]
+**Campaign type:** CGI/visual production outreach
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**CTA rules:**
+- Step 1: "Worth a quick call to align on which product and concept would work best?"
+- Step 2: "Any interest in a CGI sample based on one of your products?"
+- Step 3: "Mind if I send over my portfolio?"
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**Key rules:**
+- Core offer is a **complimentary** (never "free") sample matched to their specific product
+- The call CTA always needs a reason: "to align on which product and concept would work best"
+- For French scripts: use "offert" not "gratuit," "réalisons/produisons" not "créons," no pipe in signature
+- "Efficacy" is too clinical — avoid for cosmetics/general audiences
+- "Skin" is too specific — avoid when targeting all cosmetics categories
 
-**A/B tests running:**
-[What's being tested and what's winning]
+**Hook structure:**
+Product quality problem → proof (client name) → complimentary sample offer → call CTA
 
-**What's working:**
-[Angles, lines, sequences that are getting replies]
+**Reference clients by niche:**
+- Cosmetics: L'Oréal (Revitalift), Audemars Piguet, Starbucks
+- Fashion: L'Oréal, Bang & Olufsen, Formula 1
+- Jewelry: Audemars Piguet, L'Oréal, Bang & Olufsen
+- Tech: Samsung, Garmin, Bang & Olufsen
 
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**Portfolio link:**
+https://www.canva.com/design/DAHCb_CiXzA/UA6aPIn-u-MAXQiuuanQAQ/view?utm_content=DAHCb_CiXzA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h6402713df7
+
+**P.S. lines:**
+Do NOT include P.S. opt-out lines — consumer audience, same rule as Acceler8rs/Larsen Digital.
+
+**What works:**
+- Named reference clients (Samsung, L'Oréal, Audemars Piguet) in the right niche
+- The complimentary sample offer as the primary CTA
+- Portfolio link as a step 3 fallback
+- Matching reference clients to the prospect's niche
+
+**What doesn't work:**
+- "Free" instead of "complimentary" (spam + devalues the offer)
+- "Efficacy" for cosmetics
+- Generic "skin" reference across all cosmetic categories
+- Vague call CTA without a reason
 
 ---
 
 ## Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+Professional but creative-friendly. These are marketing and brand people — slightly warmer and more visual than finance audiences.
 
 **Interested signal:**
-[What does an interested reply look like for this client?]
+Any reply asking about the sample, the portfolio, turnaround time, or pricing.
 
 **Not interested signal:**
-[What disqualifies a lead in their reply?]
+Happy with current content agency, no CGI need, wrong product category.
 
 **Common objections + how to handle:**
 
 | Objection | Response |
 |---|---|
-| | |
-| | |
+| "Send me the portfolio" | Send portfolio link + follow up in 7 days |
+| "We already have a CGI studio" | Acknowledge, offer sample as a comparison point |
+| "What does it cost?" | Answer honestly if asked — offer the sample first |
+| "Not the right time" | Acknowledge, offer to follow up in X months |
 
 **Things to never say:**
-[Client-specific no-go phrases or promises]
+- Never say "free" — always "complimentary"
+- Never say "efficacy" for cosmetics
+- Never overpromise on turnaround without checking
+
+---
+
+## French Market Notes
+
+- Match language of correspondence exactly — French reply = French email
+- Use "offert" not "gratuit" for the sample offer
+- Use "réalisons" or "produisons" — not "créons"
+- No pipe symbol (|) in French email signatures
+- Closing: "Bien cordialement" or "À très vite"
 
 ---
 
@@ -153,23 +190,23 @@ Body:
 ## Lead Sourcing Notes
 
 **Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
+Apollo, LinkedIn Sales Nav — marketing and brand roles at consumer product companies.
 
 **Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
+Industries: Cosmetics, Fashion, Luxury Goods, Consumer Electronics, Jewelry. Titles: Marketing Director, Brand Manager, Head of Content, CMO, Founder.
 
 **Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+B2B, service businesses, brands without physical products.
 
 ---
 
 ## Lead Enrichment Notes
 
 **Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+Product category (to match correct reference clients). Language/market (English vs French). Brand size and presence.
 
 **Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+Match reference clients to their product niche. Reference their product category in the sample offer.
 
 ---
 
@@ -184,15 +221,11 @@ Body:
 ## Key Conversations
 
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
-
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
-
 [Date] From: [sender]
 Subject: [subject]
 [body]
@@ -201,4 +234,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+Romain operates in French and English markets — use separate campaigns and match language exactly. French campaigns need different script structure (see French Market Notes above).

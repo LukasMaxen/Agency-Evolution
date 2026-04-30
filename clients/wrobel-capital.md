@@ -9,14 +9,14 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Active |
 | **EmailBison slug** | `wrobel-capital` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
+| **Primary contact** | Stephen Wrobel, Managing Partner |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | [link] |
+| **Calendly link** | https://calendly.com/swrobel-wrobelcap/30min |
 | **Monthly retainer** | [amount] |
 
 ---
@@ -24,19 +24,19 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+Wrobel Capital LLC is a PE-backed buy-side M&A firm. Stephen Wrobel represents PE buyers acquiring middle-market businesses across multiple sectors, including clean energy and sustainability.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+Sell-side deal sourcing — identifying business owners open to a sale, partial exit, or rollover and connecting them with Wrobel's committed PE buyer network.
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+Committed PE capital with an active acquisition mandate. Open to partial sales, rollovers, and majority stake deals — not just full exits. Buyers are ready to move.
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+Flexible deal structures. Buyers are committed and funded. 18-month active acquisition timeline.
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+No valuation guarantees. No naming the specific buyer before a call. No commission-only.
 
 ---
 
@@ -44,63 +44,80 @@
 
 | Field | Detail |
 |---|---|
-| **Industry** | |
-| **Company size** | |
-| **Geography** | |
-| **Job title / role** | |
-| **Revenue range** | |
-| **Other criteria** | |
+| **Industry** | Clean energy/sustainability; middle-market generalist |
+| **Company size** | Middle-market |
+| **Geography** | [fill in] |
+| **Job title / role** | Owner, Founder, CEO |
+| **Revenue range** | [fill in] |
+| **Other criteria** | Open to partial sales and rollovers |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+Business owner open to exploring a sale, partial exit, or rollover in Wrobel's target sectors.
 
 **What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+Committed to staying fully independent, outside target sectors, not an owner/decision-maker.
+
+---
+
+## Buyer Profiles
+
+**Profile 1 — PE Buyer (Clean Energy / Sustainability)**
+- Committed PE capital, ready to move
+- Focus: clean energy, sustainability
+
+**Profile 2 — Middle-Market Generalist**
+- 18-month acquisition timeline
+- Open to partial sales, rollovers, and majority stake deals
 
 ---
 
 ## Campaign Strategy
 
-**Current angle:**
-[The core hook being used right now]
+**Campaign type:** Sell-side M&A (representing PE buyers)
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**CTA rules:**
+- Step 1: "Want me to send over the teaser?" or "Would you be open to a short confidential call?"
+- Step 2: "Any interest in exploring a sale or exit for {COMPANY}?"
+- Step 3: "Want me to send the teaser before we close the process?"
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**Key rules:**
+- Include revenue figures and EBITDA in step 1
+- Use {STATE} for geographic personalization
+- Remove dollar signs from revenue figures to avoid spam filters
+- Never name the specific PE buyer before a call — use NDA framing
+- Preferred meeting format: Google Meet (via Calendly)
+- Email signatures vary by domain but always: Stephen Wrobel, Managing Partner, Wrobel Capital, LLC
 
-**A/B tests running:**
-[What's being tested and what's winning]
-
-**What's working:**
-[Angles, lines, sequences that are getting replies]
-
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**What works:**
+Partial sale / rollover flexibility messaging resonates with owners who aren't ready for a full exit.
 
 ---
 
 ## Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+Professional, measured, and credible. These are middle-market business owners considering a significant liquidity event.
 
 **Interested signal:**
-[What does an interested reply look like for this client?]
+Any reply asking about buyers, deal structure, timeline, valuation, or next steps.
 
 **Not interested signal:**
-[What disqualifies a lead in their reply?]
+"Not for sale", "not the right time."
 
 **Common objections + how to handle:**
 
 | Objection | Response |
 |---|---|
-| | |
-| | |
+| "Who is your buyer?" | NDA standard practice framing — call is next step |
+| "What's the valuation?" | Can't answer without knowing more → pull to call |
+| "We're not for sale" | Acknowledge, keep door open — exploratory conversation only |
+| "We're only open to a partial sale" | Exactly what we can do — partial sales and rollovers are on the table |
+| "Send me a proposal" | Brief context + redirect to call |
 
 **Things to never say:**
-[Client-specific no-go phrases or promises]
+- Never confirm specific buyer identity before a call
+- Never give a valuation estimate in writing
+- Never agree to commission-only
 
 ---
 
@@ -153,23 +170,23 @@ Body:
 ## Lead Sourcing Notes
 
 **Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
+Apollo, LinkedIn Sales Nav — owner/founder titles in target sectors.
 
 **Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
+[Fill in based on active campaigns]
 
 **Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+Non-owners, outside target sectors.
 
 ---
 
 ## Lead Enrichment Notes
 
 **Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+Revenue, EBITDA, company age, owner tenure, sector.
 
 **Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+{STATE} for geographic personalization. Revenue/sector in step 1 body.
 
 ---
 
@@ -184,15 +201,11 @@ Body:
 ## Key Conversations
 
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
-
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
-
 [Date] From: [sender]
 Subject: [subject]
 [body]
@@ -201,4 +214,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+Email signatures vary by domain but always: Stephen Wrobel, Managing Partner, Wrobel Capital, LLC.

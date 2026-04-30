@@ -1,4 +1,4 @@
-# Zebs IBS — Client File
+# ZEBS International — Client File
 
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
@@ -9,14 +9,14 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Active |
 | **EmailBison slug** | `zebs-ibs` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
+| **Primary contact** | Svetlin Petrov (via Statera Capital) |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | [link] |
+| **Calendly link** | https://calendly.com/d/ct3h-sbj-xmb/zebs-s-seed-round-intro |
 | **Monthly retainer** | [amount] |
 
 ---
@@ -24,19 +24,25 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+ZEBS International is an EdTech company raising a Seed Round. They operate an international business school platform with EU accreditation, active in 25 countries, and have a strong founding team with government and EdTech operating experience.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+Finding EdTech investors and impact-focused fund managers who would be a fit for a Seed Round investment in a revenue-generating, accredited EdTech company.
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+300k+ in pilot revenue, ~35% margins, EU accreditation, 25 countries, strong founding team. A Seed Round opportunity with real traction already in place.
+
+**Founding team (primary hook):**
+Former Deputy Minister of Foreign Affairs + 20+ year EdTech operator. This is the strongest single hook in the pitch.
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+Real revenue (300k+), real accreditation (EU), real international presence (25 countries). Not a pre-revenue startup.
+
+**Teaser link:**
+https://docs.google.com/presentation/d/11j96USFphexZ8Bmk543bjIHjHWD0HnBd04bw2_tyKcs/edit?usp=sharing
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+Never guarantee investment returns. Never overstate metrics — use the validated numbers only (300k+, 35% margins, 25 countries).
 
 ---
 
@@ -44,63 +50,83 @@
 
 | Field | Detail |
 |---|---|
-| **Industry** | |
-| **Company size** | |
-| **Geography** | |
-| **Job title / role** | |
-| **Revenue range** | |
-| **Other criteria** | |
+| **Industry** | Venture capital, EdTech investing, impact investing |
+| **Company size** | [fill in] |
+| **Geography** | EU-focused |
+| **Job title / role** | Managing Partner, Investment Principal, Partner, Founder |
+| **Revenue range** | N/A — investors, not operators |
+| **Other criteria** | EdTech investment thesis or background preferred |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+EdTech investor or impact fund with appetite for Seed Round investment in a revenue-generating, EU-accredited EdTech company.
 
 **What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+Pure tech/SaaS investors with no EdTech mandate, late-stage only funds, no EU exposure.
 
 ---
 
 ## Campaign Strategy
 
-**Current angle:**
-[The core hook being used right now]
+**Campaign type:** Investment fundraising (Seed Round)
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**CTA rules:**
+- Step 1: "Mind if I send over the teaser?"
+- Step 2: "Any interest in a Seed Round opportunity with 300k+ in revenue and EU accreditation already in place?"
+- Step 3: "Mind if I send over the teaser so you can form your own view?"
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**Key stats to always include:**
+- 300k+ pilot revenue
+- ~35% margins (write as "strong margins" or "around 35%" — avoid ~ and € symbols for spam)
+- 25 countries
+- EU accreditation
+- Seed Round stage
 
-**A/B tests running:**
-[What's being tested and what's winning]
+**Reason for outreach:**
+Always reference their background: "Given your background in EdTech investing..." or "Given your experience in EdTech investing, I thought this was worth putting in front of you."
 
-**What's working:**
-[Angles, lines, sequences that are getting replies]
+**Spam avoidance:**
+- Remove € symbol — spam trigger
+- Remove ~ from percentages — spam trigger
+- Write "300k+" not "€300k+"
+- Write "strong margins around 35%" not "~35% margins"
 
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**What works:**
+- Founding team as primary hook (Deputy Minister + 20yr EdTech operator)
+- Teaser CTA outperforms call ask — lower friction for investor outreach
+- Referencing their EdTech background as the reason for outreach
+- Step 3: "Given your background, I thought this was worth putting in front of you" — non-assumptive
+
+**What doesn't work:**
+- "Checks a lot of boxes" — assumes fit, avoid
+- € symbol or ~ in subject lines or body
+- Vague investor value claims without the specific metrics
 
 ---
 
 ## Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+Professional and concise. These are investment professionals — they evaluate decks daily. Be direct, lead with the metrics, and send the teaser quickly when asked.
 
 **Interested signal:**
-[What does an interested reply look like for this client?]
+Any reply asking for the teaser, expressing interest in the round, or asking questions about the company.
 
 **Not interested signal:**
-[What disqualifies a lead in their reply?]
+"Outside our mandate", "not the right stage", "we don't do EdTech."
 
 **Common objections + how to handle:**
 
 | Objection | Response |
 |---|---|
-| | |
-| | |
+| "Send me the teaser" | Send teaser link immediately, follow up in 7 days |
+| "What's the valuation?" | Answer if known, redirect to teaser/call for full details |
+| "Outside our mandate" | Acknowledge cleanly, close professionally |
+| "Not the right stage for us" | Acknowledge, keep door open for future rounds |
 
 **Things to never say:**
-[Client-specific no-go phrases or promises]
+- Never use "checks a lot of boxes"
+- Never overstate metrics beyond what's validated
+- Never guarantee returns
 
 ---
 
@@ -153,23 +179,23 @@ Body:
 ## Lead Sourcing Notes
 
 **Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
+Apollo, LinkedIn Sales Nav — VC and EdTech investor profiles.
 
 **Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
+Industries: Venture Capital, EdTech, Impact Investing, Education. Titles: Managing Partner, Investment Principal, Partner, Founder. Geography: EU.
 
 **Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+Late-stage only funds, no EdTech mandate, non-EU investors, corporate VCs without startup focus.
 
 ---
 
 ## Lead Enrichment Notes
 
 **Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+Investment thesis/focus (EdTech vs general). Fund stage preference. Geographic focus.
 
 **Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+Reference their EdTech background in the reason-for-outreach line. Use their investment focus as the hook.
 
 ---
 
@@ -184,15 +210,11 @@ Body:
 ## Key Conversations
 
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
-
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
-
 [Date] From: [sender]
 Subject: [subject]
 [body]
@@ -201,4 +223,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+Campaign runs through Statera Capital / Svetlin Petrov (see statera-capital.md for Svetlin's contact details and timezone). ZEBS has its own separate Calendly link — always use the ZEBS link, not the Statera M&A link, for this campaign.

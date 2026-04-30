@@ -9,11 +9,11 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Active |
 | **EmailBison slug** | `sonaro-ai` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
+| **Primary contact** | Manuele Giamminola |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
 | **Calendly link** | [link] |
@@ -24,19 +24,19 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+Sonaro AI provides an AI receptionist and clinic automation platform for healthcare clinics (GP, dental, physio, aesthetics, etc.). The product handles missed calls, appointment booking, no-show reduction, and patient reactivation automatically.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+Finding clinic owners and practice managers across the EU who are losing revenue from missed calls, no-shows, or lapsed patients.
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+A free 30-day trial of an AI receptionist for their clinic — no commitment, real results before they pay anything.
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+Free 30-day trial removes all risk. Addresses multiple clinic pain points in one system: missed calls, no-shows, lapsed patient reactivation, and online reviews.
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+Never guarantee specific revenue increases or patient acquisition numbers. No Tebra name-drops in cold outreach — too specific and assumes their tech stack.
 
 ---
 
@@ -44,63 +44,77 @@
 
 | Field | Detail |
 |---|---|
-| **Industry** | |
-| **Company size** | |
-| **Geography** | |
-| **Job title / role** | |
-| **Revenue range** | |
-| **Other criteria** | |
+| **Industry** | Healthcare clinics: GP, dental, physio, aesthetics, chiropractic |
+| **Company size** | Small-to-mid size clinic operators |
+| **Geography** | EU-focused (not UK-specific) |
+| **Job title / role** | Clinic Owner, Practice Manager, Medical Director |
+| **Revenue range** | [fill in] |
+| **Other criteria** | Must be running an active patient-facing clinic |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+EU-based clinic owner or practice manager running an active patient-facing practice — anyone losing revenue from missed calls or no-shows.
 
 **What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+Hospital groups (too large/complex), non-patient-facing healthcare, outside EU.
 
 ---
 
 ## Campaign Strategy
 
-**Current angle:**
-[The core hook being used right now]
+**Campaign type:** AI SaaS / clinic automation
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**CTA rules:**
+- Step 1: "Free 30-day trial, worth a quick 15 minutes to see how it works?"
+- Step 2: "Any interest in a free 30-day trial of an AI receptionist for {COMPANY}?"
+- Step 3: "Worth a quick call to see how it works?"
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**Key rules:**
+- The free 30-day trial is the #1 hook — always include before the CTA in step 1
+- NEVER name Tebra in cold outreach — too specific, assumes their tech stack
+- EU-focused campaign — not UK-specific
+- Always include the trial in step 2 question
 
-**A/B tests running:**
-[What's being tested and what's winning]
+**Pain points ranked by effectiveness:**
+1. Missed calls (revenue walking out the door)
+2. No-shows (booked slots going empty)
+3. Lapsed patient reactivation (dormant revenue)
+4. Getting more online reviews
 
-**What's working:**
-[Angles, lines, sequences that are getting replies]
+**What works:**
+- Free trial CTA at step 1 is the lowest-friction possible entry
+- Including {COMPANY} in step 2 makes it feel personalized and specific
+- Missed calls / no-shows are universal clinic pain — lead with these
 
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**What doesn't work:**
+- Naming Tebra or other specific PMS systems
+- Generic AI claims without specifics
+- UK-specific targeting
 
 ---
 
 ## Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+Approachable and professional. Clinic owners are time-poor — keep everything short and outcome-focused.
 
 **Interested signal:**
-[What does an interested reply look like for this client?]
+Any reply asking about the trial, what the AI does, pricing after trial, or setup requirements.
 
 **Not interested signal:**
-[What disqualifies a lead in their reply?]
+"We're fully staffed", "we use a full reception team and it works", "not interested in AI."
 
 **Common objections + how to handle:**
 
 | Objection | Response |
 |---|---|
-| | |
-| | |
+| "We already have a receptionist" | The AI handles overflow — won't replace your team |
+| "What happens after the trial?" | Answer pricing honestly if asked |
+| "How does setup work?" | Redirect to a 15-minute call to walk through it |
+| "We're not interested in AI" | Acknowledge, close cleanly |
 
 **Things to never say:**
-[Client-specific no-go phrases or promises]
+- Never name Tebra or specific PMS systems in cold outreach
+- Never guarantee specific patient or revenue outcomes
 
 ---
 
@@ -153,23 +167,23 @@ Body:
 ## Lead Sourcing Notes
 
 **Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
+Apollo, LinkedIn Sales Nav — healthcare clinic roles across EU.
 
 **Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
+Industries: Medical Practice, Dental, Physical Therapy, Chiropractic, Aesthetics. Titles: Clinic Owner, Practice Manager, Medical Director. Geography: EU (exclude UK-specific targeting).
 
 **Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+Hospital groups, non-patient-facing healthcare, UK-only campaigns.
 
 ---
 
 ## Lead Enrichment Notes
 
 **Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+Clinic type (dental, GP, physio, aesthetics). Clinic size (number of practitioners). Geography.
 
 **Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+{COMPANY} in step 2 for personalization. Reference their clinic type where known.
 
 ---
 
@@ -184,15 +198,11 @@ Body:
 ## Key Conversations
 
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
-
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
-
 [Date] From: [sender]
 Subject: [subject]
 [body]
@@ -201,4 +211,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+EU-focused — not UK-specific. Never name Tebra in cold outreach. Free 30-day trial is the primary hook — never bury it.
