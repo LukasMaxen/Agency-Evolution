@@ -81,10 +81,14 @@ B2B SaaS, no product, service businesses without a brand.
 - This is non-negotiable across all Acceler8rs scripts
 
 **Case studies to reference:**
-- Motel Margarita: £25k → £102k/month in 90 days
-- KyiKyi: £13k → £140k/month in 60 days
-- Headwaters Studio: £60k/year → £1M+/year in 24 months
-- General: Brand from $6,342 to $93,210/month in 4 months (use full numbers, not rounded)
+- Motel Margarita: £25k → £102k/month in 90 days (UK client — use £)
+- KyiKyi: £13k → £140k/month in 60 days (UK client — use £)
+- Headwaters Studio: £60k/year → £1M+/24 months (UK client — use £)
+- General: Brand from $6,342 to $93,210/month in 4 months (3.75x ROAS) (US client — use $)
+
+**Currency rules:**
+- UK campaigns: use £ for all case study figures
+- US campaigns: use $ for all case study figures
 
 **Case study link:**
 https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
@@ -97,11 +101,14 @@ Do NOT include P.S. opt-out lines for Acceler8rs — consumer brand founders wil
 - Case study CTA outperforms direct call ask for cold DTC outreach
 - "Most agencies help you grow OR help you sell. We do both." is the strongest differentiator line
 - Recipient-focused openers outperform results-first openers
+- Shopify-specific targeting significantly outperforms broad eCommerce targeting
+- UK campaigns: 30.66% interested rate vs USA 21.43% — UK audience converts better
 
 **What doesn't work:**
 - {COMPANY} variable — always "your brand"
 - Rounded numbers — specificity is trustworthy
 - P.S. opt-out lines
+- Ecom Industries USA broad targeting — 0% interested rate, do not use
 
 ---
 
