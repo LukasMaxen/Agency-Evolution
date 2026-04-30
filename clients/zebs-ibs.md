@@ -128,11 +128,23 @@ Any reply asking for the teaser, expressing interest in the round, or asking que
 | "What's the valuation?" | Answer if known, redirect to teaser/call for full details |
 | "Outside our mandate" | Acknowledge cleanly, close professionally |
 | "Not the right stage for us" | Acknowledge, keep door open for future rounds |
+| "Put us through your intake form" | Clarify we are the advisor representing the company, not the company itself |
 
 **Things to never say:**
 - Never use "checks a lot of boxes"
 - Never overstate metrics beyond what's validated
 - Never guarantee returns
+
+**Standard reply template (investor expresses interest):**
+> Hi {FIRST_NAME},
+>
+> Here is the teaser for your review: https://docs.google.com/presentation/d/11j96USFphexZ8Bmk543bjIHjHWD0HnBd04bw2_tyKcs/edit?usp=sharing
+>
+> Happy to jump on a quick call to go over everything. Feel free to grab a time here: https://calendly.com/d/ct3h-sbj-xmb/zebs-s-seed-round-intro
+>
+> Looking forward to speaking soon.
+>
+> {SENDER_EMAIL_SIGNATURE}
 
 ---
 
