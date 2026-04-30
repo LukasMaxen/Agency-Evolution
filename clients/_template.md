@@ -13,34 +13,68 @@
 | **EmailBison slug** | `[slug]` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | [Name, role] |
-| **Contact email** | [email] |
-| **Slack channel** | `#[channel-name]` |
-| **Calendly link** | [link] |
 | **Monthly retainer** | [amount] |
+| **Active campaigns** | [list campaign names, e.g. "Trade Owners / Existing Franchisees"] |
 
 ---
 
-## Offer & Positioning
+## Contacts
+
+| Name | Role | Email | Calendly | Timezone | Notes |
+|---|---|---|---|---|---|
+| [Name] | [Role at client company] | [email] | [link] | [timezone] | [e.g. primary contact, cc on all emails] |
+| [Name] | [Role] | [email] | [link] | [timezone] | |
+
+_Add a row for every stakeholder. Note which Calendly link belongs to which campaign if they differ._
+
+---
+
+## Client Overview
 
 **What they do:**
-[One paragraph describing the client's business]
-
-**What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
-
-**Core value proposition:**
-[What's the main hook — why would a prospect care?]
+[One paragraph describing the client's business — what they sell, who they serve, how long they've been operating, any notable credibility points.]
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+[Differentiators that apply across all campaigns — proof points, credentials, unique model. Things we can always reference regardless of which campaign we're running.]
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+[Hard constraints that apply across all campaigns — e.g. no guaranteed returns, no confirmed territory availability, no naming specific PE firms.]
+
+**Slack channel:** `#[channel-name]`
 
 ---
 
-## Target Audience (ICP)
+## Campaigns
+
+_Each campaign gets its own block below. Duplicate the block for each active campaign. If a campaign is paused or completed, move it to the Archived Campaigns section at the bottom._
+
+---
+
+### Campaign: [Campaign Name]
+
+**Status:** Active / Paused / Completed
+**EmailBison campaign name:** [exact name as it appears in EmailBison]
+**Calendly link for this campaign:** [link — if different from another campaign]
+
+#### Offer
+
+**What this campaign is selling / recruiting for:**
+[What is the prospect being asked to consider? Be specific — e.g. "Opening a 911 Restoration franchise alongside their existing trade business" not just "franchise recruitment."]
+
+**Core value proposition:**
+[The single strongest reason a prospect in this ICP should care. Lead with this.]
+
+**Key proof points / stats to always include:**
+- [Stat or fact 1]
+- [Stat or fact 2]
+- [Stat or fact 3]
+
+**What they can never say in this campaign:**
+[Any constraints specific to this campaign — may overlap with client-level rules or add to them.]
+
+---
+
+#### Target Audience (ICP)
 
 | Field | Detail |
 |---|---|
@@ -48,63 +82,99 @@
 | **Company size** | |
 | **Geography** | |
 | **Job title / role** | |
-| **Revenue range** | |
+| **Revenue / EBITDA range** | |
 | **Other criteria** | |
 
 **What qualifies a lead:**
-[What makes someone a good fit?]
+[What makes someone a clear fit for this specific campaign?]
 
 **What disqualifies a lead:**
-[Deal too small, wrong geography, wrong stage, etc.]
+[Wrong stage, wrong geography, wrong business type, etc.]
 
 ---
 
-## Campaign Strategy
+#### Script Rules
 
-**Current angle:**
-[The core hook being used right now]
+**Step 1 CTA:**
+[Exact wording or formula — e.g. "Worth a quick phone call?" / "Mind if I send over the teaser?"]
 
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
+**Step 2 CTA:**
+[Exact wording — typically a direct question referencing the offer]
 
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
+**Step 3 CTA:**
+[Exact wording — re-engagement, never signal sequence end]
 
-**A/B tests running:**
-[What's being tested and what's winning]
+**Variables used:**
+[List merge tags — e.g. {FIRST_NAME}, {COMPANY}, {CITY}, {STATE}]
 
-**What's working:**
-[Angles, lines, sequences that are getting replies]
+**Hooks ranked by effectiveness:**
+1. [Strongest hook]
+2.
+3.
 
-**What's not working:**
-[Angles that flopped — don't repeat these]
+**What works:**
+- [Angle, line, or framing that gets replies]
+- [Include exact phrasing if known]
+
+**What doesn't work:**
+- [Angle or framing that flopped — never repeat]
+
+**Formatting / spam rules specific to this campaign:**
+[e.g. remove $ signs, avoid ~ symbol, never use the word "guaranteed"]
+
+**P.S. line:**
+[Include the P.S. line if used, or note "No P.S. for this campaign"]
 
 ---
 
-## Reply Guidelines
+#### Reply Guidelines
 
 **Tone:**
-[e.g. Formal and concise / Conversational and warm / Short and direct]
+[e.g. Conversational and warm / Formal and direct / Professional but approachable]
 
 **Interested signal:**
-[What does an interested reply look like for this client?]
+[What does a genuinely interested reply look like? What words or phrases indicate real intent?]
 
 **Not interested signal:**
-[What disqualifies a lead in their reply?]
+[What phrases or contexts mean this lead is done?]
 
 **Common objections + how to handle:**
 
 | Objection | Response |
 |---|---|
-| | |
-| | |
+| [Objection 1] | [How to handle] |
+| [Objection 2] | [How to handle] |
+| [Objection 3] | [How to handle] |
 
-**Things to never say:**
-[Client-specific no-go phrases or promises]
+**Things to never say in replies:**
+- [Specific phrase or promise to avoid]
 
 ---
 
-## Follow-Up Templates (FU1–FU10)
+#### Lead Sourcing
+
+**Best data sources:**
+[Apollo, LinkedIn Sales Nav, specific directories, etc.]
+
+**Filters / search strings that work:**
+[Industries, titles, geography parameters, Boolean strings]
+
+**Lists to avoid:**
+[Company types, industries, geographies that waste sends]
+
+---
+
+#### Lead Enrichment
+
+**Key enrichment fields needed:**
+[What data points matter for personalisation in this campaign]
+
+**Personalisation approach:**
+[How we personalise — city, company revenue, recent news, job title detail, etc.]
+
+---
+
+#### Follow-Up Sequence
 
 _Tone progression: FU1–3 warm/informative → FU4–6 direct/mild urgency → FU7–9 short/low pressure → FU10 close_
 
@@ -150,48 +220,61 @@ Body:
 
 ---
 
-## Lead Sourcing Notes
+#### Campaign Performance
 
-**Best data sources for this client:**
-[Apollo, LinkedIn Sales Nav, specific lists, etc.]
-
-**Search strings / filters that work:**
-[Boolean strings, Apollo filters, LinkedIn parameters]
-
-**Lists to avoid:**
-[Industries, geographies, company types that waste sends]
+| Date | Leads sent | Open rate | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| | | | | | |
 
 ---
 
-## Lead Enrichment Notes
+### Campaign: [Second Campaign Name]
 
-**Key enrichment fields needed:**
-[What data points matter most for personalisation for this client]
+_Duplicate this entire block for each additional active campaign._
 
-**Personalisation approach:**
-[How we personalise for this client — company revenue, recent news, specific role detail, etc.]
+**Status:** Active / Paused / Completed
+**EmailBison campaign name:**
+**Calendly link for this campaign:**
+
+#### Offer
+#### Target Audience (ICP)
+#### Script Rules
+#### Reply Guidelines
+#### Lead Sourcing
+#### Lead Enrichment
+#### Follow-Up Sequence
+#### Campaign Performance
 
 ---
 
-## Campaign History
+## Archived Campaigns
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+_Move completed or paused campaigns here. Keep the performance data — it's useful context for future work._
+
+| Campaign name | Status | Period active | Leads sent | Reply rate | Interested rate | Why paused/ended |
+|---|---|---|---|---|---|---|
+| | | | | | | |
 
 ---
 
 ## Key Conversations
 
+### Biweekly Meeting Notes
+_Summary of each biweekly call — decisions made, feedback given, changes requested._
+
+[Date] — [Key decisions / updates from this call]
+
+---
+
 ### Slack Messages
-_Paste important Slack threads here — decisions, feedback, complaints, requests_
+_Paste important Slack threads — decisions, feedback, complaints, strategy changes._
 
 [Date] [Person]: [message]
 
 ---
 
 ### Email Conversations
-_Paste key email threads — onboarding emails, strategy discussions, client feedback_
+_Paste key email threads — onboarding emails, strategy discussions, client feedback._
 
 [Date] From: [sender]
 Subject: [subject]
@@ -201,4 +284,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+[Anything that doesn't fit above — quirks, sensitivities, relationship context, things to never bring up, or context that helps when working on this account.]
