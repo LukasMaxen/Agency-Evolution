@@ -1,5 +1,7 @@
 # Brookline Capital
 
+**Status:** Paused
+
 **Contact:** Not confirmed
 **Timezone:** EST UTC-5
 **Calendar:** Not confirmed
