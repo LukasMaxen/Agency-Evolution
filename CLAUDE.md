@@ -1,6 +1,6 @@
-# [COMPANY NAME] — AI Reply Desk — CLAUDE.md
+# Maxen Partners — AI Reply Desk — CLAUDE.md
 
-Centralized reply management dashboard and Business OS for **[COMPANY NAME]**, a buy-side sourcing partner managing 15+ EmailBison workspaces for PE/IB cold outreach clients.
+Centralized reply management dashboard and Business OS for **Maxen Partners**, a full-funnel origination system for M&A intermediaries and Private Equity buyers. Managing 15+ EmailBison workspaces for cold outreach clients.
 
 **Team:** Lukas Maxen (founder, AI/ops), Kasper Zacho (campaigns), Sunny Newar (tech + lead sourcing)
 
@@ -8,25 +8,23 @@ Centralized reply management dashboard and Business OS for **[COMPANY NAME]**, a
 
 ## Client Files
 
-Every client has a single file in `1. Departments/clients/[slug].md` — the source of truth for their offer, ICP, campaign strategy, reply guidelines, FU templates, Slack/email history, and campaign notes.
+Every client has a single file in `clients/[slug].md` — the source of truth for their offer, ICP, campaign strategy, reply guidelines, FU templates, Slack/email history, and campaign notes.
 
-**Before any client task:** read `1. Departments/clients/[client-slug].md` first.
+**Before any client task:** read `clients/[client-slug].md` first.
 
-To onboard a new client: follow `1. Departments/client-management/onboarding.md`.
+To onboard a new client: follow `1. Departments/operations/SKILL_OnboardClient.md`.
 
 ## Business OS — Department Folders
 
-Departments contain reusable skills and workflows — the HOW. Client-specific context lives in `clients/`.
+Departments contain reusable skills, context, and workflows — the HOW. Client-specific context lives in `clients/`.
 
 | Folder | Owner | What's inside |
 |---|---|---|
-| `1. Departments/lead-sourcing/` | Sunny + Kasper | ICP process, list building methodology |
-| `1. Departments/lead-enrichment/` | Sunny | Enrichment workflows, scoring |
-| `1. Departments/campaign-strategy/` | Kasper | Strategy methodology, angle frameworks, sequence structure |
-| `1. Departments/campaign-management/` | Kasper | EmailBison workflows, integrations |
+| `1. Departments/context/` | Lukas | Company positioning, brand context (Maxen Partners) |
+| `1. Departments/leads/` | Sunny + Kasper | ICP process, list sourcing, enrichment, scoring |
+| `1. Departments/campaign/` | Kasper | Strategy, scripting, EmailBison workflows, integrations |
 | `1. Departments/reply-management/` | Lukas | Reply process, FU structure, AI guidelines |
-| `1. Departments/client-management/` | Lukas | Client roster, onboarding workflow |
-| `1. Departments/operations/` | Lukas | Tech stack, git workflow, AI framework, team |
+| `1. Departments/operations/` | Lukas | Tech stack, git workflow, AI framework, onboarding, team |
 
 ---
 
