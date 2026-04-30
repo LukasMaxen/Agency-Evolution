@@ -108,3 +108,32 @@ When writing anything in the voice of Maxen Partners (e.g. our own website copy,
 | Lukas Maxen | Founder — AI/ops |
 | Kasper Zacho | Campaigns |
 | Sunny Newar | Tech + lead sourcing |
+
+---
+
+## Client Ecosystem Map
+
+```
+AGENCY EVOLUTION / MAXEN PARTNERS
+         |
+         +-- GROWTH TRACK
+         |        +-- Acceler8rs (Grow: Meta/Google/Email, consumer brands)
+         |              +-- Larsen Digital (Scale: operating partner, 7-fig+ Shopify brands)
+         |                    +-- Hahnbeck (Exit: M&A advisory $5M-$200M)
+         |                    +-- Venture Exits (Exit: $5M-$50M, Texas focus)
+         |                    +-- ACT Capital (Exit: $5M-$50M, California focus)
+         |
+         +-- CAPITAL TRACK
+         |        +-- Wrobel Capital (Debt + Sell-side advisory)
+         |        +-- Statera Capital (PE add-ons + ZEBS fundraising)
+         |        +-- Brookline Capital (Healthcare investment banking — PAUSED)
+         |
+         +-- SERVICE / SAAS TRACK
+                  +-- Sonaro AI (AI automation, clinics + law firms)
+                  +-- GN Motion (CGI production)
+                  +-- Micro Nordic (Rugged IT hardware)
+                  +-- ZEBS IBS (EdTech MBA)
+                  +-- 911 Restoration (Franchise recruitment)
+                  +-- Zenith Global (Multi-entity businesses — Midas offer)
+                  +-- ITG Group (Unknown — needs confirmation)
+```
