@@ -24,19 +24,22 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+Zenith Global is a multi-entity financial services / advisory firm. They also have a Midas-branded service offering. The Midas brand consistently outperforms the Zenith positioning in cold outreach.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+[fill in — varies by campaign]
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+Midas service offering (exact details to be confirmed).
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+Midas-branded positioning outperforms all Zenith positioning in cold outreach. Midas service: 6.58% interested rate — best in account.
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+[fill in]
+
+**Deliverability flag:**
+16k leads/month account is flagged pink — likely deliverability issue. Requires 6+ sending domains and weekly spam audit mandatory. Do not scale volume without resolving deliverability first.
 
 ---
 
@@ -62,22 +65,19 @@
 ## Campaign Strategy
 
 **Current angle:**
-[The core hook being used right now]
-
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
-
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
-
-**A/B tests running:**
-[What's being tested and what's winning]
+Midas service/brand framing — the only angle producing interested leads.
 
 **What's working:**
-[Angles, lines, sequences that are getting replies]
+- Midas-branded campaigns: 6.58% interested rate — best in account
+- Always frame as Midas offer, not Zenith positioning
+- 6+ sending domains required given volume
 
 **What's not working:**
-[Angles that flopped — don't repeat these]
+- Multi Entity campaigns (both variants): 0% interested — do not rebuild
+- Zenith positioning: underperforms Midas significantly — pivot all campaigns to Midas framing
+
+**Deliverability:**
+16k leads/month flagged pink — likely deliverability issue. Mandatory: 6+ domains, weekly spam audit.
 
 ---
 
@@ -175,9 +175,13 @@ Body:
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| Active | Midas Service | ~16k/mo | — | 6.58% | Best in account — expand Midas framing |
+| Dead | Multi Entity (variant 1) | — | — | 0% | Do not rebuild |
+| Dead | Multi Entity (variant 2) | — | — | 0% | Do not rebuild |
+
+**Deliverability alert:** 16k/month volume flagged pink. Requires 6+ sending domains. Weekly spam audit mandatory.
 
 ---
 

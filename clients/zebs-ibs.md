@@ -58,7 +58,11 @@ Never guarantee investment returns. Never overstate metrics — use the validate
 | **Other criteria** | EdTech investment thesis or background preferred |
 
 **What qualifies a lead:**
-EdTech investor or impact fund with appetite for Seed Round investment in a revenue-generating, EU-accredited EdTech company.
+EdTech investor or impact fund with appetite for Seed Round investment in a revenue-generating, EU-accredited EdTech company. Always include both: EU-accredited AND 300k+ revenue — both together are the qualification signal.
+
+**Audience distinction — Institutionals:**
+- Deal Team contacts require more technical/depth messaging
+- Owners/GPs outperform Deal Team on interested rate — prioritize owner-level contacts
 
 **What disqualifies a lead:**
 Pure tech/SaaS investors with no EdTech mandate, late-stage only funds, no EU exposure.
@@ -87,8 +91,10 @@ Always reference their background: "Given your background in EdTech investing...
 **Spam avoidance:**
 - Remove € symbol — spam trigger
 - Remove ~ from percentages — spam trigger
+- Remove tilde (~) from any percentage figures
 - Write "300k+" not "€300k+"
 - Write "strong margins around 35%" not "~35% margins"
+- Never use euro symbols or tilde in percentage figures — hard rule
 
 **What works:**
 - Founding team as primary hook (Deputy Minister + 20yr EdTech operator)
@@ -224,3 +230,9 @@ Subject: [subject]
 ## Internal Notes
 
 Campaign runs through Statera Capital / Svetlin Petrov (see statera-capital.md for Svetlin's contact details and timezone). ZEBS has its own separate Calendly link — always use the ZEBS link, not the Statera M&A link, for this campaign.
+
+Audience targeting priority: Owners/GPs outperform Deal Team contacts on interested rate. When building lists, prioritize GP/Partner/Owner-level contacts over Deal Team/analyst-level.
+
+Always include both qualification signals: EU-accredited AND 300k+ revenue. Both must appear in the copy.
+
+Never use euro symbols (€) or tilde (~) in percentage figures — spam triggers.

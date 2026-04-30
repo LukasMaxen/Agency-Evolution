@@ -207,3 +207,5 @@ Subject: [subject]
 ## Internal Notes
 
 Always "Dear Sir" — never {FIRST_NAME}. This is the single most important rule for this client. The qualifying question (loom brand/model) is the conversion mechanism — don't replace it with a call ask.
+
+**CLARIFICATION NEEDED:** Offer may be unclear — Managers Campaign and Apollo Campaign suggest different ICP targeting. Confirm exact offer and ICP with Roberto Giamminola before scripting any new campaigns. Do not assume ICP from campaign name alone.
