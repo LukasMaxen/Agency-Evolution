@@ -29,9 +29,11 @@ Ask Claude:
 
 | Layer | What goes here | Where it lives |
 |---|---|---|
-| **Client files** | Anything specific to one client: offer, ICP, hooks, CTAs, what works/doesn't, calendar link, objection handling, deal context, FU templates, campaign history, key conversations | `clients/[slug].md` |
+| **Client files** | Anything specific to one client: offer, ICP, hooks, CTAs, what works/doesn't, calendar link, objection handling, deal context, FU templates, campaign history, key conversations | `clients/[slug].md` ← **root-level `clients/` folder, NOT inside `1. Departments/`** |
 | **Context files** | Cross-client rules that inform HOW to work: tone rules, formatting rules, sequence structure, spam avoidance, objection handling patterns, language patterns, optimization strategies | `1. Departments/[dept]/CONTEXT_[Name].md` |
 | **Skill files** | Step-by-step instructions for a specific runnable task: what the skill does, when to run it, how to invoke it, what Claude will output | `1. Departments/[dept]/SKILL_[Name].md` |
+
+> **Path note:** The repo has two top-level folders: `clients/` and `1. Departments/`. Client files always go in the root `clients/` folder. Never create a `clients/` folder inside `1. Departments/`.
 
 ### Quick Classification Test
 - Does it start with "always" or "never"? → **Context**
@@ -62,11 +64,11 @@ Routing decisions for: [source file or description]
 
 | Content chunk | Layer | Target file | Section | Action |
 |---|---|---|---|---|
-| "911 Restoration — always say phone call in CTA" | Client | clients/911-restoration.md | Campaign Strategy → CTA rules | Add |
-| "No em dashes — ever" | Context | campaign/CONTEXT_Campaign.md | Formatting Rules | Already exists — skip |
-| "Step 1 / Step 2 / Step 3 structure" | Context | campaign/CONTEXT_Campaign.md | Email Sequence Structure | Already exists — skip |
-| "Run the campaign health check every Monday" | Skill | campaign/SKILL_LeadMonitoring.md | When to run this | Already captured — skip |
-| "Svetlin Petrov, Calendly: [link]" | Client | clients/statera-capital.md | Quick Reference | Add |
+| "911 Restoration — always say phone call in CTA" | Client | `clients/911-restoration.md` (root clients/) | Campaign Strategy → CTA rules | Add |
+| "No em dashes — ever" | Context | `1. Departments/campaign/CONTEXT_Campaign.md` | Formatting Rules | Already exists — skip |
+| "Step 1 / Step 2 / Step 3 structure" | Context | `1. Departments/campaign/CONTEXT_Campaign.md` | Email Sequence Structure | Already exists — skip |
+| "Run the campaign health check every Monday" | Skill | `1. Departments/campaign/SKILL_LeadMonitoring.md` | When to run this | Already captured — skip |
+| "Svetlin Petrov, Calendly: [link]" | Client | `clients/statera-capital.md` (root clients/) | Quick Reference | Add |
 
 Then:
 > "Routing decisions above. Confirm and I'll execute all moves, or adjust any row before I do."
@@ -74,6 +76,7 @@ Then:
 ---
 
 ## Rules Claude must follow
+- **Client files live at `clients/[slug].md` — root level of the repo, never inside `1. Departments/`.** Never create a `clients/` folder inside `1. Departments/`.
 - Never leave client-specific context in a shared context file
 - Never put behavioral rules ("always do X", "never say Y") inside a skill file — those belong in context
 - Never put step-by-step operational instructions inside a context file — those belong in a skill file
