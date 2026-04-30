@@ -16,7 +16,7 @@
 | **Primary contact** | Taliesen Hollywood |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | [link] |
+| **Calendly link** | https://calendly.com/th-hahnbeck/30min |
 | **Monthly retainer** | [amount] |
 
 ---

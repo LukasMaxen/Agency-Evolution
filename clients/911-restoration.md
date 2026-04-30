@@ -13,10 +13,10 @@
 | **EmailBison slug** | `911-restoration` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | Idan Shpizear |
+| **Primary contact** | Dre C |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | [link] |
+| **Calendly link** | https://calendly.com/dre-c-911restoration/quick-introduction-call-clone |
 | **Monthly retainer** | [amount] |
 
 ---
