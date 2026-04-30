@@ -24,7 +24,7 @@
 ## Offer & Positioning
 
 **What they do:**
-Wrobel Capital LLC is a PE-backed buy-side M&A firm. Stephen Wrobel represents PE buyers acquiring middle-market businesses across multiple sectors, including clean energy and sustainability.
+Wrobel Capital LLC is a PE-backed buy-side M&A firm based in Chicago, IL. Stephen Wrobel (Managing Partner, 25+ years in IB/PE/leveraged finance) represents PE buyers acquiring middle-market businesses across multiple sectors, including clean energy and sustainability. Findymail is used for list building — target 6k leads/month.
 
 **What they're outreaching for:**
 Sell-side deal sourcing — identifying business owners open to a sale, partial exit, or rollover and connecting them with Wrobel's committed PE buyer network.
@@ -69,6 +69,11 @@ Committed to staying fully independent, outside target sectors, not an owner/dec
 - 18-month acquisition timeline
 - Open to partial sales, rollovers, and majority stake deals
 
+**Profile 3 — PE with Committed Capital**
+- PE buyer with committed capital
+- Middle-market generalist — no hard sector restriction
+- Open to partial sales
+
 ---
 
 ## Campaign Strategy
@@ -89,7 +94,12 @@ Committed to staying fully independent, outside target sectors, not an owner/dec
 - Email signatures vary by domain but always: Stephen Wrobel, Managing Partner, Wrobel Capital, LLC
 
 **What works:**
-Partial sale / rollover flexibility messaging resonates with owners who aren't ready for a full exit.
+- Partial sale / rollover flexibility messaging resonates with owners who aren't ready for a full exit
+- Sell-side campaigns: 27.21% interested — best performer in account
+- Findymail lists: 6k leads/month pipeline
+
+**What doesn't work:**
+- Debt financing campaigns: underperforms sell-side by 4x on interested rate — kill debt financing angle and do not rebuild
 
 ---
 
@@ -192,9 +202,10 @@ Revenue, EBITDA, company age, owner tenure, sector.
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| Active | Sell-Side (all variants) | ~6k/mo via Findymail | — | 27.21% | Best performer — expand |
+| Dead | Debt Financing | — | — | Low (4x below sell-side) | Kill — do not rebuild |
 
 ---
 

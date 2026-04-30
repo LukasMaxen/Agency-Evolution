@@ -25,14 +25,14 @@
 ## Offer & Positioning
 
 **What they do:**
-Statera Capital is a PE-focused M&A advisory and deal-sourcing firm managed by Svetlin Petrov (based in Bulgaria, same timezone as Istanbul/Turkey). They run two distinct outreach tracks: buy-side M&A sourcing on behalf of SSC (a PE firm), and fundraising outreach for ZEBS International.
+Statera Capital is a PE-focused M&A advisory and deal-sourcing firm managed by Svetlin Petrov (based in Bulgaria, EET = UTC+2). They run two distinct outreach tracks: buy-side M&A sourcing on behalf of SSC (a PE firm), and fundraising outreach for ZEBS International.
 
 **What they're outreaching for:**
 1. PE add-on acquisitions — sourcing targets for SSC's active acquisition mandates (managed IT, cybersecurity, label converters)
 2. Investment fundraising — finding EdTech investors for ZEBS International's Seed Round
 
 **What they can never say / promise:**
-Never name SSC or any of their portfolio companies (Brite, ID Images) in scripts. Never promise returns or valuations. No commission-only.
+Never name SSC or any of their portfolio companies (Brite, ID Images, Graymar Environmental, PowerX, Lee Fish, Dallas Plastics, PEAK Technologies) in scripts. Never promise returns or valuations. No commission-only. Use only: "a private equity firm that recently acquired a platform business in the [sector] space."
 
 ---
 
@@ -114,10 +114,22 @@ https://docs.google.com/presentation/d/11j96USFphexZ8Bmk543bjIHjHWD0HnBd04bw2_ty
 ## SSC Buyer Context (Confidential — Internal Only)
 
 - PE firm: SSC (never name in outreach)
-- Recently acquired: Brite (IT/managed services), ID Images (label converting)
+- Portfolio companies (never name in outreach):
+  - Brite — IT/cybersecurity (performing: ~20% interested)
+  - ID Images — label converting (performing: ~20% interested)
+  - PEAK Technologies — (performing: 12.50% interested)
+  - PowerX — (failing: 0% interested — PAUSE)
+  - Lee Fish — (failing: 0% interested — PAUSE)
+  - Dallas Plastics — (failing: 0% interested — PAUSE)
+  - Graymar Environmental — (failing: 0% interested — PAUSE)
 - Currently seeking: Managed IT services, cybersecurity, label converters (pressure-sensitive/prime label)
 - Capital: committed and ready
 - Timeline: fast-moving
+
+## Targeted Buyer Buy&Build
+
+- 54.55% interested rate — top performer in account
+- Separate campaign targeting acquirers with a buy-and-build mandate
 
 ---
 
@@ -219,9 +231,18 @@ Investment focus/thesis, fund size if available.
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| Active | Sell Side Advisory | — | — | 31.51% | Top 3 system-wide — expand |
+| Active | Targeted Buyer Buy&Build | — | — | 54.55% | Best in account |
+| Active | Brite (IT/Cybersecurity) | — | — | ~20% | Performing — keep running |
+| Active | ID Images (Label Converting) | — | — | ~20% | Performing — keep running |
+| Active | PEAK Technologies | — | — | 12.50% | Performing |
+| Pause | PowerX | — | — | 0% | Failing — pause |
+| Pause | Lee Fish | — | — | 0% | Failing — pause |
+| Pause | Dallas Plastics | — | — | 0% | Failing — pause |
+| Pause | Graymar Environmental | — | — | 0% | Failing — pause |
+| Active | ZEBS Seed Round | — | — | — | See zebs-ibs.md for details |
 
 ---
 
