@@ -201,9 +201,13 @@ Brand/product type, revenue range if available, existing team size.
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| Active | Shopify Brand Owners UK | — | — | 30.66% | Top performer — UK audience converts at high rate |
+| Active | Shopify Brand Owners USA | — | — | 21.43% | Solid — Shopify-specific targeting required |
+| Dead | Ecom Industries USA | — | — | 0% | Failed — do not rebuild. Too broad. |
+
+**Key insight:** Shopify-specific targeting dramatically outperforms broad eCommerce audience. Always build lists with Shopify filter applied.
 
 ---
 

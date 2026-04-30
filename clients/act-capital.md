@@ -77,10 +77,16 @@ Outside California, not an owner/decision-maker, revenue outside the target rang
 - Preferred meeting format: Google Meet
 
 **What works:**
-Teaser CTA outperforms call CTA. Specific revenue + EBITDA figures in step 1.
+- Teaser CTA outperforms call CTA. Specific revenue + EBITDA figures in step 1.
+- Follow-up campaign: 15.12% reply rate, 30.77% interested — significantly underutilized, should be expanded
+- Tequila Owners: 60% interested rate — best performer in the account by a wide margin
+- Northern Cali Sell Side: 28.07% interested — volume workhorse
 
 **What doesn't work:**
 Valuation promises, naming buyers upfront, generic openers without sector/geography context.
+
+**CRITICAL — Confidentiality rule:**
+Never name Northern Coil (or any specific company being sold) in outreach until NDA is signed. Use industry category only.
 
 ---
 
@@ -183,9 +189,11 @@ Revenue, EBITDA if available, company age, sector classification.
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| Active | Northern Cali Sell Side | — | — | 28.07% | Volume workhorse — California sell-side focus |
+| Active | Tequila Owners | — | — | 60% | Best performer in account — niche audience, high intent |
+| Active | Follow-Up Campaign | — | 15.12% | 30.77% | Underutilized — expand this campaign |
 
 ---
 

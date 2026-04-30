@@ -24,7 +24,7 @@
 ## Offer & Positioning
 
 **What they do:**
-Larsen Digital is a DTC brand growth and exit planning firm founded by Nicklas Larsen. Similar model to Acceler8rs — they work with consumer brands to drive growth, scale profitably, and execute a high-value exit.
+Larsen Digital is a DTC brand growth and exit planning firm founded by Nicklas Larsen (age 26). Similar model to Acceler8rs — they work with consumer brands to drive growth, scale profitably, and execute a high-value exit. Client cap: 15 clients maximum (this cap is Larsen Digital's — do not attribute it to Acceler8rs).
 
 **What they're outreaching for:**
 Finding DTC/eCommerce brand owners who want a clear path from where their brand is now to a profitable 7-figure exit.
@@ -74,14 +74,18 @@ B2B SaaS, service businesses, pre-revenue, no real brand.
 
 **Key stats to reference:**
 - 250M+ in Shopify revenue managed
-- Performance-only model — no upfront cost
+- Performance-only model — no upfront cost (100% performance-based, no upfront fee)
 - 8-figure exit target
 - M&A partners: $1B+ in CPG transactions closed
+- Results: $0 → $850k/month in 4 months; $152k → $1.1M/month in 13 months
 
 **Case studies to reference (shared with Acceler8rs):**
 - Motel Margarita: £25k → £102k/month in 90 days
 - KyiKyi: £13k → £140k/month in 60 days
 - Headwaters Studio: £60k/year → £1M+/year in 24 months
+
+**Client cap framing (when relevant):**
+"We only take on 15 clients at a time" — this is a Larsen Digital differentiator. Do not use for Acceler8rs.
 
 **P.S. lines:**
 Do NOT include P.S. opt-out lines for Larsen Digital — consumer brand founders will use it to say no.
@@ -91,11 +95,15 @@ Do NOT include P.S. opt-out lines for Larsen Digital — consumer brand founders
 - Performance-only / no upfront cost removes the biggest objection
 - Case study CTA for step 3 outperforms call ask
 - "your brand" always — never {COMPANY}
+- M&A-focus angle outperforms performance-only angle by 5-6x on reply rate
+- UK audience: fewer replies but 60-66% interested rate when they reply — high quality
+- Shopify-specific targeting (M&A-focus Shopify USA: 18,983 lead pool)
 
 **What doesn't work:**
 - {COMPANY} variable
 - P.S. opt-out lines
 - Vague outcome promises
+- Performance-only offer framing on its own: 0% interested rate — discontinue as standalone angle. Always lead with M&A-focus.
 
 ---
 
@@ -188,9 +196,11 @@ Brand/product type, revenue range, Shopify vs other platform.
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| Active | M&A Focus Shopify USA | 18,983 pool | — | — | Primary active campaign — M&A angle, Shopify-specific |
+| Active | M&A Focus UK | — | Lower | 60-66% | Fewer replies but very high quality |
+| Dead | Performance-Only Offer | — | — | 0% | Do not rebuild as standalone angle |
 
 ---
 

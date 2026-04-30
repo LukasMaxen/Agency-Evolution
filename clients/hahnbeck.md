@@ -24,7 +24,7 @@
 ## Offer & Positioning
 
 **What they do:**
-Hahnbeck is a UK-based buy-side M&A holding company. They acquire businesses on behalf of their holding structure (referred to in outreach as a "UK-based holding company" — never as a PE firm).
+Hahnbeck is a UK-based buy-side M&A holding company (London HQ, with offices in Amsterdam and Charlotte, NC). They acquire businesses on behalf of their holding structure (referred to in outreach as a "UK-based holding company" — never as a PE firm). Deal range: $5M–$200M. Average EBITDA multiple: 6.96x.
 
 **What they're outreaching for:**
 Buy-side deal sourcing — identifying business owners open to a sale or acquisition approach from an active buyer with committed capital.
