@@ -65,9 +65,9 @@ Routing decisions for: [source file or description]
 | Content chunk | Layer | Target file | Section | Action |
 |---|---|---|---|---|
 | "911 Restoration — always say phone call in CTA" | Client | `clients/911-restoration.md` (root clients/) | Campaign Strategy → CTA rules | Add |
-| "No em dashes — ever" | Context | `1. Departments/campaign/CONTEXT_Campaign.md` | Formatting Rules | Already exists — skip |
-| "Step 1 / Step 2 / Step 3 structure" | Context | `1. Departments/campaign/CONTEXT_Campaign.md` | Email Sequence Structure | Already exists — skip |
-| "Run the campaign health check every Monday" | Skill | `1. Departments/campaign/SKILL_LeadMonitoring.md` | When to run this | Already captured — skip |
+| "No em dashes — ever" | Context | `1. Departments/cold email campaigns/CONTEXT_Campaign.md` | Formatting Rules | Already exists — skip |
+| "Step 1 / Step 2 / Step 3 structure" | Context | `1. Departments/cold email campaigns/CONTEXT_Campaign.md` | Email Sequence Structure | Already exists — skip |
+| "Run the campaign health check every Monday" | Skill | `1. Departments/cold email campaigns/SKILL_LeadMonitoring.md` | When to run this | Already captured — skip |
 | "Svetlin Petrov, Calendly: [link]" | Client | `clients/statera-capital.md` (root clients/) | Quick Reference | Add |
 
 Then:
