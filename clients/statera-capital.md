@@ -262,4 +262,10 @@ Subject: [subject]
 
 ## Internal Notes
 
-Svetlin is based in Bulgaria (same timezone as Istanbul/Turkey). Factor this into scheduling and reply timing. Two separate Calendly links — use the correct one per campaign track.
+Svetlin is based in Bulgaria (EET = UTC+2). Factor this into scheduling and reply timing. Two separate Calendly links — use the correct one per campaign track.
+
+SSC confidentiality: Never use the name SSC or any portfolio company name (Brite, ID Images, Graymar, PowerX, Lee Fish, Dallas Plastics, PEAK Technologies) in any outreach. Always use: "a private equity firm that recently acquired a platform business in the [sector] space."
+
+Failing campaigns (0% interested): PowerX, Lee Fish, Dallas Plastics, Graymar — pause all four immediately. Do not continue sending.
+
+ZEBS teaser link: https://docs.google.com/presentation/d/11j96USFphexZ8Bmk543bjIHjHWD0HnBd04bw2_tyKcs/edit

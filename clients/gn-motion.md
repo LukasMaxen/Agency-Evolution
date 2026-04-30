@@ -36,7 +36,7 @@ A complimentary (never "free") CGI sample matched to the prospect's specific pro
 Reference clients include Audemars Piguet, Starbucks, L'Oréal (Revitalift launch). The sample offer de-risks the conversation — prospects see quality before committing.
 
 **What they can never say / promise:**
-Never call the sample "free" — always "complimentary." Never overpromise on turnaround times without checking. Never say "efficacy" for cosmetics — too clinical.
+Never call the sample "free" — always "complimentary." Never overpromise on turnaround times without checking. Never say "efficacy" for cosmetics — too clinical. No P.S. lines on consumer brand decision-makers (same rule as Acceler8rs/Larsen Digital).
 
 ---
 
@@ -63,6 +63,13 @@ Service businesses, B2B SaaS, no physical product, brands that use only UGC/life
 
 **Campaign type:** CGI/visual production outreach
 
+**5 Active Verticals:**
+1. Core France — French-language outreach, French market
+2. Tech — product specs, feature visualization
+3. Jewelry — luxury, light play, premium feel
+4. Fashion — lifestyle, movement
+5. Cosmetics — ingredient visualization (L'Oréal Revitalift reference)
+
 **CTA rules:**
 - Step 1: "Worth a quick call to align on which product and concept would work best?"
 - Step 2: "Any interest in a CGI sample based on one of your products?"
@@ -71,18 +78,25 @@ Service businesses, B2B SaaS, no physical product, brands that use only UGC/life
 **Key rules:**
 - Core offer is a **complimentary** (never "free") sample matched to their specific product
 - The call CTA always needs a reason: "to align on which product and concept would work best"
-- For French scripts: use "offert" not "gratuit," "réalisons/produisons" not "créons," no pipe in signature
+- For French scripts: use "offert" not "gratuit," "réalisons/produisons" not "créons," no pipe in signature, close with "Bien cordialement"
 - "Efficacy" is too clinical — avoid for cosmetics/general audiences
 - "Skin" is too specific — avoid when targeting all cosmetics categories
+- No P.S. lines on consumer brand decision-makers
 
 **Hook structure:**
 Product quality problem → proof (client name) → complimentary sample offer → call CTA
 
 **Reference clients by niche:**
-- Cosmetics: L'Oréal (Revitalift), Audemars Piguet, Starbucks
+- Cosmetics: L'Oréal (Revitalift launch), Audemars Piguet, Starbucks
 - Fashion: L'Oréal, Bang & Olufsen, Formula 1
 - Jewelry: Audemars Piguet, L'Oréal, Bang & Olufsen
 - Tech: Samsung, Garmin, Bang & Olufsen
+
+**Vertical-specific hooks:**
+- Tech: Lead with product specs / feature visualization
+- Jewelry: Lead with luxury feel and light play
+- Fashion: Lead with lifestyle and movement
+- Cosmetics: Lead with ingredient visualization, reference L'Oréal Revitalift launch
 
 **Portfolio link:**
 https://www.canva.com/design/DAHCb_CiXzA/UA6aPIn-u-MAXQiuuanQAQ/view?utm_content=DAHCb_CiXzA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h6402713df7

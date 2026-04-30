@@ -80,11 +80,19 @@ Not in the trades, wrong geography, no ownership/decision-making authority.
 - Including the insurance-backed detail in step 2 — filters for qualified replies only
 - Specifying the city ({CITY}) in step 2
 - Specific revenue figures (2M+) rather than vague claims
+- Insurance-backed revenue is the #1 hook — ALWAYS lead with this
+- Findymail lists outperform standard Apollo lists for this account
+- Related Trades audience: lower reply rate but 18-20% interested — high quality
 
 **What doesn't work:**
 - Territory urgency / demand angle ("territory won't stay open") — never use
-- "Your background in the trades is why I reached out" — overused, ignored
+- "Your background in the trades is why I reached out" — overused, ignored. Never use this phrase.
 - Vague step 2 questions without a qualifying detail
+- Franchise Owners: 3.42% reply rate — very low, treat as secondary
+
+**Lead sourcing priority:**
+1. Findymail lists — outperform Apollo for this client
+2. Related Trades audience (plumbing, HVAC, GC) — lower reply rate but 18-20% interested
 
 **Variable usage:**
 - {FIRST_NAME} and {CITY} — standard
@@ -181,9 +189,12 @@ City ({CITY}) for step 2 personalization. Business type confirmation (trades onl
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| Active | Franchise Owners | — | 3.42% | — | Low reply rate — secondary priority |
+| Active | Related Trades | — | Lower | 18-20% | Lower replies but high quality interested rate |
+
+**Sourcing note:** Findymail lists outperform Apollo lists for this account. Prioritize Findymail for list building.
 
 ---
 

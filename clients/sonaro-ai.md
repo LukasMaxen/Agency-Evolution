@@ -33,7 +33,7 @@ Finding clinic owners and practice managers across the EU who are losing revenue
 A free 30-day trial of an AI receptionist for their clinic — no commitment, real results before they pay anything.
 
 **What makes them different:**
-Free 30-day trial removes all risk. Addresses multiple clinic pain points in one system: missed calls, no-shows, lapsed patient reactivation, and online reviews.
+Free 30-day trial removes all risk. Addresses multiple clinic pain points in one system: missed calls, no-shows, lapsed patient reactivation, and online reviews. EU data storage. UK GDPR + PECR compliant.
 
 **What they can never say / promise:**
 Never guarantee specific revenue increases or patient acquisition numbers. No Tebra name-drops in cold outreach — too specific and assumes their tech stack.
