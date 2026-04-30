@@ -33,7 +33,16 @@ Buy-side deal sourcing — identifying business owners open to a sale or acquisi
 A UK-based holding company with committed capital actively seeking acquisitions. Capital is in place and they are ready to move.
 
 **What makes them different:**
-Holding company structure (not a PE fund) — longer holding period, different cultural fit for sellers who don't want to be flipped. Committed capital.
+Holding company structure (not a PE fund) — longer holding period, different cultural fit for sellers who don't want to be flipped. Committed capital. Average multiple: 6.96x EBITDA. Deal range $5M–$200M.
+
+**Special structure — EOT (Employee Ownership Trust):**
+EOT = Employee Ownership Trust. This is a UK-specific exit structure where employees take ownership of the business. It carries a distinct emotional pitch from standard M&A — owners who care about staff and legacy respond to this differently than a pure financial buyer pitch. Always adapt tone and framing for EOT campaigns.
+
+**HKLT note:**
+HKLT acronym is currently unknown internally — do NOT script anything referencing HKLT until the meaning is confirmed with Taliesen. Needs clarification before any HKLT campaign is built.
+
+**Med Spa Buyer note:**
+"Med Spa buyer" = buy-side mandate representing a specific buyer seeking med spa acquisitions. Treat as a targeted buy-side campaign, not a general M&A campaign.
 
 **What they can never say / promise:**
 Never name the PE firm or any platform company (Brite, Graymar, etc.) in scripts. Never promise specific valuations. No commission-only.
@@ -183,9 +192,11 @@ No {STATE}. Use company name and sector for personalization where natural.
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| Active | EOT Shopify Brands UK | — | — | — | UK-specific EOT pitch — employee ownership trust angle |
+| Active | HKLT Buyer | — | — | — | HOLD — HKLT meaning needs clarification before scripting |
+| Active | Med Spa Buyer | — | — | — | Buy-side mandate for specific med spa acquirer |
 
 ---
 
@@ -206,3 +217,9 @@ Subject: [subject]
 ## Internal Notes
 
 UK campaigns: no {STATE} variable. Always describe as "UK-based holding company" — never PE firm. Never name Brite, Graymar, or any portfolio company in outreach.
+
+EOT campaigns require different emotional framing — focus on employee legacy and ownership transition, not just financial terms.
+
+HKLT: acronym meaning unknown — clarify with Taliesen Hollywood before scripting any HKLT campaign.
+
+Contact: Taliesen Hollywood (primary). HQ: London. Also: Amsterdam, Charlotte NC.

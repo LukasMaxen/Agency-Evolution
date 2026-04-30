@@ -24,7 +24,7 @@
 ## Offer & Positioning
 
 **What they do:**
-Venture Exits is a sell-side M&A advisory firm based in Houston, TX. They represent business owners looking to sell and connect them with qualified buyers.
+Venture Exits is a sell-side M&A advisory firm based in Austin, TX. They represent business owners looking to sell and connect them with qualified buyers. 100% performance-based — no upfront fee.
 
 **What they're outreaching for:**
 Sell-side deal sourcing — identifying business owners in their target sectors who are open to exploring a sale or exit.
@@ -33,7 +33,7 @@ Sell-side deal sourcing — identifying business owners in their target sectors 
 Access to a network of qualified PE and strategic buyers actively pursuing acquisitions. Sellers benefit from a managed process and competitive tension between buyers.
 
 **What makes them different:**
-Houston-based with strong regional relationships and sector depth.
+Austin, TX based with strong regional relationships and sector depth. 100% performance-based — no upfront fee is a major differentiator.
 
 **What they can never say / promise:**
 No valuation guarantees. No naming buyers before a call. No commission-only arrangements.
@@ -46,9 +46,9 @@ No valuation guarantees. No naming buyers before a call. No commission-only arra
 |---|---|
 | **Industry** | [fill in] |
 | **Company size** | [fill in] |
-| **Geography** | Houston / Texas |
+| **Geography** | Texas (Austin-based; Texas-founded businesses preferred) |
 | **Job title / role** | Owner, Founder, CEO |
-| **Revenue range** | [fill in] |
+| **Revenue range** | $5M–$50M |
 | **Other criteria** | [fill in] |
 
 **What qualifies a lead:**
@@ -76,10 +76,14 @@ Outside geography, not an owner/decision-maker, outside sellable revenue range.
 - Never name the buyer before a call
 
 **What works:**
-Teaser CTA outperforms call CTA — lower friction entry into the conversation.
+- Teaser CTA outperforms call CTA — lower friction entry into the conversation
+- Yoga PE/FO: 40.91% interested — best active campaign
+- Yoga Strategic: 22.22% interested — solid performer
+- Texas Founded before 2021: 10.96% interested — steady volume
 
 **What doesn't work:**
-Valuation promises, naming buyers upfront, commission-only framing.
+- Valuation promises, naming buyers upfront, commission-only framing
+- Construction campaigns: all failed at 0% interested — do not build new construction campaigns
 
 ---
 
@@ -181,9 +185,12 @@ Revenue, EBITDA, company age, owner tenure.
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| Active | Yoga PE/FO | — | — | 40.91% | Best active campaign — high intent |
+| Active | Yoga Strategic | — | — | 22.22% | Solid performer |
+| Active | Texas Founded before 2021 | — | — | 10.96% | Steady volume campaign |
+| Dead | Construction (all variants) | — | — | 0% | Failed — do not rebuild any construction campaigns |
 
 ---
 
