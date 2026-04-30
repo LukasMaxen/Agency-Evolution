@@ -9,7 +9,7 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | Churned |
 | **EmailBison slug** | `sro-consulting` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |

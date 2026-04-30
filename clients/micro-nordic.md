@@ -9,7 +9,7 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Active / Paused / Churned |
+| **Status** | On Hold |
 | **EmailBison slug** | `micro-nordic` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
