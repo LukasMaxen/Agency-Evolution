@@ -24,19 +24,19 @@
 ## Offer & Positioning
 
 **What they do:**
-[One paragraph describing the client's business]
+Micro Nordic operates in rugged/industrial hardware — specifically Panasonic ToughBook laptops and similar rugged devices. They focus on trade-in, lifecycle management, and supply of rugged computing equipment.
 
 **What they're outreaching for:**
-[What is the goal of the cold email campaign? Deal sourcing, franchise sales, advisory mandates, etc.]
+Finding businesses that operate Panasonic ToughBook (or similar rugged device) fleets who are candidates for a trade-in or lifecycle refresh program.
 
 **Core value proposition:**
-[What's the main hook — why would a prospect care?]
+ToughBook-specific trade-in and lifecycle management — a targeted approach for organizations already running rugged devices.
 
 **What makes them different:**
-[Differentiators vs. competitors or alternatives]
+Highly specific ToughBook expertise and trade-in program. Not a generic hardware reseller.
 
 **What they can never say / promise:**
-[Constraints on messaging — e.g. no valuation promises, no guaranteed returns]
+[fill in]
 
 ---
 
@@ -62,22 +62,17 @@
 ## Campaign Strategy
 
 **Current angle:**
-[The core hook being used right now]
-
-**Subject line approach:**
-[What type of subject lines are working — curiosity, direct, name-drop, etc.]
-
-**Opening line approach:**
-[How we open — personalized, direct ask, pain point, etc.]
-
-**A/B tests running:**
-[What's being tested and what's winning]
+ToughBook-specific targeting — only approach that produces interested leads.
 
 **What's working:**
-[Angles, lines, sequences that are getting replies]
+- Findymail ToughBook list only — the only list approach that produces interested leads
+- ToughBook-specific targeting: 1.04% reply rate, 7.46% interested rate
+- Must target confirmed ToughBook users specifically — generic rugged device targeting does not work
 
 **What's not working:**
-[Angles that flopped — don't repeat these]
+- Rugged Lifecycle trade-in angle: produces some replies but 0% interested — angle or audience is wrong, do not continue
+- Standard Apollo lists: fail for this client — Apollo general lists do not produce interested leads
+- Any non-ToughBook-specific approach
 
 ---
 
@@ -175,9 +170,12 @@ Body:
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| Active | ToughBook Findymail List | — | 1.04% | 7.46% | Only working approach — use Findymail ToughBook list only |
+| Dead | Rugged Lifecycle Trade-In | — | Some replies | 0% | Angle/audience wrong — do not continue |
+
+**Sourcing rule:** Findymail ToughBook-specific lists ONLY. Standard Apollo lists do not work for this client.
 
 ---
 

@@ -84,11 +84,21 @@ Hospital groups (too large/complex), non-patient-facing healthcare, outside EU.
 - Free trial CTA at step 1 is the lowest-friction possible entry
 - Including {COMPANY} in step 2 makes it feel personalized and specific
 - Missed calls / no-shows are universal clinic pain — lead with these
+- Italy: 8.74% reply rate vs 0.82-1.09% elsewhere — 4-8x better than all other markets. Italy MUST be prioritized.
+- Free trial is always the hook — "free 30-day trial" — never bury it
+- EU data storage + UK GDPR/PECR compliance are strong trust signals — use when relevant
 
 **What doesn't work:**
 - Naming Tebra or other specific PMS systems
 - Generic AI claims without specifics
 - UK-specific targeting
+- US Lawyers: 0% interested — do not rebuild
+- Euro/pound symbols in copy — remove all € and £ symbols (spam + compliance)
+
+**Priority markets by performance:**
+1. Italy — 8.74% reply (4-8x others). Law firm Owners Italy: 11.29% interested (currently paused — REACTIVATE). Local biz Italy: 12.07% interested (currently paused — REACTIVATE).
+2. All other EU markets — 0.82-1.09% reply rate (secondary)
+3. USA (Lawyers) — 0% — do not build
 
 ---
 
@@ -189,9 +199,14 @@ Clinic type (dental, GP, physio, aesthetics). Clinic size (number of practitione
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Notes |
-|---|---|---|---|---|
-| | | | | |
+| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+|---|---|---|---|---|---|
+| Paused | Law Firm Owners Italy | — | ~11% | 11.29% | REACTIVATE — strong performer |
+| Paused | Local Biz Italy | — | — | 12.07% | REACTIVATE — strong performer |
+| Active | EU General | — | 0.82-1.09% | — | Low reply rate — Italy-only is better |
+| Dead | US Lawyers | — | — | 0% | Do not rebuild |
+
+**Key insight:** Italy outperforms all other markets by 4-8x. All Italy campaigns should be reactivated and prioritized.
 
 ---
 
@@ -212,3 +227,9 @@ Subject: [subject]
 ## Internal Notes
 
 EU-focused — not UK-specific. Never name Tebra in cold outreach. Free 30-day trial is the primary hook — never bury it.
+
+Italy is the highest-performing market by a significant margin (8.74% reply vs 0.82-1.09% elsewhere). Reactivate Italy campaigns immediately. Do not waste sends on US Lawyers (0% interested).
+
+Remove all € and £ symbols from copy — spam trigger and compliance risk.
+
+EU data storage + UK GDPR/PECR compliance should be highlighted when prospects ask about data handling.
