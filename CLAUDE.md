@@ -20,7 +20,7 @@ Departments contain reusable skills, context, and workflows — the HOW. Client-
 
 | Folder | Owner | What's inside |
 |---|---|---|
-| `1. Departments/context/` | Lukas | Company positioning, brand context (Maxen Partners) |
+| `1. Departments/company/` | Lukas | Company positioning, brand context (Maxen Partners) |
 | `1. Departments/leads/` | Sunny + Kasper | ICP process, list sourcing, enrichment, scoring |
 | `1. Departments/campaign/` | Kasper | Strategy, scripting, EmailBison workflows, integrations |
 | `1. Departments/reply-management/` | Lukas | Reply process, FU structure, AI guidelines |
