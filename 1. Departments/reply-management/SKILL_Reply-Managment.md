@@ -73,6 +73,8 @@ Before drafting any reply, identify the campaign type. Three types exist:
 
 Active mandate clients: **ACT Capital** (3 mandates), **Venture Exits** (Yoga & Wellness), **ZEBS/Statera** (Seed Round). Read those client files for teaser links and reply templates.
 
+**Always send the teaser** when replying to any interested lead on a mandate acquisition campaign, regardless of what they asked. Even if redirecting to a call, include the teaser as a "in the meantime" add. No exceptions.
+
 ---
 
 ## Rules Claude must follow
