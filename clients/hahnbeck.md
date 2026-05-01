@@ -3,6 +3,8 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+> **REPLY AUTOMATION: DO NOTHING.** Hahnbeck replies are not handled from EmailBison. All inbound replies (interested, not interested, unsubscribe — everything) are forwarded directly to Taliesen Hollywood. The client replies from their own inbox. Do not draft, send, or auto-reply to any Hahnbeck lead. Do not mark status. Flag and stop.
+
 ---
 
 ## Quick Reference
