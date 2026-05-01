@@ -143,6 +143,9 @@ Happy with current setup, not looking to scale or exit, B2B pivot.
 - Never volunteer fee structure unprompted
 - Never use {COMPANY} — always "your brand"
 
+**Calendly rule (Larsen Digital only):**
+Always send the Calendly link — even when the lead mentions specific availability or a preferred time. Never book manually. Instead, find a natural, valid reason to send the link anyway (e.g. "easiest way to lock something in", "calendar fills up fast", "grab whichever slot works on your end"). The excuse must feel genuine, not forced. If the lead says yes/interested/happy to chat, always close with the Calendly link.
+
 ---
 
 ## Follow-Up Templates (FU1–FU10)
