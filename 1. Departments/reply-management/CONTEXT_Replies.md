@@ -6,6 +6,50 @@
 
 ---
 
+## The Process
+
+1. **Lead replies → interested** — send the info reply + Calendly link. Use the client's Calendly link from the client file.
+2. **Lead books a call** — send confirmation. Mark `meeting_booked = TRUE` in DB.
+3. **Lead replies → interested but no booking** — start follow-up sequence (FU1 → FU10).
+4. **No response after any FU** — wait 7 days, send next FU in sequence.
+5. **Lead unsubscribes or says hard no at any point** — stop immediately. Do not follow up.
+6. **Lead books after a FU** — stop sequence, send confirmation.
+
+_Info reply templates and FU templates for each client live in `clients/[slug].md`._
+
+---
+
+## Follow-Up Sequence Structure
+
+Tone progression applies across all clients unless the client file says otherwise:
+
+- **FU1–FU3:** Warm, informative — reference the original interest
+- **FU4–FU6:** Shorter, more direct — mild urgency
+- **FU7–FU9:** Very short, low pressure — keep door open
+- **FU10:** Close the loop, leave on good terms. Never signal it is the final email.
+
+Spacing: 7 days between each FU unless client file specifies otherwise.
+
+---
+
+## Confirmation Email
+
+Used across all clients when a lead books a call. Swap in the relevant day, time, and sender name.
+
+**Subject:** Confirmed — [Day, Date] at [Time]
+
+**Body:**
+
+Hi [First Name],
+
+Perfect — confirmed for [Day, Date] at [Time]. You will receive a calendar invite shortly.
+
+Looking forward to speaking.
+
+[Sender Name]
+
+---
+
 ## Tone & Style
 
 - Human, natural, conversational — not corporate or AI-sounding

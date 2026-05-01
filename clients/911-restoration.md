@@ -147,6 +147,33 @@ Happy with current business, not looking to expand, already a franchisee of anot
 
 ---
 
+## Info Reply Template
+
+_Sent when a lead replies yes to more information. This is the first reply back to an interested lead._
+
+**Subject:** 911 Restoration Franchise Overview
+
+**Body:**
+
+Hi {FIRST_NAME},
+
+Sending everything over now.
+
+One of our operators, Chris, ran a window cleaning business in Reno. He layered a 911 Restoration franchise alongside it and scaled into plumbing and reconstruction through the 911 network. Work came through insurance-backed claim pipelines so he was not out chasing customers. His existing business kept running the same way.
+
+Two short videos that walk through how it works: [Watch Chris's Story (3:00)](https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be) and [The Power of the Network (1:30)](https://www.youtube.com/watch?v=JoPThufW1uc).
+
+Three things franchisees point to most often: restoration work ramps when trade work slows so it fills seasonal gaps, your existing client relationships become a natural referral base, and the franchisee network is something most operators say was the biggest unexpected advantage.
+
+Per our 2024 FDD, top 25% of franchisees average 2M+ in gross revenue. SBA financing is available to get started.
+
+Our Franchise Developer will follow up within 48 hours to answer any questions. If you'd prefer to book a time directly: https://calendly.com/dre-c-911restoration/quick-introduction-call-clone
+
+Idan Shpizear
+Founder, 911 Restoration
+
+---
+
 ## Follow-Up Templates (FU1–FU10)
 
 _Tone progression: FU1–3 warm/informative → FU4–6 direct/mild urgency → FU7–9 short/low pressure → FU10 close_
