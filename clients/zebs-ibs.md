@@ -73,8 +73,6 @@ Pure tech/SaaS investors with no EdTech mandate, late-stage only funds, no EU ex
 
 _No active campaigns for ZEBS International currently._
 
-_Note: The zebs-ibs EmailBison workspace is also used for Agency Evolution's own BD outreach (Boutique M&A Firms — USA and UK). Those are internal campaigns, not ZEBS International campaigns._
-
 ---
 
 ## Campaign Strategy
