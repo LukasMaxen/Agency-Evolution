@@ -307,7 +307,15 @@ When replying to a business owner on Venture Exits' Texas sell-side campaign, al
 
 ### Asking for Financial Metrics Before a Call
 
-When a prospect asks for a ballpark EBITDA or revenue figure before committing to a call, do not use "confidentiality" as the reason to deflect. That is a weak excuse for a standard question. Instead use a hook that makes the call feel valuable: "The numbers alone don't tell the full story" / "The growth trajectory and margin profile are better walked through together" / "There are a few factors that materially affect how you would look at this." Make them feel they would be missing context without the call, not that you are hiding something.
+When a prospect asks for a ballpark EBITDA or revenue figure, first check if the numbers are in the teaser. If they are, just send the teaser — they will find them there.
+
+If you are unsure what is in the teaser, use this framing:
+
+"Everything I am able to cover pre-NDA is within the teaser here: [teaser link]
+
+Happy to cover everything in more detail on a quick call, including the NDA. Feel free to grab a time here: [Calendly link]"
+
+Do not make up an excuse for not sharing numbers. This framing is honest, pulls them to the teaser, and moves them toward a call and NDA in one move.
 
 ---
 
