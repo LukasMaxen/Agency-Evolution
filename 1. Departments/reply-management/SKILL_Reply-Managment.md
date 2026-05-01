@@ -79,8 +79,20 @@ Active mandate clients: **ACT Capital** (3 mandates), **Venture Exits** (Yoga & 
 - Read the client file before drafting — never assume tone or offer details from memory
 - Match reply length to the lead's message — short reply = short email
 - Always include the client's Calendly link in replies to interested leads
-- Never use em dashes, never use bullet points in short replies
+- Never use dashes of any kind — no em dashes, en dashes, or punctuation dashes. Restructure the sentence instead.
+- Never use bullet points in short replies
 - Never volunteer pricing unless the lead explicitly asks
 - Mark as unsubscribe immediately if the lead says "remove me", "unsubscribe", or "not interested"
 - When a lead books: confirm in 2–3 lines max, flag to stop the FU sequence
 - When drafting a FU step: use the client's FU templates from their client file if available
+- Always end with {SENDER_EMAIL_SIGNATURE} on its own line — never write "Best," or a name before it
+- Always use a blank line between paragraphs — never run text into one block
+
+---
+
+## Process Rules — Before Drafting Any Reply
+
+1. **Check the interested flag.** Only reply to leads marked `interested = true` in the system. Do not reply based on message content alone.
+2. **Check excluded clients.** Hahnbeck and ITG Group are excluded from all replies — the client handles directly. Do nothing for these workspaces.
+3. **Read the full thread.** Check what has already been sent to this lead. Do not repeat stats, stories, links, or value props already in the thread.
+4. **Adapt to the message.** Never paste a template that doesn't match what the lead actually said. If they asked for a call, lead with booking the call. If they asked for info, lead with the info. The template is a starting point, not a script.
