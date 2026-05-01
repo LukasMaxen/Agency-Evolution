@@ -132,9 +132,11 @@ ACT Capital also runs **buyer outreach campaigns** — where they represent a co
 
 **Core logic for mandate replies:**
 - Prospect expresses interest or asks for more info → send the correct teaser + calendar link
-- Prospect asks about price/valuation → stay vague, redirect to teaser and call
+- Prospect asks about price/valuation → send teaser + NDA link, redirect to call for details. Use this framing: "Here are the links to the teaser and NDA: [teaser] / [NDA]. Happy to cover everything in more detail on a quick call."
 - Prospect asks who the seller is → NDA framing: not able to share before NDA is in place
 - Prospect says not a fit → polite exit, 2–3 lines max
+
+**ACT Capital NDA rule:** ACT Capital teaser pages always include a link to the NDA. When replying to any interested buyer lead, always send both the teaser link and the NDA link together. NDA links per mandate are stored below each mandate section — add them when available.
 
 ---
 
