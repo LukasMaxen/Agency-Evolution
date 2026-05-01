@@ -9,10 +9,11 @@ import { EmptyState } from "@/components/EmptyState";
 import { NotificationFeed } from "@/components/NotificationFeed";
 import { ReplyDashboard } from "@/components/ReplyDashboard";
 import { LeadMonitoring } from "@/components/LeadMonitoring";
+import { AccountMonitor } from "@/components/AccountMonitor";
 import { LeadProgress } from "@/components/LeadProgress";
-import { Inbox, Bell, BarChart2, RefreshCw, Activity, TrendingUp } from "lucide-react";
+import { Inbox, Bell, BarChart2, RefreshCw, Activity, TrendingUp, ShieldAlert } from "lucide-react";
 
-type View = "inbox" | "notifications" | "dashboard" | "campaigns" | "pipeline";
+type View = "inbox" | "notifications" | "dashboard" | "campaigns" | "pipeline" | "account-monitor";
 
 function dbRowToReply(r: any): Reply {
   const workspace = WORKSPACES.find(w => w.slug === r.workspaceSlug || w.id === r.workspaceId);
@@ -264,11 +265,12 @@ export function MasterInbox() {
   }
 
   const NAV: { id: View; label: string; icon: React.ElementType; badge: number }[] = [
-    { id: "notifications", label: "Notifications", icon: Bell,       badge: unreadCount },
-    { id: "inbox",         label: "Inbox",          icon: Inbox,      badge: newRepliesCount },
-    { id: "dashboard",     label: "Dashboard",      icon: BarChart2,  badge: 0 },
-    { id: "campaigns",     label: "Campaigns",      icon: Activity,   badge: 0 },
-    { id: "pipeline",      label: "Pipeline",       icon: TrendingUp, badge: 0 },
+    { id: "notifications",   label: "Notifications", icon: Bell,         badge: unreadCount },
+    { id: "inbox",           label: "Inbox",          icon: Inbox,        badge: newRepliesCount },
+    { id: "dashboard",       label: "Dashboard",      icon: BarChart2,    badge: 0 },
+    { id: "campaigns",       label: "Campaigns",      icon: Activity,     badge: 0 },
+    { id: "pipeline",        label: "Pipeline",       icon: TrendingUp,   badge: 0 },
+    { id: "account-monitor", label: "Acct Monitor",   icon: ShieldAlert,  badge: 0 },
   ];
 
   return (
@@ -379,6 +381,10 @@ export function MasterInbox() {
 
         {view === "pipeline" && (
           <LeadProgress />
+        )}
+
+        {view === "account-monitor" && (
+          <AccountMonitor />
         )}
       </div>
     </div>

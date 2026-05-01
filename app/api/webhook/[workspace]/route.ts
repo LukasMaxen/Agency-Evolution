@@ -131,8 +131,9 @@ export async function POST(
       await pool.query(
         `INSERT INTO emails_sent (
           id, workspace_slug, lead_email, lead_name,
-          campaign_name, sender_email, sequence_step, sent_at
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+          campaign_name, sender_email, sequence_step, sent_at,
+          subject, email_body
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
         ON CONFLICT (id) DO NOTHING`,
         [
           sentId, slug,
@@ -142,6 +143,8 @@ export async function POST(
           senderEmail?.email ?? "",
           scheduledEmail?.sequence_step_order ?? null,
           scheduledEmail?.sent_at ? new Date(scheduledEmail.sent_at) : new Date(),
+          scheduledEmail?.email_subject ?? null,
+          scheduledEmail?.email_body ?? null,
         ]
       );
 
