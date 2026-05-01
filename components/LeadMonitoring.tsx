@@ -46,7 +46,6 @@ function CampaignRow({ c }: { c: Campaign }) {
 
   return (
     <div style={{
-      borderLeft: `3px solid ${cfg.bar}`,
       borderRadius: "0 8px 8px 0",
       border: `1px solid #f0f0f0`,
       borderLeft: `3px solid ${cfg.bar}`,
