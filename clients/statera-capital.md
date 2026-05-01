@@ -70,8 +70,14 @@ EdTech investor or fund with appetite for a Seed Round investment with strong fu
 
 | Campaign | Status | Target audience |
 |---|---|---|
-| Sell Side Advisory | Active | Business owners exploring an exit |
-| Deal-Specific Buyer Outreach | Active | Targeted PE/strategic buyers for specific named companies for sale (Brite, Graymar Environmental, PowerX, Lee Fish, ID Images, PEAK Technologies, Dallas Plastics Corporation) |
+| Sell Side Advisory | Active | Business owners ($5M–$50M) being approached to explore an exit — general mandate |
+| Brite | Active | IT/cybersecurity & managed services businesses — PE add-on buyer mandate |
+| ID Images | Active | Label converting businesses — PE add-on buyer mandate |
+| Graymar Environmental | Active | Environmental services businesses — PE add-on buyer mandate |
+| PEAK Technologies | Active | Technology (barcode/printing/data capture) businesses — PE add-on buyer mandate |
+| PowerX | Active | Power/energy sector businesses — PE add-on buyer mandate |
+| Lee Fish | Active | Seafood/fishing industry businesses — PE add-on buyer mandate |
+| Dallas Plastics Corporation | Active | Plastics manufacturing businesses — PE add-on buyer mandate |
 
 _Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
 

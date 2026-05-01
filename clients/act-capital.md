@@ -64,8 +64,7 @@ Outside California, not an owner/decision-maker, revenue outside the target rang
 | Campaign | Status | Target audience |
 |---|---|---|
 | Tequila Acquisition | Active | PE firms, family offices, and strategic acquirers targeting tequila brand acquisitions |
-| Sell Side Advisory | Active | Business owners being approached to explore an exit |
-| Northern Cali Sell Side | Active | Northern California business owners being approached to explore an exit |
+| Sell Side Advisory | Active | Business owners ($5M–$50M revenue) being approached to explore an exit — geographic sends include Northern Cali |
 | Excavation Company | Active | Buyers being approached for a specific excavation company acquisition |
 | Contractor Acquisition | Active | Strategic buyers for contractor business acquisitions |
 

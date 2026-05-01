@@ -63,8 +63,8 @@ Outside geography, not an owner/decision-maker, outside sellable revenue range.
 
 | Campaign | Status | Target audience |
 |---|---|---|
-| Yoga Acquisition | Active | PE firms, family offices, and strategic buyers for a yoga business acquisition |
-| Texas Sell Side | Active | Texas-based business owners exploring an exit (founded pre-2021) |
+| Yoga Acquisition | Active | PE firms, family offices, and strategic buyers for a yoga business acquisition — PE/FO and Strategic sends share identical scripts, one campaign |
+| Texas Sell Side | Active | Texas-based business owners ($5M–$50M revenue) exploring an exit |
 
 _Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
 

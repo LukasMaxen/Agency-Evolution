@@ -71,11 +71,12 @@ B2B SaaS, no product, service businesses without a brand.
 
 | Campaign | Status | Target audience |
 |---|---|---|
-| Shopify Brands (UK) | Active | Shopify brand owners, UK market |
+| Shopify Brands (UK) | Active | Shopify brand owners, UK market — distinct script from USA version |
+| Shopify Brands (USA) | Paused | Shopify brand owners, USA market — distinct script from UK version |
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names). These are batches of the same offer and script — not separate campaigns._
 
-_Note: USA and EU sends are currently paused. Only UK is active._
+_Note: UK and USA are treated as separate campaigns because their scripts differ meaningfully, not just in currency symbols. EU sends are paused and share the USA script._
 
 ---
 
