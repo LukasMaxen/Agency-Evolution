@@ -61,12 +61,15 @@ Outside geography, not an owner/decision-maker, outside sellable revenue range.
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| Yoga Acquisition | Active | PE firms, family offices, and strategic buyers for a yoga business acquisition — PE/FO and Strategic sends share identical scripts, one campaign |
-| Texas Sell Side | Active | Texas-based business owners ($5M–$50M revenue) exploring an exit |
+| Campaign | Status | Target audience | Shared script |
+|---|---|---|---|
+| Yoga Acquisition — PE/FO | Active | Private equity firms and family offices as acquirers | Yes — same script as Strategic |
+| Yoga Acquisition — Strategic | Active | Strategic/corporate buyers as acquirers | Yes — same script as PE/FO |
+| Texas Sell Side | Active | Texas-based business owners ($5M–$50M revenue) exploring an exit | — |
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names). These are batches of the same offer and script — not separate campaigns._
+
+_Shared script note: Yoga Acquisition PE/FO and Strategic target different audiences but run identical scripts. Any offer or script change applies to both — update both sends in EmailBison when the Yoga Acquisition script changes._
 
 ---
 

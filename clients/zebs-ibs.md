@@ -71,11 +71,9 @@ Pure tech/SaaS investors with no EdTech mandate, late-stage only funds, no EU ex
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| Boutique M&A Firms | Active | Boutique M&A advisory firms — USA and UK sends, same offer and ICP, minor script localisation (£ vs $) |
+_No active campaigns for ZEBS International currently._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+_Note: The zebs-ibs EmailBison workspace is also used for Agency Evolution's own BD outreach (Boutique M&A Firms — USA and UK). Those are internal campaigns, not ZEBS International campaigns._
 
 ---
 

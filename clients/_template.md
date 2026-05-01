@@ -44,6 +44,18 @@ _Add a row for every stakeholder. Note which Calendly link belongs to which camp
 
 ---
 
+## Active Campaigns
+
+| Campaign | Status | Target audience | Shared script |
+|---|---|---|---|
+| [Campaign Name] | Active | [ICP description] | — |
+| [Campaign Name — Variant A] | Active | [ICP A] | Yes — same script as [Variant B] |
+| [Campaign Name — Variant B] | Active | [ICP B] | Yes — same script as [Variant A] |
+
+_Grouping rules: One row per unique ICP. If two sends target different audiences but share the same script, list them as separate rows and mark "Shared script". A script update applies to all rows marked shared. If two sends have the same ICP AND same script, they are one campaign — list as one row._
+
+---
+
 ## Campaigns
 
 _Each campaign gets its own block below. Duplicate the block for each active campaign. If a campaign is paused or completed, move it to the Archived Campaigns section at the bottom._
