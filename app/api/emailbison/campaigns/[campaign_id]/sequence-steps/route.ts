@@ -111,9 +111,9 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
     let ebResponse: Response;
 
     if (sequence_id) {
-      // Update existing sequence
+      // Update existing sequence via v1.1 endpoint
       ebResponse = await fetch(
-        `${instanceUrl}/api/campaigns/sequence-steps/${sequence_id}`,
+        `${instanceUrl}/api/campaigns/v1.1/sequence-steps/${sequence_id}`,
         {
           method: "PUT",
           headers: {
@@ -125,9 +125,9 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
         }
       );
     } else {
-      // No sequence_id — create sequence from scratch (replaces existing steps)
+      // No sequence_id — create sequence from scratch via v1.1 (replaces existing steps)
       ebResponse = await fetch(
-        `${instanceUrl}/api/campaigns/${campaign_id}/sequence-steps`,
+        `${instanceUrl}/api/campaigns/v1.1/${campaign_id}/sequence-steps`,
         {
           method: "POST",
           headers: {
