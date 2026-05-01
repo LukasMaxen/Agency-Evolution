@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { processAutoReply } from "@/lib/auto-reply";
+import { processAutoReply } from "@/app/api/auto-reply/processor";
 
 // POST /api/auto-reply — manually trigger auto-reply for a reply ID
 export async function POST(req: NextRequest) {
