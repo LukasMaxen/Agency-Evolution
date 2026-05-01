@@ -63,13 +63,13 @@ Not in textile manufacturing, not running looms, purely trading company with no 
 
 _Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-### ITG Group — Main Offer
-_What's being pitched: ITG Group's investment or fund management proposition._
+### Loom Spare Parts
+_What's being pitched: Performance-grade spare parts for all major loom brands at lower cost than OEM suppliers, no supplier switch required. 30 years of manufacturing in China. Pitched by Roberto Giamminola, President of ITG China Division._
 
 | ICP | Status |
 |---|---|
-| Managers (Manager title — dedicated send) | Active |
-| Owners, Founders, and non-Manager titles (broader title list) | Active |
+| Broad — any title containing "Manager" | Active |
+| Narrow — specific industrial/textile titles: Plant Manager, Factory Manager, Manufacturing Manager, Maintenance Manager, Maintenance Supervisor, Maintenance Engineer, Production Manager, Operations Manager, Head of Production, Purchasing Manager, Procurement Manager, Sourcing Manager, General Manager, Managing Director, President, Technical Manager, Engineering Manager, Chief Engineer, CEO, Owner, Founder, VP Operations, VP Manufacturing, Director of Operations, Commercial Manager, Supply Chain Manager, Logistics Manager, Mill Manager, Facility Manager, Site Manager | Active |
 
 ---
 
