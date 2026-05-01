@@ -376,7 +376,7 @@ export function MasterInbox() {
         )}
 
         {view === "campaigns" && (
-          <CampaignHealth />
+          <LeadMonitoring />
         )}
 
         {view === "pipeline" && (
