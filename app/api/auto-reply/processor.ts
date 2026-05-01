@@ -92,6 +92,11 @@ async function sendReplyToEmailBison(
     email_address: reply.to_email ?? reply.lead_email,
   }];
 
+  const htmlBody = body
+    .split("\n")
+    .map(line => line === "" ? "<br>" : `<span>${line}</span>`)
+    .join("<br>");
+
   const ebResponse = await fetch(
     `${instanceUrl}/api/replies/${emailBisonReplyId}/reply`,
     {
@@ -102,11 +107,11 @@ async function sendReplyToEmailBison(
         "Accept": "application/json",
       },
       body: JSON.stringify({
-        message: body,
+        message: htmlBody,
         sender_email_id: senderEmailId,
         to_emails: toEmails,
         inject_previous_email_body: true,
-        content_type: "text",
+        content_type: "html",
       }),
     }
   );

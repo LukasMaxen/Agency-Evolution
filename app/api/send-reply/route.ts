@@ -70,6 +70,12 @@ export async function POST(req: NextRequest) {
       reply.lead_title
     );
 
+    // Convert plain text newlines to HTML so EmailBison preserves formatting
+    const htmlMessage = resolvedMessage
+      .split("\n")
+      .map(line => line === "" ? "<br>" : `<span>${line}</span>`)
+      .join("<br>");
+
     // Build to_emails — reply to the lead
     const toEmails = [{
       name: reply.lead_name ?? null,
@@ -87,11 +93,11 @@ export async function POST(req: NextRequest) {
           "Accept": "application/json",
         },
         body: JSON.stringify({
-          message: resolvedMessage,
+          message: htmlMessage,
           sender_email_id: senderEmailId,
           to_emails: toEmails,
           inject_previous_email_body: true,
-          content_type: "text",
+          content_type: "html",
         }),
       }
     );
