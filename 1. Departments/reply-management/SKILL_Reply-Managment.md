@@ -94,7 +94,9 @@ Active mandate clients: **ACT Capital** (3 mandates), **Venture Exits** (Yoga & 
 
 ## When to Post to #manual-replies
 
-Post to #manual-replies ONLY when a lead gives a specific day/time/window for a call that requires manually booking a calendar event. Nothing else.
+**Larsen Digital:** Always send the Calendly link. Never post to #manual-replies.
+
+**Every other client:** When a lead says yes to a call, wants to discuss, asks when we are free, or confirms interest in speaking — post to #manual-replies. Do NOT send a Calendly link. The team books manually.
 
 Do NOT post to #manual-replies for:
 - Redirects to a new contact (e.g. "Arnaud is no longer here, contact g.mamboundi@...") — draft a reply and send directly to the new email via toEmailOverride
