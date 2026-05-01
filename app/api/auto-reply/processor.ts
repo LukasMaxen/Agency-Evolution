@@ -170,7 +170,7 @@ OUTPUT FORMAT:
 {
   "action": "auto_send" | "manual" | "do_nothing",
   "intent": "interested_urgent" | "interested" | "needs_info" | "neutral" | "not_interested" | "unsubscribe",
-  "reply_body": "full email body — include greeting (Hi Name,) and closing (Best regards,). Plain text. No subject line. Omit this field if action is not auto_send.",
+  "reply_body": "full email body — include greeting (Hi Name,) on its own line, then a blank line, then body paragraphs each separated by blank lines, then a blank line, then {SENDER_EMAIL_SIGNATURE} on its own line. Never write Best or any name before the signature variable. Plain text. No subject line. Omit this field if action is not auto_send.",
   "manual_reason": "one short sentence on what needs human attention. Only include if action is manual.",
   "flag_unsubscribe": true | false,
   "flag_meeting_booked": true | false
