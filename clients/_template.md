@@ -46,13 +46,22 @@ _Add a row for every stakeholder. Note which Calendly link belongs to which camp
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience | Shared script |
-|---|---|---|---|
-| [Campaign Name] | Active | [ICP description] | — |
-| [Campaign Name — Variant A] | Active | [ICP A] | Yes — same script as [Variant B] |
-| [Campaign Name — Variant B] | Active | [ICP B] | Yes — same script as [Variant A] |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Grouping rules: One row per unique ICP. If two sends target different audiences but share the same script, list them as separate rows and mark "Shared script". A script update applies to all rows marked shared. If two sends have the same ICP AND same script, they are one campaign — list as one row._
+### [Offer Name]
+_What's being pitched: [one sentence — e.g. "911 Restoration franchise opportunity alongside an existing trade business"]_
+
+| ICP | Status |
+|---|---|
+| [Target audience A — e.g. Trade business owners, USA] | Active |
+| [Target audience B — e.g. Existing franchise owners] | Active |
+
+### [Second Offer Name]
+_What's being pitched: [one sentence]_
+
+| ICP | Status |
+|---|---|
+| [Target audience] | Active |
 
 ---
 

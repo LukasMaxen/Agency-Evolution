@@ -61,7 +61,7 @@
 
 ## Active Campaigns
 
-_No active campaigns currently. All sends paused or completed._
+_No active campaigns currently._
 
 ---
 

@@ -61,7 +61,7 @@ Highly specific ToughBook expertise and trade-in program. Not a generic hardware
 
 ## Active Campaigns
 
-_No active campaigns currently. All sends paused or completed._
+_No active campaigns currently. All sends paused or in draft._
 
 ---
 

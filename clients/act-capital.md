@@ -61,14 +61,37 @@ Outside California, not an owner/decision-maker, revenue outside the target rang
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| Tequila Acquisition | Active | PE firms, family offices, and strategic acquirers targeting tequila brand acquisitions |
-| Sell Side Advisory | Active | Business owners ($5M–$50M revenue) being approached to explore an exit — geographic sends include Northern Cali |
-| Excavation Company | Active | Buyers being approached for a specific excavation company acquisition |
-| Contractor Acquisition | Active | Strategic buyers for contractor business acquisitions |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+### Sell Side Advisory
+_What's being pitched: ACT Capital's M&A advisory services to business owners considering an exit ($5M–$50M revenue)._
+
+| ICP | Status |
+|---|---|
+| Business owners — commercial & industrial, USA (general) | Active |
+| Business owners — Northern California | Active |
+
+### Tequila Acquisition
+_What's being pitched: Representing a tequila brand acquisition opportunity to potential buyers._
+
+| ICP | Status |
+|---|---|
+| PE firms and family offices | Active |
+| Strategic acquirers and brand owners | Active |
+
+### Excavation Company
+_What's being pitched: Representing a specific excavation company for acquisition to potential buyers._
+
+| ICP | Status |
+|---|---|
+| Strategic and financial buyers in construction/excavation | Active |
+
+### Contractor Acquisition
+_What's being pitched: Representing a contractor business for acquisition to strategic buyers._
+
+| ICP | Status |
+|---|---|
+| Strategic buyers in contracting and construction | Active |
 
 ---
 

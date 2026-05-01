@@ -61,15 +61,18 @@ Service businesses, B2B SaaS, no physical product, brands that use only UGC/life
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| Core Offer — Tech | Active | Tech/software Shopify brands |
-| Core Offer — Jewelry | Active | Jewelry Shopify brands |
-| Core Offer — Cosmetics | Active | Cosmetics Shopify brands |
-| Core Offer — Fashion | Active | Fashion Shopify brands |
-| Core Offer (French) | Active | French-market Shopify brands |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+### GN Motion Core Offer
+_What's being pitched: GN Motion's growth and performance marketing service for Shopify brands._
+
+| ICP | Status |
+|---|---|
+| Tech/software Shopify brand owners | Active |
+| Jewelry Shopify brand owners | Active |
+| Cosmetics Shopify brand owners | Active |
+| Fashion Shopify brand owners | Active |
+| French-market Shopify brand owners | Active |
 
 ---
 

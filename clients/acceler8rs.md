@@ -69,14 +69,15 @@ B2B SaaS, no product, service businesses without a brand.
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| Shopify Brands (UK) | Active | Shopify brand owners, UK market — distinct script from USA version |
-| Shopify Brands (USA) | Paused | Shopify brand owners, USA market — distinct script from UK version |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names). These are batches of the same offer and script — not separate campaigns._
+### Shopify Brands — Growth & Exit
+_What's being pitched: Scale a Shopify brand to 7-figures, then position and execute a clean exit — full operating partnership from growth through M&A._
 
-_Note: UK and USA are treated as separate campaigns because their scripts differ meaningfully, not just in currency symbols. EU sends are paused and share the USA script._
+| ICP | Status |
+|---|---|
+| UK Shopify brand owners | Active |
+| USA Shopify brand owners | Paused |
 
 ---
 

@@ -68,18 +68,63 @@ EdTech investor or fund with appetite for a Seed Round investment with strong fu
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| Sell Side Advisory | Active | Business owners ($5M–$50M) being approached to explore an exit — general mandate |
-| Brite | Active | IT/cybersecurity & managed services businesses — PE add-on buyer mandate |
-| ID Images | Active | Label converting businesses — PE add-on buyer mandate |
-| Graymar Environmental | Active | Environmental services businesses — PE add-on buyer mandate |
-| PEAK Technologies | Active | Technology (barcode/printing/data capture) businesses — PE add-on buyer mandate |
-| PowerX | Active | Power/energy sector businesses — PE add-on buyer mandate |
-| Lee Fish | Active | Seafood/fishing industry businesses — PE add-on buyer mandate |
-| Dallas Plastics Corporation | Active | Plastics manufacturing businesses — PE add-on buyer mandate |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+### Sell Side Advisory
+_What's being pitched: Statera Capital's M&A advisory services to business owners considering an exit ($5M–$50M revenue)._
+
+| ICP | Status |
+|---|---|
+| Business owners across sectors (USA) | Active |
+
+### Brite — PE Add-On
+_What's being pitched: Representing a PE firm actively acquiring IT/cybersecurity & managed services businesses._
+
+| ICP | Status |
+|---|---|
+| IT/cybersecurity and managed services business owners | Active |
+
+### ID Images — PE Add-On
+_What's being pitched: Representing a PE firm actively acquiring label converting businesses._
+
+| ICP | Status |
+|---|---|
+| Label converting business owners | Active |
+
+### Graymar Environmental — PE Add-On
+_What's being pitched: Representing a PE firm actively acquiring environmental services businesses._
+
+| ICP | Status |
+|---|---|
+| Environmental services business owners | Active |
+
+### PEAK Technologies — PE Add-On
+_What's being pitched: Representing a PE firm actively acquiring barcode/printing/data capture technology businesses._
+
+| ICP | Status |
+|---|---|
+| Technology (barcode, printing, data capture) business owners | Active |
+
+### PowerX — PE Add-On
+_What's being pitched: Representing a PE firm actively acquiring power/energy sector businesses._
+
+| ICP | Status |
+|---|---|
+| Power and energy sector business owners | Active |
+
+### Lee Fish — PE Add-On
+_What's being pitched: Representing a PE firm actively acquiring seafood/fishing industry businesses._
+
+| ICP | Status |
+|---|---|
+| Seafood and fishing industry business owners | Active |
+
+### Dallas Plastics Corporation — PE Add-On
+_What's being pitched: Representing a PE firm actively acquiring plastics manufacturing businesses._
+
+| ICP | Status |
+|---|---|
+| Plastics manufacturing business owners | Active |
 
 ---
 

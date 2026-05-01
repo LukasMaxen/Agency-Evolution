@@ -78,12 +78,21 @@ Committed to staying fully independent, outside target sectors, not an owner/dec
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| Sell Side Advisory | Active | Business owners exploring a sale or advisory engagement |
-| Robotics (Debt / Sell Side) | Active | Buyers and lenders targeted around a specific robotics company |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+### Sell Side Advisory
+_What's being pitched: Wrobel Capital's M&A advisory services — representing a PE buyer actively acquiring middle-market companies._
+
+| ICP | Status |
+|---|---|
+| Middle-market business owners considering a sale | Active |
+
+### Robotics — Debt & Acquisition
+_What's being pitched: Capital solutions (debt restructuring) and acquisition interest in the robotics sector._
+
+| ICP | Status |
+|---|---|
+| Robotics company owners and operators | Active |
 
 ---
 

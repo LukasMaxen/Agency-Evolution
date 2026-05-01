@@ -61,11 +61,14 @@ Hospital groups (too large/complex), non-patient-facing healthcare, outside EU.
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| Clinics — Free Trial (EU) | Active | Medical/aesthetic clinic owners in the EU |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+### Clinics — Free Trial
+_What's being pitched: Sonaro AI's free trial offer for clinics — AI-powered patient communication or scheduling tool._
+
+| ICP | Status |
+|---|---|
+| Medical and aesthetic clinic owners (EU) | Active |
 
 ---
 

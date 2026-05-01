@@ -61,15 +61,22 @@ Outside geography, not an owner/decision-maker, outside sellable revenue range.
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience | Shared script |
-|---|---|---|---|
-| Yoga Acquisition — PE/FO | Active | Private equity firms and family offices as acquirers | Yes — same script as Strategic |
-| Yoga Acquisition — Strategic | Active | Strategic/corporate buyers as acquirers | Yes — same script as PE/FO |
-| Texas Sell Side | Active | Texas-based business owners ($5M–$50M revenue) exploring an exit | — |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names). These are batches of the same offer and script — not separate campaigns._
+### Yoga Acquisition
+_What's being pitched: Black Swan Yoga brand acquisition opportunity — $7.2M revenue, 15% adj. EBITDA, 21 locations across TX, AZ, CO._
 
-_Shared script note: Yoga Acquisition PE/FO and Strategic target different audiences but run identical scripts. Any offer or script change applies to both — update both sends in EmailBison when the Yoga Acquisition script changes._
+| ICP | Status |
+|---|---|
+| Private equity firms and family offices | Active |
+| Strategic / corporate buyers | Active |
+
+### Texas Sell Side
+_What's being pitched: Representing Texas-based businesses for sale to potential buyers ($5M–$50M revenue, founded pre-2021)._
+
+| ICP | Status |
+|---|---|
+| Texas business owners considering an exit | Active |
 
 ---
 

@@ -70,11 +70,14 @@ Outside UK, not an owner/director, outside target sectors.
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| HLKT | Active | [campaign details to be confirmed] |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+### HLKT
+_What's being pitched: [details to be confirmed]_
+
+| ICP | Status |
+|---|---|
+| [to be confirmed] | Active |
 
 ---
 

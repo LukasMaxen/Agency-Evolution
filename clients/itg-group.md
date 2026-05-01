@@ -61,12 +61,15 @@ Not in textile manufacturing, not running looms, purely trading company with no 
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| Main Campaign | Active | Fund managers and institutional investors (Apollo list) |
-| Managers Campaign | Active | Investment managers |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+### ITG Group — Main Offer
+_What's being pitched: ITG Group's investment or fund management proposition to institutional investors and fund managers._
+
+| ICP | Status |
+|---|---|
+| Fund managers and institutional investors (Apollo list) | Active |
+| Investment managers (direct outreach) | Active |
 
 ---
 

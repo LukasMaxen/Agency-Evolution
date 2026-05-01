@@ -61,12 +61,21 @@ Not in the trades, wrong geography, no ownership/decision-making authority.
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| Related Trades | Active | Plumbing, HVAC, GC, restoration business owners |
-| Franchise Owners | Active | Existing franchise owners |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. "23rd April Related Trades", "1st May Related Trades", "Related Trades California"). These are batches of the same offer and script. When a script is updated for a campaign, it applies to all active sends for that campaign._
+### Related Trades
+_What's being pitched: 911 Restoration franchise opportunity alongside an existing trade business, insurance-backed lead flow, no cold outreach required._
+
+| ICP | Status |
+|---|---|
+| Trade business owners — plumbing, HVAC, GC, restoration (USA) | Active |
+
+### Franchise Owners
+_What's being pitched: 911 Restoration franchise opportunity for existing franchise operators._
+
+| ICP | Status |
+|---|---|
+| Existing franchise owners (USA) | Active |
 
 ---
 

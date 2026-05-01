@@ -61,12 +61,21 @@ B2B SaaS, service businesses, pre-revenue, no real brand.
 
 ## Active Campaigns
 
-| Campaign | Status | Target audience |
-|---|---|---|
-| Performance Only Offer | Active | Shopify brand owners — performance-based engagement model |
-| M&A-focus (Shopify USA) | Active | Shopify brand owners in USA — M&A angle |
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+### Performance Only Offer
+_What's being pitched: Larsen Digital's performance-only engagement model for Shopify brand owners._
+
+| ICP | Status |
+|---|---|
+| Shopify brand owners (USA) | Active |
+
+### M&A-focus
+_What's being pitched: Larsen Digital's M&A-focused growth and exit service for Shopify brand owners._
+
+| ICP | Status |
+|---|---|
+| Shopify brand owners (USA) | Active |
 
 ---
 
