@@ -3,6 +3,8 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+> **REPLY AUTOMATION: DO NOTHING.** Sonaro AI replies are not handled from EmailBison. Do not draft, send, or auto-reply to any Sonaro AI lead. Do not mark status. Flag and stop.
+
 ---
 
 ## Quick Reference
