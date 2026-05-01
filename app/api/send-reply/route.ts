@@ -70,11 +70,11 @@ export async function POST(req: NextRequest) {
       reply.lead_title
     );
 
-    // Convert plain text newlines to HTML so EmailBison preserves formatting
+    // Convert plain text to HTML paragraphs so EmailBison preserves formatting
     const htmlMessage = resolvedMessage
-      .split("\n")
-      .map(line => line === "" ? "<br>" : `<span>${line}</span>`)
-      .join("<br>");
+      .split("\n\n")
+      .map(para => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+      .join("");
 
     // Build to_emails — reply to the lead
     const toEmails = [{

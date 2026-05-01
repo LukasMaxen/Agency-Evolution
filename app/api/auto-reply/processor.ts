@@ -93,9 +93,9 @@ async function sendReplyToEmailBison(
   }];
 
   const htmlBody = body
-    .split("\n")
-    .map(line => line === "" ? "<br>" : `<span>${line}</span>`)
-    .join("<br>");
+    .split("\n\n")
+    .map(para => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+    .join("");
 
   const ebResponse = await fetch(
     `${instanceUrl}/api/replies/${emailBisonReplyId}/reply`,
