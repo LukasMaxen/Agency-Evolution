@@ -59,25 +59,14 @@ Not in the trades, wrong geography, no ownership/decision-making authority.
 
 ---
 
-## Active EmailBison Campaigns
+## Active Campaigns
 
-_Each logical campaign (offer + ICP combination) may have multiple date-batched EmailBison campaigns running simultaneously.
-When updating a script, update ALL active batches for that campaign._
+| Campaign | Status | Target audience |
+|---|---|---|
+| Related Trades | Active | Plumbing, HVAC, GC, restoration business owners |
+| Franchise Owners | Active | Existing franchise owners |
 
-### Related Trades
-Target: Plumbing, HVAC, GC, restoration business owners
-
-| EmailBison campaign name | ID | Status | Started |
-|---|---|---|---|
-| 23rd of April Related Trades | [ID] | Active | 2026-04-23 |
-| 1st of May Related Trades | [ID] | Active | 2026-05-01 |
-
-### Franchise Owners
-Target: Existing franchise owners
-
-| EmailBison campaign name | ID | Status | Started |
-|---|---|---|---|
-| [name] | [ID] | Active | [date] |
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. "23rd April Related Trades", "1st May Related Trades", "Related Trades California"). These are batches of the same offer and script. When a script is updated for a campaign, it applies to all active sends for that campaign._
 
 ---
 

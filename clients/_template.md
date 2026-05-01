@@ -55,15 +55,7 @@ _Each campaign gets its own block below. Duplicate the block for each active cam
 **Status:** Active / Paused / Completed
 **Calendly link for this campaign:** [link — if different from another campaign]
 
-#### Active EmailBison Batches
-
-_Each row is a separate EmailBison campaign. Same offer and sequence — different send date or list batch.
-When updating the script for this campaign, update ALL rows with status Active._
-
-| EmailBison campaign name | ID | Status | Started |
-|---|---|---|---|
-| [date] [Campaign Name] | [EB ID] | Active | YYYY-MM-DD |
-| [date] [Campaign Name] | [EB ID] | Active | YYYY-MM-DD |
+_Note on sends: This campaign may have multiple active EmailBison sends (e.g. "23rd April [Campaign Name]", "[Campaign Name] California"). These are batches of the same offer and script — not separate campaigns. When updating the script, it applies to all active sends for this campaign._
 
 #### Offer
 
@@ -244,11 +236,7 @@ _Duplicate this entire block for each additional active campaign._
 **Status:** Active / Paused / Completed
 **Calendly link for this campaign:**
 
-#### Active EmailBison Batches
-
-| EmailBison campaign name | ID | Status | Started |
-|---|---|---|---|
-| [date] [Campaign Name] | [EB ID] | Active | YYYY-MM-DD |
+_Note on sends: Multiple EmailBison sends may be active under this campaign. Same offer and script — different date prefix or geographic bracket._
 
 #### Offer
 #### Target Audience (ICP)
