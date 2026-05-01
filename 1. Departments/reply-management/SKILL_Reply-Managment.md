@@ -92,6 +92,17 @@ Active mandate clients: **ACT Capital** (3 mandates), **Venture Exits** (Yoga & 
 
 ---
 
+## When to Post to #manual-replies
+
+Post to #manual-replies ONLY when a lead gives a specific day/time/window for a call that requires manually booking a calendar event. Nothing else.
+
+Do NOT post to #manual-replies for:
+- Redirects to a new contact (e.g. "Arnaud is no longer here, contact g.mamboundi@...") — draft a reply and send directly to the new email via toEmailOverride
+- General interest replies — just respond normally
+- Ambiguous replies — draft and send, do not escalate
+
+---
+
 ## Process Rules — Before Drafting Any Reply
 
 1. **Check the interested flag.** Only reply to leads marked `interested = true` in the system. Do not reply based on message content alone.
