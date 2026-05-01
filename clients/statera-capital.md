@@ -66,6 +66,17 @@ EdTech investor or fund with appetite for a Seed Round investment with strong fu
 
 ---
 
+## Active Campaigns
+
+| Campaign | Status | Target audience |
+|---|---|---|
+| Sell Side Advisory | Active | Business owners exploring an exit |
+| Deal-Specific Buyer Outreach | Active | Targeted PE/strategic buyers for specific named companies for sale (Brite, Graymar Environmental, PowerX, Lee Fish, ID Images, PEAK Technologies, Dallas Plastics Corporation) |
+
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+
+---
+
 ## Campaign Strategy
 
 ### Track 1 — SSC PE Add-On

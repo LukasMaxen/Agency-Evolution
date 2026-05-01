@@ -67,6 +67,18 @@ B2B SaaS, no product, service businesses without a brand.
 
 ---
 
+## Active Campaigns
+
+| Campaign | Status | Target audience |
+|---|---|---|
+| Shopify Brands (UK) | Active | Shopify brand owners, UK market |
+
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+
+_Note: USA and EU sends are currently paused. Only UK is active._
+
+---
+
 ## Campaign Strategy
 
 **Campaign type:** eCommerce brand growth and exit

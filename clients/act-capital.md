@@ -59,6 +59,20 @@ Outside California, not an owner/decision-maker, revenue outside the target rang
 
 ---
 
+## Active Campaigns
+
+| Campaign | Status | Target audience |
+|---|---|---|
+| Tequila Acquisition | Active | PE firms, family offices, and strategic acquirers targeting tequila brand acquisitions |
+| Sell Side Advisory | Active | Business owners being approached to explore an exit |
+| Northern Cali Sell Side | Active | Northern California business owners being approached to explore an exit |
+| Excavation Company | Active | Buyers being approached for a specific excavation company acquisition |
+| Contractor Acquisition | Active | Strategic buyers for contractor business acquisitions |
+
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+
+---
+
 ## Campaign Strategy
 
 **Campaign type:** Sell-side M&A

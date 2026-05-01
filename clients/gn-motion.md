@@ -59,6 +59,20 @@ Service businesses, B2B SaaS, no physical product, brands that use only UGC/life
 
 ---
 
+## Active Campaigns
+
+| Campaign | Status | Target audience |
+|---|---|---|
+| Core Offer — Tech | Active | Tech/software Shopify brands |
+| Core Offer — Jewelry | Active | Jewelry Shopify brands |
+| Core Offer — Cosmetics | Active | Cosmetics Shopify brands |
+| Core Offer — Fashion | Active | Fashion Shopify brands |
+| Core Offer (French) | Active | French-market Shopify brands |
+
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+
+---
+
 ## Campaign Strategy
 
 **Campaign type:** CGI/visual production outreach

@@ -59,6 +59,17 @@ Not in textile manufacturing, not running looms, purely trading company with no 
 
 ---
 
+## Active Campaigns
+
+| Campaign | Status | Target audience |
+|---|---|---|
+| Main Campaign | Active | Fund managers and institutional investors (Apollo list) |
+| Managers Campaign | Active | Investment managers |
+
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+
+---
+
 ## Campaign Strategy
 
 **Campaign type:** Industrial parts supply (B2B)

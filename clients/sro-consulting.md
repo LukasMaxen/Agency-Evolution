@@ -59,6 +59,12 @@
 
 ---
 
+## Active Campaigns
+
+_No active campaigns currently. All sends paused or completed._
+
+---
+
 ## Campaign Strategy
 
 **Current angle:**

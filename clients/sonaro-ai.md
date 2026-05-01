@@ -59,6 +59,16 @@ Hospital groups (too large/complex), non-patient-facing healthcare, outside EU.
 
 ---
 
+## Active Campaigns
+
+| Campaign | Status | Target audience |
+|---|---|---|
+| Clinics — Free Trial (EU) | Active | Medical/aesthetic clinic owners in the EU |
+
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+
+---
+
 ## Campaign Strategy
 
 **Campaign type:** AI SaaS / clinic automation

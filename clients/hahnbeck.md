@@ -68,6 +68,16 @@ Outside UK, not an owner/director, outside target sectors.
 
 ---
 
+## Active Campaigns
+
+| Campaign | Status | Target audience |
+|---|---|---|
+| HLKT | Active | [campaign details to be confirmed] |
+
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+
+---
+
 ## Campaign Strategy
 
 **Campaign type:** Buy-side M&A (holding company)

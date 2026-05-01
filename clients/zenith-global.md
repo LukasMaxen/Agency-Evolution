@@ -62,6 +62,12 @@ Midas-branded positioning outperforms all Zenith positioning in cold outreach. M
 
 ---
 
+## Active Campaigns
+
+_No active campaigns currently. All sends completed or paused._
+
+---
+
 ## Campaign Strategy
 
 **Current angle:**

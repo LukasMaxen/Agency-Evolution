@@ -69,6 +69,17 @@ Pure tech/SaaS investors with no EdTech mandate, late-stage only funds, no EU ex
 
 ---
 
+## Active Campaigns
+
+| Campaign | Status | Target audience |
+|---|---|---|
+| Boutique M&A Firms (USA) | Active | Boutique M&A advisory firms in the USA |
+| Boutique M&A Firms (UK) | Active | Boutique M&A advisory firms in the UK |
+
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+
+---
+
 ## Campaign Strategy
 
 **Campaign type:** Investment fundraising (Seed Round)

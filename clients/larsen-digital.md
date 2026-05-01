@@ -59,6 +59,17 @@ B2B SaaS, service businesses, pre-revenue, no real brand.
 
 ---
 
+## Active Campaigns
+
+| Campaign | Status | Target audience |
+|---|---|---|
+| Performance Only Offer | Active | Shopify brand owners — performance-based engagement model |
+| M&A-focus (Shopify USA) | Active | Shopify brand owners in USA — M&A angle |
+
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+
+---
+
 ## Campaign Strategy
 
 **Campaign type:** eCommerce brand growth and exit

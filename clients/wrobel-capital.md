@@ -76,6 +76,17 @@ Committed to staying fully independent, outside target sectors, not an owner/dec
 
 ---
 
+## Active Campaigns
+
+| Campaign | Status | Target audience |
+|---|---|---|
+| Sell Side Advisory | Active | Business owners exploring a sale or advisory engagement |
+| Robotics (Debt / Sell Side) | Active | Buyers and lenders targeted around a specific robotics company |
+
+_Sends: Each campaign may have multiple active EmailBison sends (e.g. date-prefixed names, geographic variants). These are batches of the same offer and script — not separate campaigns._
+
+---
+
 ## Campaign Strategy
 
 **Campaign type:** Sell-side M&A (representing PE buyers)
