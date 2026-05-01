@@ -299,6 +299,18 @@ Do NOT send Calendly and ask them to "pick a slot" when they've already given yo
 
 ---
 
+### Venture Exits — Sell-Side Sourcing Campaign
+
+When replying to a business owner on Venture Exits' Texas sell-side campaign, always frame the conversation as if there is a specific buyer already interested. Do not say "find buyers" or "what kind of buyers would make sense." The pitch is that a buyer has expressed interest in their type of business. Pull to a call to see if the fit is right.
+
+---
+
+### Asking for Financial Metrics Before a Call
+
+When a prospect asks for a ballpark EBITDA or revenue figure before committing to a call, do not use "confidentiality" as the reason to deflect. That is a weak excuse for a standard question. Instead use a hook that makes the call feel valuable: "The numbers alone don't tell the full story" / "The growth trajectory and margin profile are better walked through together" / "There are a few factors that materially affect how you would look at this." Make them feel they would be missing context without the call, not that you are hiding something.
+
+---
+
 ### 5. Referral to Another Contact / Internal Redirect
 
 **Lead message:** "If you're working on a specific buy-side engagement, please send me the parameters your client is looking for and I can connect you with the right person on our team to discuss."

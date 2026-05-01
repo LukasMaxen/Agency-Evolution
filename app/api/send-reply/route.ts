@@ -80,10 +80,10 @@ export async function POST(req: NextRequest) {
       .map(para => `<p style="margin:0 0 16px 0;">${linkify(para.replace(/\n/g, "<br>"))}</p>`)
       .join("");
 
-    // Build to_emails — reply to the lead
+    // Build to_emails — use override if provided (e.g. redirected contact)
     const toEmails = [{
-      name: reply.lead_name ?? null,
-      email_address: reply.to_email ?? reply.lead_email,
+      name: toNameOverride ?? reply.lead_name ?? null,
+      email_address: toEmailOverride ?? reply.to_email ?? reply.lead_email,
     }];
 
     // Send via EmailBison API
