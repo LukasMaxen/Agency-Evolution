@@ -143,6 +143,21 @@ Professional but creative-friendly. These are marketing and brand people — sli
 **Interested signal:**
 Any reply asking about the sample, the portfolio, turnaround time, or pricing.
 
+**Sample request reply template:**
+When a lead asks to see a sample, use this:
+
+> Hi {FIRST_NAME},
+>
+> That's great to hear. I'm excited to show you how we can elevate {COMPANY}'s products.
+>
+> To make sure the sample really hits the mark, let's chat for a few minutes about your creative goals. I want to make sure the direction we take feels like a perfect extension of your brand.
+>
+> You can grab a spot on my calendar here: https://app.iclosed.io/e/GNMOTION/30min
+>
+> Looking forward to it!
+>
+> {SENDER_EMAIL_SIGNATURE}
+
 **Not interested signal:**
 Happy with current content agency, no CGI need, wrong product category.
 
