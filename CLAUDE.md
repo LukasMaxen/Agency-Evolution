@@ -78,6 +78,12 @@ app/
     replies/route.ts                # GET/PATCH — fetch/update replies
     send-reply/route.ts             # POST — proxy reply to EmailBison API
     templates/route.ts              # GET — fetch reply templates from EmailBison
+    emailbison/
+      campaigns/
+        route.ts                    # GET — list campaigns for a workspace (?workspace=slug)
+        [campaign_id]/
+          sequence-steps/
+            route.ts                # GET — read current sequence steps; PUT — push approved script updates
     webhook/
       [workspace]/route.ts          # POST — EmailBison webhook receiver (per workspace slug)
       calendly/route.ts             # POST — Calendly webhook receiver
