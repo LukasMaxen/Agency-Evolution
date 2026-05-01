@@ -25,8 +25,8 @@ async function postToSlack(message: string): Promise<void> {
     console.warn("[auto-reply] SLACK_BOT_TOKEN not set — skipping Slack notification");
     return;
   }
-  // #replies channel
-  const channelId = "C05K1ERRLBU";
+  // #manual-replies channel
+  const channelId = "C0B0MMMMNKZ";
   await fetch("https://slack.com/api/chat.postMessage", {
     method: "POST",
     headers: {

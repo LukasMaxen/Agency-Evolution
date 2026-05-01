@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
+import { processAutoReply } from "@/lib/auto-reply";
 
 function extractCleanBody(textBody: string): string {
   if (!textBody) return "";
@@ -88,6 +89,8 @@ export async function POST(
           new Date(receivedAt.getTime() + 7 * 24 * 60 * 60 * 1000),
         ]
       );
+
+      await processAutoReply(replyUuid, slug);
 
       return NextResponse.json({ ok: true, event: "LEAD_REPLIED", id: replyUuid });
     }
