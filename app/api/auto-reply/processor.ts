@@ -120,9 +120,9 @@ async function sendReplyToEmailBison(
 }
 
 export async function processAutoReply(replyId: string, workspaceSlug: string): Promise<void> {
-  // Skip Hahnbeck entirely
-  if (workspaceSlug === "hahnbeck") {
-    console.log(`[auto-reply] Skipping Hahnbeck reply ${replyId}`);
+  // Skip Hahnbeck and ITG Group — client handles replies directly
+  if (workspaceSlug === "hahnbeck" || workspaceSlug === "itg-group") {
+    console.log(`[auto-reply] Skipping ${workspaceSlug} reply ${replyId}`);
     return;
   }
 
