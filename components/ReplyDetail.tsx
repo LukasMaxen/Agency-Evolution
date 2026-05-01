@@ -11,6 +11,7 @@ import {
   ExternalLink, ChevronDown, LayoutTemplate,
   Send, CheckCircle, XCircle, Check, Sparkles,
   Loader2, Calendar, MailOpen, CalendarCheck,
+  CornerUpLeft, Bot, User,
 } from "lucide-react";
 import { CallBookingModal } from "@/components/CallBookingModal";
 
@@ -18,6 +19,15 @@ interface EBTemplate {
   id: number;
   name: string;
   body: string;
+}
+
+interface SentEmail {
+  id: string;
+  emailType: string;
+  subject: string;
+  body: string;
+  sentAt: string;
+  sentBy: string | null;
 }
 
 interface Props {
@@ -76,6 +86,8 @@ export function ReplyDetail({
   const [showCallModal, setShowCallModal]       = useState(false);
   const [calls, setCalls]                       = useState<any[]>([]);
   const [meetingBooked, setMeetingBooked]       = useState(false);
+  const [sentEmails, setSentEmails]             = useState<SentEmail[]>([]);
+  const [sentEmailsLoading, setSentEmailsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -98,7 +110,24 @@ export function ReplyDetail({
       .then(r => r.json())
       .then(d => setCalls(d.calls ?? []))
       .catch(() => setCalls([]));
+    // Fetch sent emails for this reply
+    fetchSentEmails(reply.id);
   }, [reply.id]);
+
+  async function fetchSentEmails(replyId: string) {
+    setSentEmailsLoading(true);
+    setSentEmails([]);
+    try {
+      const res = await fetch(`/api/sent-replies?replyId=${replyId}`);
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      setSentEmails(data.sentEmails ?? []);
+    } catch {
+      setSentEmails([]);
+    } finally {
+      setSentEmailsLoading(false);
+    }
+  }
 
   async function loadTemplates() {
     if (templates.length > 0) return;
@@ -186,6 +215,7 @@ export function ReplyDetail({
 
       setSent(true);
       onReplySent(reply.id);
+      fetchSentEmails(reply.id);
       setTimeout(() => setSent(false), 3000);
     } catch (err: any) {
       console.error("[send]", err);
@@ -289,6 +319,80 @@ export function ReplyDetail({
             {reply.message}
           </p>
         </div>
+
+        {/* Sent emails thread */}
+        {sentEmailsLoading && (
+          <div className="flex items-center gap-2 py-1">
+            <Loader2 size={10} className="animate-spin" style={{ color: "#9ca3af" }} />
+            <span className="text-[11px] text-gray-400">Loading sent replies...</span>
+          </div>
+        )}
+
+        {sentEmails.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-px" style={{ background: "#ede9e3" }} />
+              <span className="text-[10px] uppercase tracking-widest font-medium text-gray-300">
+                {sentEmails.length} sent {sentEmails.length === 1 ? "reply" : "replies"}
+              </span>
+              <div className="flex-1 h-px" style={{ background: "#ede9e3" }} />
+            </div>
+
+            {sentEmails.map((se) => {
+              const isAuto = se.emailType === "auto_reply";
+              const sentByLabel = isAuto
+                ? "AI (auto-reply)"
+                : se.sentBy
+                  ? se.sentBy === "dashboard"
+                    ? "Sent via dashboard"
+                    : se.sentBy === "claude-code"
+                      ? "Sent via Claude Code"
+                      : `Sent by ${se.sentBy}`
+                  : "Sent manually";
+
+              const sentAtDate = new Date(se.sentAt);
+              const formattedDate = sentAtDate.toLocaleDateString("en-US", {
+                month: "short", day: "numeric", year: "numeric",
+              });
+              const formattedTime = sentAtDate.toLocaleTimeString("en-US", {
+                hour: "numeric", minute: "2-digit", hour12: true,
+              });
+
+              return (
+                <div
+                  key={se.id}
+                  className="rounded-xl p-4"
+                  style={{
+                    background: "#f0f7ff",
+                    border: "1px solid #dbeafe",
+                    borderLeft: "3px solid #6d28d9",
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2.5 gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <CornerUpLeft size={11} style={{ color: "#6d28d9" }} />
+                      <span className="text-[11px] font-semibold" style={{ color: "#6d28d9" }}>
+                        {sentByLabel}
+                      </span>
+                      {isAuto && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium"
+                          style={{ background: "#ede9fe", color: "#6d28d9" }}>
+                          AUTO
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-gray-400 shrink-0">
+                      {formattedDate} · {formattedTime}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {se.body}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Mark as row */}
         <div className="flex items-center gap-2 flex-wrap">

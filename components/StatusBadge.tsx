@@ -1,4 +1,5 @@
 import { Reply } from "@/lib/mock-data";
+import { CornerUpLeft } from "lucide-react";
 
 interface Props {
   status: Reply["status"];
@@ -29,8 +30,9 @@ export function StatusBadge({ status, interested }: Props) {
     );
   if (status === "replied")
     return (
-      <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium shrink-0"
+      <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-md font-medium shrink-0"
         style={{ background: "#ede9fe", color: "#6d28d9" }}>
+        <CornerUpLeft size={9} strokeWidth={2.5} />
         Replied
       </span>
     );
