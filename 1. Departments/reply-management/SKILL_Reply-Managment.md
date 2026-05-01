@@ -93,6 +93,6 @@ Active mandate clients: **ACT Capital** (3 mandates), **Venture Exits** (Yoga & 
 ## Process Rules — Before Drafting Any Reply
 
 1. **Check the interested flag.** Only reply to leads marked `interested = true` in the system. Do not reply based on message content alone.
-2. **Check excluded clients.** Hahnbeck and ITG Group are excluded from all replies — the client handles directly. Do nothing for these workspaces.
+2. **Check excluded clients.** Hahnbeck, ITG Group, and Sonaro AI are excluded from all replies — the client handles directly. Do nothing for these workspaces.
 3. **Read the full thread.** Check what has already been sent to this lead. Do not repeat stats, stories, links, or value props already in the thread.
 4. **Adapt to the message.** Never paste a template that doesn't match what the lead actually said. If they asked for a call, lead with booking the call. If they asked for info, lead with the info. The template is a starting point, not a script.
