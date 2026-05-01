@@ -43,6 +43,9 @@ End-to-end: growth + scaling + exit in one relationship. The case study results 
 **Pricing (only mention if asked):**
 $3,500/month retainer + 10% of profitable ad spend.
 
+**Guarantee:**
+Profitable on Meta ads within 90 days, or full refund. This is the core risk reversal for Phase 1 (Accelerator). Always included in campaign scripting — in the process/approach sentence of Step 1 and the phase breakdown of Step 3.
+
 **What they can never say / promise:**
 Never guarantee specific revenue outcomes. Never volunteer pricing unprompted.
 
