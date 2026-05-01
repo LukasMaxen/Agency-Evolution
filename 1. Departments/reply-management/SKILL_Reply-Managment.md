@@ -80,7 +80,7 @@ Active mandate clients: **ACT Capital** (3 mandates), **Venture Exits** (Yoga & 
 ## Rules Claude must follow
 - Read the client file before drafting — never assume tone or offer details from memory
 - Match reply length to the lead's message — short reply = short email
-- Always include the client's Calendly link in replies to interested leads
+- Larsen Digital only: always include the Calendly link. For every other client: when a lead says yes to a call or wants to speak, post to #manual-replies instead. The team books manually.
 - Never use dashes of any kind — no em dashes, en dashes, or punctuation dashes. Restructure the sentence instead.
 - Never use bullet points in short replies
 - Never volunteer pricing unless the lead explicitly asks

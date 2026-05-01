@@ -8,7 +8,7 @@
 
 ## The Process
 
-1. **Lead replies → interested** — send the info reply + Calendly link. Use the client's Calendly link from the client file.
+1. **Lead replies → interested** — send the info reply. For Larsen Digital: include the Calendly link. For all other clients: post to #manual-replies so the team can book manually. Never send a Calendly link to non-Larsen leads.
 2. **Lead books a call** — send confirmation. Mark `meeting_booked = TRUE` in DB.
 3. **Lead replies → interested but no booking** — start follow-up sequence (FU1 → FU10).
 4. **No response after any FU** — wait 7 days, send next FU in sequence.
@@ -80,7 +80,7 @@ Looking forward to speaking.
 - NEVER confirm or deny valuation/EV numbers upfront — keep vague, pull to call
 - NEVER agree to commission-only structures — politely decline and close
 - NEVER over-promise on buyer capabilities before a call
-- ALWAYS include the client's Calendly link in replies to interested leads
+- ALWAYS include the Calendly link for Larsen Digital leads. For all other clients, post to #manual-replies when a lead wants to speak — do not include a Calendly link.
 - ALWAYS research the prospect company when they ask questions requiring context
 - Use NDA framing when asked about buyer identity: "standard practice to protect both sides"
 
