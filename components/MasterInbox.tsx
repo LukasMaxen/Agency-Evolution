@@ -11,9 +11,11 @@ import { ReplyDashboard } from "@/components/ReplyDashboard";
 import { LeadMonitoring } from "@/components/LeadMonitoring";
 import { AccountMonitor } from "@/components/AccountMonitor";
 import { LeadProgress } from "@/components/LeadProgress";
-import { Inbox, Bell, BarChart2, RefreshCw, Activity, TrendingUp, ShieldAlert } from "lucide-react";
+import { VariantRefresh } from "@/components/VariantRefresh";
+import { CampaignLifecycle } from "@/components/CampaignLifecycle";
+import { Inbox, Bell, BarChart2, RefreshCw, Activity, TrendingUp, ShieldAlert, GitBranch, RotateCcw } from "lucide-react";
 
-type View = "inbox" | "notifications" | "dashboard" | "campaigns" | "pipeline" | "account-monitor";
+type View = "inbox" | "notifications" | "dashboard" | "campaigns" | "pipeline" | "account-monitor" | "variant-refresh" | "lifecycle";
 
 function dbRowToReply(r: any): Reply {
   const workspace = WORKSPACES.find(w => w.slug === r.workspaceSlug || w.id === r.workspaceId);
@@ -271,6 +273,8 @@ export function MasterInbox() {
     { id: "campaigns",       label: "Campaigns",      icon: Activity,     badge: 0 },
     { id: "pipeline",        label: "Pipeline",       icon: TrendingUp,   badge: 0 },
     { id: "account-monitor", label: "Acct Monitor",   icon: ShieldAlert,  badge: 0 },
+    { id: "variant-refresh", label: "Var Refresh",    icon: RotateCcw,    badge: 0 },
+    { id: "lifecycle",       label: "Lifecycle",      icon: GitBranch,    badge: 0 },
   ];
 
   return (
@@ -385,6 +389,14 @@ export function MasterInbox() {
 
         {view === "account-monitor" && (
           <AccountMonitor />
+        )}
+
+        {view === "variant-refresh" && (
+          <VariantRefresh />
+        )}
+
+        {view === "lifecycle" && (
+          <CampaignLifecycle />
         )}
       </div>
     </div>
