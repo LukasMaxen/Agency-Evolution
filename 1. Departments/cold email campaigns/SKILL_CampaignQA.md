@@ -34,8 +34,17 @@ Run this before pushing any sequence update or launching a new campaign. Check e
 
 ## Split Testing
 
-- [ ] If updating an existing concept: Step 1A kept as control (original copy untouched), new copy applied to Step 1B onward
-- [ ] If testing a new concept entirely: duplicate the campaign, keep original paused as baseline, launch new campaign as the test
+Do NOT freeze a variant as a static control. Sending identical copy at scale over time gets fingerprinted by Google and lands in spam.
+
+The correct model:
+- All variants (A, B, C, D) should always have meaningful copy variation from each other
+- To test a new concept: launch a new campaign. The old campaign's historical interested rate is the baseline. No need to run a frozen control in parallel.
+- To measure performance: compare campaign-level interested rates across time, not variant-level within a single campaign.
+
+## Deliverability — Periodic Refresh
+
+- [ ] If a campaign has been running for 2+ months or reply rate is dropping, refresh all variants — new opening line, restructured sentence, swapped case study. Small changes are enough to avoid spam fingerprinting.
+- [ ] Never let the exact same script run untouched to tens of thousands of leads.
 
 ---
 
