@@ -49,7 +49,7 @@ Hi [First Name],
 
 [reply body]
 
-[Sender Name]
+{SENDER_EMAIL_SIGNATURE}
 
 ---
 

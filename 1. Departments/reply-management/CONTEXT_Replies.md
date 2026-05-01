@@ -188,20 +188,6 @@ Looking forward to speaking.
 
 ---
 
-## Automation Rules
-
-**Only reply to leads marked `interested = true` in the system.** Do not reply based on message content alone — the interested flag is set by EmailBison and is the source of truth.
-
-**Clients excluded from auto-reply (do nothing — client handles directly):**
-- Hahnbeck (`hahnbeck`) — all replies routed to Taliesen Hollywood
-- ITG Group (`itg-group`) — all replies handled by the client
-
-**Always read the full thread before drafting.** Check what has already been sent to the lead. Do not repeat stats, stories, links, or value props already in the thread.
-
-**Always adapt templates to the lead's specific message.** If they ask for a call, lead with booking the call. If they ask for info, lead with the info. Never paste a template that doesn't match what they actually said (e.g. do not open with "Sending everything over now" if they asked for a call).
-
----
-
 ## Stop Rules
 
 - Lead says "remove me", "unsubscribe", "not interested" → stop immediately, no exceptions
