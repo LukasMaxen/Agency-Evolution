@@ -68,7 +68,11 @@
 - Open with "Reaching out again in case my previous notes got buried" — never "following up on [name]"
 - More informative than step 2 — reintroduce the offer with context
 - Use a conversational tone that makes them feel like a peer
-- CTA should give a specific reason for the call/action
+- **Goal: make it easier to say yes.** Two levers:
+  - **Give more** — add a data point, revenue figure, free audit, free valuation, or case study they don't yet have. New value = new reason to respond.
+  - **Ask less** — reduce the ask (e.g. "Can I send over some more info?" instead of asking for a call). Lower friction = higher reply rate.
+  - Use whichever fits the offer. Both can be combined.
+- CTA should reflect whichever lever is used — info/teaser CTAs are lower friction than call CTAs
 - Never signal it is the last email
 
 ---

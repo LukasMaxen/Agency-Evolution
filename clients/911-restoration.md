@@ -82,9 +82,12 @@ _What's being pitched: 911 Restoration franchise opportunity for existing franch
 ## Campaign Strategy
 
 **CTA rules:**
-- Step 1: "Want me to send over more information on the franchise program?"
-- Step 2: "Any interest in finding out more about adding an insurance-backed revenue stream to your trade business in {CITY}?" (optionally append: "Our top 25% of franchisees average 2M+ in gross revenue.")
-- Step 3: "Want me to send over the full franchise overview so you can take a look?"
+- Step 1: "Want me to send over more information on the franchise program?" — info CTA, no call ask
+- Step 2: "Any interest in adding another revenue stream to your portfolio in {CITY}?" — qualifying question only, no CTA. Optionally append: "Our top 25% of franchisees average 2M+ in gross revenue."
+- Step 3: Info CTA again, but lead with more value first — share a specific FDD-backed revenue figure (e.g. top 25% average 2M+ gross revenue, SBA financing available) before the ask. End with: "Want me to send over the full breakdown?"
+
+**Step 3 strategy — give more, ask less:**
+Step 3 uses both levers together: give a new data point from the FDD (revenue number, financing detail) that wasn't in step 1, then make a smaller ask (send info, not a call). New value + lower friction = easier to say yes.
 
 **CTA strategy note (updated 1 May 2026):**
 All steps push toward sending more information — not a phone call or meeting. The goal is to get a yes to more info. Once they say yes, then move to a call.
