@@ -82,9 +82,12 @@ _What's being pitched: 911 Restoration franchise opportunity for existing franch
 ## Campaign Strategy
 
 **CTA rules:**
-- Step 1: "Worth a quick phone call?" — always specify PHONE CALL, never just "call" or "quick chat"
-- Step 2: "Any interest in adding an insurance-backed revenue stream to your trade business in {CITY}?" (optionally append: "Our top 25% of franchisees average 2M+ in gross revenue.")
-- Step 3: "Got 10 minutes for a phone call this week?"
+- Step 1: "Want me to send over more information on the franchise program?"
+- Step 2: "Any interest in finding out more about adding an insurance-backed revenue stream to your trade business in {CITY}?" (optionally append: "Our top 25% of franchisees average 2M+ in gross revenue.")
+- Step 3: "Want me to send over the full franchise overview so you can take a look?"
+
+**CTA strategy note (updated 1 May 2026):**
+All steps push toward sending more information — not a phone call or meeting. The goal is to get a yes to more info. Once they say yes, then move to a call.
 
 **P.S. line:**
 "If this isn't of interest, just let me know and I won't follow up."

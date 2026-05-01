@@ -51,7 +51,7 @@
   - M&A sell-side: "Want me to send over the teaser?"
   - M&A buy-side / PE: "Would you be open to a short confidential call?"
   - CGI (GN Motion): "Worth a quick call to align on which product and concept would work best?"
-  - Franchise (911 Restoration): "Worth a quick phone call?" — always specify PHONE CALL
+  - Franchise (911 Restoration): "Want me to send over more information on the franchise program?" — info-first, not a call ask
   - eCommerce (Acceler8rs / Larsen Digital): "Want me to send over the case study?"
   - Investment (ZEBS): "Mind if I send over the teaser?"
   - AI / SaaS (Sonaro): "Free 30-day trial, worth a quick 15 minutes to see how it works?"
@@ -79,7 +79,7 @@
 - Good reasons: "to walk through what that could look like for your brand," "to align on which product and concept," "to see if it makes sense," "to see if there is a fit"
 - Teaser/case study CTAs are lower friction than call CTAs — use when reply rate is the priority
 - "Want me to send over the teaser?" beats "would you be open to a call?" for cold outreach
-- For 911 Restoration: **always specify "phone call"** — never just "call" or "quick chat"
+- For 911 Restoration: **always use an info CTA** ("Want me to send over more information on the franchise program?") — never push to a phone call in cold outreach. Info-first; call comes after they say yes to more info.
 
 ---
 
