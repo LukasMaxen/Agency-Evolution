@@ -10,12 +10,12 @@ import { NotificationFeed } from "@/components/NotificationFeed";
 import { ReplyDashboard } from "@/components/ReplyDashboard";
 import { LeadMonitoring } from "@/components/LeadMonitoring";
 import { AccountMonitor } from "@/components/AccountMonitor";
-import { LeadProgress } from "@/components/LeadProgress";
-import { VariantRefresh } from "@/components/VariantRefresh";
-import { CampaignLifecycle } from "@/components/CampaignLifecycle";
-import { Inbox, Bell, BarChart2, RefreshCw, Activity, TrendingUp, ShieldAlert, GitBranch, RotateCcw } from "lucide-react";
 
-type View = "inbox" | "notifications" | "dashboard" | "campaigns" | "pipeline" | "account-monitor" | "variant-refresh" | "lifecycle";
+import { VariantRefresh } from "@/components/VariantRefresh";
+
+import { Inbox, Bell, BarChart2, RefreshCw, ShieldAlert, RotateCcw, Users } from "lucide-react";
+
+type View = "inbox" | "notifications" | "dashboard" | "lead-monitoring" | "account-monitor" | "variant-refresh";
 
 function dbRowToReply(r: any): Reply {
   const workspace = WORKSPACES.find(w => w.slug === r.workspaceSlug || w.id === r.workspaceId);
@@ -270,11 +270,9 @@ export function MasterInbox() {
     { id: "notifications",   label: "Notifications", icon: Bell,         badge: unreadCount },
     { id: "inbox",           label: "Inbox",          icon: Inbox,        badge: newRepliesCount },
     { id: "dashboard",       label: "Dashboard",      icon: BarChart2,    badge: 0 },
-    { id: "campaigns",       label: "Campaigns",      icon: Activity,     badge: 0 },
-    { id: "pipeline",        label: "Pipeline",       icon: TrendingUp,   badge: 0 },
+    { id: "lead-monitoring", label: "Lead Monitoring", icon: Users,        badge: 0 },
     { id: "account-monitor", label: "Acct Monitor",   icon: ShieldAlert,  badge: 0 },
     { id: "variant-refresh", label: "Var Refresh",    icon: RotateCcw,    badge: 0 },
-    { id: "lifecycle",       label: "Lifecycle",      icon: GitBranch,    badge: 0 },
   ];
 
   return (
@@ -379,12 +377,8 @@ export function MasterInbox() {
           <ReplyDashboard />
         )}
 
-        {view === "campaigns" && (
+        {view === "lead-monitoring" && (
           <LeadMonitoring />
-        )}
-
-        {view === "pipeline" && (
-          <LeadProgress />
         )}
 
         {view === "account-monitor" && (
@@ -393,10 +387,6 @@ export function MasterInbox() {
 
         {view === "variant-refresh" && (
           <VariantRefresh />
-        )}
-
-        {view === "lifecycle" && (
-          <CampaignLifecycle />
         )}
       </div>
     </div>
