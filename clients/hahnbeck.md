@@ -72,12 +72,12 @@ Outside UK, not an owner/director, outside target sectors.
 
 _Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
-### HLKT
-_What's being pitched: [details to be confirmed]_
+### HLKT — E-Commerce Acquisition
+_What's being pitched: On behalf of HLKT (family office buyer engaged with Hahnbeck), acquiring e-commerce brands. Outreach targets e-commerce brand owners as potential acquisition targets for HLKT._
 
 | ICP | Status |
 |---|---|
-| [to be confirmed] | Active |
+| E-commerce brand owners (specific verticals TBC) | Active |
 
 ---
 

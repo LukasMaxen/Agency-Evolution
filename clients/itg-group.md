@@ -64,12 +64,12 @@ Not in textile manufacturing, not running looms, purely trading company with no 
 _Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
 ### ITG Group — Main Offer
-_What's being pitched: ITG Group's investment or fund management proposition to institutional investors and fund managers._
+_What's being pitched: ITG Group's investment or fund management proposition._
 
 | ICP | Status |
 |---|---|
-| Fund managers and institutional investors (Apollo list) | Active |
-| Investment managers (direct outreach) | Active |
+| Managers (Manager title — dedicated send) | Active |
+| Owners, Founders, and non-Manager titles (broader title list) | Active |
 
 ---
 
