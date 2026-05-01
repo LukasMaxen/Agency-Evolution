@@ -30,10 +30,10 @@ Larsen Digital is a DTC brand growth and exit planning firm founded by Nicklas L
 Finding DTC/eCommerce brand owners who want a clear path from where their brand is now to a profitable 7-figure exit.
 
 **Core value proposition:**
-Performance-only model with no upfront cost. Track record of 250M+ in Shopify revenue. Goal is an 8-figure exit. M&A partners have closed $1B+ in CPG transactions.
+Track record of 250M+ in Shopify revenue. Goal is an 8-figure exit. M&A partners have closed $1B+ in CPG transactions. Compensation is fully bespoke and aligned to the business's end goal (growth, profitability, or EV) so incentives stay aligned as we scale.
 
 **What makes them different:**
-Performance-only model (no upfront cost). Specific exit target (8-figure). Deep M&A network ($1B+ in CPG exits closed by partners).
+Specific exit target (8-figure). Deep M&A network ($1B+ in CPG exits closed by partners). Compensation aligned to the client's outcome, not a fixed fee model.
 
 **What they can never say / promise:**
 Never guarantee exit outcomes or specific valuations. Never volunteer fee structure unprompted.
@@ -140,7 +140,7 @@ Happy with current setup, not looking to scale or exit, B2B pivot.
 
 **Things to never say:**
 - Never guarantee exit valuations
-- Never volunteer fee structure unprompted
+- Never mention pricing or compensation model unless the lead explicitly asks
 - Never use {COMPANY} — always "your brand"
 
 **Calendly rule (Larsen Digital only):**
