@@ -32,19 +32,17 @@ Run this before pushing any sequence update or launching a new campaign. Check e
 - [ ] Workspace slug is correct for the client
 - [ ] Campaign name and sequence title match
 
-## Split Testing
+## Split Testing and Campaign Lifecycle
 
-Do NOT freeze a variant as a static control. Sending identical copy at scale over time gets fingerprinted by Google and lands in spam.
+- [ ] If testing a new concept or angle: launch a new campaign. Old campaign's interested rate is the baseline. Do not run a frozen control variant in parallel.
+- [ ] If adding leads to an existing campaign: confirm campaign is under 70% contacted and performing above KPI thresholds.
+- [ ] See full lifecycle rules in CONTEXT_Campaign.md → Campaign Lifecycle section.
 
-The correct model:
-- All variants (A, B, C, D) should always have meaningful copy variation from each other
-- To test a new concept: launch a new campaign. The old campaign's historical interested rate is the baseline. No need to run a frozen control in parallel.
-- To measure performance: compare campaign-level interested rates across time, not variant-level within a single campaign.
+## Deliverability — Variant Refresh
 
-## Deliverability — Periodic Refresh
-
-- [ ] If a campaign has been running for 2+ months or reply rate is dropping, refresh all variants — new opening line, restructured sentence, swapped case study. Small changes are enough to avoid spam fingerprinting.
-- [ ] Never let the exact same script run untouched to tens of thousands of leads.
+- [ ] Check sends per variant body before pushing. Refresh thresholds: 500 sends = light refresh, 2,000 sends = moderate refresh.
+- [ ] If reply rate has dropped >20% from campaign baseline: refresh all variants immediately before investigating anything else.
+- [ ] All variants within a campaign must be meaningfully different from each other (65–70% different in wording and visual structure).
 
 ---
 

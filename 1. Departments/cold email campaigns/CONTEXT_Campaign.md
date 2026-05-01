@@ -98,14 +98,36 @@
 
 ## Spam Avoidance
 
-- Rotate scripts every campaign cycle — same scripts get flagged
-- Each variation must be **65–70% different** in wording AND visual structure
-- Visual structure = paragraph count, line length, opener type, sentence rhythm
 - Remove: $, %, €, £ symbols when scripts are getting caught in spam filters
 - Remove: "free," "guarantee," "capital solutions," "rare opportunity"
 - Replace "€300k+" with "300k+" etc.
 - Subject lines must be spintaxed with at least 5 variations
 - Subject line variations must NOT all share the same first word
+
+### Variant Refresh — Sends-Based (Not Time-Based)
+
+Google fingerprints email content by pattern-matching identical copy across sends. Refreshes must happen before volume builds enough to trigger that pattern — not on a calendar schedule.
+
+**Refresh triggers (per variant body, not per campaign total):**
+
+| Trigger | Action |
+|---|---|
+| 500 sends on a single variant body | Light refresh: change the opening line, swap one sentence, reorder a supporting point. Copy stays recognisably similar. |
+| 2,000 sends on a single variant body | Moderate refresh: new hook or opener angle, swap case study reference, restructure the paragraph order. Meaningfully different from the previous version. |
+| Reply rate drops >20% from campaign baseline | Emergency refresh: all variants rewritten immediately. This signal means spam filtering is already active. |
+
+**What counts as a light refresh:**
+- New first sentence (different angle, same information)
+- One sentence reworded or moved
+- CTA phrasing changed slightly
+
+**What counts as a moderate refresh:**
+- New opener type (question → statement, result → recipient-focused)
+- Different case study or result leading the email
+- Different paragraph structure (3 paras → 2 paras, or vice versa)
+
+Each variation must be **65–70% different** in wording AND visual structure from other active variants.
+Visual structure = paragraph count, line length, opener type, sentence rhythm.
 
 ---
 
@@ -234,3 +256,38 @@ If a campaign has 1,000+ emails sent and misses either threshold:
 - At least 65–70% different between variations
 - Different subject line for each variation
 - Test all variations simultaneously, not sequentially
+- Track sends per variant body — refresh at 500 sends (light) and 2,000 sends (moderate). See Spam Avoidance section above.
+
+---
+
+## Campaign Lifecycle — When to Launch New vs. Add Leads
+
+### Launch a new campaign when:
+
+1. **New script concept or angle** — new hook, new offer framing, new risk reversal. Not just a copy refresh. New concept = new campaign so historical performance of the old concept stays clean as a benchmark.
+2. **New lead source or meaningful ICP change** — different geography, different title batch, different industry filter. Mixing ICPs inside one campaign muddies performance data.
+3. **Current campaign is 70%+ contacted** — don't push new leads into a near-complete sequence. Start fresh.
+4. **Campaign failed KPIs** — never rebuild on the same foundation. New campaign with a changed angle or changed audience.
+5. **Deliverability issue forced a pause** — resume on a fresh campaign, not the same one. Spam association carries over.
+
+### Add leads to an existing campaign when:
+
+1. **Same ICP, same geography, same source** — just more leads of the same type. No change to what's being tested.
+2. **Campaign is under 70% contacted** and performing above KPI thresholds.
+3. **A light copy refresh is being applied** — update the variant bodies, then load the new leads. The change is small enough that continuity is fine.
+
+### Script change rules — new campaign or in-place update?
+
+| Change type | Action |
+|---|---|
+| Light copy refresh (opening line, sentence swap, reword) | Update variants in the existing campaign. No new campaign needed. |
+| Moderate refresh (new hook, new case study, restructured email) | Update variants in existing campaign. Mark the refresh date in the client file. |
+| New concept or new angle (different offer framing, new guarantee, new ICP hook) | New campaign. Old campaign stays paused as historical baseline. |
+| Offer change (pricing, guarantee, positioning shift) | New campaign. This is a concept-level change. |
+
+### The control is historical, not frozen
+
+Do not keep a frozen "control" variant running untouched. At scale, identical copy sent repeatedly gets flagged by spam filters. Instead:
+- The control is the old campaign's interested rate — already on record, already real volume.
+- All variants in the running campaign should be refreshed on the sends-based schedule.
+- Compare new campaign performance against old campaign baseline after sufficient volume (1,000+ emails sent).
