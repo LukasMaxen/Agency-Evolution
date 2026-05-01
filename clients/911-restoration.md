@@ -147,6 +147,10 @@ Happy with current business, not looking to expand, already a franchisee of anot
 
 ---
 
+**Reply rule:** Always include the info template content in every reply to an interested 911 Restoration lead, regardless of what they asked. Adapt the opening to match their message, then include the program info and calendar link.
+
+---
+
 ## Info Reply Template
 
 _Sent when a lead replies yes to more information. This is the first reply back to an interested lead._
