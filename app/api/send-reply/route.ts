@@ -21,7 +21,7 @@ function resolveMergeTags(body: string, leadName: string, leadEmail: string, lea
 
 export async function POST(req: NextRequest) {
   try {
-    const { replyId, message, emailType } = await req.json();
+    const { replyId, message, emailType, toEmailOverride, toNameOverride } = await req.json();
 
     if (!replyId || !message) {
       return NextResponse.json(
