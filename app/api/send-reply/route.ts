@@ -70,10 +70,14 @@ export async function POST(req: NextRequest) {
       reply.lead_title
     );
 
-    // Convert plain text to HTML paragraphs so EmailBison preserves formatting
+    // Convert URLs to clickable links
+    const linkify = (text: string) =>
+      text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+
+    // Convert plain text to HTML paragraphs with explicit spacing and clickable links
     const htmlMessage = resolvedMessage
       .split("\n\n")
-      .map(para => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+      .map(para => `<p style="margin:0 0 16px 0;">${linkify(para.replace(/\n/g, "<br>"))}</p>`)
       .join("");
 
     // Build to_emails — reply to the lead

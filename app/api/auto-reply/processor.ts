@@ -92,9 +92,12 @@ async function sendReplyToEmailBison(
     email_address: reply.to_email ?? reply.lead_email,
   }];
 
+  const linkify = (text: string) =>
+    text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+
   const htmlBody = body
     .split("\n\n")
-    .map(para => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+    .map(para => `<p style="margin:0 0 16px 0;">${linkify(para.replace(/\n/g, "<br>"))}</p>`)
     .join("");
 
   const ebResponse = await fetch(
