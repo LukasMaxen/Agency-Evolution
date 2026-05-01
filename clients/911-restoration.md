@@ -35,6 +35,9 @@ Insurance-backed lead flow with no cold outreach required. Top 25% of franchisee
 **What makes them different:**
 The lead flow is insurance-driven — franchisees don't have to chase work. This is the #1 hook. It removes the biggest objection trade owners have to adding a new revenue stream.
 
+**What they receive after saying yes to more info:**
+Email with: (1) Chris from Reno story — layered restoration onto a window cleaning business, scaled into plumbing and reconstruction via the 911 network. (2) Two videos: "Watch Chris's Story" (3:00) and "The Power of the Network" (1:30). (3) Three value props: Fill the Gaps (restoration ramps when construction slows), Leverage Relationships (existing clients, more reasons to call), The Network (peer support — franchisees cite this as their biggest unexpected advantage). (4) Franchise Developer follows up within 48 hours or prospect can book directly. Leverage these hooks in step 3 CTAs and reply handling.
+
 **What they can never say / promise:**
 Do not promise specific revenue figures as guaranteed outcomes. Do not confirm territory availability without checking.
 
