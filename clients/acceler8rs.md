@@ -221,6 +221,7 @@ Brand/product type, revenue range if available, existing team size.
 | Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
 |---|---|---|---|---|---|
 | Active | Shopify Brand Owners UK | — | — | 30.66% | Top performer — UK audience converts at high rate |
+| Draft | Shopify Brand Owners UK — Guarantee | — | — | — | New angle: 90-day refund guarantee as hook. Campaign ID 463, sequence ID 454. 3x Step 1 variants, Step 2 (7-day wait), Step 3 (7-day wait). 2,000/day limit (set manually in EB — API doesn't support it). Launched 2026-05-01. |
 | Active | Shopify Brand Owners USA | — | — | 21.43% | Solid — Shopify-specific targeting required |
 | Dead | Ecom Industries USA | — | — | 0% | Failed — do not rebuild. Too broad. |
 
