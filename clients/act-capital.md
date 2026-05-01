@@ -136,7 +136,7 @@ ACT Capital also runs **buyer outreach campaigns** — where they represent a co
 - Prospect asks who the seller is → NDA framing: not able to share before NDA is in place
 - Prospect says not a fit → polite exit, 2–3 lines max
 
-**ACT Capital NDA rule:** ACT Capital teaser pages always include a link to the NDA. When replying to any interested buyer lead, always send both the teaser link and the NDA link together. NDA links per mandate are stored below each mandate section — add them when available.
+**ACT Capital NDA rule:** The NDA is embedded within the teaser page itself. When replying to any interested buyer lead, always send the teaser link and note that both the teaser and NDA are accessible through it. Then push to a call for details.
 
 ---
 
