@@ -59,6 +59,28 @@ Not in the trades, wrong geography, no ownership/decision-making authority.
 
 ---
 
+## Active EmailBison Campaigns
+
+_Each logical campaign (offer + ICP combination) may have multiple date-batched EmailBison campaigns running simultaneously.
+When updating a script, update ALL active batches for that campaign._
+
+### Related Trades
+Target: Plumbing, HVAC, GC, restoration business owners
+
+| EmailBison campaign name | ID | Status | Started |
+|---|---|---|---|
+| 23rd of April Related Trades | [ID] | Active | 2026-04-23 |
+| 1st of May Related Trades | [ID] | Active | 2026-05-01 |
+
+### Franchise Owners
+Target: Existing franchise owners
+
+| EmailBison campaign name | ID | Status | Started |
+|---|---|---|---|
+| [name] | [ID] | Active | [date] |
+
+---
+
 ## Campaign Strategy
 
 **CTA rules:**
@@ -189,10 +211,12 @@ City ({CITY}) for step 2 personalization. Business type confirmation (trades onl
 
 ## Campaign History
 
-| Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
+_Active campaigns with IDs are tracked in the Active EmailBison Campaigns section above._
+
+| Campaign name | Period | Leads sent | Reply rate | Interested rate | Notes |
 |---|---|---|---|---|---|
-| Active | Franchise Owners | — | 3.42% | — | Low reply rate — secondary priority |
-| Active | Related Trades | — | Lower | 18-20% | Lower replies but high quality interested rate |
+| Franchise Owners | Active | — | 3.42% | — | Low reply rate — secondary priority |
+| Related Trades | Active | — | Lower | 18-20% | Lower replies but high quality interested rate |
 
 **Sourcing note:** Findymail lists outperform Apollo lists for this account. Prioritize Findymail for list building.
 

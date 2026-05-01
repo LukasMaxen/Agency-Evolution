@@ -53,8 +53,17 @@ _Each campaign gets its own block below. Duplicate the block for each active cam
 ### Campaign: [Campaign Name]
 
 **Status:** Active / Paused / Completed
-**EmailBison campaign name:** [exact name as it appears in EmailBison]
 **Calendly link for this campaign:** [link — if different from another campaign]
+
+#### Active EmailBison Batches
+
+_Each row is a separate EmailBison campaign. Same offer and sequence — different send date or list batch.
+When updating the script for this campaign, update ALL rows with status Active._
+
+| EmailBison campaign name | ID | Status | Started |
+|---|---|---|---|
+| [date] [Campaign Name] | [EB ID] | Active | YYYY-MM-DD |
+| [date] [Campaign Name] | [EB ID] | Active | YYYY-MM-DD |
 
 #### Offer
 
@@ -233,8 +242,13 @@ Body:
 _Duplicate this entire block for each additional active campaign._
 
 **Status:** Active / Paused / Completed
-**EmailBison campaign name:**
 **Calendly link for this campaign:**
+
+#### Active EmailBison Batches
+
+| EmailBison campaign name | ID | Status | Started |
+|---|---|---|---|
+| [date] [Campaign Name] | [EB ID] | Active | YYYY-MM-DD |
 
 #### Offer
 #### Target Audience (ICP)
