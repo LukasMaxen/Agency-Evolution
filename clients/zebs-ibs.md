@@ -71,7 +71,17 @@ Pure tech/SaaS investors with no EdTech mandate, late-stage only funds, no EU ex
 
 ## Active Campaigns
 
-_No active campaigns for ZEBS International currently._
+_Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
+
+### ZEBS International Seed Round
+_What's being pitched: ZEBS International's Seed Round — EU-accredited online MBAs and postgraduate programs ("Personal MBA" model combining Level 7 EU accreditation with practical AI training), paying students across 25 countries and 4 continents. Pitched by Svetlin Petrov, Managing Partner, Statera Capital._
+
+| ICP | Status |
+|---|---|
+| Institutionals — Owners/GPs | Paused |
+| Institutionals — Deal Team | Paused (new send in draft: 1st May) |
+
+_Note: Owners/GPs and Deal Team use the same script. Multiple date-batched sends exist for Deal Team (21st Apr, 24th Apr, 28th Apr) — these are the same campaign, not separate ones._
 
 ---
 
