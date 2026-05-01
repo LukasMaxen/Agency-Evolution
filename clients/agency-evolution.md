@@ -21,14 +21,23 @@ Reference clients used in outreach: Hahnbeck (London), ACT Capital (Sacramento),
 
 Boutique M&A advisory firms and buy-side PE/capital firms. USA and UK primary markets. EU secondary.
 
-## Campaign Strategy
+## Active Campaigns
 
-- Boutique M&A firms USA (re-run): active and performing (29.41% interested)
-- Boutique M&A firms USA: active
-- Boutique M&A firms UK: active
-- Buy Side firms USA: paused
-- Buy Side firms EU: completed
-- UK and USA boutique M&A re-run performing well — scale list size
+_Structure: one block per offer. Each offer lists its ICPs as rows._
+
+### Deal Origination for M&A and PE Firms
+_What's being pitched: Done-for-you client acquisition system — cold email infrastructure, targeting, scripting, and CRM pipeline for boutique M&A and PE firms._
+
+| ICP | Status |
+|---|---|
+| Boutique M&A firms — USA | Active |
+| Boutique M&A firms — USA (re-run leads) | Active — 29.41% interested |
+| Boutique M&A firms — UK | Active |
+| Buy Side firms — USA | Paused |
+
+---
+
+## Campaign Strategy
 
 ## Script Rules
 

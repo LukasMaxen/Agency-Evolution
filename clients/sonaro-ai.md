@@ -214,12 +214,12 @@ Clinic type (dental, GP, physio, aesthetics). Clinic size (number of practitione
 
 | Date | Campaign name | Leads sent | Reply rate | Interested rate | Notes |
 |---|---|---|---|---|---|
-| Paused | Law Firm Owners Italy | — | ~11% | 11.29% | REACTIVATE — strong performer |
-| Paused | Local Biz Italy | — | — | 12.07% | REACTIVATE — strong performer |
-| Active | EU General | — | 0.82-1.09% | — | Low reply rate — Italy-only is better |
+| Paused | Law Firm Owners Italy | — | ~11% | 11.29% | Intentionally discontinued — ICP pivot to Clinics only. Did not convert to clients. |
+| Paused | Local Biz Italy | — | — | 12.07% | Intentionally discontinued — ICP pivot to Clinics only. Did not convert to clients. |
+| Active | EU General (Clinics) | — | 0.82-1.09% | — | Current focus — Italy clinics within this is the priority sub-market |
 | Dead | US Lawyers | — | — | 0% | Do not rebuild |
 
-**Key insight:** Italy outperforms all other markets by 4-8x. All Italy campaigns should be reactivated and prioritized.
+**Key insight:** Italy email metrics outperform all other markets 4-8x, but Law Firm and Local Biz audiences did not convert to paying clients. ICP is now Clinics only. Do not reactivate Law Firm or Local Biz Italy campaigns.
 
 ---
 

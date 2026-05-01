@@ -167,6 +167,37 @@ Always attach department to seniority — "Investment Principal" not "Principal"
 
 ---
 
+## Campaign Performance KPIs
+
+*Apply these thresholds before flagging or pausing any campaign. Do not make judgments on fewer than 1,000 emails sent.*
+
+### Minimum Volume Gate
+- **1,000 emails sent** before evaluating performance — any assessment before this is premature
+
+### Core KPIs (both must be met)
+| KPI | Threshold | How to calculate |
+|---|---|---|
+| Reply rate | ≥1% | Replies ÷ emails sent |
+| Interested rate | ≥20% of replies | Interested replies ÷ total replies |
+
+### Output targets (derived)
+- ≤500 emails sent per interested lead
+- ≤1,000 emails sent per booked meeting
+
+### When a campaign fails KPIs
+If a campaign has 1,000+ emails sent and misses either threshold:
+1. **Flag the team** — add a `PERFORMANCE FLAG` note to the campaign row in the client file
+2. **Investigate before pausing** — check deliverability, spam triggers, list quality, script structure first
+3. **Pause if no fixable root cause** — update status to Paused in the client file and note the reason
+4. **Never rebuild a failed campaign** without changing at least the audience, the angle, or both
+
+### Do not apply KPIs to
+- Campaigns with <1,000 emails sent (still in ramp phase)
+- Mandate-specific outreach (e.g. single-company teasers) — evaluate by meeting booked, not reply rate
+- Campaigns intentionally paused for strategic reasons unrelated to performance (e.g. list refresh, ICP pivot)
+
+---
+
 ## Optimization
 
 ### When Scripts Stop Converting

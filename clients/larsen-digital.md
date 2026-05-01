@@ -68,7 +68,7 @@ _What's being pitched: Larsen Digital's performance-only engagement model for Sh
 
 | ICP | Status |
 |---|---|
-| Shopify brand owners (USA) | Active |
+| Shopify brand owners (USA) | Active — **PERFORMANCE FLAG: 0% interested rate. If 1,000+ emails sent, pause and do not rebuild as standalone angle. Always lead with M&A-focus instead.** |
 
 ### M&A-focus
 _What's being pitched: Larsen Digital's M&A-focused growth and exit service for Shopify brand owners._
