@@ -19,7 +19,62 @@ function readFile(filePath: string): string {
   }
 }
 
-async function postToSlack(message: string): Promise<void> {
+interface SlackReplyCard {
+  header: string;
+  reply: Record<string, any>;
+  instanceUrl: string;
+  reason?: string;
+}
+
+function buildSlackBlocks({ header, reply, instanceUrl, reason }: SlackReplyCard) {
+  const ebLink = reply.email_bison_reply_id
+    ? `${instanceUrl}/inbox/replies/${reply.email_bison_reply_id}`
+    : null;
+
+  const fields = [
+    `*Lead:*\n${reply.lead_name ? `${reply.lead_name} ` : ""}${reply.lead_email ?? ""}`,
+    `*Email account:*\n${reply.sender_email ?? ""}`,
+    `*Campaign:*\n${reply.campaign ?? ""}`,
+    `*Subject:*\n${reply.subject ?? ""}`,
+  ];
+
+  const blocks: object[] = [
+    {
+      type: "header",
+      text: { type: "plain_text", text: header, emoji: true },
+    },
+    {
+      type: "section",
+      fields: fields.map(f => ({ type: "mrkdwn", text: f })),
+    },
+  ];
+
+  if (ebLink) {
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: `*View in EmailBison:*\n<${ebLink}|Open reply>` },
+    });
+  }
+
+  if (reply.message) {
+    const preview = reply.message.slice(0, 300) + (reply.message.length > 300 ? "..." : "");
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: `*Message:*\n${preview}` },
+    });
+  }
+
+  if (reason) {
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: `*Reason:*\n${reason}` },
+    });
+  }
+
+  return blocks;
+}
+
+async function postToSlack(payload: string | { blocks: object[]; text: string }): Promise<void> {
   const token = process.env.SLACK_BOT_TOKEN;
   if (!token) {
     console.warn("[auto-reply] SLACK_BOT_TOKEN not set — skipping Slack notification");
@@ -27,13 +82,16 @@ async function postToSlack(message: string): Promise<void> {
   }
   // #manual-replies channel
   const channelId = "C0B0MMMMNKZ";
+  const body = typeof payload === "string"
+    ? { channel: channelId, text: payload }
+    : { channel: channelId, ...payload };
   await fetch("https://slack.com/api/chat.postMessage", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ channel: channelId, text: message }),
+    body: JSON.stringify(body),
   });
 }
 
@@ -220,9 +278,15 @@ ${reply.message}`;
 
   if (!result) {
     await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
-    await postToSlack(
-      `*Auto-reply failed (Claude error)* — needs manual handling\n*Client:* ${workspaceSlug}\n*Lead:* ${reply.lead_name} (${reply.lead_email})\n*Campaign:* ${reply.campaign}\n*Reply ID:* ${replyId}`
-    );
+    await postToSlack({
+      text: `Auto-reply failed (Claude error) — ${workspaceSlug} / ${reply.lead_name}`,
+      blocks: buildSlackBlocks({
+        header: "⚠️ Auto-reply failed (Claude error)",
+        reply,
+        instanceUrl: workspace.email_bison_instance_url ?? "",
+        reason: "Claude API error — needs manual handling",
+      }),
+    });
     return;
   }
 
@@ -257,17 +321,28 @@ ${reply.message}`;
       console.log(`[auto-reply] Sent reply for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
     } else {
       await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
-      await postToSlack(
-        `*Auto-reply failed (EmailBison error)* — needs manual handling\n*Client:* ${workspaceSlug}\n*Lead:* ${reply.lead_name} (${reply.lead_email})\n*Campaign:* ${reply.campaign}\n*Reply ID:* ${replyId}`
-      );
+      await postToSlack({
+        text: `Auto-reply failed (EmailBison error) — ${workspaceSlug} / ${reply.lead_name}`,
+        blocks: buildSlackBlocks({
+          header: "⚠️ Auto-reply failed (EmailBison error)",
+          reply: replyWithCreds,
+          instanceUrl: workspace.email_bison_instance_url ?? "",
+          reason: "EmailBison send error — needs manual handling",
+        }),
+      });
     }
 
   } else if (result.action === "manual") {
     await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
-    const preview = reply.message?.slice(0, 200) + (reply.message?.length > 200 ? "..." : "");
-    await postToSlack(
-      `*Manual reply needed* — ${workspaceSlug} / ${reply.lead_name} (${reply.lead_company ?? ""})\n*Reason:* ${result.manual_reason ?? "Needs manual handling"}\n*Campaign:* ${reply.campaign}\n*Their message:* "${preview}"\n*Reply ID:* ${replyId}`
-    );
+    await postToSlack({
+      text: `Manual booking needed — ${workspaceSlug} / ${reply.lead_name}`,
+      blocks: buildSlackBlocks({
+        header: "📅 Manual booking needed",
+        reply: replyWithCreds,
+        instanceUrl: workspace.email_bison_instance_url ?? "",
+        reason: result.manual_reason ?? "Needs manual handling",
+      }),
+    });
 
   } else {
     await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
