@@ -21,16 +21,16 @@ interface DraftResult {
 }
 
 const FULL_STEP_PURPOSES: Record<number, string> = {
-  1: "Reframe — gentle re-open. Acknowledge their reply, restate the value with a slightly different angle. Short.",
-  2: "Social proof — reference a similar client outcome or relevant proof point. Different hook than step 1.",
-  3: "Different angle — surface a new pain or motivation. Do NOT repeat any angle from steps 1 or 2.",
-  4: "Different problem — focus on a specific operational/financial pain point. New angle from previous steps.",
-  5: "Break-up — short, no-pressure final email. 'Closing the loop, happy to revisit later.' Two sentences max.",
+  1: "Direct re-open. Lead showed positive or neutral signal but has not booked yet. Acknowledge their reply briefly, ask for the meeting with exactly two specific time windows plus the Calendly link. Do NOT re-pitch the offer or clarify what was said. 4 to 6 lines.",
+  2: "Social proof. Reference a similar client outcome or specific deal recently closed in their sector. Different hook than step 1. End with the Calendly link and one open question.",
+  3: "Different angle. Surface a new motivation or strategic consideration (succession, partial exit, market timing). Do NOT repeat any angle used in steps 1 or 2. End with a soft CTA.",
+  4: "Specific pain point. Focus on a concrete operational or financial situation common in their sector (eg key-person risk, growth ceiling, owner dependency). New angle from previous steps.",
+  5: "Break-up. Short, no-pressure final email. 'Closing the loop on this, happy to revisit later.' Two to three lines maximum. No CTA, no calendar link.",
 };
 
 const ABBREVIATED_STEP_PURPOSES: Record<number, string> = {
-  1: "Reframe — gentle re-open after their soft objection. Acknowledge timing, restate value briefly.",
-  2: "Break-up — short, no-pressure final email. 'Closing the loop, happy to revisit later.' Two sentences max.",
+  1: "Soft value re-engagement. The lead gave a soft no with timing or positioning language. Do NOT clarify, correct, or restate the original offer. Do NOT push for a meeting. Instead, acknowledge their position warmly in one line, then offer a low-stakes value exchange (eg recent activity in their sector, a quick market data point, or 'happy to send a brief quote summary if it would be useful'). End with one short line that leaves the door open. 3 to 5 lines total. No specific calendar times.",
+  2: "Break-up. Short, no-pressure final email. 'Closing the loop on this, happy to revisit later.' Two to three lines maximum. No CTA, no calendar link.",
 };
 
 function readFile(filePath: string): string {
