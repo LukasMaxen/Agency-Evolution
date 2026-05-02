@@ -48,19 +48,24 @@ function slugToName(slug: string): string {
 async function postToSlack(blocks: object[], text: string): Promise<string | null> {
   const token = process.env.SLACK_BOT_TOKEN;
   if (!token) {
-    console.warn("[fu-process] SLACK_BOT_TOKEN not set — skipping Slack notification");
+    console.warn("[fu-process] SLACK_BOT_TOKEN not set, skipping Slack notification");
     return null;
   }
-  const channelId = "C0B0MMMMNKZ";
+  // Dedicated channel for FU draft approvals.
+  // Set FU_APPROVAL_SLACK_CHANNEL in env to override (e.g. switch to a channel ID).
+  const channel = process.env.FU_APPROVAL_SLACK_CHANNEL ?? "#follow-up-approval";
   const response = await fetch("https://slack.com/api/chat.postMessage", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ channel: channelId, text, blocks }),
+    body: JSON.stringify({ channel, text, blocks }),
   });
   const data = await response.json().catch(() => ({}));
+  if (!data?.ok) {
+    console.error("[fu-process] Slack post failed:", data);
+  }
   return data?.ts ?? null;
 }
 
@@ -346,17 +351,22 @@ export async function GET(req: NextRequest) {
          AND meeting_booked = FALSE
          AND (outcome IS NULL OR outcome NOT IN ('booked','re_engaged','exhausted','unsubscribed'))
        ORDER BY next_fu_due ASC
-       LIMIT 50`
+       LIMIT 10`
     );
 
     const results: { id: string; status: string; reason?: string }[] = [];
-    for (const fu of due.rows) {
+    for (let i = 0; i < due.rows.length; i++) {
+      const fu = due.rows[i];
       try {
         const result = await processOne(fu);
         results.push({ id: fu.id, ...result });
       } catch (err: any) {
         console.error("[fu-process] error processing", fu.id, err);
         results.push({ id: fu.id, status: "error", reason: err.message });
+      }
+      // Pacing to stay under Anthropic 30k tokens/min limit.
+      if (i < due.rows.length - 1) {
+        await new Promise(r => setTimeout(r, 8000));
       }
     }
 
