@@ -198,47 +198,57 @@ _Note on sends: This campaign may have multiple active EmailBison sends (e.g. "2
 
 #### Follow-Up Sequence
 
-_Tone progression: FU1–3 warm/informative → FU4–6 direct/mild urgency → FU7–9 short/low pressure → FU10 close_
+_FUs are AI-drafted per lead — not fixed templates. Claude reads the lead's original reply, their title and company, and the context fields below to generate a natural, objection-aware follow-up at each step. Every FU that includes a booking CTA uses exactly 2 available time slots + the Calendly link._
 
-**FU1**
-Subject:
-Body:
+**Sequence:** FU1 (+2 days) → FU2 (+5 days) → FU3 (+7 days) → FU4 (+7 days) → FU5 (+14 days)
 
-**FU2**
-Subject:
-Body:
+---
 
-**FU3**
-Subject:
-Body:
+**Offer Frames**
+_3–5 different ways to position the same offer. Claude uses these to keep FU2 and FU4 feeling fresh — different angle, same offer. Each frame should be 1–2 sentences, self-contained._
 
-**FU4**
-Subject:
-Body:
+1. [Primary frame — the strongest angle, used in initial outreach]
+2. [Alternative frame — different hook or emphasis]
+3. [Alternative frame]
+4. [Alternative frame]
+5. [Alternative frame — optional]
 
-**FU5**
-Subject:
-Body:
+---
 
-**FU6**
-Subject:
-Body:
+**Case Studies**
+_Real outcomes to use in FU3. Each case study should include who it was (role/company type, not necessarily named), what the result was, and any specific metric. Claude picks the most relevant one based on the lead's industry/title._
 
-**FU7**
-Subject:
-Body:
+| Client type | Result | Key metric | Use when |
+|---|---|---|---|
+| [e.g. Trade business owner] | [e.g. Opened first franchise location within 6 months] | [e.g. £X revenue in year 1] | [e.g. Lead runs a similar trade business] |
+| | | | |
+| | | | |
 
-**FU8**
-Subject:
-Body:
+---
 
-**FU9**
-Subject:
-Body:
+**Objection Reframes**
+_The most common objections for this campaign and how to reframe them in a FU context. Claude uses these in FU1 when the lead has stated a specific objection. Different from a hard no — these are leads who engaged but pushed back._
 
-**FU10**
-Subject:
-Body:
+| Objection | Reframe for FU |
+|---|---|
+| [e.g. Not the right time] | [e.g. Acknowledge timing, ask when would be better, leave door open] |
+| [e.g. Already working with someone] | [e.g. Acknowledge, pivot to what makes this different] |
+| [e.g. Send me more info] | [e.g. Send one specific case study, follow up in 5 days] |
+
+---
+
+**Break-Up Style**
+_How FU5 should feel for this campaign. Some clients want a soft exit, others want a direct "should I stop reaching out?" Energy and tone guidance._
+
+[e.g. Soft and warm — leave the door open without any pressure. No mention of it being the final email.]
+
+---
+
+**FU Constraints**
+_Anything Claude must never do or say in follow-ups for this campaign specifically._
+
+- [e.g. Never mention competitors by name]
+- [e.g. Never reference the number of follow-ups sent]
 
 ---
 

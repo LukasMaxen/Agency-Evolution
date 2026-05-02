@@ -110,6 +110,13 @@ Say: _"Now let's go through each campaign one at a time. Starting with [Campaign
 29. What enrichment fields matter most for personalisation in this campaign?
 30. How do we personalise outreach — by city, revenue, company type, recent news?
 
+**Follow-Up Context:**
+31. Give me 3–5 different ways to frame the same offer — different angles, same pitch. These are used to keep follow-ups feeling fresh rather than repetitive. One sentence each.
+32. What case studies or real outcomes can we reference in follow-ups? For each one: what type of client was it, what was the result, and what's the key metric? We need at least 2.
+33. What are the most common objections leads give for this campaign — and what's the right reframe for each? (These are used in FU1 when someone pushes back rather than ignoring.)
+34. How should the final break-up follow-up feel for this campaign — soft and warm, or direct and clear?
+35. Are there any constraints specific to follow-ups for this campaign — things Claude should never say or reference?
+
 _After all campaign questions are answered, say: "Got it. Moving on to the next campaign." Repeat Section 4 for each additional campaign._
 
 ---
@@ -158,5 +165,5 @@ After the interview is complete:
 - If a campaign name is not provided, ask for one before starting that campaign's section
 - Never write the file until Section 7 is complete and the user confirms
 - If an answer is vague (e.g. "standard CTA"), push back and ask for the exact wording — vague answers produce vague client files
-- Flag any missing critical fields after writing: Calendly link, Step 1/2/3 CTAs, and ICP are the most important — never leave these blank without flagging
+- Flag any missing critical fields after writing: Calendly link, Step 1/2/3 CTAs, ICP, offer frames, and at least one case study are the most important — never leave these blank without flagging
 - Do not invent or assume details — if you don't know it, mark it as `[fill in]` and flag it at the end
