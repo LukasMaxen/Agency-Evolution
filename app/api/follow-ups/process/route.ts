@@ -20,38 +20,6 @@ interface DraftResult {
   body: string;
 }
 
-const FULL_STEP_PURPOSES: Record<number, string> = {
-  1: "Direct re-open. Lead showed positive or neutral signal but has not booked yet. Acknowledge their reply briefly, ask for the meeting with exactly two specific time windows plus the Calendly link. Do NOT re-pitch the offer or clarify what was said. 4 to 6 lines.",
-  2: "Social proof. Reference a similar client outcome or specific deal recently closed in their sector. Different hook than step 1. End with the Calendly link and one open question.",
-  3: "Different angle. Surface a new motivation or strategic consideration (succession, partial exit, market timing). Do NOT repeat any angle used in steps 1 or 2. End with a soft CTA.",
-  4: "Specific pain point. Focus on a concrete operational or financial situation common in their sector (eg key-person risk, growth ceiling, owner dependency). New angle from previous steps.",
-  5: "Break-up. Short, no-pressure final email. 'Closing the loop on this, happy to revisit later.' Two to three lines maximum. No CTA, no calendar link.",
-};
-
-const ABBREVIATED_STEP_PURPOSES: Record<number, string> = {
-  1: `Soft re-engagement after no response. The lead originally gave a soft no, we replied politely, they have not written back. Follow this structure:
-- Open with a brief follow-up framing. Example: "Following up on my last note. Wanted to send one more thing before stepping back." Do NOT say "Understood" or "Thanks for getting back to me", that was already covered in the first response.
-- One value sentence OR one open-ended question, fresh angle from anything we already sent. Examples: "If a quick read on what buyers are paying in your sector would be useful, happy to share what we are seeing." Or: "Curious whether timing typically opens up around year-end in your industry, or if it is more event-driven."
-- Soft door-open close. Example: "Otherwise we will circle back later in the year. Reach out if anything shifts."
-- Maximum 4 lines of body. No specific time slots. No Calendly link. No clarification of the original offer. No restating what we do. No pushing for a meeting.
-
-EXAMPLE OF WRONG OUTPUT (these read like a first response, not a follow-up):
-"Hi Mike, understood and appreciated. If timing changes, happy to share what we are seeing."
-"Hi Mike, just to clarify this is not an investment ask. We represent a buyer..."
-
-EXAMPLE OF RIGHT OUTPUT (reads like a re-engagement after no reply):
-"Hi Mike,
-
-Following up on my last note. Wanted to send one more thing before stepping back.
-
-If a quick read on what buyers are paying for businesses in your space would be useful, happy to share what we are seeing.
-
-Otherwise we will circle back later in the year. Reach out if anything shifts.
-
-{SENDER_EMAIL_SIGNATURE}"`,
-  2: "Break-up after no response to FU1. Short, no-pressure final email. Reference that we have been in touch and are stepping back. Example: 'Closing the loop on this for now. We will be around if timing ever shifts.' Two to three lines maximum. No CTA, no calendar link.",
-};
-
 function readFile(filePath: string): string {
   try {
     return fs.readFileSync(filePath, "utf-8");
@@ -220,58 +188,46 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
   );
   const prevBodies = prevSent.rows.map(r => r.body).filter(Boolean);
 
-  // Read client file + global FU context
+  // Read client file + workflow context. Both define ALL rules.
+  // The processor is intentionally rule-free: edit the markdown to change behaviour.
   const clientFile = readFile(path.join(process.cwd(), "clients", `${fu.workspace_slug}.md`));
-  const contextFile = readFile(
+  const followUpContext = readFile(
+    path.join(process.cwd(), "1. Departments", "follow-up-management", "CONTEXT_FollowUps.md")
+  );
+  const replyContext = readFile(
     path.join(process.cwd(), "1. Departments", "reply-management", "CONTEXT_Replies.md")
   );
 
   if (!clientFile) {
     return { status: "skipped", reason: "client file missing" };
   }
+  if (!followUpContext) {
+    return { status: "skipped", reason: "CONTEXT_FollowUps.md missing" };
+  }
 
-  const stepPurposes = fu.fu_sequence_type === "abbreviated"
-    ? ABBREVIATED_STEP_PURPOSES
-    : FULL_STEP_PURPOSES;
-  const stepPurpose = stepPurposes[nextStep] ?? "Follow-up email.";
+  const systemPrompt = `You are an email drafter for Maxen Partners. Your only job is to draft one follow-up email for one lead.
 
-  const systemPrompt = `You are a follow-up email writer for Maxen Partners, a cold-email agency for B2B M&A and business services clients.
+All rules, step purposes, tone, examples, and process live in the two context files below. Read them, then draft the email per the rules they define.
 
-WHAT YOU ARE WRITING:
-This is a follow-up email, not a first response. The lead already replied to our cold email. We already sent them a contextual first response (it is the first item in PREVIOUS EMAILS WE SENT). The lead has now gone silent and has not replied back, has not booked a call. Your job is to re-engage them with a fresh angle. Treat the previous emails as already received and read by the lead. Do not greet them as if this is the first contact, do not re-acknowledge what they originally said, do not re-pitch the offer.
-
-CRITICAL OUTPUT FORMAT: Your entire response must be a single valid JSON object. Start your response with the character "{" and end with "}". No preamble, no explanation, no markdown code fences, no thinking out loud. Just the JSON.
-
-Draft FU step ${nextStep} of ${fu.total_emails} for this lead. Return ONLY a valid JSON object with this shape:
+OUTPUT FORMAT (the only thing this prompt enforces directly):
+Return a single JSON object and nothing else. Start with "{" and end with "}". No preamble, no markdown fences, no thinking aloud, no commentary. The shape:
 
 {
   "subject": "short subject line, no Re: prefix",
-  "body": "full email body. Greeting (Hi Name,) on its own line, blank line, body paragraphs separated by blank lines, blank line, then {SENDER_EMAIL_SIGNATURE} on its own line. Plain text. No subject line in the body."
+  "body": "full email body, plain text, greeting on its own line, blank line between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line. No subject line inside the body."
 }
 
-STEP PURPOSE: ${stepPurpose}
+WHICH STEP TO DRAFT:
+Sequence type: ${fu.fu_sequence_type}
+Step to draft: FU${nextStep} of ${fu.total_emails}
 
-CONTEXT READING (most important rule):
-Before drafting, read the lead's original reply carefully and identify what they actually said.
-- If they politely declined with timing language ("not right now", "not at the moment", "happy as is"), this is a SOFT NO. Acknowledge respectfully, do not push, do not "clarify" or correct anything they said. A 2-line step-back is correct.
-- If they asked a clarifying question, answer it directly.
-- If they were confused about the offer, then and only then clarify the offer.
-- If they showed interest, push forward with a clean booking ask.
-Never assume the lead is confused. Most leads understand the offer and are giving you their real position. Treat their reply at face value unless they explicitly asked a question.
+Apply the step purpose from CONTEXT_FollowUps.md that matches the sequence type and step number above. Apply all tone, formatting, and content rules from both context files. The user message contains the client GTM brief, the lead's data, and every email we have already sent in this thread.
 
-TONE RULES (non-negotiable):
-- No em dashes, no en dashes, no double-hyphens. No colons in the email body.
-- No bullet points
-- No filler phrases ("That's fantastic", "Sounds great!", "I'm excited", "I'd love to", "Thrilled", "Delighted", "Genuinely", "Straightforward")
-- Match length to context — shorter is better
-- Closings: "Looking forward to speaking with you." or "Looking forward to it." or for break-up "Happy to revisit later."
-- Never volunteer pricing/valuation numbers unless explicitly asked
-- For interested re-opens, include the client's Calendly link with exactly two suggested time slots
+=== CONTEXT_FollowUps.md ===
+${followUpContext}
 
-CRITICAL: Do not repeat any angle, hook, or pain point from the previous emails listed below. Each FU must take a fresh angle.
-
-GLOBAL REPLY CONTEXT:
-${contextFile}`;
+=== CONTEXT_Replies.md (cross-cutting tone, formatting, content rules apply to FUs too) ===
+${replyContext}`;
 
   const userMessage = `CLIENT WORKSPACE: ${fu.workspace_slug}
 

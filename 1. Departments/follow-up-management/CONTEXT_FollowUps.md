@@ -50,20 +50,63 @@ Once Reply Management has classified and written this to `follow_ups`, the FU pr
 
 ### Full sequence (5 steps, sent every 7 days starting 2 days after first response)
 
-| Step | Purpose | Length |
-|---|---|---|
-| FU1 | Direct re-open, ask for the meeting with two specific time windows + Calendly link. Do NOT re-pitch the offer. | 4 to 6 lines |
-| FU2 | Social proof. Reference a similar client outcome or recent deal in the lead's sector. New hook. | 5 to 7 lines |
-| FU3 | Different angle. New motivation (succession, partial exit, market timing). Cannot repeat angles from FU1 or FU2. | 5 to 7 lines |
-| FU4 | Specific pain point. Concrete operational or financial scenario in their sector. New angle. | 5 to 7 lines |
-| FU5 | Break-up. "Closing the loop on this, happy to revisit later." No CTA, no calendar link. | 2 to 3 lines |
+**FU1 — Direct re-open** (4 to 6 lines)
+The lead showed a positive or neutral signal, did not book yet, and has not replied to our first response. Open with a brief follow-up framing (eg "Following up on my last note"). Ask for the meeting with exactly two specific time windows plus the Calendly link. Do NOT re-pitch the offer or clarify what was said. Do NOT restate what we do.
+
+**FU2 — Social proof** (5 to 7 lines)
+Reference a similar client outcome or a recent deal we have done in the lead's sector. Different hook than FU1. End with the Calendly link and one open question that invites a one-line reply.
+
+**FU3 — Different angle** (5 to 7 lines)
+Surface a new motivation or strategic consideration the lead might be weighing (succession, partial exit, market timing, owner liquidity). Do NOT repeat any angle used in FU1 or FU2. End with a soft CTA (eg "open to a quick chat?").
+
+**FU4 — Specific pain point** (5 to 7 lines)
+Focus on a concrete operational or financial situation common in their sector. Examples: key-person risk, growth ceiling, owner dependency, customer concentration, succession with no clear successor. New angle from previous steps.
+
+**FU5 — Break-up** (2 to 3 lines)
+Short, no-pressure final email. Reference the prior thread implicitly. "Closing the loop on this, happy to revisit later." No CTA, no calendar link.
 
 ### Abbreviated sequence (2 steps, sent 2 days then 9 days after first response)
 
-| Step | Purpose | Length |
-|---|---|---|
-| FU1 | Soft step-back. Acknowledge their position with one line, offer one low-stakes value sentence (market data, sector activity, "happy to share what we are seeing"), close with a door-open line. No CTA, no specific times, no Calendly link. | 3 to 4 lines |
-| FU2 | Break-up. Same as full sequence FU5. | 2 to 3 lines |
+**FU1 — Soft re-engagement after no response** (3 to 4 lines)
+The lead originally gave a soft no, we replied politely, they have not written back. Structure:
+- Open with a brief follow-up framing. Example: "Following up on my last note. Wanted to send one more thing before stepping back." Do NOT say "Understood" or "Thanks for getting back to me", that was already covered in the first response.
+- One value sentence OR one open-ended question, fresh angle. Examples: "If a quick read on what buyers are paying in your sector would be useful, happy to share what we are seeing." Or: "Curious whether timing typically opens up around year-end in your industry, or if it is more event-driven."
+- Soft door-open close. Example: "Otherwise we will circle back later in the year. Reach out if anything shifts."
+
+Maximum 4 lines of body. No specific time slots. No Calendly link. No clarification of the original offer. No restating what we do. No pushing for a meeting.
+
+**FU2 — Break-up after no response to FU1** (2 to 3 lines)
+Short, no-pressure final email. Reference that we have been in touch and are stepping back. Example: "Closing the loop on this for now. We will be around if timing ever shifts." Two to three lines maximum. No CTA, no calendar link.
+
+## Wrong vs Right Examples
+
+These read like a first response, not a follow-up. Do NOT write anything like these:
+
+> "Hi Mike, understood and appreciated. If timing changes, happy to share what we are seeing."
+
+> "Hi Mike, just to clarify this is not an investment ask. We represent a buyer who is actively looking..."
+
+> "Just to clarify the context in case it was unclear, this was not about an investment opportunity for the company..."
+
+These read like a re-engagement after no response. DO write things like these:
+
+> "Hi Mike,
+>
+> Following up on my last note. Wanted to send one more thing before stepping back.
+>
+> If a quick read on what buyers are paying for businesses in your space would be useful, happy to share what we are seeing.
+>
+> Otherwise we will circle back later in the year. Reach out if anything shifts.
+>
+> {SENDER_EMAIL_SIGNATURE}"
+
+> "Hi Sarah,
+>
+> Quick follow-up. We recently closed a sell-side mandate for a SaaS business in the same revenue range as yours. The structure surprised the founder in a good way.
+>
+> Worth 15 minutes to walk through what that looked like? Tuesday at 10am ET or Wednesday at 2pm ET both work, or grab a slot here: {CALENDLY_LINK}
+>
+> {SENDER_EMAIL_SIGNATURE}"
 
 ## Tone Rules (non-negotiable)
 
