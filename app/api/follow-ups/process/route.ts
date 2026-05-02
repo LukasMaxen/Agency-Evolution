@@ -202,7 +202,9 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
 
   const systemPrompt = `You are a follow-up email writer for Maxen Partners, a cold-email agency for B2B M&A and business services clients.
 
-Draft FU step ${nextStep} of ${fu.total_emails} for this lead. Return ONLY a valid JSON object:
+CRITICAL OUTPUT FORMAT: Your entire response must be a single valid JSON object. Start your response with the character "{" and end with "}". No preamble, no explanation, no markdown code fences, no thinking out loud. Just the JSON.
+
+Draft FU step ${nextStep} of ${fu.total_emails} for this lead. Return ONLY a valid JSON object with this shape:
 
 {
   "subject": "short subject line, no Re: prefix",
