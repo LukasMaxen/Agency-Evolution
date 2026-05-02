@@ -21,14 +21,21 @@ _Info reply templates and FU templates for each client live in `clients/[slug].m
 
 ## Follow-Up Sequence Structure
 
-Tone progression applies across all clients unless the client file says otherwise:
+5-step sequence. AI-drafted per lead — not templated. Every FU is generated using the lead's original reply (their objection verbatim), their title and company, the client's offer and proof points, and the previous FU steps already sent.
 
-- **FU1–FU3:** Warm, informative — reference the original interest
-- **FU4–FU6:** Shorter, more direct — mild urgency
-- **FU7–FU9:** Very short, low pressure — keep door open
-- **FU10:** Close the loop, leave on good terms. Never signal it is the final email.
+| Step | Timing | Angle | Booking prompt |
+|---|---|---|---|
+| **FU1** | +2 days after reply | Address their specific objection. Acknowledge what they said, reframe or counter with one proof point. Offer 2 time slots + Calendly link. | 2 slots + link |
+| **FU2** | +5 days after FU1 | New angle — do not repeat FU1. Short, warm re-engage. Calendly link only. | Link only |
+| **FU3** | +7 days after FU2 | Value add — one relevant result or case study that maps to their situation. Calendly link. | Link only |
+| **FU4** | +7 days after FU3 | Reframe — different angle on the offer or a new reason to act. Short. Calendly link. | Link only |
+| **FU5** | +14 days after FU4 | Break-up. Give them an easy out. Creates urgency without pressure. Calendly link optional. | Optional |
 
-Spacing: 7 days between each FU unless client file specifies otherwise.
+**Total window: ~35 days from first reply.**
+
+Stop sequence immediately if the lead books, replies, or unsubscribes at any point.
+
+**Aggressive booking mode (per-client option, not default):** Send initial reply with Calendly → wait 48h → if no booking, manually place time on calendar and send a note: "Wanted to make sure we got some time to chat, put some time on the calendar for X, hope that works." Activate this mode only when specified in the client file.
 
 ---
 
@@ -66,7 +73,7 @@ Looking forward to speaking.
 ## Formatting Rules
 
 - Prose over lists wherever possible
-- One calendar link per email, placed naturally near the closing
+- Booking prompt format: always 2 specific available time slots followed by the Calendly link. Never 1 slot, never 3+. Example: "Are any of these times good — Tuesday 3pm or Wednesday 11am? Or grab a time that works: [link]"
 - No bare URLs on their own line — always give a link context ("Feel free to grab a time here: [link]")
 - Subject lines: short, contextual (e.g. "Re: Buyer for ORPC", "Re: Acquisition Interest")
 - Signatures: always end with {SENDER_EMAIL_SIGNATURE} on its own line. Never write "Best," or "Best regards," or any name before it. The variable resolves to the full sender signature on send.
