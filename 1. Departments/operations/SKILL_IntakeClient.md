@@ -55,12 +55,59 @@ _Repeat until all contacts are captured._
 
 ---
 
+### Section 2b — Client Type
+
+Ask:
+1. Is this client a **sell-side M&A advisor** (they represent sellers — their outreach targets business owners) or a **direct buyer** (PE firm, strategic, or family office — they approach owners with acquisition interest directly)?
+2. What is the exact offer in one sentence — what are we bringing to market and what is the prospect being asked to consider?
+3. What is the first call ask — what do we want the prospect to do? (e.g. "explore whether now is the right time", "understand what their business is worth")
+
+_The answer to question 1 determines which set of psychological drivers, personas, and objection reframes apply. Carry this forward into the GTM Brief section._
+
+---
+
 ### Section 3 — Client Overview
 
 Ask:
 1. What does this company do? (One paragraph — what they sell, who they serve, how long they've been operating, notable credentials.)
 2. What makes them different from alternatives? What proof points or credentials can we always reference across any campaign?
 3. What can they never say or promise — hard constraints that apply across all campaigns?
+
+---
+
+### Section 3b — GTM Brief
+
+Say: _"Now I want to build your GTM Brief — the psychological research layer we use to find product-market fit as fast as possible. The better this is, the faster the campaigns work."_
+
+**Psychological Drivers:**
+1. What is the single strongest reason a prospect in this audience would engage — what emotional or rational driver moves them most? (e.g. financial security, legacy, freedom, fear of missing the window)
+2. What are the next 2–3 drivers? Walk me through each one.
+3. For each driver: what proof point, stat, or phrase best activates it? What have you seen land in conversation or in replies?
+
+**Trigger Events:**
+4. What specific moments or situations make a prospect most receptive to this outreach? Think about what was happening in their life or business when your best conversations started.
+5. For each trigger: what is the hook — the opening line or subject line angle that lands best when someone is in that moment?
+
+**ICP Personas:**
+6. Within the target audience, are there 2–4 distinct types of person who respond differently to the offer? Walk me through each one — who they are, what stage they're at, and what angle resonates with them.
+7. For each persona: what is the lead angle — the single strongest frame for that specific person?
+
+**Offer Frames:**
+8. Give me 3–5 different ways to position the same offer. Different angle, same service. One sentence each. (These keep follow-ups feeling fresh — same pitch, different hook.)
+
+**Proof Points & Case Studies:**
+9. Walk me through your best case studies. For each one: what type of client was it (sector, rough size, situation), what was the result, and what is the key metric? We need at least 3.
+10. For each case study: which persona or trigger is it most relevant for?
+
+**Objections & Reframes:**
+11. What are the most common objections or pushbacks you hear — and what is the right response to each? Walk me through the top 5.
+12. Are there objections that are genuinely dead ends (hard no) vs. ones that are really just timing or uncertainty?
+
+**Language:**
+13. What specific phrases, subject lines, or CTAs have you seen get replies? Anything word-for-word that has worked.
+14. What have you tried that has flopped — angles, framings, or lines you've stopped using?
+
+_After completing the GTM Brief, say: "Got it — that gives us everything to find product-market fit quickly. Moving on to the campaigns."_
 
 ---
 
