@@ -199,6 +199,7 @@ export async function POST(req: NextRequest) {
 
     for (const meeting of meetings) {
       if (new Date(meeting.recording_start_time) < cutoff) continue;
+      if (meeting.title.toLowerCase().includes("impromptu")) { results.skipped++; continue; }
       if (await isSynced(meeting.recording_id)) { results.skipped++; continue; }
       if (!meeting.transcript?.length) { results.skipped++; continue; }
 
