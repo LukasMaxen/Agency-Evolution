@@ -103,6 +103,17 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Stop any active FU sequence for this lead and record the outcome
+      await pool.query(
+        `UPDATE follow_ups
+           SET meeting_booked = TRUE,
+               next_fu_due = NULL,
+               outcome = 'booked',
+               converted_at_step = fu_step
+         WHERE lead_email = $1 AND meeting_booked = FALSE`,
+        [leadEmail]
+      );
+
       return NextResponse.json({ ok: true, event: "invitee.created", callId, isReschedule });
     }
 
