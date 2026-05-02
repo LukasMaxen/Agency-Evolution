@@ -10,10 +10,12 @@
 
 1. **Lead replies → interested** — send the info reply. For Larsen Digital: include the Calendly link. For all other clients: post to #manual-replies so the team can book manually. Never send a Calendly link to non-Larsen leads.
 2. **Lead books a call** — send confirmation. Mark `meeting_booked = TRUE` in DB.
-3. **Lead replies → interested but no booking** — start follow-up sequence (FU1 → FU10).
-4. **No response after any FU** — wait 7 days, send next FU in sequence.
-5. **Lead unsubscribes or says hard no at any point** — stop immediately. Do not follow up.
-6. **Lead books after a FU** — stop sequence, send confirmation.
+3. **Lead replies but doesn't book** — assign follow-up sequence based on intent. See Follow-Up Sequence Assignment below.
+4. **No response after any FU** — send next FU in sequence per the timing in the FU table.
+5. **Lead unsubscribes** — send confirmation email only. Stop all sequences immediately.
+6. **Lead says hard no (fully disqualified)** — stop immediately. No follow-ups.
+7. **Lead gives soft objection ("not right now")** — start abbreviated 2-step sequence.
+8. **Lead books after a FU** — stop sequence, send confirmation.
 
 _Info reply templates and FU templates for each client live in `clients/[slug].md`._
 
@@ -21,21 +23,60 @@ _Info reply templates and FU templates for each client live in `clients/[slug].m
 
 ## Follow-Up Sequence Structure
 
-5-step sequence. AI-drafted per lead — not templated. Every FU is generated using the lead's original reply (their objection verbatim), their title and company, the client's offer and proof points, and the previous FU steps already sent.
+5-step sequence. All steps are AI-drafted per lead — not fixed templates. The client file contains scaffolding (structure, angle, P.S. pattern) but every email is written fresh using everything known about that specific lead.
+
+**What the AI uses to draft each FU:**
+- Lead's name, company, title, industry, and state
+- Their original reply and the specific objection or sentiment expressed
+- Every FU already sent to this lead (no repeating angles)
+- The client GTM Brief: personas, case studies, offer frames, objection reframes
+- The campaign script that generated the original reply (for tone matching)
+
+**Personalisation rules that apply to every step:**
+- Match the GTM Brief persona that best fits this lead's title and company type
+- Reference their sector, state, or company type at least once per email — never generic
+- Never repeat an angle already used in a previous FU to this lead
+- The case study in FU3 must match the lead's industry where possible — fall back to the most transferable story if no match exists
+- FU5 must reference their company by name to signal the sequence was never generic
 
 | Step | Timing | Angle | Booking prompt |
 |---|---|---|---|
-| **FU1** | +2 days after reply | Address their specific objection. Acknowledge what they said, reframe or counter with one proof point. Offer 2 time slots + Calendly link. | 2 slots + link |
-| **FU2** | +5 days after FU1 | New angle — do not repeat FU1. Short, warm re-engage. Calendly link only. | Link only |
-| **FU3** | +7 days after FU2 | Value add — one relevant result or case study that maps to their situation. Calendly link. | Link only |
-| **FU4** | +7 days after FU3 | Reframe — different angle on the offer or a new reason to act. Short. Calendly link. | Link only |
-| **FU5** | +14 days after FU4 | Break-up. Give them an easy out. Creates urgency without pressure. Calendly link optional. | Optional |
+| **FU1** | +2 days after reply | Address their specific objection using the objection reframes in the client file. Reference their sector or company type in the reframe. Introduce partial sale or flexible structure if not yet raised. | 2 slots + link |
+| **FU2** | +5 days after FU1 | Sector-specific market dynamic or buyer activity relevant to their space. Low-commitment framing — a call does not commit them to anything. | Link only |
+| **FU3** | +7 days after FU2 | Case study matched to their industry. Frame the owner type and hesitation to mirror this lead's situation. | 2 slots + link |
+| **FU4** | +7 days after FU3 | Active mandate urgency with a sector or geography-specific hook. Mandate is live, not expiring — mild urgency only. | Link only |
+| **FU5** | +14 days after FU4 | Soft break-up. Reference their company by name. Leave the door genuinely open with no pressure and no hint it is the final email. | Optional |
 
 **Total window: ~35 days from first reply.**
 
 Stop sequence immediately if the lead books, replies, or unsubscribes at any point.
 
 **Aggressive booking mode (per-client option, not default):** Send initial reply with Calendly → wait 48h → if no booking, manually place time on calendar and send a note: "Wanted to make sure we got some time to chat, put some time on the calendar for X, hope that works." Activate this mode only when specified in the client file.
+
+---
+
+## Follow-Up Sequence Assignment
+
+The sequence type assigned depends on the lead's reply intent. Not every reply warrants 5 follow-ups.
+
+| Reply type | Intent signal | Sequence |
+|---|---|---|
+| Interested — hasn't booked | "Sounds interesting", "Open to a chat", "Tell me more" | Full (5 steps) |
+| Interested urgent | "Call me now", "Let's move quickly" | Full (5 steps) |
+| Needs info — went cold after answer | Asked a question, we replied, they stopped responding | Full (5 steps) |
+| Neutral / no clear signal | Vague reply, no commitment either way | Full (5 steps) |
+| Not interested — soft / timing | "Not the right time", "Happy as is", "Too busy right now" | Abbreviated (2 steps) |
+| Not interested — hard / disqualified | "Business sold", "We never do M&A", "Family business, not for sale ever" | None |
+| Unsubscribe | "Remove me", "Unsubscribe", "Stop contacting me" | Confirmation only |
+| Booked a call | Meeting confirmed | Call flow — no FUs |
+
+**Full sequence** (5 steps, ~35 days): Any lead who showed any signal and might still convert. Persistent without being annoying.
+
+**Abbreviated sequence** (2 steps): FU1 addresses their specific objection using the client reframes. FU5 (the break-up) fires 7 days later if no response. Total: 2 touches, then done. The break-up doubles as a re-engage trigger — "if timing ever shifts for {COMPANY}."
+
+**None**: Do not start a follow-up sequence. Lead is fully disqualified, already in the call flow, or opted out.
+
+**Confirmation only**: Send a single reply confirming removal — "Removed — you won't hear from us again." No sequence, no reframe.
 
 ---
 
@@ -197,8 +238,10 @@ Looking forward to speaking.
 
 ## Stop Rules
 
-- Lead says "remove me", "unsubscribe", "not interested" → stop immediately, no exceptions
-- Lead goes silent after FU10 → close the sequence, do not contact again unless they re-engage
+- Lead says "remove me", "unsubscribe" → send confirmation email, stop all sequences immediately, no exceptions
+- Lead gives a hard no ("sold last year", "we never do M&A") → no follow-ups, close sequence
+- Lead gives a soft no ("not right now", "bad timing") → abbreviated 2-step sequence only, then done
+- Lead goes silent after FU5 → close the sequence, do not contact again unless they re-engage
 - Lead books a call at any point → stop FU sequence immediately
 - Lead says "follow up in X months" → pause sequence, resume at the date they specified
 

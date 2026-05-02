@@ -22,7 +22,7 @@
 
 | Name | Role | Email | Calendly | Timezone | Notes |
 |---|---|---|---|---|---|
-| Stephen Wrobel | Managing Partner, Wrobel Capital LLC | [fill in] | https://calendly.com/swrobel-wrobelcap/30min | CT (Chicago, IL) | Primary contact. All email signatures must use his name and title. |
+| Stephen Wrobel | Managing Partner, Wrobel Capital LLC | swrobel@wrobelcap.com | https://calendly.com/swrobel-wrobelcap/30min | CT (Chicago, IL) | Primary contact. All email signatures must use his name and title. |
 
 _Note: Buy-side campaign for Alex (hydraulics/wholesalers/distributors) is being explored — Alex's contact details to be added once parameters are confirmed._
 
@@ -41,7 +41,7 @@ Flexible deal structures that go beyond full exits — partial sales, rollovers,
 - Never provide a valuation estimate in writing
 - Never imply commission or fee is owed by the seller
 
-**Slack channel:** `#[fill in]`
+**Slack channel:** `#wrobel-capital-chat`
 
 ---
 
@@ -136,16 +136,17 @@ _Five ways to position the Wrobel sell-side campaign. Use in FU2 and FU4 to keep
 
 ---
 
-### 6. Proof Points
+### 6. Proof Points and Case Studies
 
-_Real outcomes available for use in cold outreach and follow-ups. Use in FU3._
+_This table is a living asset. Every deal Wrobel closes or advances gets added here. FU3 pulls the most relevant case study based on the lead's industry. If no sector match exists, use the most transferable entry. Add new rows as deals progress._
 
-| Seller type | Sector | Outcome | Key metric | Best used for |
-|---|---|---|---|---|
-| Business owner, approached cold | Clean energy / solar | Active diligence underway, engagement letter sent | Engagement letter signed within weeks of first conversation | Persona 1 (near-retirement), Persona 3 (never-considered-selling) |
-| Near-retirement owners (60s), motivated internal team | Solar installation | In advanced discussions, potential fee $2.5–6M | ~$50M EBITDA business, $250–300M valuation range | Persona 1, large revenue businesses |
-| Multiple business owners across sectors | Middle-market generalist | 8 active deals awaiting financials simultaneously | 2–3 expected to close from current pipeline | All personas — demonstrates active market, not just prospecting |
-| Broad sell-side campaign | Middle-market / clean energy | 27.21% interested rate — best performer across all Wrobel campaigns | 41 interested leads in last 30 days, ~half booked meetings | FU3 credibility builder, objection handling for "is this real?" |
+| Owner type | Sector | Situation when first contacted | What changed their mind | Outcome | Use for leads in |
+|---|---|---|---|---|---|
+| Owner-managed business, approached cold | Solar installation / clean energy | Not actively looking to sell. Running a profitable operation, no succession plan in place. | Understood they could take significant liquidity now through a partial sale while staying involved for several more years. | In advanced discussions. Engagement letter signed. ~$50M EBITDA business. | Clean energy, solar, sustainability, utilities, infrastructure |
+| [Add next closed deal here] | [Sector] | [Situation when first contacted] | [What changed their mind] | [Outcome and metric] | [Industries to use this for] |
+| [Add next closed deal here] | [Sector] | [Situation when first contacted] | [What changed their mind] | [Outcome and metric] | [Industries to use this for] |
+
+_Fallback case study (use when no sector match):_ The solar installation story above. It works broadly because the partial sale structure and the "wasn't looking to sell" hook are universal across industries.
 
 ---
 
@@ -237,9 +238,9 @@ Committed PE capital, flexible deal structures, and a buyer who moves quickly. O
 |---|---|
 | **Industry** | Clean energy, sustainability; middle-market generalist |
 | **Company size** | Middle-market |
-| **Geography** | [fill in — US-wide or specific states?] |
+| **Geography** | United States (nationwide) |
 | **Job title / role** | Owner, Founder, CEO, President |
-| **Revenue / EBITDA range** | [fill in — revenue and EBITDA thresholds used in targeting] |
+| **Revenue / EBITDA range** | Revenue $25M to $250M per year. EBITDA $5M to $25M. |
 | **Other criteria** | Owner-managed businesses; open to partial sales and rollovers considered a plus |
 
 **What qualifies a lead:**
@@ -344,72 +345,113 @@ Revenue, EBITDA, company age, owner tenure, sector, state
 
 #### Follow-Up Sequence
 
-_FUs are AI-drafted per lead — not fixed templates. Claude reads the lead's original reply, their title and company, and the context fields below to generate a natural, objection-aware follow-up at each step. Every FU that includes a booking CTA uses exactly 2 available time slots + the Calendly link._
+_All 5 FUs are AI-drafted per lead. The templates below are scaffolding — the structure, angle, and P.S. pattern are fixed, but every email is written fresh using what is known about the lead. No two FUs should read identically across different leads._
+
+_At send time the AI has access to: lead name, company, title, industry, state, original reply message, all previous FUs sent to this lead, and the full GTM Brief including personas, case studies, offer frames, and objection reframes._
+
+_Rules that apply to every step:_
+- _Match the persona from the GTM Brief that best fits this lead's title and company type_
+- _Reference their sector, state, or company type at least once per email — never generic_
+- _Never repeat an angle already used in a previous FU to this lead_
+- _No dashes of any kind as punctuation. No colons in email body copy._
+- _Short paragraphs. One idea per paragraph._
+- _Always end with {SENDER_EMAIL_SIGNATURE} then a blank line then the P.S._
 
 **Sequence:** FU1 (+2 days) → FU2 (+5 days) → FU3 (+7 days) → FU4 (+7 days) → FU5 (+14 days)
 
 ---
 
 **FU1 (+2 days from initial reply)**
-_Purpose: Address their specific objection or re-engage if no clear objection was stated. Reframe with one proof point. Include 2 slots + Calendly. 3–4 sentences._
 
-Subject: Re: {COMPANY}
+_Angle: Address their specific objection or reply directly. Reframe it using the objection reframes table. Reference their company type or sector when reframing. Introduce partial sale optionality if not already raised. 2 slots + Calendly._
 
-{FIRST_NAME},
+Subject: Re: {original subject}
 
-Appreciate you getting back to me. Most business owners we speak to in {STATE} aren't actively considering a sale when we first reach out. That is actually when the most useful conversations happen, before any decisions need to be made. To give you a clear picture of what structures exist for a business like {COMPANY}, a 30-minute call is the fastest path forward. Are either of these times good this week: [SLOT 1] or [SLOT 2]? Or grab a time directly: https://calendly.com/swrobel-wrobelcap/30min
+Hi {FIRST_NAME},
+
+Wanted to follow up on your note from the other day. [Directly address what they said — use the objection reframes table. Reference their sector or company type in the reframe.]
+
+[If they did not raise a specific objection: acknowledge that most owners in their sector were not actively considering a sale when first contacted. Note that a full exit is not the only option — partial sales and rollovers are the majority of what we do.]
+
+Are either of these times good for a quick call: {SLOT_1} or {SLOT_2}? Or grab a time here: https://calendly.com/swrobel-wrobelcap/30min
 
 {SENDER_EMAIL_SIGNATURE}
+
+P.S. If the timing is not right, just let me know and I will step back.
 
 ---
 
 **FU2 (+5 days from FU1)**
-_Purpose: New angle. Plant the seed that a conversation is low-commitment. No slots, Calendly link only. 2–3 sentences._
 
-Subject: Re: {COMPANY}
+_Angle: Low-commitment reframe. Reference what is specifically relevant about their company or sector right now — buyer activity, consolidation, or market conditions. Keep it short. Do not repeat the partial sale angle if used in FU1. Calendly link only._
 
-{FIRST_NAME},
+Subject: Re: {original subject}
 
-Most owners we work with weren't actively looking when we first spoke. A 30-minute call doesn't commit you to anything — it just gives you a current, accurate picture of what the market would say about {COMPANY} and what deal structures exist for a business at your stage. If the timing ever makes sense: https://calendly.com/swrobel-wrobelcap/30min
+Hi {FIRST_NAME},
+
+Following up in case of bad timing.
+
+[One sentence specific to their sector or situation — e.g. buyer activity in their space, a relevant market dynamic, or what owners at their company stage typically find valuable about this conversation.]
+
+A quick call does not commit you to anything. It just gives you a clear picture of what the market would say about {COMPANY} right now.
+
+If it makes sense: https://calendly.com/swrobel-wrobelcap/30min
 
 {SENDER_EMAIL_SIGNATURE}
+
+P.S. If now is not the right time, just let me know.
 
 ---
 
 **FU3 (+7 days from FU2)**
-_Purpose: Value add. Reference a real outcome — deal closed, flexible structure, owner who wasn't looking. Include 2 slots + Calendly. 3–4 sentences._
 
-Subject: Re: {COMPANY}
+_Angle: Case study. Pick the most relevant entry from the case studies table based on the lead's industry. If no sector match exists, use the solar installation story as the fallback. Frame the case study around their specific situation — same owner type, same hesitation, same outcome. 2 slots + Calendly._
 
-{FIRST_NAME},
+Subject: Re: {original subject}
 
-One thing worth knowing is that the majority of transactions we have facilitated in the last 12 months have been partial sales or rollover structures, not full exits. An owner in the solar installation space we are currently working with had no intention of selling when we first reached out. The conversation shifted once they understood they could take significant liquidity now while staying involved for the next several years. If that kind of structure is worth understanding for {COMPANY}, are either of these times good: [SLOT 1] or [SLOT 2]? Or book directly: https://calendly.com/swrobel-wrobelcap/30min
+Hi {FIRST_NAME},
+
+One thing worth knowing is that most transactions we have facilitated recently have been partial sales or rollover structures rather than full exits.
+
+[Insert the most relevant case study for this lead's industry. Match the owner type and hesitation to what this lead has expressed. Do not name the company. Frame the outcome in terms of what changed their mind, not just the financial result.]
+
+{COMPANY} is still on our shortlist. Are either of these times good: {SLOT_1} or {SLOT_2}? Or book directly: https://calendly.com/swrobel-wrobelcap/30min
 
 {SENDER_EMAIL_SIGNATURE}
+
+P.S. If this is not relevant, just let me know.
 
 ---
 
 **FU4 (+7 days from FU3)**
-_Purpose: Reframe with market timing and active mandate angle. Mild urgency, not pressure. Calendly link only. 2–3 sentences._
 
-Subject: Re: {COMPANY}
+_Angle: Active mandate urgency with a sector-specific hook. Reference buyer appetite or deal activity specific to their industry or state. Mild urgency — the mandate is live and active, not expiring. Calendly link only._
 
-{FIRST_NAME},
+Subject: Re: {original subject}
 
-Wrobel's buyers are operating on an 18-month acquisition timeline with committed capital and we are currently in active diligence on 8 businesses across the sector. The mandate is live, not exploratory. Owners who engage early in a capital deployment window tend to see more flexibility on structure and terms. If a quick call makes sense: https://calendly.com/swrobel-wrobelcap/30min
+Hi {FIRST_NAME},
+
+[One sentence referencing active buyer interest or deal activity specific to their sector or geography — e.g. "Buyer appetite in [sector] is particularly strong right now" or "We are seeing more activity from our buyers in [STATE] than anywhere else in the current pipeline."]
+
+The buyer we are working with is still actively looking and {COMPANY} remains on our shortlist. They are operating on an 18-month acquisition timeline with capital committed and ready to move.
+
+If a quick 15-minute call makes sense before we close out the process: https://calendly.com/swrobel-wrobelcap/30min
 
 {SENDER_EMAIL_SIGNATURE}
+
+P.S. If now is not the right time, just let me know and I will step back.
 
 ---
 
 **FU5 (+14 days from FU4)**
-_Purpose: Break-up. Soft, professional. Leave door open. 2 sentences max._
 
-Subject: Re: {COMPANY}
+_Angle: Soft break-up. Reference their company or sector one final time to show this was never a generic sequence. Leave the door genuinely open. No pressure. No hint that this is the last email._
 
-{FIRST_NAME},
+Subject: Re: {original subject}
 
-I will leave this with you. If the timing ever shifts or you would like to revisit, feel free to reach back out or book a time directly: https://calendly.com/swrobel-wrobelcap/30min
+Hi {FIRST_NAME},
+
+I will leave this with you. If the timing ever shifts for {COMPANY}, feel free to reach back out or book a time directly: https://calendly.com/swrobel-wrobelcap/30min
 
 {SENDER_EMAIL_SIGNATURE}
 
@@ -547,5 +589,5 @@ Soft and professional. Leave the door genuinely open without any hint that it's 
 - Billing was paused for 3 weeks as of 29 April 2026 meeting; Lukas to resume and send invoice.
 - Stellar Solar is the biggest live opportunity (~$50M EBITDA) — treat as priority deal. Owners in 60s, ready to retire, motivated CFO. Watch for updates on financial statements.
 - Saku: engagement letter already sent — pipeline is real and moving.
-- Geography is currently listed as [fill in] — confirm with Stephen whether the sell-side campaign is US-wide or restricted to specific states.
-- Revenue and EBITDA ICP thresholds not confirmed — [fill in] once clarified with Stephen.
+- Geography: United States nationwide.
+- ICP thresholds: Revenue $25M to $250M, EBITDA $5M to $25M.

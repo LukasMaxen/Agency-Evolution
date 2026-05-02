@@ -5,6 +5,7 @@ import path from "path";
 interface AutoReplyResult {
   action: "auto_send" | "manual" | "do_nothing";
   intent: string;
+  fu_sequence_type: "full" | "abbreviated" | "none";
   reply_body?: string;
   manual_reason?: string;
   flag_unsubscribe: boolean;
@@ -243,6 +244,7 @@ OUTPUT FORMAT:
 {
   "action": "auto_send" | "manual" | "do_nothing",
   "intent": "interested_urgent" | "interested" | "needs_info" | "neutral" | "not_interested" | "unsubscribe",
+  "fu_sequence_type": "full" | "abbreviated" | "none",
   "reply_body": "full email body — include greeting (Hi Name,) on its own line, then a blank line, then body paragraphs each separated by blank lines, then a blank line, then {SENDER_EMAIL_SIGNATURE} on its own line. Never write Best or any name before the signature variable. Plain text. No subject line. Omit this field if action is not auto_send.",
   "manual_reason": "one short sentence on what needs human attention. Only include if action is manual.",
   "flag_unsubscribe": true | false,
@@ -253,6 +255,11 @@ WHEN TO USE EACH ACTION:
 - "auto_send": use for ALL replies that can be handled without a human. This includes: general interest (send Calendly), teaser requests (send teaser link + Calendly), reschedule requests (send Calendly), soft declines (acknowledge cleanly in 1-2 lines), unsubscribes (confirm removal, 2 lines max). When in doubt, draft and auto-send.
 - "manual": use ONLY when the lead has given a specific day/time window for a meeting that requires manually booking a calendar event, OR when they request a phone call to a specific number immediately. Do not use for general interest, objections, or ambiguity.
 - "do_nothing": use for out-of-office auto-replies, delivery failure notices, or replies that are already fully handled with nothing new to address.
+
+FOLLOW-UP SEQUENCE ASSIGNMENT — fu_sequence_type:
+- "full" (5 FU steps): Use when the lead showed any positive or neutral signal and might still convert. Covers: interested_urgent, interested, needs_info, neutral.
+- "abbreviated" (2 FU steps — reframe then break-up): Use when the lead gave a soft no with a specific reason: timing objection ("not right now", "too busy", "happy as is", "not the right time"). They didn't slam the door, just didn't open it.
+- "none": Use when the lead is fully disqualified (hard no: "sold last year", "we never do M&A", "family will keep it forever"), unsubscribed, already booked a call (flag_meeting_booked=true), or action is do_nothing. Do not start a sequence for these leads.
 
 TONE RULES (non-negotiable):
 - No em dashes (not — and not --)
@@ -322,10 +329,13 @@ ${reply.message}`;
         `UPDATE replies SET status = 'replied', interested = $1, ai_analysis = $2, ai_analyzed_at = NOW() WHERE id = $3`,
         [
           ["interested", "interested_urgent", "needs_info"].includes(result.intent) ? true : null,
-          JSON.stringify({ intent: result.intent, auto_replied: true }),
+          JSON.stringify({ intent: result.intent, auto_replied: true, fu_sequence_type: result.fu_sequence_type }),
           replyId,
         ]
       );
+
+      await createFollowUpRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
+
       console.log(`[auto-reply] Sent reply for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
     } else {
       await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
@@ -354,8 +364,34 @@ ${reply.message}`;
       }),
     });
 
+    await createFollowUpRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
+
   } else {
     await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
     console.log(`[auto-reply] No action needed for ${replyId}`);
   }
+}
+
+async function createFollowUpRecord(
+  replyId: string,
+  workspaceSlug: string,
+  reply: Record<string, any>,
+  fuSequenceType: "full" | "abbreviated" | "none",
+  flagMeetingBooked: boolean,
+  flagUnsubscribe: boolean
+): Promise<void> {
+  if (fuSequenceType === "none" || flagMeetingBooked || flagUnsubscribe) return;
+
+  // full = 5 steps; abbreviated = 2 steps (FU1 reframe + FU5 break-up)
+  const totalEmails = fuSequenceType === "abbreviated" ? 2 : 5;
+  const fuId = `fu-${replyId}-${Date.now()}`;
+
+  await pool.query(
+    `INSERT INTO follow_ups (id, reply_id, workspace_slug, lead_name, lead_email, first_replied_at, fu_step, total_emails, meeting_booked, next_fu_due)
+     SELECT $1, $2, $3, $4, $5, NOW(), 0, $6, FALSE, NOW() + INTERVAL '2 days'
+     WHERE NOT EXISTS (SELECT 1 FROM follow_ups WHERE reply_id = $2)`,
+    [fuId, replyId, workspaceSlug, reply.lead_name, reply.lead_email, totalEmails]
+  );
+
+  console.log(`[auto-reply] Created ${fuSequenceType} FU record for ${replyId} (${reply.lead_name})`);
 }
