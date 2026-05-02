@@ -1,373 +1,160 @@
-# Maxen Partners — Automation System
+# Maxen Partners — Technical Roadmap
 
-
-## The Three Pillars
-
-Everything we build serves one of these three:
-
-    DELIVERABILITY   →   message lands in inbox, sender is clean and healthy
-    TARGETING        →   right person: industry, title, size, geography
-    OFFER            →   right message: hook, value prop, CTA, product-market fit
-
+The full department structure, skills, and phase plan live in SYSTEM-OVERVIEW.md.
+The Phase 1 team action plan lives in PHASE-1.md.
+This file is the technical reference: API routes, DB tables, cron jobs, env vars, and the learning architecture.
 
 ---
 
-
 ## How the System Learns
 
-This is not a static automation system. Every skill either reads from what was learned before,
-writes back what it just learned, or both. The context files are the brain — they compound
-over time so every future decision is made with better information than the last.
+Every skill either reads from what was learned before, writes back what it just learned, or both.
+Context files and client files are the brain — they compound over time.
 
     RULE: Every skill that produces meaningful output must write findings back
           into the relevant context file or client file before it completes.
 
+    Campaign outcomes  →  ICP definitions updated in client file (SKILL_ICPValidation)
+                          Winning hooks locked into CONTEXT_OfferLibrary (SKILL_OfferOptimization)
 
-    FEEDBACK LOOPS
-    ──────────────
+    Reply data         →  Human corrections written as new rules to client file (SKILL_ReplyTraining)
+                          Nurture dates written to crm_contacts (SKILL_NurtureCapture)
 
-    Campaign outcomes  →  ICP + offer files
-        After every 500 sends, ICPValidation finds which segments converted best
-        and updates the ICP definition in the client file.
-        OfferOptimization finds which hooks landed and logs them in CONTEXT_OfferLibrary.
-        Next script written by Claude pulls from those updated files automatically.
+    Meetings           →  Summaries, feedback, action items written to client file (Fathom sync)
 
-    Reply data  →  reply guidelines
-        When a human overrides an auto-reply or edits a draft, SKILL_ReplyTraining
-        captures what changed and adds a new rule to the client file's reply guidelines.
-        Next reply of the same type — Claude already knows the correction.
-
-    Meetings  →  client context
-        Every Fathom sync writes meeting summaries, client feedback, and action items
-        back into the client file. Next biweekly prep or campaign improvement runs
-        with the full conversation history, not just the original brief.
-
-    Monitor flags  →  diagnosed root causes
-        CampaignMonitor doesn't just flag a failing campaign — it runs the diagnostic
-        logic tree, writes the diagnosis (deliverability / targeting / offer / PMF)
-        into the client file, and queues the specific fix for CampaignImprove to action.
-
-
-    WHAT GETS SMARTER OVER TIME
-    ───────────────────────────
-
-        CONTEXT_OfferLibrary     grows with every winning hook and failed angle
-        Client files             accumulate campaign performance, meeting notes, reply patterns
-        ICP definitions          sharpen every 500 sends as segment data comes in
-        Reply guidelines         update every time a human correction is captured
-        CONTEXT_Replies          evolves with new patterns observed across all workspaces
-
-
-    TIMESCALES
-    ──────────
-
-        Immediate    auto-reply captures intent, nurture date, unsubscribe, meeting booked
-        Weekly       campaign monitor writes diagnosis to client file, briefing flags drift
-        Per 500      ICP validation and offer optimization update targeting and script context
-        Per meeting  Fathom sync writes summary, feedback, and action items to client file
-
+    Monitor flags      →  Diagnosis written to client file, fix queued (SKILL_CampaignMonitor)
 
 ---
 
+## API Routes
 
-## Full System Structure
+### Built
 
-    ✅ = exists        ○ = needs to be built        ⊘ = blocked
+| Route | Method | What it does |
+|---|---|---|
+| `/api/auto-reply` | POST | Auto-reply processor — classifies intent, sends reply or escalates |
+| `/api/analyze` | POST | Claude Haiku reply analysis — cached in replies.ai_analysis |
+| `/api/fathom/sync` | POST | Fathom meetings → client files + internal log |
+| `/api/webhook/[workspace]` | POST | EmailBison webhook receiver per workspace slug |
+| `/api/webhook/calendly` | POST | Calendly booking webhook |
+| `/api/replies` | GET/PATCH | Fetch and update replies |
+| `/api/send-reply` | POST | Proxy reply to EmailBison |
+| `/api/sent-replies` | GET | Fetch sent reply history |
+| `/api/templates` | GET | Fetch reply templates from EmailBison |
+| `/api/dashboard` | GET | Aggregated dashboard data |
+| `/api/calls` | GET/POST/PATCH | Call booking and status updates |
+| `/api/calendly/slots` | GET | Fetch available Calendly slots |
+| `/api/calendly/book` | POST | Create Calendly scheduling link |
+| `/api/meetings` | GET | Meetings list |
+| `/api/emailbison/campaigns` | GET | List campaigns for a workspace |
+| `/api/emailbison/campaigns/[id]/sequence-steps` | GET/PUT | Read and push sequence steps |
+| `/api/variant-refresh` | GET | List pending variant refreshes |
+| `/api/variant-refresh/generate` | POST | Generate refresh copy for a variant |
+| `/api/variant-refresh/approve` | POST | Approve and push a refreshed variant |
+| `/api/variant-refresh/reject` | POST | Reject a refreshed variant |
+| `/api/account-monitor` | GET | Account health monitor |
+| `/api/lead-monitoring` | GET | Lead capacity check per campaign |
+| `/api/lead-progress` | GET | Lead progress tracking |
+| `/api/sync-lead-progress` | POST | Sync lead progress data |
+| `/api/campaign-lifecycle` | GET | Campaign lifecycle status |
 
+### To Build
 
-    MAXEN PARTNERS AUTOMATION SYSTEM
-    │
-    ├── DEPT 1  COLD EMAIL CAMPAIGNS                          Kasper
-    │   │
-    │   ├── Context
-    │   │   ├── ✅  CONTEXT_Campaign          global campaign rules
-    │   │   └── ○   CONTEXT_OfferLibrary      proven hooks, ranked angles, what doesn't work, by industry
-    │   │
-    │   └── Skills
-    │       ├── ✅  SKILL_WriteScript          writes 3-step cold email sequences
-    │       ├── ✅  SKILL_CampaignQA           pre-launch checklist
-    │       ├── ○   SKILL_CampaignMonitor      tracks KPIs per campaign, flags winners + failures, runs diagnostic logic tree
-    │       ├── ○   SKILL_CampaignImprove      triggered by CampaignMonitor — diagnoses root cause, proposes line-level changes
-    │       ├── ○   SKILL_NewCampaign          end-to-end: brief → script → QA → push live
-    │       ├── ○   SKILL_OfferDevelopment     new offer angle: hooks, proof points, CTAs
-    │       ├── ○   SKILL_OfferOptimization    after 500 sends: variant analysis, recommendations
-    │       ├── ○   SKILL_DeliverabilityAudit  weekly: bounce rate, blacklist, spam rate per sender
-    │       └── ○   SKILL_VariantRefreshAuto   detects threshold hits, generates refresh, posts for approval
-    │
-    │
-    ├── DEPT 2  LEAD SOURCING                                 Sunny + Kasper
-    │   │
-    │   ├── Context
-    │   │   └── ○   CONTEXT_LeadSourcing       ICP process, Apollo search logic, title batches by industry
-    │   │
-    │   └── Skills
-    │       ├── ○   SKILL_ICPResearch          defines ICP: sectors, titles, size, geo, Boolean strings
-    │       ├── ○   SKILL_ApolloSearch         executes Apollo query, pagination, deduplication
-    │       ├── ○   SKILL_LeadEnrichment       enriches contacts: revenue, news, LinkedIn, personalisation
-    │       ├── ○   SKILL_LeadScoring          scores each lead 1–10 vs ICP, filters disqualifiers
-    │       ├── ○   SKILL_EmailVerification    validates list before upload, removes invalid/risky
-    │       ├── ○   SKILL_PersonalisationGen   generates opening line per lead using context/title/city
-    │       ├── ○   SKILL_TitleResearch        best titles per ICP, tests variations, ranks by reply rate
-    │       └── ○   SKILL_ICPValidation        after 500 sends: which segments convert → update ICP
-    │
-    │
-    ├── DEPT 3  REPLY MANAGEMENT                              Lukas
-    │   │
-    │   ├── Context
-    │   │   └── ✅  CONTEXT_Replies            global reply rules
-    │   │
-    │   └── Skills
-    │       ├── ✅  SKILL_Reply-Management     reply drafting
-    │       ├── ✅  SKILL_LeadMonitoring       campaign capacity check
-    │       ├── ○   SKILL_FUSequenceAuto       cron-driven: checks follow-ups table, sends due FU step
-    │       ├── ○   SKILL_NurtureCapture       detects "reach back in X months", writes to CRM
-    │       ├── ○   SKILL_ReplyTraining        captures human corrections to auto-replies, writes new rules to client file
-    │       └── ○   SKILL_TeaserDelivery       detects "send teaser/NDA" intent, auto-sends document
-    │
-    │
-    ├── DEPT 4  CRM & PIPELINE                                Lukas
-    │   │
-    │   ├── Context
-    │   │   └── ○   CONTEXT_CRM               seller nurture, deal stages, buyer mandates structure
-    │   │
-    │   └── Skills
-    │       ├── ○   SKILL_NurtureReEngage      cron: contacts due for re-engagement → draft and send
-    │       ├── ○   SKILL_DealPipeline         create/update deal stages: interest → NDA → CIM → closed
-    │       ├── ○   SKILL_BuyerDatabase        add/update buyer profiles: mandates, sectors, deal size
-    │       └── ○   SKILL_BuyerMatching        new sell-side mandate → surfaces top matching buyers
-    │
-    │
-    ├── DEPT 5  CLIENT MANAGEMENT                             Lukas
-    │   │
-    │   └── Skills
-    │       ├── ○   SKILL_BiweeklyPrep         before each call: stats, reply themes, open action items
-    │       ├── ○   SKILL_ClientReport         weekly: leads contacted, reply rate, meetings, pipeline
-    │       ├── ○   SKILL_ClientHealthScore    aggregate score: performance + activity + pipeline + renewal
-    │       ├── ○   SKILL_MeetingActionItems   after Fathom sync: extracts action items to client file
-    │       └── ○   SKILL_OnboardingMilestones tracks contract signed → first send live
-    │
-    │
-    ├── DEPT 6  OPERATIONS & INTELLIGENCE                     Lukas
-    │   │
-    │   └── Skills
-    │       ├── ○   SKILL_DailyBriefing        8am Slack: urgent replies, below-KPI campaigns, FUs due
-    │       ├── ○   SKILL_WeeklyReview         Friday wrap: performance vs prior week, what's next
-    │       ├── ⊘   SKILL_SlackHuddleSync      blocked — Kasper needs to add files:read scope to Slack bot
-    │       ├── ✅  SKILL_FileRouter            content routing
-    │       ├── ✅  SKILL_IntakeClient          new client interview
-    │       └── ✅  SKILL_OnboardClient         full onboarding SOP
-    │
-    │
-    ├── DEPT 7  MULTI-CHANNEL                                 Kasper + Sunny  (future)
-    │   │
-    │   ├── Context
-    │   │   ├── ○   CONTEXT_LinkedIn           acceptance rate benchmarks, connection norms
-    │   │   └── ○   CONTEXT_ColdCalling        call script structure, objection norms, voicemail rules
-    │   │
-    │   └── Skills
-    │       ├── ○   SKILL_LinkedInScript       connection request + 3-step follow-up sequences
-    │       ├── ○   SKILL_LinkedInICP          Sales Navigator targeting: titles, seniority, size
-    │       ├── ○   SKILL_ColdCallScript       call script + objection handling guide per campaign
-    │       └── ○   SKILL_AdCopy               Meta/LinkedIn ad copy + lead form questions
-    │
-    │
-    ├── DEPT 8  FINANCE & REVENUE                             Lukas
-    │   │
-    │   └── Skills
-    │       ├── ○   SKILL_RevenueReport        monthly: MRR per client, total revenue, overdue invoices
-    │       └── ○   SKILL_PipelineValue        active M&A deals × commission rate = projected revenue
-    │
-    │
-    └── DEPT 9  SALES / AGENCY GROWTH                        Lukas
-        │
-        └── Skills
-            ├── ○   SKILL_SalesCallPrep        research prospect firm: M&A activity, team, pain points
-            └── ○   SKILL_ProposalDraft        after discovery: scope, output, pricing, case study selection
-
+| Route | Method | What it does | Phase |
+|---|---|---|---|
+| `/api/campaigns/health` | GET | All campaigns: reply rate, interested rate, bounce rate, diagnostic | 1 |
+| `/api/briefing/daily` | POST | Generate + post morning Slack briefing | 1 |
+| `/api/crm/contacts` | POST | Create/update a CRM contact | 1 |
+| `/api/follow-ups/process` | POST | Send all FU emails due today | 1 |
+| `/api/follow-ups/due` | GET | List all leads with FUs due | 1 |
+| `/api/apollo/search` | POST | Execute Apollo People Search query | 1 |
+| `/api/apollo/enrich` | POST | Enrich contact list with company data | 2 |
+| `/api/leads/score` | POST | Score and filter a lead list against ICP | 2 |
+| `/api/leads/verify` | POST | Validate email addresses | 2 |
+| `/api/campaigns/improve` | POST | Diagnose + propose changes for one campaign | 3 |
+| `/api/campaigns/create` | POST | Full campaign creation: brief → script → EmailBison | 3 |
+| `/api/campaigns/segment-performance` | GET | Reply/interested rate by title/industry/geography | 3 |
+| `/api/deliverability/check` | GET | Sender health check across all domains | 3 |
+| `/api/crm/pipeline` | GET | Deal pipeline view across all clients | 4 |
+| `/api/crm/deals` | POST | Create/update a deal record | 4 |
+| `/api/crm/buyers` | POST | Add/update buyer profile | 4 |
+| `/api/crm/nurture/process` | POST | Process all nurture contacts due for re-engagement | 4 |
+| `/api/reports/client/[slug]` | GET | Full performance data for one client | 5 |
+| `/api/reports/weekly` | GET | Company-wide weekly summary | 5 |
+| `/api/slack/huddle-sync` | POST | Slack huddle notes → client files (blocked on files:read scope) | — |
 
 ---
 
+## Database Tables
 
-## Build Phases
+### Built
 
-    Phase 1  Weeks 1–2    Close Revenue Leaks
-    Phase 2  Weeks 3–5    Lead Sourcing Engine
-    Phase 3  Weeks 6–8    Campaign Intelligence
-    Phase 4  Weeks 9–12   CRM & Pipeline
-    Phase 5  Weeks 13–16  Client Management & Reporting
-    Phase 6  Weeks 17–20  Multi-Channel
+| Table | Key columns |
+|---|---|
+| `workspaces` | id, slug, email_bison_api_key, email_bison_instance_url |
+| `replies` | id, workspace_slug, email_bison_reply_id, lead_email, lead_name, lead_company, lead_title, campaign, subject, message, received_at, status, interested, meeting_booked, ai_analysis (JSONB) |
+| `follow_ups` | id, reply_id, workspace_slug, lead_name, lead_email, fu_step, total_emails, last_fu_sent_at, next_fu_due, meeting_booked |
+| `calls` | id, reply_id, workspace_slug, lead_email, scheduled_at, status, outcome, source (manual/calendly) |
+| `emails_sent` | id, workspace_slug, lead_email, campaign_name, sender_email, sequence_step, sent_at |
+| `email_opens` | id, workspace_slug, lead_email, campaign_name, opened_at |
+| `email_bounces` | id, workspace_slug, lead_email, campaign_name, bounce_type, bounced_at |
+| `sent_emails` | id, reply_id, workspace_slug, lead_email, email_type, subject, body, sent_at |
+| `fathom_synced_meetings` | recording_id, meeting_title, meeting_type, client_slug, meeting_date, synced_at |
 
+### To Build
 
----
-
-
-# Phase 1 — Team Action Plan
-### Weeks 1–2
-
-
-Goal: Stop leads falling through the cracks. Automate follow-ups. Seed the CRM.
-Give the team a daily briefing. Document what's working before it's forgotten.
-
-
----
-
-
-## Lukas
-
-
-    1.  Build /api/campaigns/health + SKILL_CampaignMonitor
-        Pull reply rate, interested rate, open rate, and bounce rate for every
-        active campaign across all workspaces from the DB.
-        Run each campaign through the diagnostic logic tree below.
-        Output a prioritised action list: which campaigns need attention and why.
-        Post a summary to Slack every Monday morning.
-
-        DIAGNOSTIC LOGIC TREE
-        ─────────────────────
-        Campaign flagged as underperforming
-        │
-        ├── Open rate low
-        │   └── Deliverability issue
-        │       ├── Bounce rate high   →  sender or domain problem, pause and investigate
-        │       ├── Spam complaints    →  content or sending frequency issue
-        │       └── Subject line       →  test a new subject, reduce aggressive language
-        │
-        ├── Open rate OK, reply rate low
-        │   └── Targeting or Offer issue
-        │       ├── Check segment performance — which titles and industries are replying?
-        │       │   ├── One segment performing   →  narrow ICP to that segment only
-        │       │   └── No segments performing   →  the offer is not landing, run CampaignImprove
-        │       └── Review reply themes — what are people saying when they ignore or decline?
-        │
-        ├── Reply rate OK, interested rate low
-        │   └── Product-market fit issue
-        │       Reaching the right person but the offer does not fit their situation.
-        │       Review interested reply themes and consider repositioning the offer.
-        │
-        └── All rates OK, meetings not booking
-            └── Reply management or Calendly friction
-                Check FU sequence is running, check Calendly link is correct, check reply speed.
-
-    2.  Nurture capture
-        Add "nurture" intent to the auto-reply processor.
-        When a lead says "reach back in 6 months" or similar, instead of doing
-        nothing, write them to the crm_contacts table with a future_contact_date.
-        File: app/api/auto-reply/processor.ts
-
-    2.  Create crm_contacts table
-        Run SQL migration to create the table:
-        id, workspace_slug, lead_email, lead_name, lead_company,
-        status, source_reply_id, future_contact_date, notes, created_at
-
-    3.  Build /api/briefing/daily
-        Pulls together: new replies waiting, FUs due today, any campaigns
-        below 5% reply rate, meetings on the Fathom calendar.
-        Posts as a formatted Slack message to #team-chat every morning.
-
-    4.  Write SKILL_DailyBriefing.md
-        Document the prompt and structure for the morning briefing.
-
-    5.  Write CONTEXT_CRM.md
-        Define what a seller contact is, what a deal is, the stage names,
-        and how the buyer database will work. This is the reference doc
-        for everything we build in Phase 4.
-
+| Table | Key columns | Phase |
+|---|---|---|
+| `crm_contacts` | id, workspace_slug, lead_email, lead_name, lead_company, status, source_reply_id, future_contact_date, notes, created_at | 1 |
+| `crm_deals` | id, workspace_slug, company_name, sector, revenue, ebitda, stage, assigned_client, created_at | 4 |
+| `crm_buyers` | id, firm_name, contact_email, mandate_sectors, deal_size_min, deal_size_max, geography, status | 4 |
+| `client_billing` | id, workspace_slug, monthly_retainer, billing_day, last_paid_date, notes | 8 |
 
 ---
 
+## Cron Jobs
 
-## Kasper
-
-
-    1.  Add files:read scope to the Slack bot
-        Go to api.slack.com/apps
-        Select Claude Bot → OAuth & Permissions → Bot Token Scopes
-        Add files:read
-        Reinstall the app
-        Share the new bot token with Lukas
-        This unblocks the Slack huddle sync feature entirely.
-
-    2.  Write CONTEXT_OfferLibrary.md
-        This is the most important document we don't have yet.
-        For every active client, write down:
-          - 3 to 5 hooks or angles that have generated real replies
-          - 2 to 3 things that didn't work and why
-          - The best subject lines you've used
-          - The CTAs that convert
-          - Any proven P.S. lines
-        This becomes the reference Claude pulls from when writing
-        or improving any script going forward. Your experience
-        needs to be in the system, not just in your head.
-
-    3.  Define KPI thresholds for campaign monitor
-        For each metric below, confirm what counts as a pass, a warning, and a fail.
-        These thresholds go into SKILL_CampaignMonitor so it knows what to flag.
-        Suggested starting point — adjust based on your experience:
-
-          Open rate       fail < 30%    warning 30–45%    pass > 45%
-          Reply rate      fail < 3%     warning 3–6%      pass > 6%
-          Interested rate fail < 1%     warning 1–3%      pass > 3%
-          Bounce rate     fail > 5%     warning 3–5%      pass < 3%
-
-        Also flag: any campaign running 30+ days with zero interested replies.
-
+| Job | Schedule | Route | Phase |
+|---|---|---|---|
+| Follow-up processing | Every 2 hours | `/api/follow-ups/process` | 1 |
+| Daily briefing | 8:00 AM weekdays | `/api/briefing/daily` | 1 |
+| Fathom sync | Midnight daily | `/api/fathom/sync` | built |
+| Campaign health check | Monday 7:00 AM | `/api/campaigns/health` | 1 |
+| Deliverability audit | Monday 7:00 AM | `/api/deliverability/check` | 3 |
+| Nurture re-engagement | 9:00 AM daily | `/api/crm/nurture/process` | 4 |
 
 ---
 
+## Environment Variables
 
-## Sunny
-
-
-    1.  Add FATHOM_API_KEY to Coolify
-        The Fathom meeting sync is live locally but not in production.
-        Add the env var so it runs on the cron job.
-
-    2.  Confirm SLACK_BOT_TOKEN is in Coolify
-        Slack notifications appear to be working in production already —
-        just confirm the token is set so we don't lose it.
-
-    3.  Get Apollo API key
-        Log into the Apollo account, generate an API key,
-        add it to Coolify and to .env.local as APOLLO_API_KEY.
-        This is the prerequisite for everything in Phase 2.
-
-    4.  Build /api/follow-ups/process
-        Query the follow_ups table for leads where:
-          next_fu_due is today or earlier
-          meeting_booked is false
-        For each lead, read the client file, use Claude to draft
-        the correct FU step, send it via EmailBison, mark it sent,
-        and update next_fu_due for the next step.
-        This is the biggest revenue leak we have right now.
-
-    5.  Build /api/apollo/search
-        Accepts a query object: titles, industries, locations, company size.
-        Calls the Apollo People Search API.
-        Returns a paginated contact list.
-        Auth via APOLLO_API_KEY.
-
-    6.  Set up cron jobs in Coolify
-        Follow-up processing    every 2 hours
-        Daily briefing          8:00 AM weekdays
-        Campaign health check   Monday 7:00 AM
-        Fathom sync             midnight daily
-
+| Variable | Purpose | Status |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Claude API for all AI features | ✅ set — needs Coolify |
+| `SLACK_BOT_TOKEN` | Slack notifications + future huddle sync | ✅ set — confirm in Coolify |
+| `FATHOM_API_KEY` | Fathom meeting sync | ✅ set — needs Coolify |
+| `DATABASE_URL` | PostgreSQL on Hetzner | ✅ set |
+| `APOLLO_API_KEY` | Lead sourcing + enrichment | ❌ missing — Sunny to add |
+| `ZEROBOUNCE_API_KEY` | Email verification | ❌ future |
 
 ---
 
+## Key Libraries
 
-## Ongoing — runs every week from Phase 1 onwards
+| File | What it does |
+|---|---|
+| `lib/db.ts` | pg Pool singleton — DATABASE_URL, ssl:false, max:10 |
+| `lib/fathom.ts` | Fathom API types + utilities (fetchMeetings, compressTranscript, matchClientSlug) |
+| `lib/ai-analysis.ts` | Client helper — calls /api/analyze, returns AIAnalysis |
+| `lib/calendly.ts` | Calendly API wrapper (getCalendlyUser, getEventTypes, getAvailableSlots) |
+| `lib/utils.ts` | timeAgo, getInitials, applyTemplate, buildEmailBisonUrl |
 
-    Deliverability audit    Every Monday
-                            Check all sending domains: bounce rate, blacklist status, spam rate
-                            Post results to Slack
-                            Flag any sender approaching the 3% bounce threshold
+---
 
-    ICP validation          Every 500 sends per campaign
-                            Compare interested rate by title, industry, company size
-                            Surface the best and worst performing segments
-                            Update the ICP definition in the client file
+## AI Models in Use
 
-    Offer optimization      Every 500 sends per variant
-                            Compare reply rate by hook and angle
-                            Flag losing variants, lock winning copy into offer library
+| Model | Used for |
+|---|---|
+| `claude-haiku-4-5-20251001` | Reply analysis, meeting summaries, high-volume tasks |
+| `claude-sonnet-4-6` | Auto-reply drafting, complex reasoning, skill execution |
+
+**Caching rule:** Always cache AI results in the DB. Check cache before every API call. Never re-analyze the same input twice.
