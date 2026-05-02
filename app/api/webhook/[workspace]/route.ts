@@ -77,19 +77,30 @@ export async function POST(
   ]
 );
 
-      await pool.query(
-        `INSERT INTO follow_ups (
-          id, reply_id, workspace_slug, lead_name, lead_email,
-          first_replied_at, fu_step, total_emails, next_fu_due, meeting_booked
-        ) VALUES ($1,$2,$3,$4,$5,$6,0,1,$7,false)
-        ON CONFLICT (id) DO NOTHING`,
-        [
-          `fu-${replyUuid}`, replyUuid, slug,
-          leadName, leadEmail, receivedAt,
-          new Date(receivedAt.getTime() + 7 * 24 * 60 * 60 * 1000),
-        ]
+      // If this lead is already in an active FU sequence, record the conversion
+      // and stop the sequence — they re-engaged, no more automated FUs needed.
+      const activeFu = await pool.query(
+        `SELECT id, fu_step FROM follow_ups
+         WHERE lead_email = $1 AND workspace_slug = $2
+           AND meeting_booked = FALSE AND next_fu_due IS NOT NULL
+         LIMIT 1`,
+        [leadEmail, slug]
       );
+      if (activeFu.rows.length > 0) {
+        const fu = activeFu.rows[0];
+        await pool.query(
+          `UPDATE follow_ups SET
+             converted_at_step = $1,
+             outcome = 're_engaged',
+             next_fu_due = NULL
+           WHERE id = $2`,
+          [fu.fu_step, fu.id]
+        );
+      }
 
+      // Follow_ups record for NEW leads is created by processAutoReply
+      // after intent is determined — sequence type (full/abbreviated/none)
+      // depends on what Claude reads in the reply.
       await processAutoReply(replyUuid, slug);
 
       return NextResponse.json({ ok: true, event: "LEAD_REPLIED", id: replyUuid });

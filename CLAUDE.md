@@ -40,7 +40,7 @@ For branching, PRs, code review, and team setup see `departments/operations/git-
 - **React 19**, **TypeScript 5**, **Tailwind CSS 4**
 - **PostgreSQL** via `pg` pool (no Prisma/ORM) — raw SQL queries throughout
 - **Lucide React** for icons
-- Deployed on **Vercel** (Hobby plan); DB hosted externally (Hetzner)
+- Deployed on **Coolify** (self-hosted); DB hosted externally (Hetzner)
 
 ---
 
@@ -187,4 +187,4 @@ npm run lint     # ESLint
 - **No Prisma** — migrations must be run manually as raw SQL against the PostgreSQL instance.
 - **`ReplyDashboard.tsx`** is the main orchestrator (~34KB). Edit carefully.
 - **`MasterInbox.tsx`** is the earlier version of the inbox. `ReplyDashboard` is the current one.
-- Vercel (Hobby) → Hetzner PostgreSQL: ensure `DATABASE_URL` is set correctly in Vercel project settings and that the Hetzner firewall allows Vercel's outbound IPs (or is open on 5432).
+- Coolify → Hetzner PostgreSQL: ensure `DATABASE_URL` is set correctly in Coolify project settings and that the Hetzner firewall allows outbound connections on port 5432.

@@ -9,7 +9,7 @@
 | Icons | Lucide React | |
 | Database | PostgreSQL (raw `pg` pool, no Prisma/ORM) | Parameterized queries only — `$1, $2, ...` |
 | AI | Anthropic API — Claude Haiku (`claude-haiku-4-5-20251001`) | Used in `/api/analyze` for reply analysis |
-| Deployment | Vercel (Hobby plan) | |
+| Deployment | Coolify (self-hosted) | Env vars set in Coolify project settings |
 | Database Host | Hetzner | `ssl: false` — direct connection, not Supabase |
 
 ## Environment Variables

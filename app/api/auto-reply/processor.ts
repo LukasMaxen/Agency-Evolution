@@ -307,12 +307,18 @@ ${reply.message}`;
 
   if (result.flag_unsubscribe) {
     await pool.query(`UPDATE replies SET interested = FALSE WHERE id = $1`, [replyId]);
-    await pool.query(`UPDATE follow_ups SET meeting_booked = FALSE, next_fu_due = NULL WHERE reply_id = $1`, [replyId]);
+    await pool.query(
+      `UPDATE follow_ups SET meeting_booked = FALSE, next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`,
+      [replyId]
+    );
   }
 
   if (result.flag_meeting_booked) {
     await pool.query(`UPDATE replies SET meeting_booked = TRUE WHERE id = $1`, [replyId]);
-    await pool.query(`UPDATE follow_ups SET meeting_booked = TRUE, next_fu_due = NULL WHERE reply_id = $1`, [replyId]);
+    await pool.query(
+      `UPDATE follow_ups SET meeting_booked = TRUE, next_fu_due = NULL, outcome = 'booked' WHERE reply_id = $1`,
+      [replyId]
+    );
   }
 
   if (result.action === "auto_send" && result.reply_body) {
@@ -387,10 +393,10 @@ async function createFollowUpRecord(
   const fuId = `fu-${replyId}-${Date.now()}`;
 
   await pool.query(
-    `INSERT INTO follow_ups (id, reply_id, workspace_slug, lead_name, lead_email, first_replied_at, fu_step, total_emails, meeting_booked, next_fu_due)
-     SELECT $1, $2, $3, $4, $5, NOW(), 0, $6, FALSE, NOW() + INTERVAL '2 days'
+    `INSERT INTO follow_ups (id, reply_id, workspace_slug, lead_name, lead_email, first_replied_at, fu_step, total_emails, fu_sequence_type, meeting_booked, next_fu_due)
+     SELECT $1, $2, $3, $4, $5, NOW(), 0, $6, $7, FALSE, NOW() + INTERVAL '2 days'
      WHERE NOT EXISTS (SELECT 1 FROM follow_ups WHERE reply_id = $2)`,
-    [fuId, replyId, workspaceSlug, reply.lead_name, reply.lead_email, totalEmails]
+    [fuId, replyId, workspaceSlug, reply.lead_name, reply.lead_email, totalEmails, fuSequenceType]
   );
 
   console.log(`[auto-reply] Created ${fuSequenceType} FU record for ${replyId} (${reply.lead_name})`);
