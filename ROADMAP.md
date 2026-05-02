@@ -13,6 +13,63 @@ Everything we build serves one of these three:
 ---
 
 
+## How the System Learns
+
+This is not a static automation system. Every skill either reads from what was learned before,
+writes back what it just learned, or both. The context files are the brain — they compound
+over time so every future decision is made with better information than the last.
+
+    RULE: Every skill that produces meaningful output must write findings back
+          into the relevant context file or client file before it completes.
+
+
+    FEEDBACK LOOPS
+    ──────────────
+
+    Campaign outcomes  →  ICP + offer files
+        After every 500 sends, ICPValidation finds which segments converted best
+        and updates the ICP definition in the client file.
+        OfferOptimization finds which hooks landed and logs them in CONTEXT_OfferLibrary.
+        Next script written by Claude pulls from those updated files automatically.
+
+    Reply data  →  reply guidelines
+        When a human overrides an auto-reply or edits a draft, SKILL_ReplyTraining
+        captures what changed and adds a new rule to the client file's reply guidelines.
+        Next reply of the same type — Claude already knows the correction.
+
+    Meetings  →  client context
+        Every Fathom sync writes meeting summaries, client feedback, and action items
+        back into the client file. Next biweekly prep or campaign improvement runs
+        with the full conversation history, not just the original brief.
+
+    Monitor flags  →  diagnosed root causes
+        CampaignMonitor doesn't just flag a failing campaign — it runs the diagnostic
+        logic tree, writes the diagnosis (deliverability / targeting / offer / PMF)
+        into the client file, and queues the specific fix for CampaignImprove to action.
+
+
+    WHAT GETS SMARTER OVER TIME
+    ───────────────────────────
+
+        CONTEXT_OfferLibrary     grows with every winning hook and failed angle
+        Client files             accumulate campaign performance, meeting notes, reply patterns
+        ICP definitions          sharpen every 500 sends as segment data comes in
+        Reply guidelines         update every time a human correction is captured
+        CONTEXT_Replies          evolves with new patterns observed across all workspaces
+
+
+    TIMESCALES
+    ──────────
+
+        Immediate    auto-reply captures intent, nurture date, unsubscribe, meeting booked
+        Weekly       campaign monitor writes diagnosis to client file, briefing flags drift
+        Per 500      ICP validation and offer optimization update targeting and script context
+        Per meeting  Fathom sync writes summary, feedback, and action items to client file
+
+
+---
+
+
 ## Full System Structure
 
     ✅ = exists        ○ = needs to be built        ⊘ = blocked
@@ -64,6 +121,7 @@ Everything we build serves one of these three:
     │       ├── ✅  SKILL_LeadMonitoring       campaign capacity check
     │       ├── ○   SKILL_FUSequenceAuto       cron-driven: checks follow-ups table, sends due FU step
     │       ├── ○   SKILL_NurtureCapture       detects "reach back in X months", writes to CRM
+    │       ├── ○   SKILL_ReplyTraining        captures human corrections to auto-replies, writes new rules to client file
     │       └── ○   SKILL_TeaserDelivery       detects "send teaser/NDA" intent, auto-sends document
     │
     │
