@@ -45,7 +45,7 @@ function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason }:
     },
     {
       type: "section",
-      text: { type: "mrkdwn", text: `*${slugToName(workspaceSlug)}*\n${leadLine}` },
+      text: { type: "mrkdwn", text: `*Client:* ${slugToName(workspaceSlug)}\n*Lead:* ${leadLine}` },
     },
     {
       type: "section",
