@@ -32,6 +32,7 @@ const fields = [
 
 const workspaceSlug = "statera-capital";
 const clientName = workspaceSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(" — ");
 
 const blocks = [
   {
@@ -39,16 +40,15 @@ const blocks = [
     text: { type: "plain_text", text: "📅 Manual booking needed [TEST]", emoji: true },
   },
   {
-    type: "context",
-    elements: [{ type: "mrkdwn", text: `*Client:* ${clientName}` }],
+    type: "section",
+    text: { type: "mrkdwn", text: `*${clientName}*\n${leadLine}` },
   },
   {
     type: "section",
-    fields: fields.map(f => ({ type: "mrkdwn", text: f })),
-  },
-  {
-    type: "section",
-    text: { type: "mrkdwn", text: `*View in EmailBison:*\n<${ebLink}|Open reply>` },
+    fields: [
+      { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign}` },
+      { type: "mrkdwn", text: `*Subject:*\n${reply.subject}` },
+    ],
   },
   {
     type: "section",
@@ -57,6 +57,10 @@ const blocks = [
   {
     type: "section",
     text: { type: "mrkdwn", text: `*Reason:*\nLead gave specific availability — needs manual booking` },
+  },
+  {
+    type: "section",
+    text: { type: "mrkdwn", text: `*View in EmailBison:* <${ebLink}|Open reply>` },
   },
 ];
 

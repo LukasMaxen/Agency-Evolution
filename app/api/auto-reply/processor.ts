@@ -36,12 +36,7 @@ function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason }:
     ? `${instanceUrl}/inbox/replies/${reply.email_bison_reply_id}`
     : null;
 
-  const fields = [
-    `*Lead:*\n${reply.lead_name ? `${reply.lead_name} ` : ""}${reply.lead_email ?? ""}`,
-    `*Email account:*\n${reply.sender_email ?? ""}`,
-    `*Campaign:*\n${reply.campaign ?? ""}`,
-    `*Subject:*\n${reply.subject ?? ""}`,
-  ];
+  const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(" — ");
 
   const blocks: object[] = [
     {
@@ -49,21 +44,17 @@ function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason }:
       text: { type: "plain_text", text: header, emoji: true },
     },
     {
-      type: "context",
-      elements: [{ type: "mrkdwn", text: `*Client:* ${slugToName(workspaceSlug)}` }],
+      type: "section",
+      text: { type: "mrkdwn", text: `*${slugToName(workspaceSlug)}*\n${leadLine}` },
     },
     {
       type: "section",
-      fields: fields.map(f => ({ type: "mrkdwn", text: f })),
+      fields: [
+        { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign ?? ""}` },
+        { type: "mrkdwn", text: `*Subject:*\n${reply.subject ?? ""}` },
+      ],
     },
   ];
-
-  if (ebLink) {
-    blocks.push({
-      type: "section",
-      text: { type: "mrkdwn", text: `*View in EmailBison:*\n<${ebLink}|Open reply>` },
-    });
-  }
 
   if (reply.message) {
     const preview = reply.message.slice(0, 300) + (reply.message.length > 300 ? "..." : "");
@@ -77,6 +68,13 @@ function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason }:
     blocks.push({
       type: "section",
       text: { type: "mrkdwn", text: `*Reason:*\n${reason}` },
+    });
+  }
+
+  if (ebLink) {
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: `*View in EmailBison:* <${ebLink}|Open reply>` },
     });
   }
 
