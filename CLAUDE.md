@@ -6,6 +6,13 @@ Centralized reply management dashboard and Business OS for **Maxen Partners**, a
 
 ---
 
+## Communication Rules (always)
+
+1. Never use em dashes (—) or en dashes (–) anywhere. Use commas, periods, parentheses, or line breaks instead. Applies to all chat responses, all code comments, all docs, all email copy.
+2. Always end every message with a clear next step. State exactly what the user should do next, or what will happen next.
+
+---
+
 ## Client Files
 
 Every client has a single file in `clients/[slug].md` — the source of truth for their offer, ICP, campaign strategy, reply guidelines, FU templates, Slack/email history, and campaign notes.
