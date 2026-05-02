@@ -45,6 +45,17 @@ function slugToName(slug: string): string {
   return slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }
 
+// Strip em/en dashes and double-hyphens from email copy.
+// Replaces them with a comma + space, so sentence flow stays natural.
+// Standalone trailing dashes get a single comma.
+function sanitizeDashes(text: string): string {
+  return text
+    .replace(/\s*—\s*/g, ", ")
+    .replace(/\s*–\s*/g, ", ")
+    .replace(/\s+--\s+/g, ", ")
+    .replace(/\s+-\s+/g, ", ");
+}
+
 async function postToSlack(blocks: object[], text: string): Promise<string | null> {
   const token = process.env.SLACK_BOT_TOKEN;
   if (!token) {
@@ -256,6 +267,10 @@ Draft FU step ${nextStep} now.`;
   if (!draft) {
     return { status: "failed", reason: "claude error" };
   }
+
+  // Strip any em/en dashes Claude leaked through despite the prompt.
+  draft.body = sanitizeDashes(draft.body);
+  draft.subject = sanitizeDashes(draft.subject);
 
   // Approval mode → stage in follow_up_drafts + post to Slack
   if (reply.fu_approval_mode) {
