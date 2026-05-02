@@ -6,6 +6,20 @@
 
 ---
 
+## Auto-Reply Action Logic
+
+Every inbound reply is classified into one of three actions by the auto-reply processor:
+
+| Action | When to use | What happens |
+|---|---|---|
+| `auto_send` | Any reply that can be handled without a human. Covers: general interest (send Calendly), teaser requests (send teaser + Calendly), reschedule requests (send Calendly), soft declines (1 to 2 line acknowledgment), unsubscribes (2-line confirmation). When in doubt, draft and auto-send. | First response is sent via EmailBison. Sequence type is set. FU clock starts. |
+| `manual` | ONLY when the lead has given a specific day or time window that requires manually booking a calendar event, OR they request a phone call to a specific number immediately. Do NOT use for general interest, objections, or ambiguity. | A Slack notification is posted to `#manual-replies`. The team handles the booking by hand. |
+| `do_nothing` | Out-of-office auto-replies, delivery failure notices, or replies that are already fully handled with nothing left to address. | Reply marked as read, no email sent, no sequence created. |
+
+The intent classification (`interested_urgent`, `interested`, `needs_info`, `neutral`, `not_interested`, `unsubscribe`) is independent of the action and drives the FU sequence type per the table in "Follow-Up Sequence Assignment" below.
+
+---
+
 ## The Process
 
 1. **Lead replies → interested** — send the info reply. For Larsen Digital: include the Calendly link. For all other clients: post to #manual-replies so the team can book manually. Never send a Calendly link to non-Larsen leads.
