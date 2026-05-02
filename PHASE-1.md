@@ -111,7 +111,15 @@ KASPER
     Also flag: any campaign running 30+ days with zero interested replies.
 
 
-4.  Add files:read scope to the Slack bot
+4.  Finalize SKILL_CampaignQA.md
+    The file exists but the checklist is incomplete and partially client-specific.
+    Rewrite it to reflect the actual QA process you run before every campaign launch:
+    what you check, in what order, and what blocks a push.
+    This becomes the shared standard for the whole team.
+    File: 1. Departments/cold email campaigns/SKILL_CampaignQA.md
+
+
+5.  Add files:read scope to the Slack bot
     Go to api.slack.com/apps
     Select Claude Bot → OAuth & Permissions → Bot Token Scopes
     Add files:read

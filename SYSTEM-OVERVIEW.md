@@ -48,7 +48,7 @@ DEPT 1  COLD EMAIL CAMPAIGNS                                       Kasper
 
   Skills
     ✅  SKILL_WriteScript          writes 3-step cold email sequences
-    ✅  SKILL_CampaignQA           pre-launch checklist
+    ~   SKILL_CampaignQA           pre-launch checklist — file exists, content needs Kasper review
     ○   SKILL_CampaignMonitor      tracks KPIs per campaign, flags winners and failures,
                                    runs diagnostic logic tree, writes diagnosis to client file
     ○   SKILL_CampaignImprove      triggered by CampaignMonitor — diagnoses root cause,

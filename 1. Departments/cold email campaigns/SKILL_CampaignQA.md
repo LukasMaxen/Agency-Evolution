@@ -1,5 +1,7 @@
 # Campaign QA — Pre-Launch Checklist
 
+> **Status: Needs Kasper's review.** The checklist below contains some correct rules but does not fully reflect the actual QA process. Kasper to update this with the complete, accurate pre-launch process before this skill is considered live.
+
 Run this before pushing any sequence update or launching a new campaign. Check every step and every variant.
 
 ---
