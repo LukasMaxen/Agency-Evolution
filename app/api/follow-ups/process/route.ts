@@ -229,6 +229,14 @@ Draft FU step ${nextStep} of ${fu.total_emails} for this lead. Return ONLY a val
 
 STEP PURPOSE: ${stepPurpose}
 
+CONTEXT READING (most important rule):
+Before drafting, read the lead's original reply carefully and identify what they actually said.
+- If they politely declined with timing language ("not right now", "not at the moment", "happy as is"), this is a SOFT NO. Acknowledge respectfully, do not push, do not "clarify" or correct anything they said. A 2-line step-back is correct.
+- If they asked a clarifying question, answer it directly.
+- If they were confused about the offer, then and only then clarify the offer.
+- If they showed interest, push forward with a clean booking ask.
+Never assume the lead is confused. Most leads understand the offer and are giving you their real position. Treat their reply at face value unless they explicitly asked a question.
+
 TONE RULES (non-negotiable):
 - No em dashes, no en dashes, no double-hyphens. No colons in the email body.
 - No bullet points
@@ -276,15 +284,21 @@ Draft FU step ${nextStep} now.`;
   if (reply.fu_approval_mode) {
     const draftId = `fud-${fu.id}-${nextStep}-${Date.now()}`;
 
+    const quotedBody = draft.body
+      .slice(0, 2500)
+      .split("\n")
+      .map(line => `> ${line}`)
+      .join("\n");
+
     const slackTs = await postToSlack(
       [
         {
           type: "header",
-          text: { type: "plain_text", text: `📋 FU step ${nextStep} draft — needs review`, emoji: true },
+          text: { type: "plain_text", text: `FU step ${nextStep} draft — needs review`, emoji: true },
         },
         {
           type: "section",
-          text: { type: "mrkdwn", text: `*Client:* ${slugToName(fu.workspace_slug)}\n*Lead:* ${reply.lead_name} — ${reply.lead_email}\n*Sequence:* ${fu.fu_sequence_type} (step ${nextStep}/${fu.total_emails})` },
+          text: { type: "mrkdwn", text: `*Client:* ${slugToName(fu.workspace_slug)}\n*Lead:* ${reply.lead_name}, ${reply.lead_email}\n*Sequence:* ${fu.fu_sequence_type} (step ${nextStep}/${fu.total_emails})` },
         },
         {
           type: "section",
@@ -292,10 +306,10 @@ Draft FU step ${nextStep} now.`;
         },
         {
           type: "section",
-          text: { type: "mrkdwn", text: `*Body:*\n\`\`\`${draft.body.slice(0, 2500)}\`\`\`` },
+          text: { type: "mrkdwn", text: `*Body:*\n${quotedBody}` },
         },
       ],
-      `FU step ${nextStep} draft — ${fu.workspace_slug} / ${reply.lead_name}`
+      `FU step ${nextStep} draft, ${fu.workspace_slug}, ${reply.lead_name}`
     );
 
     await pool.query(
