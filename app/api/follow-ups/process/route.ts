@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import fs from "fs";
 import path from "path";
+import {
+  FU_APPROVAL_CHANNEL,
+  postToSlack as postToSlackShared,
+  approvalFooterBlock,
+  quoteForSlack,
+  slugToName,
+} from "@/lib/slack-approval";
 
 interface FollowUpRow {
   id: string;
@@ -28,43 +35,14 @@ function readFile(filePath: string): string {
   }
 }
 
-function slugToName(slug: string): string {
-  return slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-}
-
 // Strip em/en dashes and double-hyphens from email copy.
 // Replaces them with a comma + space, so sentence flow stays natural.
-// Standalone trailing dashes get a single comma.
 function sanitizeDashes(text: string): string {
   return text
     .replace(/\s*—\s*/g, ", ")
     .replace(/\s*–\s*/g, ", ")
     .replace(/\s+--\s+/g, ", ")
     .replace(/\s+-\s+/g, ", ");
-}
-
-async function postToSlack(blocks: object[], text: string): Promise<string | null> {
-  const token = process.env.SLACK_BOT_TOKEN;
-  if (!token) {
-    console.warn("[fu-process] SLACK_BOT_TOKEN not set, skipping Slack notification");
-    return null;
-  }
-  // Dedicated channel for FU draft approvals.
-  // Set FU_APPROVAL_SLACK_CHANNEL in env to override (e.g. switch to a channel ID).
-  const channel = process.env.FU_APPROVAL_SLACK_CHANNEL ?? "#follow-up-approval";
-  const response = await fetch("https://slack.com/api/chat.postMessage", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ channel, text, blocks }),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!data?.ok) {
-    console.error("[fu-process] Slack post failed:", data);
-  }
-  return data?.ts ?? null;
 }
 
 async function callClaude(systemPrompt: string, userMessage: string): Promise<DraftResult | null> {
@@ -262,21 +240,22 @@ Draft FU step ${nextStep} now.`;
   if (reply.fu_approval_mode) {
     const draftId = `fud-${fu.id}-${nextStep}-${Date.now()}`;
 
-    const quotedBody = draft.body
-      .slice(0, 2500)
-      .split("\n")
-      .map(line => `> ${line}`)
-      .join("\n");
+    const quotedBody = quoteForSlack(draft.body, 2500);
 
-    const slackTs = await postToSlack(
-      [
+    const slackTs = await postToSlackShared({
+      channel: FU_APPROVAL_CHANNEL,
+      text: `FU step ${nextStep} draft, ${fu.workspace_slug}, ${reply.lead_name}`,
+      blocks: [
         {
           type: "header",
-          text: { type: "plain_text", text: `FU step ${nextStep} draft — needs review`, emoji: true },
+          text: { type: "plain_text", text: `FU step ${nextStep} draft, needs review`, emoji: true },
         },
         {
           type: "section",
-          text: { type: "mrkdwn", text: `*Client:* ${slugToName(fu.workspace_slug)}\n*Lead:* ${reply.lead_name}, ${reply.lead_email}\n*Sequence:* ${fu.fu_sequence_type} (step ${nextStep}/${fu.total_emails})` },
+          text: {
+            type: "mrkdwn",
+            text: `*Client:* ${slugToName(fu.workspace_slug)}\n*Lead:* ${reply.lead_name}, ${reply.lead_email}\n*Sequence:* ${fu.fu_sequence_type} (step ${nextStep}/${fu.total_emails})`,
+          },
         },
         {
           type: "section",
@@ -286,9 +265,9 @@ Draft FU step ${nextStep} now.`;
           type: "section",
           text: { type: "mrkdwn", text: `*Body:*\n${quotedBody}` },
         },
+        approvalFooterBlock(),
       ],
-      `FU step ${nextStep} draft, ${fu.workspace_slug}, ${reply.lead_name}`
-    );
+    });
 
     await pool.query(
       `INSERT INTO follow_up_drafts
@@ -297,10 +276,11 @@ Draft FU step ${nextStep} now.`;
       [draftId, fu.id, fu.reply_id, fu.workspace_slug, reply.lead_name, reply.lead_email, nextStep, draft.subject, draft.body, slackTs]
     );
 
-    // Don't advance fu_step yet — that happens when the draft is approved/sent.
-    // But push next_fu_due forward so we don't redraft this same step every cron tick.
+    // Pause the row until the draft is approved or rejected via Slack reactions.
+    // Approval will advance fu_step + reschedule next_fu_due.
+    // Rejection will skip this step + reschedule next_fu_due.
     await pool.query(
-      `UPDATE follow_ups SET next_fu_due = NOW() + INTERVAL '1 day' WHERE id = $1`,
+      `UPDATE follow_ups SET next_fu_due = NULL WHERE id = $1`,
       [fu.id]
     );
 

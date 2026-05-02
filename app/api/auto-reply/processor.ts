@@ -1,6 +1,14 @@
 import pool from "@/lib/db";
 import fs from "fs";
 import path from "path";
+import {
+  REPLY_APPROVAL_CHANNEL,
+  MANUAL_REPLIES_CHANNEL,
+  postToSlack as postToSlackShared,
+  approvalFooterBlock,
+  quoteForSlack,
+  slugToName as slugToNameShared,
+} from "@/lib/slack-approval";
 
 interface AutoReplyResult {
   action: "auto_send" | "manual" | "do_nothing";
@@ -82,24 +90,68 @@ function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason }:
   return blocks;
 }
 
-async function postToSlack(payload: string | { blocks: object[]; text: string }): Promise<void> {
-  const token = process.env.SLACK_BOT_TOKEN;
-  if (!token) {
-    console.warn("[auto-reply] SLACK_BOT_TOKEN not set — skipping Slack notification");
-    return;
-  }
-  // #manual-replies channel
-  const channelId = "C0B0MMMMNKZ";
-  const body = typeof payload === "string"
-    ? { channel: channelId, text: payload }
-    : { channel: channelId, ...payload };
-  await fetch("https://slack.com/api/chat.postMessage", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
+async function postToSlack(payload: { blocks: object[]; text: string }): Promise<string | null> {
+  return postToSlackShared({
+    channel: MANUAL_REPLIES_CHANNEL,
+    text: payload.text,
+    blocks: payload.blocks,
+  });
+}
+
+interface ReplyApprovalCardOpts {
+  workspaceSlug: string;
+  reply: Record<string, any>;
+  instanceUrl: string;
+  result: AutoReplyResult;
+}
+
+async function postReplyApprovalCard(opts: ReplyApprovalCardOpts): Promise<string | null> {
+  const { workspaceSlug, reply, instanceUrl, result } = opts;
+  const ebLink = reply.email_bison_reply_id
+    ? `${instanceUrl}/inbox/replies/${reply.email_bison_reply_id}`
+    : null;
+  const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(", ");
+  const inboundPreview = (reply.message ?? "")
+    .slice(0, 600)
+    .split("\n")
+    .map((l: string) => `> ${l}`)
+    .join("\n");
+  const draftQuoted = quoteForSlack(result.reply_body ?? "", 2500);
+
+  const blocks: object[] = [
+    {
+      type: "header",
+      text: { type: "plain_text", text: `Auto-reply draft, needs review`, emoji: true },
     },
-    body: JSON.stringify(body),
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Client:* ${slugToNameShared(workspaceSlug)}\n*Lead:* ${leadLine}\n*Intent:* ${result.intent}  ·  *FU sequence:* ${result.fu_sequence_type}`,
+      },
+    },
+    {
+      type: "section",
+      text: { type: "mrkdwn", text: `*Lead's reply:*\n${inboundPreview}` },
+    },
+    {
+      type: "section",
+      text: { type: "mrkdwn", text: `*Drafted first response:*\n${draftQuoted}` },
+    },
+  ];
+
+  if (ebLink) {
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: `<${ebLink}|Open reply in EmailBison>` },
+    });
+  }
+  blocks.push(approvalFooterBlock());
+
+  return postToSlackShared({
+    channel: REPLY_APPROVAL_CHANNEL,
+    text: `Auto-reply draft, ${workspaceSlug}, ${reply.lead_name}`,
+    blocks,
   });
 }
 
@@ -212,9 +264,9 @@ export async function processAutoReply(replyId: string, workspaceSlug: string): 
 
   const reply = claim.rows[0];
 
-  // Fetch workspace credentials
+  // Fetch workspace credentials + approval mode flag
   const wsResult = await pool.query(
-    `SELECT email_bison_api_key, email_bison_instance_url FROM workspaces WHERE slug = $1`,
+    `SELECT email_bison_api_key, email_bison_instance_url, auto_reply_approval_mode FROM workspaces WHERE slug = $1`,
     [workspaceSlug]
   );
   if (wsResult.rows.length === 0) {
@@ -307,6 +359,43 @@ ${reply.message}`;
   }
 
   if (result.action === "auto_send" && result.reply_body) {
+    // Approval gate: stage in reply_drafts and post to #reply-approval if workspace is in approval mode.
+    if (workspace.auto_reply_approval_mode) {
+      const draftId = `rd-${replyId}-${Date.now()}`;
+      const slackTs = await postReplyApprovalCard({
+        workspaceSlug,
+        reply: replyWithCreds,
+        instanceUrl: workspace.email_bison_instance_url ?? "",
+        result,
+      });
+
+      await pool.query(
+        `INSERT INTO reply_drafts
+          (id, reply_id, workspace_slug, lead_name, lead_email, intent, action,
+           fu_sequence_type, flag_unsubscribe, flag_meeting_booked, manual_reason,
+           subject, body, status, slack_ts, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',$14,NOW())`,
+        [
+          draftId, replyId, workspaceSlug, reply.lead_name, reply.lead_email,
+          result.intent, result.action, result.fu_sequence_type,
+          result.flag_unsubscribe, result.flag_meeting_booked, result.manual_reason ?? null,
+          reply.subject ?? "", result.reply_body, slackTs,
+        ]
+      );
+
+      await pool.query(
+        `UPDATE replies SET status = 'awaiting_approval', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+        [
+          JSON.stringify({ intent: result.intent, auto_replied: false, awaiting_approval: true, fu_sequence_type: result.fu_sequence_type }),
+          replyId,
+        ]
+      );
+
+      console.log(`[auto-reply] Staged draft ${draftId} for approval (${workspaceSlug} / ${reply.lead_name})`);
+      return;
+    }
+
+    // Direct send path (approval mode off for this workspace)
     const sent = await sendReplyToEmailBison(replyWithCreds, result.reply_body);
 
     if (sent) {
@@ -331,13 +420,13 @@ ${reply.message}`;
     } else {
       await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
       await postToSlack({
-        text: `Auto-reply failed (EmailBison error) — ${workspaceSlug} / ${reply.lead_name}`,
+        text: `Auto-reply failed (EmailBison error), ${workspaceSlug} / ${reply.lead_name}`,
         blocks: buildSlackBlocks({
-          header: "⚠️ Auto-reply failed (EmailBison error)",
+          header: "Auto-reply failed (EmailBison error)",
           workspaceSlug,
           reply: replyWithCreds,
           instanceUrl: workspace.email_bison_instance_url ?? "",
-          reason: "EmailBison send error — needs manual handling",
+          reason: "EmailBison send error, needs manual handling",
         }),
       });
     }
