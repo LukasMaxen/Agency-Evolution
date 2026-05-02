@@ -29,7 +29,25 @@ const FULL_STEP_PURPOSES: Record<number, string> = {
 };
 
 const ABBREVIATED_STEP_PURPOSES: Record<number, string> = {
-  1: "Soft value re-engagement. The lead gave a soft no with timing or positioning language. Do NOT clarify, correct, or restate the original offer. Do NOT push for a meeting. Instead, acknowledge their position warmly in one line, then offer a low-stakes value exchange (eg recent activity in their sector, a quick market data point, or 'happy to send a brief quote summary if it would be useful'). End with one short line that leaves the door open. 3 to 5 lines total. No specific calendar times.",
+  1: `Soft step-back. The lead gave a soft no. Follow this exact structure:
+- Line 1: One-line acknowledgment ("Understood" or "Appreciated, [Name]" or "No problem at all").
+- Line 2-3: ONE soft value sentence OR ONE open-ended question. Examples: "If you ever want a quick read on what valuations are doing in your sector, happy to share what we are seeing." Or: "Curious whether timing typically opens up around year-end for businesses like yours, or if it is more event-driven for you?"
+- Line 4: Door-open close. Example: "Either way, we will check back in later in the year. Reach out anytime if anything changes."
+- Maximum 4 lines of body. No specific time slots. No Calendly link. No clarification of the original offer. No restating what we do. No pushing for a meeting.
+
+EXAMPLE OF WRONG OUTPUT (do not write anything like this):
+"Just to clarify, this is not about an investment opportunity. The buyer we represent is looking to acquire a business in this space outright. Capital is committed. If that changes anything, a 15-minute call is all it would take. Tuesday at 10am or Wednesday at 2pm?"
+
+EXAMPLE OF RIGHT OUTPUT for a soft no:
+"Hi Mike,
+
+Understood, and appreciated.
+
+Curious whether timing typically opens up around year-end in your sector, or whether it is more event-driven for businesses like yours.
+
+Either way, we will check back in later in the year. Reach out if anything shifts in the meantime.
+
+{SENDER_EMAIL_SIGNATURE}"`,
   2: "Break-up. Short, no-pressure final email. 'Closing the loop on this, happy to revisit later.' Two to three lines maximum. No CTA, no calendar link.",
 };
 
