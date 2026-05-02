@@ -3,18 +3,58 @@ Weeks 1–2
 
 
 Goal: Stop leads falling through the cracks. Automate follow-ups. Give the team
-a daily briefing. Seed the CRM. Document what's working before it's forgotten.
+a daily briefing. Connect to Airtable CRM. Document what's working before it's forgotten.
 
 
 ════════════════════════════════════════
 LUKAS
 ════════════════════════════════════════
 
+1.  Airtable CRM integration
+    We already have an Airtable CRM — Claude needs to connect to it rather than
+    building a new one. Set up the Airtable API integration so all CRM reads and
+    writes go through the existing base.
+    Needs: AIRTABLE_API_KEY + AIRTABLE_BASE_ID added to Coolify and .env.local
+    Share the base structure (table names, key fields) so the integration can be mapped correctly.
+
+
+2.  Nurture capture
+    Modify the auto-reply processor so that when a lead says "reach back in
+    6 months" or similar, instead of doing nothing, they get written to the
+    Airtable CRM with a future contact date. These leads are currently disappearing.
+
+
+3.  Build /api/follow-ups/process
+    Query the follow_ups table for leads where next_fu_due is today or earlier
+    and meeting_booked is false.
+    For each lead, read the client file, use Claude to draft the correct FU step,
+    send it via EmailBison, mark it sent, and update next_fu_due for the next step.
+    This is the biggest revenue leak in the system right now — interested leads
+    going cold because no follow-up is being sent.
+
+
+4.  Build daily briefing
+    Build /api/briefing/daily — aggregates new replies waiting, follow-ups due
+    today, any campaigns below KPI threshold, today's scheduled meetings.
+    Posts to Slack as a formatted morning summary at 8am on weekdays.
+
+
+5.  Write CONTEXT_CRM.md
+    Document the existing Airtable CRM structure: what tables exist, what each
+    record represents, stage names, how buyer and seller contacts are stored.
+    This becomes the reference Claude uses whenever it reads or writes to the CRM.
+
+
+════════════════════════════════════════
+KASPER
+════════════════════════════════════════
+
 1.  Build campaign monitor + diagnostic logic tree
-    Build /api/campaigns/health — pulls reply rate, interested rate, open rate,
-    and bounce rate for every active campaign. Runs each through the logic tree
-    below to diagnose the root cause, then posts a prioritised action list to
-    Slack every Monday morning.
+    Review performance across all active campaigns.
+    For each campaign record the current reply rate, interested rate, open rate,
+    and bounce rate, then apply the logic tree below to identify the root cause
+    of any underperformer. Output a prioritised action list and share with the team.
+    Once SKILL_CampaignMonitor is built this runs automatically — for now, do it manually.
 
     DIAGNOSTIC LOGIC TREE
 
@@ -42,43 +82,6 @@ LUKAS
         Check FU sequence is running, Calendly link is correct, reply speed.
 
 
-2.  Nurture capture
-    Modify the auto-reply processor so that when a lead says "reach back in
-    6 months" or similar, instead of doing nothing, they get written to the
-    crm_contacts table with a future contact date. These leads are currently
-    just disappearing.
-
-
-3.  Create crm_contacts table
-    Run SQL migration: id, workspace_slug, lead_email, lead_name,
-    lead_company, status, source_reply_id, future_contact_date, notes, created_at
-
-
-4.  Build daily briefing
-    Build /api/briefing/daily — aggregates new replies waiting, follow-ups due
-    today, any campaigns below KPI threshold, today's scheduled meetings.
-    Posts to Slack as a formatted morning summary at 8am on weekdays.
-
-
-5.  Write CONTEXT_CRM.md
-    Define what a seller contact is, what a deal is, the pipeline stage names,
-    and how the buyer database will work. This becomes the reference document
-    for everything built in Phase 4.
-
-
-════════════════════════════════════════
-KASPER
-════════════════════════════════════════
-
-1.  Add files:read scope to the Slack bot
-    Go to api.slack.com/apps
-    Select Claude Bot → OAuth & Permissions → Bot Token Scopes
-    Add files:read
-    Reinstall the app and share the new bot token with Lukas
-    This unblocks the Slack huddle sync — once done, Claude can pull daily
-    team standup notes automatically and push updates to client files.
-
-
 2.  Write CONTEXT_OfferLibrary.md
     This is the most important thing we do not have yet.
     Your campaign experience needs to be in the system, not just in your head.
@@ -96,7 +99,7 @@ KASPER
 
 3.  Define KPI thresholds for the campaign monitor
     Confirm what counts as a pass, a warning, and a fail for each metric.
-    These numbers go directly into the campaign monitor so it knows what to flag.
+    These numbers go into SKILL_CampaignMonitor so it knows what to flag automatically.
 
     Suggested starting point — adjust based on what you have seen:
 
@@ -106,6 +109,15 @@ KASPER
       Bounce rate      fail > 5%      warning 3–5%       pass < 3%
 
     Also flag: any campaign running 30+ days with zero interested replies.
+
+
+4.  Add files:read scope to the Slack bot
+    Go to api.slack.com/apps
+    Select Claude Bot → OAuth & Permissions → Bot Token Scopes
+    Add files:read
+    Reinstall the app and share the new bot token with Lukas
+    This unblocks the Slack huddle sync — once done, Claude can pull daily
+    team standup notes automatically and push updates to client files.
 
 
 ════════════════════════════════════════
@@ -128,24 +140,14 @@ SUNNY
     This is the prerequisite for everything in Phase 2.
 
 
-4.  Build /api/follow-ups/process
-    Query the follow_ups table for leads where next_fu_due is today or earlier
-    and meeting_booked is false.
-    For each lead, read the client file, use Claude to draft the correct FU step,
-    send it via EmailBison, mark it sent, and update next_fu_due for the next step.
-    This is the biggest revenue leak in the system right now — interested leads
-    going cold because no one has time to manually follow up.
-
-
-5.  Build /api/apollo/search
+4.  Build /api/apollo/search
     Accepts a query object: titles, industries, locations, company size.
     Calls the Apollo People Search API and returns a paginated contact list.
     Auth via APOLLO_API_KEY.
     This is the foundation for the entire lead sourcing engine in Phase 2.
 
 
-6.  Set up cron jobs in Coolify
-    Follow-up processing     every 2 hours
+5.  Set up cron jobs in Coolify
     Daily briefing           8:00 AM weekdays
     Campaign health check    Monday 7:00 AM
     Fathom sync              midnight daily
