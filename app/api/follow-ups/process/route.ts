@@ -29,26 +29,27 @@ const FULL_STEP_PURPOSES: Record<number, string> = {
 };
 
 const ABBREVIATED_STEP_PURPOSES: Record<number, string> = {
-  1: `Soft step-back. The lead gave a soft no. Follow this exact structure:
-- Line 1: One-line acknowledgment ("Understood" or "Appreciated, [Name]" or "No problem at all").
-- Line 2-3: ONE soft value sentence OR ONE open-ended question. Examples: "If you ever want a quick read on what valuations are doing in your sector, happy to share what we are seeing." Or: "Curious whether timing typically opens up around year-end for businesses like yours, or if it is more event-driven for you?"
-- Line 4: Door-open close. Example: "Either way, we will check back in later in the year. Reach out anytime if anything changes."
+  1: `Soft re-engagement after no response. The lead originally gave a soft no, we replied politely, they have not written back. Follow this structure:
+- Open with a brief follow-up framing. Example: "Following up on my last note. Wanted to send one more thing before stepping back." Do NOT say "Understood" or "Thanks for getting back to me", that was already covered in the first response.
+- One value sentence OR one open-ended question, fresh angle from anything we already sent. Examples: "If a quick read on what buyers are paying in your sector would be useful, happy to share what we are seeing." Or: "Curious whether timing typically opens up around year-end in your industry, or if it is more event-driven."
+- Soft door-open close. Example: "Otherwise we will circle back later in the year. Reach out if anything shifts."
 - Maximum 4 lines of body. No specific time slots. No Calendly link. No clarification of the original offer. No restating what we do. No pushing for a meeting.
 
-EXAMPLE OF WRONG OUTPUT (do not write anything like this):
-"Just to clarify, this is not about an investment opportunity. The buyer we represent is looking to acquire a business in this space outright. Capital is committed. If that changes anything, a 15-minute call is all it would take. Tuesday at 10am or Wednesday at 2pm?"
+EXAMPLE OF WRONG OUTPUT (these read like a first response, not a follow-up):
+"Hi Mike, understood and appreciated. If timing changes, happy to share what we are seeing."
+"Hi Mike, just to clarify this is not an investment ask. We represent a buyer..."
 
-EXAMPLE OF RIGHT OUTPUT for a soft no:
+EXAMPLE OF RIGHT OUTPUT (reads like a re-engagement after no reply):
 "Hi Mike,
 
-Understood, and appreciated.
+Following up on my last note. Wanted to send one more thing before stepping back.
 
-Curious whether timing typically opens up around year-end in your sector, or whether it is more event-driven for businesses like yours.
+If a quick read on what buyers are paying for businesses in your space would be useful, happy to share what we are seeing.
 
-Either way, we will check back in later in the year. Reach out if anything shifts in the meantime.
+Otherwise we will circle back later in the year. Reach out if anything shifts.
 
 {SENDER_EMAIL_SIGNATURE}"`,
-  2: "Break-up. Short, no-pressure final email. 'Closing the loop on this, happy to revisit later.' Two to three lines maximum. No CTA, no calendar link.",
+  2: "Break-up after no response to FU1. Short, no-pressure final email. Reference that we have been in touch and are stepping back. Example: 'Closing the loop on this for now. We will be around if timing ever shifts.' Two to three lines maximum. No CTA, no calendar link.",
 };
 
 function readFile(filePath: string): string {
@@ -236,6 +237,9 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
 
   const systemPrompt = `You are a follow-up email writer for Maxen Partners, a cold-email agency for B2B M&A and business services clients.
 
+WHAT YOU ARE WRITING:
+This is a follow-up email, not a first response. The lead already replied to our cold email. We already sent them a contextual first response (it is the first item in PREVIOUS EMAILS WE SENT). The lead has now gone silent and has not replied back, has not booked a call. Your job is to re-engage them with a fresh angle. Treat the previous emails as already received and read by the lead. Do not greet them as if this is the first contact, do not re-acknowledge what they originally said, do not re-pitch the offer.
+
 CRITICAL OUTPUT FORMAT: Your entire response must be a single valid JSON object. Start your response with the character "{" and end with "}". No preamble, no explanation, no markdown code fences, no thinking out loud. Just the JSON.
 
 Draft FU step ${nextStep} of ${fu.total_emails} for this lead. Return ONLY a valid JSON object with this shape:
@@ -283,8 +287,8 @@ Email: ${reply.lead_email}
 ORIGINAL REPLY (the one that started this sequence):
 ${reply.message}
 
-PREVIOUS EMAILS WE SENT (do not repeat these angles):
-${prevBodies.length > 0 ? prevBodies.map((b, i) => `--- Email ${i + 1} ---\n${b}`).join("\n\n") : "(none — this is the first FU)"}
+PREVIOUS EMAILS WE SENT (the lead has read these and not replied back, do not repeat any angles or greetings):
+${prevBodies.length > 0 ? prevBodies.map((b, i) => `=== Email ${i + 1}${i === 0 ? " (our first response to their reply)" : ` (FU step ${i})`} ===\n${b}`).join("\n\n") : "(none on record, but assume our cold email reached them and they replied to it)"}
 
 Draft FU step ${nextStep} now.`;
 

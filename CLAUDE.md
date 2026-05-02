@@ -30,7 +30,8 @@ Departments contain reusable skills, context, and workflows — the HOW. Client-
 | `1. Departments/company/` | Lukas | Company positioning, brand context (Maxen Partners) |
 | `1. Departments/leads/` | Sunny + Kasper | ICP process, list sourcing, enrichment, scoring |
 | `1. Departments/cold email campaigns/` | Kasper | Strategy, scripting, EmailBison workflows, integrations |
-| `1. Departments/reply-management/` | Lukas | Reply process, FU structure, AI guidelines |
+| `1. Departments/reply-management/` | Lukas | First-response handling for inbound replies, intent classification, AI guidelines |
+| `1. Departments/follow-up-management/` | Lukas | FU sequence after first response, step purposes, approval flow, outcome tracking |
 | `1. Departments/operations/` | Lukas | Tech stack, git workflow, AI framework, onboarding, team |
 
 ---
