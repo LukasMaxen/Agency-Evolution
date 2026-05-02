@@ -403,7 +403,7 @@ export function ReplyDashboard() {
         <div>
           <p style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>Reply Dashboard</p>
           <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-            {today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+            {today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" })} · {today.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "America/New_York" })} EST
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>

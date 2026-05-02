@@ -86,8 +86,8 @@ export async function GET(req: NextRequest) {
       SELECT
         workspace_slug AS "workspaceId",
         COUNT(*)::int  AS total,
-        COUNT(*) FILTER (WHERE sent_at::date = CURRENT_DATE - 1)::int              AS yesterday,
-        COUNT(*) FILTER (WHERE sent_at::date = CURRENT_DATE)::int                  AS today,
+        COUNT(*) FILTER (WHERE (sent_at AT TIME ZONE 'America/New_York')::date = (NOW() AT TIME ZONE 'America/New_York')::date - 1)::int   AS yesterday,
+        COUNT(*) FILTER (WHERE (sent_at AT TIME ZONE 'America/New_York')::date = (NOW() AT TIME ZONE 'America/New_York')::date)::int        AS today,
         COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '7 days')::int          AS last7,
         COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '30 days')::int         AS last30
       FROM emails_sent
