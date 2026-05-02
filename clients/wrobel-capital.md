@@ -243,6 +243,52 @@ Subject: [subject]
 
 ---
 
+
+
+### Biweekly Meeting Notes
+
+### 29 April 2026 — Wrobel Capital - Bi weekly
+**Attendees:** Stephen G. Wrobel, Kasper Zacho, Lukas maxen | **Duration:** 37 min | [Fathom recording](https://fathom.video/calls/653214665)
+
+# Wrobel Capital – 29 April 2026
+
+**Performance updates**
+- 41 interested leads generated in last 30 days; ~half booked meetings
+- 8 viable deal opportunities currently active, all awaiting financial statements
+- 2-3 deals expected to close from current pipeline
+- One engagement letter (Saku) already sent
+
+**Key discussion points**
+- Email effectiveness: recipients cite Maxen's emails stand out vs. AI-generated competitors; high inbox deliverability
+- Deal quality improving; 50% of booked meetings are viable fits
+- Wrobel's biggest opportunity: Stellar Solar (~$50M EBITDA, $250-300M valuation). Early-stage owners (60s, ready to retire) with motivated CFO. Wrobel pursuing aggressively for potential 1-2% fee ($2.5-6M).
+- Other active opportunities in solar installation space and leveraged buyout (Novo Power/Bob Worsley)
+
+**Campaign feedback**
+- Cold email strategy working well—personalization and verification critical
+- Strong positioning of Wrobel Capital brand through Maxen's marketing support differentiates from larger firms
+- Value proposition: Maxen acts as extended marketing/origination team for boutique advisors with limited resources
+
+**Changes requested**
+- CRM updates: Label deals as "Active," "Pass," or "Dead" with brief reasoning
+- Mark meetings as "Conducted" if call occurred; note no-shows for follow-up rescheduling
+- Focus on "Pass" feedback to refine targeting and avoid irrelevant sectors/deal sizes
+
+**New campaigns/strategy**
+- Exploring buy-side engagement for Alex (hydraulics/wholesalers/distributors; $12M-30M acquisition targets)
+- Proof-of-concept approach: deliver 2-3 qualified intros within 1 week pre-signature to validate lead quality
+- Broader rebrand underway: Maxen Partners/Group expanding from cold email to cold calling, LinkedIn, paid ads
+- Goal: exclusive territorial/vertical mandates for 20+ boutique advisors like Wrobel
+
+**Action items**
+- Wrobel: Compile CRM notes on all 39 meetings; clarify conducted vs. no-show status
+- Wrobel: Follow up on financials from 8 active deals; prioritize Stellar Solar
+- Wrobel: Develop pitch for Alex's buy-side engagement; define target hydraulics company parameters
+- Maxen: Resume billing (paused 3 weeks); invoice to follow
+- Maxen: Support Wrobel on buy-side campaign setup once Alex parameters defined
+
+---
+
 ## Internal Notes
 
 Email signatures vary by domain but always: Stephen Wrobel, Managing Partner, Wrobel Capital, LLC.

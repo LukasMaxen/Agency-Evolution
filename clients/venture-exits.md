@@ -258,6 +258,63 @@ Subject: [subject]
 
 ---
 
+
+
+### Internal Meeting Notes
+**28 April 2026 (Internal meeting)** — Used as case study example. Recently signed yoga studio seller ($1.7M revenue, $1.4M EBITDA) sourced by Maxen Partners, generating ~$400K commission fee. Currently closing buyer for this deal. Demonstrates the type of deal flow Maxen delivers.
+
+**28 April 2026 (Internal meeting)** — Case study referenced: Venture Exits signed a yoga studio with 1.4M EBITDA/7.2M revenue through Maxen Partners' outreach sourcing, resulting in ~$400K commission. Deal is currently in closing phase with buyer being sourced by Maxen Partners.
+
+**29 April 2026 (Internal meeting)** — Referenced as existing Lukas client. Recently signed sell-side mandate for yoga studio with 1.4M EBITDA, 21 locations, ~$7M annual revenue. Lukas mentioned speaking with them immediately after this call.
+
+**30 April 2026 (Internal meeting)** — Used as a case study for successful deal sourcing. Yoga studio deal with $1.4M EBITDA signed within 30 days, generating ~$400K fee opportunity with expected ~$10M exit valuation. Currently active sell-side mandate being executed.
+
+
+**30 April 2026 (Internal meeting)** — Cited as primary success case study. Maxen sourced them a $1.4M EBITDA company that signed sales advisory mandate. Commission on deal estimated at $300-400K. Used as benchmark example of typical deal flow and pricing structure for comparable-sized advisory firms.
+
+
+
+### Biweekly Meeting Notes
+
+### 29 April 2026 — Venture Exits - Bi Weekly
+**Attendees:** Kasper Zacho, Tim Enger, Lukas maxen | **Duration:** 31 min | [Fathom recording](https://fathom.video/calls/651608901)
+
+# Venture Exits - Bi Weekly | 29 April 2026
+
+**Key discussion points**
+- Tim is pausing partnership due to slow execution and lack of results despite liking the team
+- Core issue: Airtable/CRM integration has been repeatedly promised but not delivered
+- Tim has an alternative partner with 120K send capacity and established software/processes
+- Lukas acknowledged being spread thin across too many low-paying clients, hindering performance
+- Agreement reached: Maxen will work commission-only on yoga studio deal to prove capability
+
+**Campaign feedback**
+- **Buyer campaign (yoga studio)**: 15 PE firms + 2 strategics have expressed interest and signed NDAs—solid qualified buyers, but leads are "floating" without proper tracking
+- **Seller campaign**: Zero qualified meetings generated; one no-show was a competing investment bank
+- Tim has already sourced 60 buyers independently; quality varies significantly
+- Current outreach generating poor-fit leads initially; quality has improved recently
+
+**Changes requested**
+- **CRM setup**: Three-column Airtable minimum (first name, last name, email) with automatic daily sync to Tim's Tupelo CRM
+- Add "campaign/deal" column for future multi-deal tracking
+- Automate lead routing: every new seller → Tupelo CRM directly; every new buyer → buyer table with name + email only
+- Stop manual Slack updates; use Airtable as single source of truth
+- Seller campaign efficiency target: 1 lead per 500 email sends (20-25 seller conversations/month)
+
+**Performance updates**
+- 17 qualified buyers identified for yoga studio (15 PE + 2 strategic)
+- Seller campaign: 0 qualified meetings to date
+- Tim's internal process: automated NDA → SIM workflow once name/email captured
+
+**Action items**
+- Lukas to send Tim a concise email outlining: targets, deliverables, timeline, and commission structure for yoga deal
+- Set up Tupelo CRM automations for both buyer and seller leads
+- Fix Airtable column structure immediately
+- Improve seller campaign to hit KPI targets
+- Follow-up call after deal closes or milestones hit to reassess paid partnership
+
+---
+
 ## Internal Notes
 
 [Anything that doesn't fit above]

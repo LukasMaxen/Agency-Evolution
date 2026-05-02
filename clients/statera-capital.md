@@ -322,6 +322,12 @@ Subject: [subject]
 
 ---
 
+
+
+### Internal Meeting Notes
+
+**30 April 2026 (Internal meeting)** — Referenced as European client receiving 10+ sellers monthly with north of $1M EBITDA. Highlighted as example of successful ongoing deal flow generation for intermediary clients.
+
 ## Internal Notes
 
 Svetlin is based in Bulgaria (EET = UTC+2). Factor this into scheduling and reply timing. Two separate Calendly links — use the correct one per campaign track.
