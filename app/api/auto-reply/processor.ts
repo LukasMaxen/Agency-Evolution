@@ -21,12 +21,17 @@ function readFile(filePath: string): string {
 
 interface SlackReplyCard {
   header: string;
+  workspaceSlug: string;
   reply: Record<string, any>;
   instanceUrl: string;
   reason?: string;
 }
 
-function buildSlackBlocks({ header, reply, instanceUrl, reason }: SlackReplyCard) {
+function slugToName(slug: string): string {
+  return slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
+function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason }: SlackReplyCard) {
   const ebLink = reply.email_bison_reply_id
     ? `${instanceUrl}/inbox/replies/${reply.email_bison_reply_id}`
     : null;
@@ -42,6 +47,10 @@ function buildSlackBlocks({ header, reply, instanceUrl, reason }: SlackReplyCard
     {
       type: "header",
       text: { type: "plain_text", text: header, emoji: true },
+    },
+    {
+      type: "context",
+      elements: [{ type: "mrkdwn", text: `*Client:* ${slugToName(workspaceSlug)}` }],
     },
     {
       type: "section",
@@ -282,6 +291,7 @@ ${reply.message}`;
       text: `Auto-reply failed (Claude error) — ${workspaceSlug} / ${reply.lead_name}`,
       blocks: buildSlackBlocks({
         header: "⚠️ Auto-reply failed (Claude error)",
+        workspaceSlug,
         reply,
         instanceUrl: workspace.email_bison_instance_url ?? "",
         reason: "Claude API error — needs manual handling",
@@ -325,6 +335,7 @@ ${reply.message}`;
         text: `Auto-reply failed (EmailBison error) — ${workspaceSlug} / ${reply.lead_name}`,
         blocks: buildSlackBlocks({
           header: "⚠️ Auto-reply failed (EmailBison error)",
+          workspaceSlug,
           reply: replyWithCreds,
           instanceUrl: workspace.email_bison_instance_url ?? "",
           reason: "EmailBison send error — needs manual handling",
@@ -338,6 +349,7 @@ ${reply.message}`;
       text: `Manual booking needed — ${workspaceSlug} / ${reply.lead_name}`,
       blocks: buildSlackBlocks({
         header: "📅 Manual booking needed",
+        workspaceSlug,
         reply: replyWithCreds,
         instanceUrl: workspace.email_bison_instance_url ?? "",
         reason: result.manual_reason ?? "Needs manual handling",

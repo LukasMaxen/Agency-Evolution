@@ -30,10 +30,17 @@ const fields = [
   `*Subject:*\n${reply.subject}`,
 ];
 
+const workspaceSlug = "statera-capital";
+const clientName = workspaceSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+
 const blocks = [
   {
     type: "header",
     text: { type: "plain_text", text: "📅 Manual booking needed [TEST]", emoji: true },
+  },
+  {
+    type: "context",
+    elements: [{ type: "mrkdwn", text: `*Client:* ${clientName}` }],
   },
   {
     type: "section",
