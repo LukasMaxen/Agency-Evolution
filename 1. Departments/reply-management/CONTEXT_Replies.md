@@ -159,6 +159,17 @@ Looking forward to speaking.
 - Address all CC'd people in the reply (e.g., "Hi Melanie, Alex")
 - Match the language of the correspondence — French reply = French email
 
+### Sender Identity (non-negotiable)
+
+The AI is writing AS the sender, in first person. Never refer to the sender in third person.
+
+**Wrong:** "Romain is based in France." (when the sender is Romain)
+**Right:** "I am based in France." or "Based in France here, so is the team."
+
+This applies anywhere the sender's name, company, or location would otherwise appear in the body. Use "I", "me", "my", "we", "our" when the sender or sender's company is the subject. Never substitute the sender's first name for a first-person pronoun.
+
+The lead's name is fine in third person (it is not the sender). "Adam, what you described..." is correct. "Romain is based in France" is never correct in a reply Romain is sending.
+
 ---
 
 ## Objection Handling Patterns
