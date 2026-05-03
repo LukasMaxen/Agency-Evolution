@@ -242,42 +242,55 @@ Draft FU step ${nextStep} now.`;
       .map((l: string) => `> ${l}`)
       .join("\n");
 
+    const ebLink = reply.email_bison_reply_id && reply.email_bison_instance_url
+      ? `${reply.email_bison_instance_url}/inbox/replies/${reply.email_bison_reply_id}`
+      : null;
+
+    const fuBlocks: object[] = [
+      {
+        type: "header",
+        text: { type: "plain_text", text: `FU step ${nextStep} draft, needs review`, emoji: true },
+      },
+      {
+        type: "section",
+        fields: [
+          { type: "mrkdwn", text: `*Client:*\n${slugToName(fu.workspace_slug)}` },
+          { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign ?? "unknown"}` },
+        ],
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*Lead:* ${reply.lead_name}, ${reply.lead_email}\n*Sequence:* ${fu.fu_sequence_type}  ·  *Step:* ${nextStep}/${fu.total_emails}`,
+        },
+      },
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: `*Subject:* ${draft.subject}` },
+      },
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: `*Lead's original reply:*\n${inboundPreview}` },
+      },
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: `*Drafted follow-up:*\n${quotedBody}` },
+      },
+    ];
+
+    if (ebLink) {
+      fuBlocks.push({
+        type: "section",
+        text: { type: "mrkdwn", text: `<${ebLink}|Open reply in EmailBison>` },
+      });
+    }
+    fuBlocks.push(approvalFooterBlock());
+
     const slackTs = await postToSlackShared({
       channel: FU_APPROVAL_CHANNEL,
       text: `FU step ${nextStep} draft, ${fu.workspace_slug}, ${reply.lead_name}`,
-      blocks: [
-        {
-          type: "header",
-          text: { type: "plain_text", text: `FU step ${nextStep} draft, needs review`, emoji: true },
-        },
-        {
-          type: "section",
-          fields: [
-            { type: "mrkdwn", text: `*Client:*\n${slugToName(fu.workspace_slug)}` },
-            { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign ?? "unknown"}` },
-          ],
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `*Lead:* ${reply.lead_name}, ${reply.lead_email}\n*Sequence:* ${fu.fu_sequence_type}  ·  *Step:* ${nextStep}/${fu.total_emails}`,
-          },
-        },
-        {
-          type: "section",
-          text: { type: "mrkdwn", text: `*Subject:* ${draft.subject}` },
-        },
-        {
-          type: "section",
-          text: { type: "mrkdwn", text: `*Lead's original reply:*\n${inboundPreview}` },
-        },
-        {
-          type: "section",
-          text: { type: "mrkdwn", text: `*Drafted follow-up:*\n${quotedBody}` },
-        },
-        approvalFooterBlock(),
-      ],
+      blocks: fuBlocks,
     });
 
     await pool.query(

@@ -35,18 +35,21 @@ interface SlackReplyCard {
   reply: Record<string, any>;
   instanceUrl: string;
   reason?: string;
+  intent?: string;
+  fuSequenceType?: string;
 }
 
-function slugToName(slug: string): string {
-  return slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-}
-
-function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason }: SlackReplyCard) {
+function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason, intent, fuSequenceType }: SlackReplyCard) {
   const ebLink = reply.email_bison_reply_id
     ? `${instanceUrl}/inbox/replies/${reply.email_bison_reply_id}`
     : null;
 
   const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(", ");
+
+  const metaLine = [
+    intent ? `*Intent:* ${intent}` : null,
+    fuSequenceType ? `*FU sequence:* ${fuSequenceType}` : null,
+  ].filter(Boolean).join("  ·  ");
 
   const blocks: object[] = [
     {
@@ -55,22 +58,29 @@ function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason }:
     },
     {
       type: "section",
-      text: { type: "mrkdwn", text: `*Client:* ${slugToName(workspaceSlug)}\n*Lead:* ${leadLine}` },
+      fields: [
+        { type: "mrkdwn", text: `*Client:*\n${slugToNameShared(workspaceSlug)}` },
+        { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign ?? "unknown"}` },
+      ],
     },
     {
       type: "section",
-      fields: [
-        { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign ?? ""}` },
-        { type: "mrkdwn", text: `*Subject:*\n${reply.subject ?? ""}` },
-      ],
+      text: {
+        type: "mrkdwn",
+        text: metaLine ? `*Lead:* ${leadLine}\n${metaLine}` : `*Lead:* ${leadLine}`,
+      },
+    },
+    {
+      type: "section",
+      text: { type: "mrkdwn", text: `*Subject:* ${reply.subject ?? "(no subject)"}` },
     },
   ];
 
   if (reply.message) {
-    const preview = reply.message.slice(0, 300) + (reply.message.length > 300 ? "..." : "");
+    const inboundPreview = quoteForSlack(reply.message, 600);
     blocks.push({
       type: "section",
-      text: { type: "mrkdwn", text: `*Message:*\n${preview}` },
+      text: { type: "mrkdwn", text: `*Lead's reply:*\n${inboundPreview}` },
     });
   }
 
@@ -84,7 +94,7 @@ function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason }:
   if (ebLink) {
     blocks.push({
       type: "section",
-      text: { type: "mrkdwn", text: `*View in EmailBison:* <${ebLink}|Open reply>` },
+      text: { type: "mrkdwn", text: `<${ebLink}|Open reply in EmailBison>` },
     });
   }
 
@@ -463,6 +473,8 @@ ${reply.message}`;
         reply: replyWithCreds,
         instanceUrl: workspace.email_bison_instance_url ?? "",
         reason: result.manual_reason ?? "Needs manual handling",
+        intent: result.intent,
+        fuSequenceType: result.fu_sequence_type,
       }),
     });
 
