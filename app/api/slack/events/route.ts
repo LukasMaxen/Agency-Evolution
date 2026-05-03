@@ -292,6 +292,9 @@ async function handleReactionAdded(event: any): Promise<void> {
   const isReject = REJECT_REACTIONS.has(reaction);
   if (!isApprove && !isReject) return;
 
+  // Resolve the Slack user ID to a display name once. Falls back to ID if lookup fails.
+  const userName = await getSlackUserName(userId);
+
   // Try reply_drafts first
   const rd = await pool.query<ReplyDraftRow>(
     `SELECT * FROM reply_drafts WHERE slack_ts = $1 AND status = 'pending' LIMIT 1`,
@@ -299,8 +302,8 @@ async function handleReactionAdded(event: any): Promise<void> {
   );
   if (rd.rows.length > 0) {
     const draft = rd.rows[0];
-    if (isApprove) await approveReplyDraft(draft, userId, channel, ts);
-    else await rejectReplyDraft(draft, userId, channel, ts);
+    if (isApprove) await approveReplyDraft(draft, userName, channel, ts);
+    else await rejectReplyDraft(draft, userName, channel, ts);
     return;
   }
 
@@ -316,8 +319,8 @@ async function handleReactionAdded(event: any): Promise<void> {
   );
   if (fud.rows.length > 0) {
     const draft = fud.rows[0];
-    if (isApprove) await approveFollowUpDraft(draft, userId, channel, ts);
-    else await rejectFollowUpDraft(draft, userId, channel, ts);
+    if (isApprove) await approveFollowUpDraft(draft, userName, channel, ts);
+    else await rejectFollowUpDraft(draft, userName, channel, ts);
   }
 }
 
