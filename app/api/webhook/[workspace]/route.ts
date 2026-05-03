@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { processAutoReply } from "@/app/api/auto-reply/processor";
+import { notifyReply } from "@/lib/slack-notifications";
 
 function extractCleanBody(textBody: string): string {
   if (!textBody) return "";
