@@ -513,11 +513,14 @@ async function applyWeeklyReview(reviewTs: string, channel: string, reviewerName
     applied.push({ file: filePath, commitUrl, titles: filePatterns.map(p => p.title) });
   }
 
-  // Mark review as applied and confirm in Slack.
-  await pool.query(
-    `UPDATE weekly_reviews SET status = 'applied', applied_at = NOW(), applied_by = $1, commit_url = $2 WHERE slack_ts = $3`,
-    [reviewerName, applied[0]?.commitUrl ?? null, reviewTs]
-  );
+  // Only mark as applied if at least one file actually committed. Otherwise leave
+  // status='pending' so the user can fix the underlying issue and retry.
+  if (applied.length > 0) {
+    await pool.query(
+      `UPDATE weekly_reviews SET status = 'applied', applied_at = NOW(), applied_by = $1, commit_url = $2 WHERE slack_ts = $3`,
+      [reviewerName, applied[0].commitUrl, reviewTs]
+    );
+  }
 
   const lines: string[] = [];
   if (applied.length > 0) {
