@@ -351,7 +351,7 @@ async function handleReactionAdded(event: any): Promise<void> {
   }
 
   // Reaction is not on any tracked draft. If the message is in #feedback-review,
-  // log the reaction and confirm visually so the team knows the input was received.
+  // log the reaction and either auto-apply (✅) or just acknowledge (other emojis).
   const channelName = await getChannelName(channel);
   if (channelName === bareChannelName(FEEDBACK_REVIEW_CHANNEL)) {
     const reactionLabel = isApprove ? "approve" : isReject ? "reject" : "edit_request";
@@ -369,9 +369,235 @@ async function handleReactionAdded(event: any): Promise<void> {
         ts,
       ]
     );
-    await addReaction(channel, ts, "eyes");
-    console.log(`[slack-events] Logged ${reactionLabel} reaction by ${userName} on weekly review ${ts}`);
+
+    if (isApprove) {
+      // Trigger auto-apply: read the persisted weekly review summary, generate
+      // markdown edits via Claude, commit them via the GitHub Contents API.
+      await applyWeeklyReview(ts, channel, userName);
+    } else {
+      await addReaction(channel, ts, "eyes");
+      console.log(`[slack-events] Logged ${reactionLabel} reaction by ${userName} on weekly review ${ts}`);
+    }
   }
+}
+
+interface WeeklyReviewPattern {
+  title: string;
+  examples_count: number;
+  proposed_rule_change: string;
+  target_file: string;
+  confidence: string;
+}
+
+interface WeeklyReviewSummary {
+  headline: string;
+  patterns: WeeklyReviewPattern[];
+  one_off_notes: string[];
+}
+
+/**
+ * Map a Claude-suggested target_file string to the actual repo path of the file
+ * that gets edited. Returns null if the target is unsupported (eg "client file"
+ * which would need a workspace slug).
+ */
+function resolveTargetPath(target: string): string | null {
+  const t = target.trim().toLowerCase();
+  if (t.includes("context_replies")) return "1. Departments/reply-management/CONTEXT_Replies.md";
+  if (t.includes("context_followups")) return "1. Departments/follow-up-management/CONTEXT_FollowUps.md";
+  if (t.includes("skill_followups")) return "1. Departments/follow-up-management/SKILL_FollowUps.md";
+  if (t.includes("skill_reply")) return "1. Departments/reply-management/SKILL_Reply-Management.md";
+  return null;
+}
+
+/**
+ * Auto-apply a weekly review's approved patterns to the markdown rules in the repo.
+ * Steps:
+ * 1. Look up the weekly review summary by Slack timestamp.
+ * 2. Read any thread comments to filter which patterns to apply (eg "apply 1 and 3").
+ * 3. For each approved pattern, ask Claude to write the exact insertion (full new file content).
+ * 4. Commit each file via the GitHub Contents API. Coolify auto-deploys on the new commits.
+ * 5. Post a thread reply summarising what was applied + commit links.
+ */
+async function applyWeeklyReview(reviewTs: string, channel: string, reviewerName: string): Promise<void> {
+  const reviewResult = await pool.query<{
+    id: string;
+    summary: WeeklyReviewSummary;
+    status: string;
+  }>(
+    `SELECT id, summary, status FROM weekly_reviews WHERE slack_ts = $1 LIMIT 1`,
+    [reviewTs]
+  );
+  if (reviewResult.rows.length === 0) {
+    await postToSlack({
+      channel,
+      threadTs: reviewTs,
+      text: "No persisted summary found for this review. Cannot auto-apply. Tell Lukas in chat to apply manually.",
+    });
+    return;
+  }
+  const review = reviewResult.rows[0];
+  if (review.status === "applied") {
+    await postToSlack({
+      channel,
+      threadTs: reviewTs,
+      text: "This review has already been applied to the markdown rules. Skipping.",
+    });
+    return;
+  }
+
+  // Pull thread feedback to detect filtering instructions like "apply 1 and 3 only".
+  const threadResult = await pool.query<{ message_text: string; slack_user_name: string | null }>(
+    `SELECT message_text, slack_user_name FROM draft_feedback
+     WHERE parent_slack_ts = $1 AND draft_type = 'weekly_review' AND action = 'feedback'
+     ORDER BY created_at ASC`,
+    [reviewTs]
+  );
+  const threadComments = threadResult.rows.map(r => r.message_text).filter(Boolean).join("\n");
+
+  const patterns = review.summary.patterns ?? [];
+  if (patterns.length === 0) {
+    await postToSlack({
+      channel,
+      threadTs: reviewTs,
+      text: "No patterns to apply this week. Marking review as applied.",
+    });
+    await pool.query(
+      `UPDATE weekly_reviews SET status = 'applied', applied_at = NOW(), applied_by = $1 WHERE slack_ts = $2`,
+      [reviewerName, reviewTs]
+    );
+    await addReaction(channel, reviewTs, "outbox_tray");
+    return;
+  }
+
+  // Group patterns by target file and compute the set to apply.
+  const patternsByFile = new Map<string, WeeklyReviewPattern[]>();
+  const skippedTargets: string[] = [];
+
+  for (const p of patterns) {
+    const path = resolveTargetPath(p.target_file);
+    if (!path) {
+      skippedTargets.push(`${p.title} (target ${p.target_file} not auto-applicable)`);
+      continue;
+    }
+    if (!patternsByFile.has(path)) patternsByFile.set(path, []);
+    patternsByFile.get(path)!.push(p);
+  }
+
+  const applied: { file: string; commitUrl: string; titles: string[] }[] = [];
+  const failed: string[] = [];
+
+  for (const [filePath, filePatterns] of patternsByFile.entries()) {
+    const file = await readFileFromGitHub(filePath);
+    if (!file) {
+      failed.push(`${filePath}: could not read from GitHub`);
+      continue;
+    }
+
+    // Ask Claude to merge the new patterns into the existing file content.
+    const newContent = await applyPatternsToFile(file.content, filePatterns, threadComments);
+    if (!newContent) {
+      failed.push(`${filePath}: Claude could not generate the merged file`);
+      continue;
+    }
+    if (newContent === file.content) {
+      console.log(`[slack-events] No changes generated for ${filePath}, skipping`);
+      continue;
+    }
+
+    const commitMessage = `Apply weekly review patterns by ${reviewerName}\n\n${filePatterns.map(p => `- ${p.title}`).join("\n")}\n\nReviewed via #feedback-review weekly review.`;
+    const commitUrl = await commitFileToGitHub(filePath, newContent, commitMessage, file.sha);
+    if (!commitUrl) {
+      failed.push(`${filePath}: commit failed`);
+      continue;
+    }
+    applied.push({ file: filePath, commitUrl, titles: filePatterns.map(p => p.title) });
+  }
+
+  // Mark review as applied and confirm in Slack.
+  await pool.query(
+    `UPDATE weekly_reviews SET status = 'applied', applied_at = NOW(), applied_by = $1, commit_url = $2 WHERE slack_ts = $3`,
+    [reviewerName, applied[0]?.commitUrl ?? null, reviewTs]
+  );
+
+  const lines: string[] = [];
+  if (applied.length > 0) {
+    lines.push(`*Applied ${applied.reduce((n, a) => n + a.titles.length, 0)} pattern(s) across ${applied.length} file(s):*`);
+    for (const a of applied) {
+      lines.push(`• \`${a.file}\` — ${a.titles.join(", ")} (<${a.commitUrl}|commit>)`);
+    }
+    lines.push("");
+    lines.push("Coolify will pick up the changes on the next deploy webhook.");
+  }
+  if (skippedTargets.length > 0) {
+    lines.push("");
+    lines.push("*Skipped (not auto-applicable):*");
+    for (const s of skippedTargets) lines.push(`• ${s}`);
+  }
+  if (failed.length > 0) {
+    lines.push("");
+    lines.push("*Failed:*");
+    for (const f of failed) lines.push(`• ${f}`);
+  }
+
+  await postToSlack({
+    channel,
+    threadTs: reviewTs,
+    text: lines.join("\n"),
+  });
+  await addReaction(channel, reviewTs, applied.length > 0 ? "outbox_tray" : "warning");
+}
+
+/**
+ * Use Claude to merge proposed patterns into an existing markdown file.
+ * Returns the full new file content, or null on error.
+ */
+async function applyPatternsToFile(
+  existingContent: string,
+  patterns: WeeklyReviewPattern[],
+  threadComments: string
+): Promise<string | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  const systemPrompt = `You are editing a markdown documentation file. You will receive the current full file contents and one or more proposed rule changes. Apply each proposed change to the file by inserting or modifying text in the right section. Preserve all existing content exactly. Add the new content under the most appropriate existing heading, or create a new subsection if needed.
+
+OUTPUT: the complete new file content, nothing else. No preamble, no fences, no commentary. Just the full file as it should look after your edits.`;
+
+  const patternsBlock = patterns.map((p, i) =>
+    `Pattern ${i + 1}: ${p.title}\nTarget: ${p.target_file}\nConfidence: ${p.confidence}\nProposed rule change:\n${p.proposed_rule_change}`
+  ).join("\n\n---\n\n");
+
+  const userMessage = `EXISTING FILE CONTENT:
+${existingContent}
+
+PROPOSED PATTERN(S) TO APPLY:
+${patternsBlock}
+
+${threadComments ? `HUMAN INSTRUCTIONS FROM THE REVIEW THREAD (apply these as filters or refinements):\n${threadComments}\n\n` : ""}Output the full revised file content now.`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 16000,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+    }),
+  });
+  if (!response.ok) {
+    console.error("[apply-patterns] Claude error:", response.status, await response.text());
+    return null;
+  }
+  const data = await response.json();
+  const text = (data.content?.[0]?.text ?? "").trim();
+  // If the model wrapped the file in fences, strip them.
+  const fenced = text.match(/^```[a-z]*\n([\s\S]*?)\n```$/);
+  return fenced ? fenced[1] : text;
 }
 
 /**
