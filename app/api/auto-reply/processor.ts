@@ -40,8 +40,9 @@ interface SlackReplyCard {
 }
 
 function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason, intent, fuSequenceType }: SlackReplyCard) {
-  const ebLink = reply.email_bison_reply_id
-    ? `${instanceUrl}/inbox/replies/${reply.email_bison_reply_id}`
+  // EmailBison's inbox URL uses the reply UUID (replies.id), not the integer reply ID.
+  const ebLink = reply.id && instanceUrl
+    ? `${instanceUrl}/inbox/replies/${reply.id}`
     : null;
 
   const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(", ");
@@ -118,8 +119,9 @@ interface ReplyApprovalCardOpts {
 
 async function postReplyApprovalCard(opts: ReplyApprovalCardOpts): Promise<string | null> {
   const { workspaceSlug, reply, instanceUrl, result } = opts;
-  const ebLink = reply.email_bison_reply_id
-    ? `${instanceUrl}/inbox/replies/${reply.email_bison_reply_id}`
+  // EmailBison's inbox URL uses the reply UUID (replies.id), not the integer reply ID.
+  const ebLink = reply.id && instanceUrl
+    ? `${instanceUrl}/inbox/replies/${reply.id}`
     : null;
   const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(", ");
   const inboundPreview = (reply.message ?? "")

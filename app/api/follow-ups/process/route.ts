@@ -242,8 +242,9 @@ Draft FU step ${nextStep} now.`;
       .map((l: string) => `> ${l}`)
       .join("\n");
 
-    const ebLink = reply.email_bison_reply_id && reply.email_bison_instance_url
-      ? `${reply.email_bison_instance_url}/inbox/replies/${reply.email_bison_reply_id}`
+    // EmailBison's inbox URL uses the reply UUID (replies.id), not the integer reply ID.
+    const ebLink = reply.id && reply.email_bison_instance_url
+      ? `${reply.email_bison_instance_url}/inbox/replies/${reply.id}`
       : null;
 
     const fuBlocks: object[] = [
