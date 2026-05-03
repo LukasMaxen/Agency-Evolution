@@ -17,6 +17,13 @@ export const APPROVE_REACTIONS = new Set([
   "approved",
 ]);
 
+export const EDIT_APPROVE_REACTIONS = new Set([
+  "pencil",
+  "pencil2",
+  "writing_hand",
+  "lower_left_ballpoint_pen",
+]);
+
 export const REJECT_REACTIONS = new Set([
   "x",
   "negative_squared_cross_mark",
@@ -60,7 +67,7 @@ export function approvalFooterBlock(): object {
     elements: [
       {
         type: "mrkdwn",
-        text: "Approve with :white_check_mark:, reject with :x:, or reply in this thread with edits or rule changes.",
+        text: "Send as drafted with :white_check_mark:. To edit, paste your version in this thread, then react :pencil2: to send the edited version. Thread replies without :pencil2: are saved as feedback for future drafts.",
       },
     ],
   };

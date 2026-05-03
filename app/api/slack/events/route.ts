@@ -3,10 +3,12 @@ import pool from "@/lib/db";
 import {
   verifySlackSignature,
   APPROVE_REACTIONS,
+  EDIT_APPROVE_REACTIONS,
   REJECT_REACTIONS,
   addReaction,
   postToSlack,
   getSlackUserName,
+  sanitizeDashes,
 } from "@/lib/slack-approval";
 
 interface ReplyDraftRow {
@@ -288,12 +290,30 @@ async function handleReactionAdded(event: any): Promise<void> {
 
   if (!ts || !channel) return;
 
+  // Ignore the bot's own reactions (we add confirmations like outbox_tray, eyes).
+  if (event.bot_id) return;
+
   const isApprove = APPROVE_REACTIONS.has(reaction);
+  const isEditApprove = EDIT_APPROVE_REACTIONS.has(reaction);
   const isReject = REJECT_REACTIONS.has(reaction);
-  if (!isApprove && !isReject) return;
+  if (!isApprove && !isEditApprove && !isReject) return;
 
   // Resolve the Slack user ID to a display name once. Falls back to ID if lookup fails.
   const userName = await getSlackUserName(userId);
+
+  // If this is an edit-approve, fetch the latest thread feedback as the new body.
+  let editedBody: string | null = null;
+  if (isEditApprove) {
+    editedBody = await getLatestThreadEdit(ts);
+    if (!editedBody) {
+      await postToSlack({
+        channel,
+        threadTs: ts,
+        text: "No edited version found in this thread. Paste the corrected email body as a thread reply, then react with :pencil2: again.",
+      });
+      return;
+    }
+  }
 
   // Try reply_drafts first
   const rd = await pool.query<ReplyDraftRow>(
@@ -303,6 +323,7 @@ async function handleReactionAdded(event: any): Promise<void> {
   if (rd.rows.length > 0) {
     const draft = rd.rows[0];
     if (isApprove) await approveReplyDraft(draft, userName, channel, ts);
+    else if (isEditApprove && editedBody) await approveReplyDraft({ ...draft, body: editedBody }, userName, channel, ts);
     else await rejectReplyDraft(draft, userName, channel, ts);
     return;
   }
@@ -320,8 +341,36 @@ async function handleReactionAdded(event: any): Promise<void> {
   if (fud.rows.length > 0) {
     const draft = fud.rows[0];
     if (isApprove) await approveFollowUpDraft(draft, userName, channel, ts);
+    else if (isEditApprove && editedBody) await approveFollowUpDraft({ ...draft, body: editedBody }, userName, channel, ts);
     else await rejectFollowUpDraft(draft, userName, channel, ts);
   }
+}
+
+/**
+ * Pulls the latest thread message that the team posted on a draft card,
+ * resolves any leftover Slack mention/format markup, and returns the body.
+ * Returns null if no thread feedback exists for this draft.
+ */
+async function getLatestThreadEdit(parentTs: string): Promise<string | null> {
+  const result = await pool.query(
+    `SELECT message_text FROM draft_feedback
+     WHERE parent_slack_ts = $1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [parentTs]
+  );
+  if (result.rows.length === 0) return null;
+  const raw = result.rows[0].message_text as string;
+  if (!raw || raw.trim().length < 20) return null;
+  // Strip Slack-style mentions and zero-width chars, then sanitize dashes.
+  const cleaned = raw
+    .replace(/<@[A-Z0-9]+>/g, "")
+    .replace(/<#[A-Z0-9]+\|[^>]*>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .trim();
+  return sanitizeDashes(cleaned);
 }
 
 // ─── Thread message handler (feedback capture) ─────────────────────────────────
