@@ -193,3 +193,40 @@ export async function getSlackUserName(userId: string): Promise<string> {
     return userId;
   }
 }
+
+// Channel ID -> name cache, populated lazily so we do not call conversations.info
+// on every event. Channel renames are rare and a process restart picks them up.
+const channelNameCache = new Map<string, string>();
+
+/**
+ * Resolve a Slack channel ID to its name (without #). Cached in process memory.
+ * Returns the channel ID itself on failure.
+ */
+export async function getChannelName(channelId: string): Promise<string> {
+  if (channelNameCache.has(channelId)) return channelNameCache.get(channelId)!;
+  const token = process.env.SLACK_BOT_TOKEN;
+  if (!token) return channelId;
+  try {
+    const response = await fetch(
+      `https://slack.com/api/conversations.info?channel=${encodeURIComponent(channelId)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = (await response.json().catch(() => ({}))) as {
+      ok?: boolean;
+      channel?: { name?: string };
+    };
+    const name = data.channel?.name ?? channelId;
+    channelNameCache.set(channelId, name);
+    return name;
+  } catch {
+    return channelId;
+  }
+}
+
+/**
+ * Strip the leading # from a configured channel name (eg "#feedback-review" -> "feedback-review").
+ * Slack's conversations.info returns names without the #, so we compare on the bare name.
+ */
+export function bareChannelName(configuredName: string): string {
+  return configuredName.replace(/^#/, "");
+}
