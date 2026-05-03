@@ -52,6 +52,20 @@ Once Reply Management has classified and written this to `follow_ups`, the FU pr
 
 The full sequence runs `template, Sonnet, template, Sonnet, template, Sonnet`. The templated steps are short check-ins. The Sonnet steps are personalised value adds. Total: 3 templates + 3 generated drafts per lead.
 
+**Hard rule on CTAs (non-negotiable):**
+
+| Step type | CTA allowed? | Why |
+|---|---|---|
+| Template (FU1, FU3, FU5) | NO | A template is a soft nudge that puts the ball back in the lead's court. The previous Sonnet email already had the offer and the Calendly link. The template's job is to surface whether the lead has engaged, not to re-pitch. |
+| Sonnet (FU2, FU4, FU6) | YES | Each Sonnet step adds new value (case study, different angle, final hook) and ends with a clear CTA, usually two time slots + Calendly link. |
+
+Templates must never include "worth a chat?", "available for 15 minutes?", calendar links, time slots, or any other booking ask. The acceptable shape of a template is:
+- A soft check-in question ("Had a chance to look at my last email?")
+- A binary intent question ("Should we move this forward or just leave it?")
+- Or a single observation that nudges without asking
+
+Anything that pushes for a meeting belongs in a Sonnet step, not a template.
+
 **Cadence:** FU1 fires 2 days after our first response. FU2 to FU5 each fire 7 days after the previous step. FU6 fires 14 days after FU5. Total window from first reply: ~44 days.
 
 **FU1, template `fu-nudge.md`** (2 days after first response)
