@@ -170,6 +170,28 @@ This applies anywhere the sender's name, company, or location would otherwise ap
 
 The lead's name is fine in third person (it is not the sender). "Adam, what you described..." is correct. "Romain is based in France" is never correct in a reply Romain is sending.
 
+### Recipient Detection on Redirects
+
+When a lead's reply was forwarded or redirected to a different person, the auto-reply must go to **that new person**, not back to the original lead.
+
+**Triggers (read the inbound reply text carefully):**
+- "Alex forwarded your message to me" — sent by someone other than Alex.
+- "I am [name], [title] at [company]. [original lead] passed this on to me."
+- "My colleague [name] (CC'd here) will follow up if interested."
+- "I'm not the owner. Please contact [name] at [email] instead."
+- The reply signature shows a different name than the original lead.
+- The reply was sent from an email address different from the original lead's.
+
+**When any trigger fires, populate the JSON output with:**
+- `recipient_email`: the email address of the person who actually wrote the reply (or who they redirected you to).
+- `recipient_name`: that person's display name.
+
+The send path will route the email to that address instead of the original lead. The body should also address the new recipient by their first name (eg "Hi Tim") and use any referral context as the opener ("Alex forwarded your message").
+
+**When the lead replied directly themselves, omit `recipient_email` and `recipient_name` entirely.** The send path defaults to the lead's email.
+
+If the inbound reply contains both an explicit email address (eg "contact marion@company.com") and the redirect language, use that explicit address. If only a name is given without an email, omit `recipient_email` (we cannot guess the address) but still address the right person by name in the body, and the manual booking flow may need to step in.
+
 ---
 
 ## Objection Handling Patterns

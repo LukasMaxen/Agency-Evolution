@@ -19,6 +19,10 @@ interface AutoReplyResult {
   manual_reason?: string;
   flag_unsubscribe: boolean;
   flag_meeting_booked: boolean;
+  // Optional: populated when the reply is from a different person than the
+  // original lead (forwarded internally, redirected via EA, etc).
+  recipient_email?: string;
+  recipient_name?: string;
 }
 
 function readFile(filePath: string): string {
@@ -229,11 +233,15 @@ async function sendReplyToEmailBison(
     return false;
   }
 
-  // Always send to the lead's email. reply.to_email is the address THE LEAD sent
-  // their reply TO (our sender), not where we should reply BACK to.
+  // Recipient resolution: prefer the override set by the auto-reply (when a
+  // forward/redirect was detected and Claude returned a different email),
+  // otherwise fall back to the lead's email. Never use reply.to_email,
+  // that is OUR sender address from the EmailBison webhook.
+  const recipientEmail = reply.preferred_recipient_email ?? reply.lead_email;
+  const recipientName = reply.preferred_recipient_name ?? reply.lead_name ?? null;
   const toEmails = [{
-    name: reply.lead_name ?? null,
-    email_address: reply.lead_email,
+    name: recipientName,
+    email_address: recipientEmail,
   }];
 
   const linkify = (text: string) =>
@@ -328,7 +336,9 @@ Return a single JSON object and nothing else. Start with "{" and end with "}". N
   "reply_body": "full email body, plain text, greeting on its own line, blank lines between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line. Never write 'Best' or any name before the signature variable. Omit this field entirely if action is not auto_send.",
   "manual_reason": "one short sentence on what needs human attention. Only include if action is manual.",
   "flag_unsubscribe": true | false,
-  "flag_meeting_booked": true | false
+  "flag_meeting_booked": true | false,
+  "recipient_email": "OPTIONAL. Populate ONLY when the inbound reply is from a different person than the original lead (forward, redirect, EA, colleague). Set this to the email address of the person who actually wrote the reply. Read CONTEXT_Replies.md 'Recipient Detection on Redirects' for when this fires. Omit when the lead replied directly themselves.",
+  "recipient_name": "OPTIONAL. The display name of the new recipient when recipient_email is populated. Omit otherwise."
 }
 
 The user message contains the client GTM brief and the lead's reply. Apply every rule from the context file when deciding action, intent, fu_sequence_type, and drafting reply_body.
@@ -393,6 +403,22 @@ ${reply.message}`;
   }
 
   if (result.action === "auto_send" && result.reply_body) {
+    // If Claude detected a forward/redirect, persist the new recipient on the
+    // reply so every subsequent send (Slack approve, FU drafts) routes to the
+    // right person instead of the original lead.
+    if (result.recipient_email) {
+      await pool.query(
+        `UPDATE replies
+           SET preferred_recipient_email = $1,
+               preferred_recipient_name = $2
+         WHERE id = $3`,
+        [result.recipient_email, result.recipient_name ?? null, replyId]
+      );
+      // Refresh the in-memory reply so the direct-send path below uses the override.
+      replyWithCreds.preferred_recipient_email = result.recipient_email;
+      replyWithCreds.preferred_recipient_name = result.recipient_name ?? null;
+    }
+
     // Approval gate: stage in reply_drafts and post to #reply-approval if workspace is in approval mode.
     if (workspace.auto_reply_approval_mode) {
       const draftId = `rd-${replyId}-${Date.now()}`;
@@ -420,12 +446,12 @@ ${reply.message}`;
       await pool.query(
         `UPDATE replies SET status = 'awaiting_approval', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
         [
-          JSON.stringify({ intent: result.intent, auto_replied: false, awaiting_approval: true, fu_sequence_type: result.fu_sequence_type }),
+          JSON.stringify({ intent: result.intent, auto_replied: false, awaiting_approval: true, fu_sequence_type: result.fu_sequence_type, recipient_override: result.recipient_email ?? null }),
           replyId,
         ]
       );
 
-      console.log(`[auto-reply] Staged draft ${draftId} for approval (${workspaceSlug} / ${reply.lead_name})`);
+      console.log(`[auto-reply] Staged draft ${draftId} for approval (${workspaceSlug} / ${reply.lead_name}${result.recipient_email ? `, recipient override: ${result.recipient_email}` : ""})`);
       return;
     }
 

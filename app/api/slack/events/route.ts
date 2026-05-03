@@ -65,7 +65,15 @@ function bodyToHtml(body: string): string {
 }
 
 async function sendViaEmailBison(
-  reply: { email_bison_reply_id: string | null; sender_email_id: string | null; lead_name: string | null; lead_email: string | null; to_email: string | null },
+  reply: {
+    email_bison_reply_id: string | null;
+    sender_email_id: string | null;
+    lead_name: string | null;
+    lead_email: string | null;
+    to_email: string | null;
+    preferred_recipient_email?: string | null;
+    preferred_recipient_name?: string | null;
+  },
   apiKey: string,
   instanceUrl: string,
   body: string
@@ -74,12 +82,14 @@ async function sendViaEmailBison(
     console.error("[slack-events] Missing EmailBison fields, cannot send");
     return false;
   }
-  // Always send to the lead's email. reply.to_email is the address THE LEAD sent
-  // their reply TO (our sender), not where we should reply BACK to.
+  // Recipient resolution: prefer override (set when forward/redirect detected),
+  // fall back to lead. Never use to_email, that is OUR sender address.
+  const recipientEmail = reply.preferred_recipient_email ?? reply.lead_email;
+  const recipientName = reply.preferred_recipient_name ?? reply.lead_name ?? null;
   const toEmails = [
     {
-      name: reply.lead_name ?? null,
-      email_address: reply.lead_email,
+      name: recipientName,
+      email_address: recipientEmail,
     },
   ];
   const response = await fetch(

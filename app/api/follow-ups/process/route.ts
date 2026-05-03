@@ -87,11 +87,14 @@ async function sendReplyToEmailBison(
     return false;
   }
 
-  // Always send to the lead's email. reply.to_email is the address THE LEAD sent
-  // their reply TO (our sender), not where we should reply BACK to.
+  // Recipient resolution: prefer override (set when forward/redirect was detected
+  // by the auto-reply processor), fall back to lead's email. Never use to_email,
+  // that is OUR sender address from the EmailBison webhook.
+  const recipientEmail = reply.preferred_recipient_email ?? reply.lead_email;
+  const recipientName = reply.preferred_recipient_name ?? reply.lead_name ?? null;
   const toEmails = [{
-    name: reply.lead_name ?? null,
-    email_address: reply.lead_email,
+    name: recipientName,
+    email_address: recipientEmail,
   }];
 
   const linkify = (text: string) =>
