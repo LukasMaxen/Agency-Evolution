@@ -158,6 +158,15 @@ Looking forward to speaking.
 - Signatures: always end with {SENDER_EMAIL_SIGNATURE} on its own line. Never write "Best," or "Best regards," or any name before it. The variable resolves to the full sender signature on send.
 - Always use a blank line between each paragraph. Never run sentences together into one block.
 
+**Booking CTA paragraph break (non-negotiable):** the meeting ask ("Worth a quick call?") and the actual time slots + link must be separated by a blank line. Never run them together in the same paragraph. The call ask closes one paragraph; the two time slots and Calendly link open the next.
+
+Example:
+> Worth a quick 30-minute call to walk through the details?
+>
+> If so, Tuesday at 10am CT or Wednesday at 2pm CT both work. If neither fits, feel free to grab a time here: [link]
+
+**CTA transition phrasing:** after asking "Worth a quick call?", open the slots paragraph with a conditional bridge such as "If so, Tuesday at 3pm or Wednesday at 11am BST both work." or "If so, I have availability Tuesday 10am CT or Wednesday 2pm CT." Do not jump straight to slot times without a connective. The Calendly fallback follows as a final sentence: "If neither works, feel free to grab a time here: [link]"
+
 ---
 
 ## Content Rules
@@ -182,6 +191,10 @@ Looking forward to speaking.
 - When redirected to another contact: acknowledge and email that contact directly, use the referral as the opener
 - Address all CC'd people in the reply (e.g., "Hi Melanie, Alex")
 - Match the language of the correspondence — French reply = French email
+
+**Tone and length mirroring (non-negotiable):** before drafting, assess the lead's reply — its length, formality, and energy level. The draft must match that register. A short, neutral reply warrants a short, measured response. A warmer or more detailed reply can justify slightly more. Do not default to a standard 3-paragraph structure if the lead wrote two sentences. This rule overrides any template shape.
+
+**Meeting confirmation replies:** when a lead confirms a meeting has already been booked and an invitation sent, reply only with a short confirmation (2 lines max). Do not add "if anything shifts", rescheduling offers, or any conditional language. The lead has already acted — acknowledge and close. See Scenario 4 in the Scenario Library for the correct pattern.
 
 ### Sender Identity (non-negotiable)
 
@@ -396,7 +409,9 @@ Do NOT send Calendly and ask them to "pick a slot" when they've already given yo
 >
 > Appreciated the context. The entry point is exactly what makes a conversation worth having — easier to walk through what the buyer is open to on a call than in an email.
 >
-> Worth 20 minutes? [Calendly link]
+> Worth 20 minutes?
+>
+> If so, Tuesday at 2pm or Wednesday at 11am both work. If neither fits, feel free to grab a time here: [Calendly link]
 
 ---
 
@@ -408,7 +423,7 @@ Do NOT send Calendly and ask them to "pick a slot" when they've already given yo
 **Lead message (alt):** "That works for me. Talk to you on Monday."
 *(Ramon, JOINN Biologics — ACT Capital)*
 
-**Response pattern:** 2–3 lines max. Confirm you have it, nothing else.
+**Response pattern:** 2 lines max. Confirm you have it. No conditional language, no rescheduling offers, nothing else.
 
 > Richard,
 >
@@ -416,7 +431,7 @@ Do NOT send Calendly and ask them to "pick a slot" when they've already given yo
 >
 > [Sender name]
 
-**Never:** "That's fantastic news", "Really appreciate it", "Super excited to connect" — all violate tone rules.
+**Never:** "That's fantastic news", "Really appreciate it", "Super excited to connect", "If anything shifts feel free to reschedule" — all violate tone and confirmation rules.
 
 ---
 
@@ -455,7 +470,9 @@ Do not make up an excuse for not sharing numbers. This framing is honest, pulls 
 >
 > Rich Hull suggested I reach out. We're working with a PE firm that recently acquired a platform in the AIDC space and is now looking to add robotics or machine vision capability.
 >
-> Happy to share the specifics on a quick call. Are you available this week or next?
+> Worth a quick call this week or next?
+>
+> If so, Tuesday at 3pm or Wednesday at 11am both work. If neither fits, feel free to grab a time here: [Calendly link]
 >
 > [Sender name]
 
@@ -527,7 +544,9 @@ Do not make up an excuse for not sharing numbers. This framing is honest, pulls 
 >
 > The buy-and-build angle is exactly the kind of thing worth a call. Our client is open to platform-style opportunities, and 20+ years of M&A experience on your end makes for a very different conversation than a standard seller.
 >
-> Are you free for 20 minutes next week?
+> Worth 20 minutes next week?
+>
+> If so, Tuesday at 10am or Thursday at 2pm both work. If neither fits, feel free to grab a time here: [Calendly link]
 
 ---
 
@@ -637,7 +656,9 @@ Two sub-patterns:
 >
 > Happy to qualify. Our client is a PE firm consolidating in IT services and software — add-ons typically in the €5-25M EBITDA range, not industrial. Given that context, the space question is worth a short call to clarify since sector framing often shifts when we get into specifics.
 >
-> 15 minutes next week?
+> Worth 15 minutes next week?
+>
+> If so, Tuesday at 11am or Thursday at 3pm both work. If neither fits, feel free to grab a time here: [Calendly link]
 
 ---
 
@@ -746,7 +767,9 @@ Do NOT: "If anything changes down the road feel free to reach out and best of lu
 >
 > The revenue range puts [Company] outside of what our current buyers are targeting, but the [merger / investor partner] angle is worth a conversation. We work with buyers across different structures and not everything needs to be a clean acquisition.
 >
-> Let's hop on a quick call and see if there is something worth exploring. Feel free to grab a time here: [Calendly link]
+> Worth a quick call to see if there is something worth exploring?
+>
+> If so, Tuesday at 2pm or Thursday at 10am both work. If neither fits, feel free to grab a time here: [Calendly link]
 
 ---
 
@@ -844,3 +867,5 @@ The AI-suggested replies in the dashboard often violate tone rules. Common issue
 - "Looking forward to diving into this with you" → "Looking forward to it"
 - Replies to a "yes/confirmed" message that run 4+ lines → cut to 2–3 lines max
 - Calendar confirmation replies that re-pitch the value → don't, just confirm the time
+- Booking CTA and time slots merged into one paragraph → split them, slots paragraph starts with "If so,"
+- Confirmation replies that add "if anything shifts" or rescheduling language → remove, the lead has already acted
