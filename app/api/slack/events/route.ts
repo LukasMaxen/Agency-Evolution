@@ -422,11 +422,37 @@ async function regenerateViaClaude(systemPrompt: string, userMessage: string): P
   }
   const data = await response.json();
   const raw = (data.content?.[0]?.text ?? "").replace(/```json|```/g, "").trim();
+
+  // Tolerant parser: try strict JSON first, fall back to extracting the outermost {...}.
   try {
     return JSON.parse(raw) as RegenResult;
   } catch {
-    console.error("[slack-events] regenerate JSON parse failed:", raw);
-    return null;
+    // Find the first { and the matching closing } using a brace counter so we
+    // ignore preamble like "Looking at the feedback:" or trailing prose.
+    const firstBrace = raw.indexOf("{");
+    if (firstBrace === -1) {
+      console.error("[slack-events] regenerate: no JSON object found in response:", raw.slice(0, 300));
+      return null;
+    }
+    let depth = 0;
+    let lastBrace = -1;
+    for (let i = firstBrace; i < raw.length; i++) {
+      if (raw[i] === "{") depth++;
+      else if (raw[i] === "}") {
+        depth--;
+        if (depth === 0) { lastBrace = i; break; }
+      }
+    }
+    if (lastBrace === -1) {
+      console.error("[slack-events] regenerate: unbalanced JSON braces:", raw.slice(0, 300));
+      return null;
+    }
+    try {
+      return JSON.parse(raw.slice(firstBrace, lastBrace + 1)) as RegenResult;
+    } catch (err: any) {
+      console.error("[slack-events] regenerate: JSON parse still failed after extraction:", err?.message, raw.slice(0, 300));
+      return null;
+    }
   }
 }
 
@@ -454,7 +480,7 @@ async function regenerateReplyDraft(draft: ReplyDraftRow, reviewerName: string, 
 
   const systemPrompt = `You are revising a drafted first-response email for Maxen Partners based on human feedback. Apply the feedback to produce a new draft.
 
-OUTPUT FORMAT (strict): a single JSON object, no preamble, no fences. Shape:
+OUTPUT FORMAT (CRITICAL): The very first character of your response MUST be "{" and the very last character MUST be "}". No preamble, no "Looking at...", no markdown fences, no analysis, no commentary, no thinking out loud. Just the JSON. Shape:
 {
   "subject": "short subject line, no Re: prefix (or keep the existing one if not changed)",
   "body": "full revised email body, plain text, greeting on its own line, blank lines between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line. Plain text only."
@@ -543,7 +569,7 @@ async function regenerateFollowUpDraft(draft: FollowUpDraftRow, reviewerName: st
 
   const systemPrompt = `You are revising a drafted follow-up email for Maxen Partners based on human feedback. Apply the feedback to produce a new draft.
 
-OUTPUT FORMAT (strict): a single JSON object, no preamble, no fences. Shape:
+OUTPUT FORMAT (CRITICAL): The very first character of your response MUST be "{" and the very last character MUST be "}". No preamble, no "Looking at...", no markdown fences, no analysis, no commentary, no thinking out loud. Just the JSON. Shape:
 {
   "subject": "short subject line, no Re: prefix (or keep existing if not changed)",
   "body": "full revised email body, plain text, greeting on its own line, blank lines between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line."
