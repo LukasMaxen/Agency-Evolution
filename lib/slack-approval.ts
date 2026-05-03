@@ -153,6 +153,7 @@ export async function postToSlack(opts: SlackPostOptions): Promise<string | null
 
 /**
  * Add a reaction emoji to a message (used to confirm approve/reject/feedback received).
+ * Logs the Slack error if the call fails so we can diagnose missing scopes.
  */
 export async function addReaction(
   channel: string,
@@ -169,7 +170,16 @@ export async function addReaction(
     },
     body: JSON.stringify({ channel, timestamp: ts, name }),
   });
-  const data = (await response.json().catch(() => ({}))) as { ok?: boolean };
+  const data = (await response.json().catch(() => ({}))) as {
+    ok?: boolean;
+    error?: string;
+  };
+  if (!data.ok) {
+    console.error(
+      `[slack] reactions.add failed for ${name} on ${ts} in ${channel}:`,
+      data.error
+    );
+  }
   return data.ok === true;
 }
 
