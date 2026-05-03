@@ -302,6 +302,16 @@ Identify patterns and propose rule updates now.`;
     blocks,
   });
 
+  // Persist the summary so the ✅ auto-apply flow can read the patterns back.
+  if (slackTs) {
+    const reviewId = `wr-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO weekly_reviews (id, slack_ts, channel, summary, status)
+       VALUES ($1, $2, $3, $4::jsonb, 'pending')`,
+      [reviewId, slackTs, FEEDBACK_REVIEW_CHANNEL, JSON.stringify(summary)]
+    );
+  }
+
   return NextResponse.json({
     ok: true,
     feedback_count: feedbackResult.rows.length,

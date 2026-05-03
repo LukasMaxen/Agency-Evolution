@@ -17,6 +17,7 @@ import {
   FEEDBACK_REVIEW_CHANNEL,
 } from "@/lib/slack-approval";
 import { daysUntilNextStep } from "@/lib/template-replies";
+import { readFileFromGitHub, commitFileToGitHub } from "@/lib/github-commit";
 
 interface ReplyDraftRow {
   id: string;
