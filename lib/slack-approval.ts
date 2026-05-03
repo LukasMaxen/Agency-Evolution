@@ -26,6 +26,19 @@ export const REJECT_REACTIONS = new Set([
   "rejected",
 ]);
 
+/**
+ * Strip em/en dashes and double-hyphens from email copy.
+ * Replaces them with a comma + space so sentence flow stays natural.
+ * Used after Claude returns drafted email bodies as a safety net.
+ */
+export function sanitizeDashes(text: string): string {
+  return text
+    .replace(/\s*—\s*/g, ", ")
+    .replace(/\s*–\s*/g, ", ")
+    .replace(/\s+--\s+/g, ", ")
+    .replace(/\s+-\s+/g, ", ");
+}
+
 export function slugToName(slug: string): string {
   return slug
     .split("-")

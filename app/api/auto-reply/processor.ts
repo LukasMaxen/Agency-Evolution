@@ -8,6 +8,7 @@ import {
   approvalFooterBlock,
   quoteForSlack,
   slugToName as slugToNameShared,
+  sanitizeDashes,
 } from "@/lib/slack-approval";
 
 interface AutoReplyResult {
@@ -45,7 +46,7 @@ function buildSlackBlocks({ header, workspaceSlug, reply, instanceUrl, reason }:
     ? `${instanceUrl}/inbox/replies/${reply.email_bison_reply_id}`
     : null;
 
-  const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(" — ");
+  const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(", ");
 
   const blocks: object[] = [
     {
@@ -248,7 +249,7 @@ async function sendReplyToEmailBison(
 }
 
 export async function processAutoReply(replyId: string, workspaceSlug: string): Promise<void> {
-  // Skip Hahnbeck, ITG Group, and Sonaro AI — client handles replies directly
+  // Skip Hahnbeck, ITG Group, and Sonaro AI, the client handles replies directly
   if (workspaceSlug === "hahnbeck" || workspaceSlug === "itg-group" || workspaceSlug === "sonaro-ai") {
     console.log(`[auto-reply] Skipping ${workspaceSlug} reply ${replyId}`);
     return;
@@ -260,7 +261,7 @@ export async function processAutoReply(replyId: string, workspaceSlug: string): 
     [replyId]
   );
   if (claim.rows.length === 0) {
-    console.log(`[auto-reply] Reply ${replyId} already claimed or processed — skipping`);
+    console.log(`[auto-reply] Reply ${replyId} already claimed or processed, skipping`);
     return;
   }
 
@@ -332,16 +333,24 @@ ${reply.message}`;
   if (!result) {
     await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
     await postToSlack({
-      text: `Auto-reply failed (Claude error) — ${workspaceSlug} / ${reply.lead_name}`,
+      text: `Auto-reply failed (Claude error), ${workspaceSlug} / ${reply.lead_name}`,
       blocks: buildSlackBlocks({
-        header: "⚠️ Auto-reply failed (Claude error)",
+        header: "Auto-reply failed (Claude error)",
         workspaceSlug,
         reply,
         instanceUrl: workspace.email_bison_instance_url ?? "",
-        reason: "Claude API error — needs manual handling",
+        reason: "Claude API error, needs manual handling",
       }),
     });
     return;
+  }
+
+  // Strip any em/en dashes Claude leaked through despite the rules in CONTEXT_Replies.md.
+  if (result.reply_body) {
+    result.reply_body = sanitizeDashes(result.reply_body);
+  }
+  if (result.manual_reason) {
+    result.manual_reason = sanitizeDashes(result.manual_reason);
   }
 
   if (result.flag_unsubscribe) {
@@ -436,9 +445,9 @@ ${reply.message}`;
   } else if (result.action === "manual") {
     await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
     await postToSlack({
-      text: `Manual booking needed — ${workspaceSlug} / ${reply.lead_name}`,
+      text: `Manual booking needed, ${workspaceSlug} / ${reply.lead_name}`,
       blocks: buildSlackBlocks({
-        header: "📅 Manual booking needed",
+        header: "Manual booking needed",
         workspaceSlug,
         reply: replyWithCreds,
         instanceUrl: workspace.email_bison_instance_url ?? "",

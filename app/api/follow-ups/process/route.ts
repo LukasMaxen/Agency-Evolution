@@ -8,6 +8,7 @@ import {
   approvalFooterBlock,
   quoteForSlack,
   slugToName,
+  sanitizeDashes,
 } from "@/lib/slack-approval";
 
 interface FollowUpRow {
@@ -35,15 +36,6 @@ function readFile(filePath: string): string {
   }
 }
 
-// Strip em/en dashes and double-hyphens from email copy.
-// Replaces them with a comma + space, so sentence flow stays natural.
-function sanitizeDashes(text: string): string {
-  return text
-    .replace(/\s*—\s*/g, ", ")
-    .replace(/\s*–\s*/g, ", ")
-    .replace(/\s+--\s+/g, ", ")
-    .replace(/\s+-\s+/g, ", ");
-}
 
 async function callClaude(systemPrompt: string, userMessage: string): Promise<DraftResult | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
