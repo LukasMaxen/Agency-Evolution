@@ -660,6 +660,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid signature" }, { status: 401 });
   }
 
+  // Slack retries any event that does not get 200 within 3 seconds.
+  // Our regenerate flow calls Claude which takes 5-15 seconds, so we MUST
+  // respond fast and process in the background.
+  const retryNum = req.headers.get("x-slack-retry-num");
+  if (retryNum) {
+    // This is a retry from Slack. Original handler is still running. Ignore.
+    console.log(`[slack-events] ignoring retry attempt ${retryNum}`);
+    return NextResponse.json({ ok: true, ignored: "retry" });
+  }
+
   if (body.type !== "event_callback") {
     return NextResponse.json({ ok: true });
   }
@@ -667,15 +677,19 @@ export async function POST(req: NextRequest) {
   const event = body.event;
   if (!event) return NextResponse.json({ ok: true });
 
-  try {
+  // Fire and forget: don't await the handler, respond to Slack immediately.
+  // Errors are logged inside the handler.
+  setImmediate(() => {
     if (event.type === "reaction_added") {
-      await handleReactionAdded(event);
+      handleReactionAdded(event).catch(err =>
+        console.error("[slack-events] reaction handler error:", err)
+      );
     } else if (event.type === "message") {
-      await handleThreadMessage(event);
+      handleThreadMessage(event).catch(err =>
+        console.error("[slack-events] message handler error:", err)
+      );
     }
-  } catch (err: any) {
-    console.error("[slack-events] handler error:", err);
-  }
+  });
 
   return NextResponse.json({ ok: true });
 }
