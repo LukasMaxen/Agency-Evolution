@@ -335,6 +335,30 @@ async function handleReactionAdded(event: any): Promise<void> {
     if (isApprove) await approveFollowUpDraft(draft, userName, channel, ts);
     else if (isEditApprove) await regenerateFollowUpDraft(draft, userName, channel, ts);
     else await rejectFollowUpDraft(draft, userName, channel, ts);
+    return;
+  }
+
+  // Reaction is not on any tracked draft. If the message is in #feedback-review,
+  // log the reaction and confirm visually so the team knows the input was received.
+  const channelName = await getChannelName(channel);
+  if (channelName === bareChannelName(FEEDBACK_REVIEW_CHANNEL)) {
+    const reactionLabel = isApprove ? "approve" : isReject ? "reject" : "edit_request";
+    await pool.query(
+      `INSERT INTO draft_feedback
+         (id, draft_type, draft_id, slack_user_id, slack_user_name, message_text, action, slack_ts, parent_slack_ts)
+       VALUES ($1,'weekly_review',$2,$3,$4,$5,$6,$7,$7)`,
+      [
+        `fb-rxn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        ts,
+        userId,
+        userName,
+        `[reaction: :${reaction}:]`,
+        reactionLabel === "approve" ? "approve_review" : reactionLabel === "reject" ? "reject_review" : "edit_request",
+        ts,
+      ]
+    );
+    await addReaction(channel, ts, "eyes");
+    console.log(`[slack-events] Logged ${reactionLabel} reaction by ${userName} on weekly review ${ts}`);
   }
 }
 
@@ -623,7 +647,24 @@ async function handleThreadMessage(event: any): Promise<void> {
     }
   }
 
-  if (!draftType || !draftId) return; // not on a draft thread
+  // No draft? Check if this thread is in #feedback-review (the weekly review channel).
+  // If yes, capture as weekly_review feedback so the next chat session can read it.
+  if (!draftType || !draftId) {
+    const channelName = await getChannelName(channel);
+    if (channelName === bareChannelName(FEEDBACK_REVIEW_CHANNEL)) {
+      const userName = await getSlackUserName(userId);
+      const feedbackId = `fb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      await pool.query(
+        `INSERT INTO draft_feedback
+           (id, draft_type, draft_id, workspace_slug, slack_user_id, slack_user_name, message_text, action, slack_ts, parent_slack_ts)
+         VALUES ($1,'weekly_review',$2,NULL,$3,$4,$5,'feedback',$6,$7)`,
+        [feedbackId, parentTs, userId, userName, text, ts, parentTs]
+      );
+      await addReaction(channel, ts, "eyes");
+      console.log(`[slack-events] Captured weekly_review feedback ${feedbackId}`);
+    }
+    return;
+  }
 
   const userName = await getSlackUserName(userId);
   const feedbackId = `fb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
