@@ -83,8 +83,28 @@ Value add #2, different angle from FU2. New motivation or strategic consideratio
 **FU5, template `fu-check-in.md`** (7 days after FU4)
 Direct check-in, the gold-standard "Should we move this forward or just leave it?" pattern. Single line, no padding.
 
-**FU6, Sonnet** (14 days after FU5) — *3 to 5 lines*
-Final email. Combines one last value point (a fresh angle, a specific deal closing in their space, or a market shift) with a soft no-pressure close. References the prior thread implicitly. Effectively a break-up but with one last hook.
+**FU6, Sonnet** (14 days after FU5) — *strict 4-line structure*
+
+This is the final email in the sequence. It must follow this exact shape, no exceptions:
+
+```
+Line 1: Hi {first_name},
+Line 2-3: ONE specific value point. A recent comparable deal, a sector shift, a buyer activity update, or a market data point. Must be concrete (eg "a similar-sized acquisition closed in the UK last week with the founder retaining a stake"). Must NOT repeat any angle used in FU2 or FU4. Maximum 2 sentences, ~30 words.
+Line 4: Soft close, no pressure. Examples: "If anything ever shifts at {company}, you have my contact." or "Otherwise we will be around when timing makes sense." Maximum 1 sentence, ~15 words.
+Line 5: {SENDER_EMAIL_SIGNATURE}
+```
+
+Total target: 4 to 5 lines of body, under 50 words excluding the greeting and signature.
+
+Wrong (too long, generic):
+> Wanted to send one final note before stepping back. The space has been particularly active in the last few weeks, with several mid-market deals closing and buyers leaning back in. Our buyer has continued to look at businesses in this space, and what makes your company interesting is a combination of brand equity and operational efficiency. If anything ever changes for you, even just to know what comparable transactions are pricing at, you have my contact. Otherwise we will be around when timing makes sense.
+
+Right (one specific value point + clean close):
+> A craft brewing platform we work with closed a similar-sized acquisition in the UK last week, with the founder retaining a meaningful stake and staying on as a brand advisor. If that kind of structure is ever interesting at Wiper and True, you have my contact.
+>
+> Otherwise we will be around when timing shifts.
+
+The structure forces brevity, prevents Claude from rambling, and gives the lead one concrete hook they can come back to even months later.
 
 ### Abbreviated sequence (2 steps, sent 2 days then 9 days after first response)
 
