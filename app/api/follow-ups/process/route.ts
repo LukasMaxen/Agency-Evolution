@@ -236,6 +236,12 @@ Draft FU step ${nextStep} now.`;
 
     const quotedBody = quoteForSlack(draft.body, 2500);
 
+    const inboundPreview = (reply.message ?? "")
+      .slice(0, 600)
+      .split("\n")
+      .map((l: string) => `> ${l}`)
+      .join("\n");
+
     const slackTs = await postToSlackShared({
       channel: FU_APPROVAL_CHANNEL,
       text: `FU step ${nextStep} draft, ${fu.workspace_slug}, ${reply.lead_name}`,
@@ -246,9 +252,20 @@ Draft FU step ${nextStep} now.`;
         },
         {
           type: "section",
+          fields: [
+            { type: "mrkdwn", text: `*Client:*\n${slugToName(fu.workspace_slug)}` },
+            { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign ?? "unknown"}` },
+          ],
+        },
+        {
+          type: "section",
+          text: { type: "mrkdwn", text: `*Lead:* ${reply.lead_name}, ${reply.lead_email}` },
+        },
+        {
+          type: "section",
           text: {
             type: "mrkdwn",
-            text: `*Client:* ${slugToName(fu.workspace_slug)}\n*Lead:* ${reply.lead_name}, ${reply.lead_email}\n*Campaign:* ${reply.campaign ?? "unknown"}\n*Original subject:* ${reply.subject ?? "(no subject)"}\n*Sender used:* ${reply.sender_email ?? "unknown"}\n*Sequence:* ${fu.fu_sequence_type} (step ${nextStep}/${fu.total_emails})`,
+            text: `*Sequence:* ${fu.fu_sequence_type}  ·  *Step:* ${nextStep}/${fu.total_emails}`,
           },
         },
         {
@@ -257,7 +274,11 @@ Draft FU step ${nextStep} now.`;
         },
         {
           type: "section",
-          text: { type: "mrkdwn", text: `*Body:*\n${quotedBody}` },
+          text: { type: "mrkdwn", text: `*Lead's original reply:*\n${inboundPreview}` },
+        },
+        {
+          type: "section",
+          text: { type: "mrkdwn", text: `*Drafted follow-up:*\n${quotedBody}` },
         },
         approvalFooterBlock(),
       ],

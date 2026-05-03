@@ -126,10 +126,25 @@ async function postReplyApprovalCard(opts: ReplyApprovalCardOpts): Promise<strin
     },
     {
       type: "section",
+      fields: [
+        { type: "mrkdwn", text: `*Client:*\n${slugToNameShared(workspaceSlug)}` },
+        { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign ?? "unknown"}` },
+      ],
+    },
+    {
+      type: "section",
+      text: { type: "mrkdwn", text: `*Lead:* ${leadLine}` },
+    },
+    {
+      type: "section",
       text: {
         type: "mrkdwn",
-        text: `*Client:* ${slugToNameShared(workspaceSlug)}\n*Lead:* ${leadLine}\n*Campaign:* ${reply.campaign ?? "unknown"}\n*Subject thread:* ${reply.subject ?? "(no subject)"}\n*Sender used:* ${reply.sender_email ?? "unknown"}\n*Intent:* ${result.intent}  ·  *FU sequence:* ${result.fu_sequence_type}`,
+        text: `*Intent:* ${result.intent}  ·  *FU sequence:* ${result.fu_sequence_type}`,
       },
+    },
+    {
+      type: "section",
+      text: { type: "mrkdwn", text: `*Subject:* ${reply.subject ?? "(no subject)"}` },
     },
     {
       type: "section",
