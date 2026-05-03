@@ -7,6 +7,8 @@ export const FU_APPROVAL_CHANNEL =
   process.env.FU_APPROVAL_SLACK_CHANNEL ?? "#follow-up-approval";
 export const MANUAL_REPLIES_CHANNEL =
   process.env.MANUAL_REPLIES_SLACK_CHANNEL ?? "#manual-replies";
+export const FEEDBACK_REVIEW_CHANNEL =
+  process.env.FEEDBACK_REVIEW_SLACK_CHANNEL ?? "#feedback-review";
 
 export const APPROVE_REACTIONS = new Set([
   "white_check_mark",
