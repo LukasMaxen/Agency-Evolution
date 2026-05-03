@@ -127,7 +127,7 @@ async function postReplyApprovalCard(opts: ReplyApprovalCardOpts): Promise<strin
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `*Client:* ${slugToNameShared(workspaceSlug)}\n*Lead:* ${leadLine}\n*Intent:* ${result.intent}  ·  *FU sequence:* ${result.fu_sequence_type}`,
+        text: `*Client:* ${slugToNameShared(workspaceSlug)}\n*Lead:* ${leadLine}\n*Campaign:* ${reply.campaign ?? "unknown"}\n*Subject thread:* ${reply.subject ?? "(no subject)"}\n*Sender used:* ${reply.sender_email ?? "unknown"}\n*Intent:* ${result.intent}  ·  *FU sequence:* ${result.fu_sequence_type}`,
       },
     },
     {
@@ -205,9 +205,11 @@ async function sendReplyToEmailBison(
     return false;
   }
 
+  // Always send to the lead's email. reply.to_email is the address THE LEAD sent
+  // their reply TO (our sender), not where we should reply BACK to.
   const toEmails = [{
     name: reply.lead_name ?? null,
-    email_address: reply.to_email ?? reply.lead_email,
+    email_address: reply.lead_email,
   }];
 
   const linkify = (text: string) =>

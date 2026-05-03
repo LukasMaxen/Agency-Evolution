@@ -66,10 +66,12 @@ async function sendViaEmailBison(
     console.error("[slack-events] Missing EmailBison fields, cannot send");
     return false;
   }
+  // Always send to the lead's email. reply.to_email is the address THE LEAD sent
+  // their reply TO (our sender), not where we should reply BACK to.
   const toEmails = [
     {
       name: reply.lead_name ?? null,
-      email_address: reply.to_email ?? reply.lead_email,
+      email_address: reply.lead_email,
     },
   ];
   const response = await fetch(

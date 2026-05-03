@@ -95,9 +95,11 @@ async function sendReplyToEmailBison(
     return false;
   }
 
+  // Always send to the lead's email. reply.to_email is the address THE LEAD sent
+  // their reply TO (our sender), not where we should reply BACK to.
   const toEmails = [{
     name: reply.lead_name ?? null,
-    email_address: reply.to_email ?? reply.lead_email,
+    email_address: reply.lead_email,
   }];
 
   const linkify = (text: string) =>
@@ -254,7 +256,7 @@ Draft FU step ${nextStep} now.`;
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*Client:* ${slugToName(fu.workspace_slug)}\n*Lead:* ${reply.lead_name}, ${reply.lead_email}\n*Sequence:* ${fu.fu_sequence_type} (step ${nextStep}/${fu.total_emails})`,
+            text: `*Client:* ${slugToName(fu.workspace_slug)}\n*Lead:* ${reply.lead_name}, ${reply.lead_email}\n*Campaign:* ${reply.campaign ?? "unknown"}\n*Original subject:* ${reply.subject ?? "(no subject)"}\n*Sender used:* ${reply.sender_email ?? "unknown"}\n*Sequence:* ${fu.fu_sequence_type} (step ${nextStep}/${fu.total_emails})`,
           },
         },
         {
