@@ -67,7 +67,7 @@ export function approvalFooterBlock(): object {
     elements: [
       {
         type: "mrkdwn",
-        text: "Send as drafted with :white_check_mark:. To edit, paste your version in this thread, then react :pencil2: to send the edited version. Thread replies without :pencil2: are saved as feedback for future drafts.",
+        text: "Two options:  :white_check_mark: send the draft as-is  ·  :pencil2: regenerate with your feedback (write what to change in this thread first, then react :pencil2: , review the new version posted in the thread, react :white_check_mark: to send when happy)",
       },
     ],
   };

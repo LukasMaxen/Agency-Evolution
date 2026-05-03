@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
+import fs from "fs";
+import path from "path";
 import {
   verifySlackSignature,
   APPROVE_REACTIONS,
@@ -9,6 +11,7 @@ import {
   postToSlack,
   getSlackUserName,
   sanitizeDashes,
+  quoteForSlack,
 } from "@/lib/slack-approval";
 
 interface ReplyDraftRow {
@@ -301,20 +304,6 @@ async function handleReactionAdded(event: any): Promise<void> {
   // Resolve the Slack user ID to a display name once. Falls back to ID if lookup fails.
   const userName = await getSlackUserName(userId);
 
-  // If this is an edit-approve, fetch the latest thread feedback as the new body.
-  let editedBody: string | null = null;
-  if (isEditApprove) {
-    editedBody = await getLatestThreadEdit(ts);
-    if (!editedBody) {
-      await postToSlack({
-        channel,
-        threadTs: ts,
-        text: "No edited version found in this thread. Paste the corrected email body as a thread reply, then react with :pencil2: again.",
-      });
-      return;
-    }
-  }
-
   // Try reply_drafts first
   const rd = await pool.query<ReplyDraftRow>(
     `SELECT * FROM reply_drafts WHERE slack_ts = $1 AND status = 'pending' LIMIT 1`,
@@ -323,7 +312,7 @@ async function handleReactionAdded(event: any): Promise<void> {
   if (rd.rows.length > 0) {
     const draft = rd.rows[0];
     if (isApprove) await approveReplyDraft(draft, userName, channel, ts);
-    else if (isEditApprove && editedBody) await approveReplyDraft({ ...draft, body: editedBody }, userName, channel, ts);
+    else if (isEditApprove) await regenerateReplyDraft(draft, userName, channel, ts);
     else await rejectReplyDraft(draft, userName, channel, ts);
     return;
   }
@@ -341,36 +330,253 @@ async function handleReactionAdded(event: any): Promise<void> {
   if (fud.rows.length > 0) {
     const draft = fud.rows[0];
     if (isApprove) await approveFollowUpDraft(draft, userName, channel, ts);
-    else if (isEditApprove && editedBody) await approveFollowUpDraft({ ...draft, body: editedBody }, userName, channel, ts);
+    else if (isEditApprove) await regenerateFollowUpDraft(draft, userName, channel, ts);
     else await rejectFollowUpDraft(draft, userName, channel, ts);
   }
 }
 
 /**
- * Pulls the latest thread message that the team posted on a draft card,
- * resolves any leftover Slack mention/format markup, and returns the body.
- * Returns null if no thread feedback exists for this draft.
+ * Pulls every thread feedback message left on a draft card (oldest first).
+ * Returns empty array if no feedback exists.
  */
-async function getLatestThreadEdit(parentTs: string): Promise<string | null> {
+async function getThreadFeedback(parentTs: string): Promise<string[]> {
   const result = await pool.query(
     `SELECT message_text FROM draft_feedback
      WHERE parent_slack_ts = $1
-     ORDER BY created_at DESC
-     LIMIT 1`,
+     ORDER BY created_at ASC`,
     [parentTs]
   );
-  if (result.rows.length === 0) return null;
-  const raw = result.rows[0].message_text as string;
-  if (!raw || raw.trim().length < 20) return null;
-  // Strip Slack-style mentions and zero-width chars, then sanitize dashes.
-  const cleaned = raw
-    .replace(/<@[A-Z0-9]+>/g, "")
-    .replace(/<#[A-Z0-9]+\|[^>]*>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .trim();
-  return sanitizeDashes(cleaned);
+  return result.rows
+    .map(r => (r.message_text as string)
+      .replace(/<@[A-Z0-9]+>/g, "")
+      .replace(/<#[A-Z0-9]+\|[^>]*>/g, "")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .trim())
+    .filter(t => t.length > 0);
+}
+
+function readContextFile(rel: string): string {
+  try {
+    return fs.readFileSync(path.join(process.cwd(), rel), "utf-8");
+  } catch {
+    return "";
+  }
+}
+
+interface RegenResult {
+  body: string;
+  subject?: string;
+}
+
+async function regenerateViaClaude(systemPrompt: string, userMessage: string): Promise<RegenResult | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1500,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+    }),
+  });
+
+  if (!response.ok) {
+    console.error("[slack-events] Claude regenerate error:", response.status, await response.text());
+    return null;
+  }
+  const data = await response.json();
+  const raw = (data.content?.[0]?.text ?? "").replace(/```json|```/g, "").trim();
+  try {
+    return JSON.parse(raw) as RegenResult;
+  } catch {
+    console.error("[slack-events] regenerate JSON parse failed:", raw);
+    return null;
+  }
+}
+
+async function regenerateReplyDraft(draft: ReplyDraftRow, reviewerName: string, channel: string, ts: string): Promise<void> {
+  const feedback = await getThreadFeedback(ts);
+  if (feedback.length === 0) {
+    await postToSlack({
+      channel,
+      threadTs: ts,
+      text: "No feedback found in this thread. Add a comment with what to change, then react :pencil2: again.",
+    });
+    return;
+  }
+
+  // Pull the original lead reply for full context
+  const replyResult = await pool.query(
+    `SELECT * FROM replies WHERE id = $1`,
+    [draft.reply_id]
+  );
+  if (replyResult.rows.length === 0) return;
+  const reply = replyResult.rows[0];
+
+  const clientFile = readContextFile(`clients/${draft.workspace_slug}.md`);
+  const replyContext = readContextFile(`1. Departments/reply-management/CONTEXT_Replies.md`);
+
+  const systemPrompt = `You are revising a drafted first-response email for Maxen Partners based on human feedback. Apply the feedback to produce a new draft.
+
+OUTPUT FORMAT (strict): a single JSON object, no preamble, no fences. Shape:
+{
+  "subject": "short subject line, no Re: prefix (or keep the existing one if not changed)",
+  "body": "full revised email body, plain text, greeting on its own line, blank lines between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line. Plain text only."
+}
+
+Apply the human feedback as the priority. Keep what is already good in the original draft. Honour every rule in CONTEXT_Replies.md (tone, formatting, no dashes, no colons in body, banned phrases, booking prompt format, etc).
+
+If the human feedback contradicts a rule in CONTEXT_Replies.md, follow the feedback (humans are training the system).
+
+=== CONTEXT_Replies.md ===
+${replyContext}`;
+
+  const userMessage = `CLIENT WORKSPACE: ${draft.workspace_slug}
+
+CLIENT FILE:
+${clientFile}
+
+LEAD:
+Name: ${reply.lead_name}
+Company: ${reply.lead_company ?? "unknown"}
+Title: ${reply.lead_title ?? "unknown"}
+
+ORIGINAL LEAD REPLY:
+${reply.message}
+
+CURRENT DRAFT (subject: ${draft.subject ?? ""}):
+${draft.body ?? ""}
+
+HUMAN FEEDBACK (most recent last):
+${feedback.map((f, i) => `[${i + 1}] ${f}`).join("\n\n")}
+
+Produce the revised draft now.`;
+
+  const regen = await regenerateViaClaude(systemPrompt, userMessage);
+  if (!regen?.body) {
+    await postToSlack({
+      channel,
+      threadTs: ts,
+      text: "Could not regenerate the draft (Claude error). Try again or paste the full revised email and react :pencil2:.",
+    });
+    return;
+  }
+
+  const newBody = sanitizeDashes(regen.body);
+  const newSubject = regen.subject ? sanitizeDashes(regen.subject) : draft.subject;
+
+  await pool.query(
+    `UPDATE reply_drafts SET body = $1, subject = $2 WHERE id = $3`,
+    [newBody, newSubject, draft.id]
+  );
+
+  await postToSlack({
+    channel,
+    threadTs: ts,
+    text: `Regenerated by ${reviewerName}, react :white_check_mark: on the card to send, or comment + :pencil2: again to iterate.\n\n*New subject:* ${newSubject}\n\n*New body:*\n${quoteForSlack(newBody, 2500)}`,
+  });
+}
+
+async function regenerateFollowUpDraft(draft: FollowUpDraftRow, reviewerName: string, channel: string, ts: string): Promise<void> {
+  const feedback = await getThreadFeedback(ts);
+  if (feedback.length === 0) {
+    await postToSlack({
+      channel,
+      threadTs: ts,
+      text: "No feedback found in this thread. Add a comment with what to change, then react :pencil2: again.",
+    });
+    return;
+  }
+
+  const replyResult = await pool.query(
+    `SELECT * FROM replies WHERE id = $1`,
+    [draft.reply_id]
+  );
+  if (replyResult.rows.length === 0) return;
+  const reply = replyResult.rows[0];
+
+  const prevSent = await pool.query(
+    `SELECT body FROM sent_emails WHERE reply_id = $1 AND email_type IN ('follow_up','auto_reply') ORDER BY sent_at ASC`,
+    [draft.reply_id]
+  );
+  const prevBodies = prevSent.rows.map(r => r.body).filter(Boolean);
+
+  const clientFile = readContextFile(`clients/${draft.workspace_slug}.md`);
+  const fuContext = readContextFile(`1. Departments/follow-up-management/CONTEXT_FollowUps.md`);
+  const replyContext = readContextFile(`1. Departments/reply-management/CONTEXT_Replies.md`);
+
+  const systemPrompt = `You are revising a drafted follow-up email for Maxen Partners based on human feedback. Apply the feedback to produce a new draft.
+
+OUTPUT FORMAT (strict): a single JSON object, no preamble, no fences. Shape:
+{
+  "subject": "short subject line, no Re: prefix (or keep existing if not changed)",
+  "body": "full revised email body, plain text, greeting on its own line, blank lines between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line."
+}
+
+This is a follow-up, NOT a first response. The lead has already received our previous emails (listed below) and not replied. Apply the human feedback as the priority. Honour all rules in the context files.
+
+=== CONTEXT_FollowUps.md ===
+${fuContext}
+
+=== CONTEXT_Replies.md (cross-cutting tone and formatting) ===
+${replyContext}`;
+
+  const userMessage = `CLIENT WORKSPACE: ${draft.workspace_slug}
+
+CLIENT FILE:
+${clientFile}
+
+LEAD:
+Name: ${reply.lead_name}
+Company: ${reply.lead_company ?? "unknown"}
+Title: ${reply.lead_title ?? "unknown"}
+
+ORIGINAL LEAD REPLY:
+${reply.message}
+
+PREVIOUSLY SENT EMAILS (do not repeat these angles):
+${prevBodies.length > 0 ? prevBodies.map((b, i) => `=== Email ${i + 1} ===\n${b}`).join("\n\n") : "(none on record)"}
+
+CURRENT FU DRAFT (step ${draft.fu_step} of ${draft.total_emails}, subject: ${draft.subject ?? ""}):
+${draft.body}
+
+HUMAN FEEDBACK (most recent last):
+${feedback.map((f, i) => `[${i + 1}] ${f}`).join("\n\n")}
+
+Produce the revised follow-up draft now.`;
+
+  const regen = await regenerateViaClaude(systemPrompt, userMessage);
+  if (!regen?.body) {
+    await postToSlack({
+      channel,
+      threadTs: ts,
+      text: "Could not regenerate the FU draft (Claude error). Try again or paste the full revised email and react :pencil2:.",
+    });
+    return;
+  }
+
+  const newBody = sanitizeDashes(regen.body);
+  const newSubject = regen.subject ? sanitizeDashes(regen.subject) : draft.subject;
+
+  await pool.query(
+    `UPDATE follow_up_drafts SET body = $1, subject = $2 WHERE id = $3`,
+    [newBody, newSubject, draft.id]
+  );
+
+  await postToSlack({
+    channel,
+    threadTs: ts,
+    text: `Regenerated by ${reviewerName}, react :white_check_mark: on the card to send, or comment + :pencil2: again to iterate.\n\n*New subject:* ${newSubject}\n\n*New body:*\n${quoteForSlack(newBody, 2500)}`,
+  });
 }
 
 // ─── Thread message handler (feedback capture) ─────────────────────────────────
