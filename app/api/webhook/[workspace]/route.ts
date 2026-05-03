@@ -100,9 +100,26 @@ export async function POST(
       }
 
       // Follow_ups record for NEW leads is created by processAutoReply
-      // after intent is determined — sequence type (full/abbreviated/none)
+      // after intent is determined, sequence type (full/abbreviated/none)
       // depends on what Claude reads in the reply.
       await processAutoReply(replyUuid, slug);
+
+      // Slack notification to the client's [client]-replies channel.
+      // Replaces the Make.com "Email Reply Notifications" scenario for this workspace.
+      if (workspace.slack_channel_replies) {
+        const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+        await notifyReply({
+          channel: workspace.slack_channel_replies,
+          workspaceName: workspace.name ?? slug,
+          leadName,
+          leadEmail,
+          leadCompany: lead.company ?? null,
+          campaign: campaign?.name ?? "",
+          subject: reply.email_subject ?? "",
+          message,
+          replyUrl: appUrl ? `${appUrl}/replies/${replyUuid}` : undefined,
+        });
+      }
 
       return NextResponse.json({ ok: true, event: "LEAD_REPLIED", id: replyUuid });
     }
