@@ -13,6 +13,7 @@ import {
 import {
   renderTemplate as renderReplyTemplate,
   varsFromReply,
+  daysUntilNextStep,
 } from "@/lib/template-replies";
 
 interface FollowUpRow {
@@ -227,23 +228,33 @@ ${prevBodies.length > 0 ? prevBodies.map((b, i) => `=== Email ${i + 1}${i === 0 
 
 Draft FU step ${nextStep} now.`;
 
-  // ── Template branch for the final break-up step ───────────────────────────
-  // FU5 of the full sequence and FU2 of the abbreviated sequence are both
-  // break-ups, with deterministic copy and no need for Claude. Save the cost.
-  const isBreakupStep = nextStep === fu.total_emails;
-  let draft: DraftResult | null;
+  // ── Template vs Sonnet routing ──────────────────────────────────────────────
+  // Full sequence (6 steps): odd steps (1, 3, 5) are templates, even steps (2, 4, 6) are Sonnet.
+  // Abbreviated sequence (2 steps): step 1 is Sonnet (reframe), step 2 is the fu-breakup template.
+  // Template names live in the templates folder. Renaming or editing them does
+  // not require a code change.
+  let templateName: string | null = null;
+  if (fu.fu_sequence_type === "full") {
+    if (nextStep === 1) templateName = "fu-nudge";
+    else if (nextStep === 3) templateName = "fu-move-forward";
+    else if (nextStep === 5) templateName = "fu-check-in";
+  } else if (fu.fu_sequence_type === "abbreviated" && nextStep === fu.total_emails) {
+    templateName = "fu-breakup";
+  }
 
-  if (isBreakupStep) {
+  let draft: DraftResult | null;
+  if (templateName) {
     const vars = varsFromReply(reply, fu.workspace_slug);
-    const body = renderReplyTemplate("fu-breakup", vars);
+    const body = renderReplyTemplate(templateName, vars);
     if (!body) {
-      console.error(`[fu-process] fu-breakup template missing, falling back to Sonnet`);
+      console.error(`[fu-process] template ${templateName} missing, falling back to Sonnet for step ${nextStep}`);
       draft = await callClaude(systemPrompt, userMessage);
     } else {
       draft = {
         subject: reply.subject ?? "",
         body,
       };
+      console.log(`[fu-process] using template ${templateName} for ${fu.workspace_slug} step ${nextStep}`);
     }
   } else {
     draft = await callClaude(systemPrompt, userMessage);
@@ -353,15 +364,16 @@ Draft FU step ${nextStep} now.`;
     [sentId, fu.reply_id, fu.workspace_slug, reply.lead_email, reply.lead_name, draft.subject, draft.body]
   );
 
-  // Advance step + schedule next
+  // Advance step + schedule next using the cadence helper
   const isFinalStep = nextStep >= fu.total_emails;
+  const gapDays = daysUntilNextStep(fu.fu_sequence_type, nextStep);
   await pool.query(
     `UPDATE follow_ups
        SET fu_step = $1,
            last_fu_sent_at = NOW(),
            next_fu_due = $2
      WHERE id = $3`,
-    [nextStep, isFinalStep ? null : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), fu.id]
+    [nextStep, isFinalStep ? null : new Date(Date.now() + gapDays * 24 * 60 * 60 * 1000), fu.id]
   );
 
   if (isFinalStep) {

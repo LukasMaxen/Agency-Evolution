@@ -725,8 +725,9 @@ async function createFollowUpRecord(
 ): Promise<void> {
   if (fuSequenceType === "none" || flagMeetingBooked || flagUnsubscribe) return;
 
-  // full = 5 steps; abbreviated = 2 steps (FU1 reframe + FU5 break-up)
-  const totalEmails = fuSequenceType === "abbreviated" ? 2 : 5;
+  // full = 6 steps (template, Sonnet, template, Sonnet, template, Sonnet)
+  // abbreviated = 2 steps (Sonnet reframe + template break-up)
+  const totalEmails = fuSequenceType === "abbreviated" ? 2 : 6;
   const fuId = `fu-${replyId}-${Date.now()}`;
 
   await pool.query(

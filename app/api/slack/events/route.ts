@@ -16,6 +16,7 @@ import {
   quoteForSlack,
   FEEDBACK_REVIEW_CHANNEL,
 } from "@/lib/slack-approval";
+import { daysUntilNextStep } from "@/lib/template-replies";
 
 interface ReplyDraftRow {
   id: string;
@@ -257,7 +258,7 @@ async function approveFollowUpDraft(draft: FollowUpDraftRow, slackUserId: string
      WHERE id = $4`,
     [
       draft.fu_step,
-      isFinal ? null : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      isFinal ? null : new Date(Date.now() + daysUntilNextStep(draft.fu_sequence_type, draft.fu_step) * 24 * 60 * 60 * 1000),
       isFinal ? "exhausted" : null,
       draft.follow_up_id,
     ]
@@ -283,7 +284,7 @@ async function rejectFollowUpDraft(draft: FollowUpDraftRow, slackUserId: string,
      WHERE id = $4`,
     [
       draft.fu_step,
-      isFinal ? null : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      isFinal ? null : new Date(Date.now() + daysUntilNextStep(draft.fu_sequence_type, draft.fu_step) * 24 * 60 * 60 * 1000),
       isFinal ? "exhausted" : null,
       draft.follow_up_id,
     ]

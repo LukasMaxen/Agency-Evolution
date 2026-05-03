@@ -48,22 +48,29 @@ Once Reply Management has classified and written this to `follow_ups`, the FU pr
 
 ## Step Purposes
 
-### Full sequence (5 steps, sent every 7 days starting 2 days after first response)
+### Full sequence (6 steps, alternating template and Sonnet)
 
-**FU1 — Direct re-open** (4 to 6 lines)
-The lead showed a positive or neutral signal, did not book yet, and has not replied to our first response. Open with a brief follow-up framing (eg "Following up on my last note"). Ask for the meeting with exactly two specific time windows plus the Calendly link. Do NOT re-pitch the offer or clarify what was said. Do NOT restate what we do.
+The full sequence runs `template, Sonnet, template, Sonnet, template, Sonnet`. The templated steps are short check-ins. The Sonnet steps are personalised value adds. Total: 3 templates + 3 generated drafts per lead.
 
-**FU2 — Social proof** (5 to 7 lines)
-Reference a similar client outcome or a recent deal we have done in the lead's sector. Different hook than FU1. End with the Calendly link and one open question that invites a one-line reply.
+**Cadence:** FU1 fires 2 days after our first response. FU2 to FU5 each fire 7 days after the previous step. FU6 fires 14 days after FU5. Total window from first reply: ~44 days.
 
-**FU3 — Different angle** (5 to 7 lines)
-Surface a new motivation or strategic consideration the lead might be weighing (succession, partial exit, market timing, owner liquidity). Do NOT repeat any angle used in FU1 or FU2. End with a soft CTA (eg "open to a quick chat?").
+**FU1, template `fu-nudge.md`** (2 days after first response)
+Simple nudge in case the first email got buried. No new offer, no new angle. Just a low-friction check-in.
 
-**FU4 — Specific pain point** (5 to 7 lines)
-Focus on a concrete operational or financial situation common in their sector. Examples: key-person risk, growth ceiling, owner dependency, customer concentration, succession with no clear successor. New angle from previous steps.
+**FU2, Sonnet** (7 days after FU1) — *5 to 7 lines*
+Value add #1. Reference a similar client outcome, a recent deal in the lead's sector, or specific market data. Different hook than the first response. End with the Calendly link and one open question that invites a one-line reply.
 
-**FU5 — Break-up** (2 to 3 lines)
-Short, no-pressure final email. Reference the prior thread implicitly. "Closing the loop on this, happy to revisit later." No CTA, no calendar link.
+**FU3, template `fu-move-forward.md`** (7 days after FU2)
+Binary intent check. Forces a yes/no without pressure. The cleanest way to surface dead leads.
+
+**FU4, Sonnet** (7 days after FU3) — *5 to 7 lines*
+Value add #2, different angle from FU2. New motivation or strategic consideration (succession, partial exit, market timing, owner liquidity, key-person risk, growth ceiling). Do NOT repeat any angle used in FU2 or earlier. End with a soft CTA.
+
+**FU5, template `fu-check-in.md`** (7 days after FU4)
+Direct check-in, the gold-standard "Should we move this forward or just leave it?" pattern. Single line, no padding.
+
+**FU6, Sonnet** (14 days after FU5) — *3 to 5 lines*
+Final email. Combines one last value point (a fresh angle, a specific deal closing in their space, or a market shift) with a soft no-pressure close. References the prior thread implicitly. Effectively a break-up but with one last hook.
 
 ### Abbreviated sequence (2 steps, sent 2 days then 9 days after first response)
 

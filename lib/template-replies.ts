@@ -161,3 +161,17 @@ export function renderTemplate(templateName: string, vars: TemplateVars): string
   if (!tmpl) return null;
   return substituteVars(tmpl.body, vars);
 }
+
+/**
+ * Days between FU steps. Cadence per CONTEXT_FollowUps.md:
+ * - Full: 2 days to FU1, then 7 days between each step, except FU5 to FU6 = 14 days
+ * - Abbreviated: 2 days to FU1, then 7 days to FU2 (the break-up)
+ * Returns the number of days until the NEXT step, given the step that was just sent.
+ */
+export function daysUntilNextStep(
+  sequenceType: "full" | "abbreviated" | "none",
+  stepJustSent: number
+): number {
+  if (sequenceType === "full" && stepJustSent === 5) return 14;
+  return 7;
+}
