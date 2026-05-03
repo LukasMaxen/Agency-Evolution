@@ -259,13 +259,9 @@ Draft FU step ${nextStep} now.`;
         },
         {
           type: "section",
-          text: { type: "mrkdwn", text: `*Lead:* ${reply.lead_name}, ${reply.lead_email}` },
-        },
-        {
-          type: "section",
           text: {
             type: "mrkdwn",
-            text: `*Sequence:* ${fu.fu_sequence_type}  ·  *Step:* ${nextStep}/${fu.total_emails}`,
+            text: `*Lead:* ${reply.lead_name}, ${reply.lead_email}\n*Sequence:* ${fu.fu_sequence_type}  ·  *Step:* ${nextStep}/${fu.total_emails}`,
           },
         },
         {

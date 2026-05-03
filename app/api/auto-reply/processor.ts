@@ -133,13 +133,9 @@ async function postReplyApprovalCard(opts: ReplyApprovalCardOpts): Promise<strin
     },
     {
       type: "section",
-      text: { type: "mrkdwn", text: `*Lead:* ${leadLine}` },
-    },
-    {
-      type: "section",
       text: {
         type: "mrkdwn",
-        text: `*Intent:* ${result.intent}  ·  *FU sequence:* ${result.fu_sequence_type}`,
+        text: `*Lead:* ${leadLine}\n*Intent:* ${result.intent}  ·  *FU sequence:* ${result.fu_sequence_type}`,
       },
     },
     {
