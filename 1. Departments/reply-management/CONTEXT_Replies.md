@@ -6,6 +6,30 @@
 
 ---
 
+## Two-Tier Auto-Reply Flow (cost optimisation)
+
+Every inbound reply runs through two tiers:
+
+**Tier 1: Haiku classification (~$0.001 per reply).** A cheap call buckets the intent into one of these:
+
+| Intent | Routes to |
+|---|---|
+| `interested_urgent`, `interested`, `needs_info`, `neutral` | Tier 2: Sonnet drafter (full personalised reply, optional approval in `#reply-approval`) |
+| `forwarded` (someone else replied for the lead) | Tier 2: Sonnet drafter (also populates `recipient_email` override) |
+| `not_interested` (soft no, timing language) | Tier 2: template `soft-no-acknowledgment.md` |
+| `hard_no` (definite, won't change) | Tier 2: template `hard-no-acknowledgment.md` |
+| `unsubscribe` (remove me, stop) | Tier 2: template `unsubscribe-confirmation.md` + mark unsubbed in DB |
+| `wrong_target` (not the right person, no redirect) | Tier 2: template `wrong-target-apology.md` + mark unsubbed |
+| `out_of_office`, `bounce`, `spam`, `nothing_to_address` | No action, log + return. No email sent. |
+
+**Tier 2: Either Sonnet or template.** The Sonnet path uses the full draft logic in this file (intent, fu_sequence_type, reply_body, etc). The template path loads a markdown file from `1. Departments/reply-management/templates/`, substitutes variables (`{{lead_first_name}}`, `{{lead_company}}`, etc), and routes through the same approval / send pipeline.
+
+This saves about 80% of API cost at scale because most replies (unsubscribes, soft nos, OOO, bounces) never touch Sonnet. See the templates folder README for the full variable list and how to edit templates.
+
+The rules in this document still apply to BOTH tiers: tone, dash-free, no colons in body, sender identity, recipient detection, etc. Templates respect them by being written that way; Sonnet respects them by reading this file.
+
+---
+
 ## Auto-Reply Action Logic
 
 Every inbound reply is classified into one of three actions by the auto-reply processor:

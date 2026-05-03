@@ -10,6 +10,10 @@ import {
   slugToName,
   sanitizeDashes,
 } from "@/lib/slack-approval";
+import {
+  renderTemplate as renderReplyTemplate,
+  varsFromReply,
+} from "@/lib/template-replies";
 
 interface FollowUpRow {
   id: string;
@@ -223,7 +227,27 @@ ${prevBodies.length > 0 ? prevBodies.map((b, i) => `=== Email ${i + 1}${i === 0 
 
 Draft FU step ${nextStep} now.`;
 
-  const draft = await callClaude(systemPrompt, userMessage);
+  // ── Template branch for the final break-up step ───────────────────────────
+  // FU5 of the full sequence and FU2 of the abbreviated sequence are both
+  // break-ups, with deterministic copy and no need for Claude. Save the cost.
+  const isBreakupStep = nextStep === fu.total_emails;
+  let draft: DraftResult | null;
+
+  if (isBreakupStep) {
+    const vars = varsFromReply(reply, fu.workspace_slug);
+    const body = renderReplyTemplate("fu-breakup", vars);
+    if (!body) {
+      console.error(`[fu-process] fu-breakup template missing, falling back to Sonnet`);
+      draft = await callClaude(systemPrompt, userMessage);
+    } else {
+      draft = {
+        subject: reply.subject ?? "",
+        body,
+      };
+    }
+  } else {
+    draft = await callClaude(systemPrompt, userMessage);
+  }
 
   if (!draft) {
     return { status: "failed", reason: "claude error" };

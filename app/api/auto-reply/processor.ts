@@ -10,6 +10,12 @@ import {
   slugToName as slugToNameShared,
   sanitizeDashes,
 } from "@/lib/slack-approval";
+import {
+  INTENT_TO_PATH,
+  INTENT_TO_TEMPLATE,
+  renderTemplate,
+  varsFromReply,
+} from "@/lib/template-replies";
 
 interface AutoReplyResult {
   action: "auto_send" | "manual" | "do_nothing";
@@ -219,6 +225,83 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
   }
 }
 
+interface ClassifyResult {
+  intent: string;
+  confidence: "high" | "medium" | "low";
+}
+
+/**
+ * Tier-1 classification using Haiku. Cheap (~$0.001), fast, only returns the
+ * intent bucket so we can route to either the Sonnet drafter (interested
+ * family) or the template engine (not-interested family) or skip entirely.
+ */
+async function classifyIntent(replyMessage: string, leadName: string, leadCompany: string | null): Promise<ClassifyResult | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  const systemPrompt = `Classify the inbound email reply into ONE intent. Output ONLY a JSON object, no preamble. Shape: {"intent":"...","confidence":"high"|"medium"|"low"}.
+
+Possible intents:
+- interested_urgent: explicit urgency ("call me now", "let's move fast")
+- interested: positive signal, open to a call ("happy to chat", "tell me more")
+- needs_info: asking a clarifying question, wants details before committing
+- neutral: vague, no clear signal either way
+- forwarded: someone other than the original lead is replying (forwarded internally, EA, colleague), OR the lead is redirecting us to someone else with their email or name
+- not_interested: soft no with timing language ("not right now", "happy as is", "too busy", "bad timing")
+- hard_no: definite disinterest ("we never sell", "sold last year", "family business not for sale ever")
+- unsubscribe: explicit removal request ("remove me", "unsubscribe", "stop", "do not contact")
+- wrong_target: wrong person/company, no useful redirect ("I'm not the owner", "we are a nonprofit", "wrong sector")
+- out_of_office: vacation reply, will return on date
+- bounce: delivery failure notification
+- spam: clearly automated or unrelated
+- nothing_to_address: thanks/acknowledgment with nothing to act on
+
+Read the reply text, output the single most accurate intent. Be decisive, prefer high or medium confidence.`;
+
+  const userMessage = `Lead name: ${leadName}
+Lead company: ${leadCompany ?? "unknown"}
+
+Reply text:
+${replyMessage}
+
+Classify now.`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 200,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+    }),
+  });
+
+  if (!response.ok) {
+    console.error("[auto-reply] Haiku classify error:", response.status, await response.text());
+    return null;
+  }
+  const data = await response.json();
+  const raw = (data.content?.[0]?.text ?? "").replace(/```json|```/g, "").trim();
+  // Tolerant parse: extract first {...}.
+  const firstBrace = raw.indexOf("{");
+  const lastBrace = raw.lastIndexOf("}");
+  if (firstBrace === -1 || lastBrace === -1) {
+    console.error("[auto-reply] classify: no JSON in response:", raw.slice(0, 200));
+    return null;
+  }
+  try {
+    return JSON.parse(raw.slice(firstBrace, lastBrace + 1)) as ClassifyResult;
+  } catch {
+    console.error("[auto-reply] classify: JSON parse failed:", raw.slice(0, 200));
+    return null;
+  }
+}
+
 async function sendReplyToEmailBison(
   reply: Record<string, any>,
   body: string
@@ -321,6 +404,124 @@ export async function processAutoReply(replyId: string, workspaceSlug: string): 
     await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
     return;
   }
+
+  // ── TIER 1: cheap Haiku classification ────────────────────────────────────
+  // Routes the reply to either the Sonnet drafter (interested/needs_info etc),
+  // the template engine (not_interested/unsubscribe etc), or no-action (OOO/bounce).
+  const classification = await classifyIntent(reply.message, reply.lead_name, reply.lead_company);
+  if (!classification) {
+    // Could not classify, reset and bail. Falling back to manual handling.
+    await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
+    console.error(`[auto-reply] Tier-1 classification failed for ${replyId}`);
+    return;
+  }
+
+  const path1 = INTENT_TO_PATH[classification.intent] ?? "interested";
+  console.log(`[auto-reply] ${replyId} classified as ${classification.intent} (${classification.confidence}), routing to ${path1}`);
+
+  // ── No-action path: log only, no email ─────────────────────────────────────
+  if (path1 === "no_action") {
+    await pool.query(
+      `UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+      [
+        JSON.stringify({ intent: classification.intent, confidence: classification.confidence, auto_replied: false, no_action_reason: "low-value classification" }),
+        replyId,
+      ]
+    );
+    return;
+  }
+
+  // ── Template path: deterministic substitute, no AI body ────────────────────
+  if (path1 === "template") {
+    const templateName = INTENT_TO_TEMPLATE[classification.intent];
+    if (!templateName) {
+      console.error(`[auto-reply] No template mapped for intent ${classification.intent}, treating as no_action`);
+      await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
+      return;
+    }
+    const vars = varsFromReply(reply, workspaceSlug);
+    const body = renderTemplate(templateName, vars);
+    if (!body) {
+      console.error(`[auto-reply] Template ${templateName} missing or empty for ${replyId}`);
+      await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
+      return;
+    }
+
+    const isUnsub = classification.intent === "unsubscribe" || classification.intent === "wrong_target";
+    if (isUnsub) {
+      // Mark lead as unsubscribed and stop any future FU sequences.
+      await pool.query(`UPDATE replies SET interested = FALSE WHERE id = $1`, [replyId]);
+      await pool.query(
+        `UPDATE follow_ups SET meeting_booked = FALSE, next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`,
+        [replyId]
+      );
+    }
+
+    if (workspace.auto_reply_approval_mode) {
+      // Stage the templated reply in reply_drafts so the team can ✅ to send.
+      const draftId = `rd-${replyId}-${Date.now()}`;
+      const slackTs = await postReplyApprovalCard({
+        workspaceSlug,
+        reply: replyWithCreds,
+        instanceUrl: workspace.email_bison_instance_url ?? "",
+        result: {
+          action: "auto_send",
+          intent: classification.intent,
+          fu_sequence_type: "none",
+          reply_body: body,
+          flag_unsubscribe: isUnsub,
+          flag_meeting_booked: false,
+        },
+      });
+      await pool.query(
+        `INSERT INTO reply_drafts
+          (id, reply_id, workspace_slug, lead_name, lead_email, intent, action,
+           fu_sequence_type, flag_unsubscribe, flag_meeting_booked, manual_reason,
+           subject, body, status, slack_ts, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,'auto_send','none',$7,FALSE,$8,$9,$10,'pending',$11,NOW())`,
+        [
+          draftId, replyId, workspaceSlug, reply.lead_name, reply.lead_email,
+          classification.intent, isUnsub, `[template:${templateName}]`,
+          reply.subject ?? "", body, slackTs,
+        ]
+      );
+      await pool.query(
+        `UPDATE replies SET status = 'awaiting_approval', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+        [
+          JSON.stringify({ intent: classification.intent, template: templateName, awaiting_approval: true }),
+          replyId,
+        ]
+      );
+      console.log(`[auto-reply] Staged template draft ${draftId} (${templateName}) for approval`);
+      return;
+    }
+
+    // Direct send: no approval needed for this workspace.
+    const sent = await sendReplyToEmailBison(replyWithCreds, body);
+    if (sent) {
+      const sentId = `auto-${replyId}-${Date.now()}`;
+      await pool.query(
+        `INSERT INTO sent_emails (id, reply_id, workspace_slug, lead_email, lead_name, email_type, subject, body, sent_at)
+         VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
+        [sentId, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", body]
+      );
+      await pool.query(
+        `UPDATE replies SET status = 'replied', interested = $1, ai_analysis = $2, ai_analyzed_at = NOW() WHERE id = $3`,
+        [
+          isUnsub ? false : null,
+          JSON.stringify({ intent: classification.intent, template: templateName, auto_replied: true }),
+          replyId,
+        ]
+      );
+      console.log(`[auto-reply] Sent template ${templateName} to ${reply.lead_name}`);
+    } else {
+      await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
+    }
+    return;
+  }
+
+  // ── Sonnet path (interested family): full draft via existing flow ──────────
+  // Falls through to the Sonnet system prompt below.
 
   const systemPrompt = `You are the auto-reply agent for Maxen Partners. Your only job is to classify one inbound reply and, if applicable, draft the first response.
 
