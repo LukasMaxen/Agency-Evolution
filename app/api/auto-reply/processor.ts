@@ -362,9 +362,83 @@ async function sendReplyToEmailBison(
   return true;
 }
 
+const FORWARDING_INTENTS = new Set(["interested", "interested_urgent", "needs_info"]);
+
+/**
+ * Forward an interested-family reply to the client's chosen email via EmailBison.
+ * Reuses the existing /replies/{id}/reply endpoint with `to_emails` overridden
+ * to the forwarding address, and `inject_previous_email_body: true` so the
+ * client receives the full thread along with our short FYI note.
+ */
+async function forwardReplyToClient(
+  replyWithCreds: Record<string, any>,
+  forwardTo: string,
+  intent: string
+): Promise<boolean> {
+  const instanceUrl = replyWithCreds.email_bison_instance_url;
+  const apiKey = replyWithCreds.email_bison_api_key;
+  const emailBisonReplyId = replyWithCreds.email_bison_reply_id;
+  const senderEmailId = replyWithCreds.sender_email_id;
+
+  if (!instanceUrl || !apiKey || !emailBisonReplyId || !senderEmailId) {
+    console.error("[auto-reply][forward] Missing EmailBison fields for reply", replyWithCreds.id);
+    return false;
+  }
+
+  const ebLink = `${instanceUrl}/inbox/replies/${replyWithCreds.id}`;
+  const leadLine = [replyWithCreds.lead_name, replyWithCreds.lead_company]
+    .filter(Boolean)
+    .join(" at ") || replyWithCreds.lead_email || "lead";
+  const intentLabel = intent.replace(/_/g, " ");
+
+  const body = `FYI, new ${intentLabel} reply from ${leadLine}.
+
+Open in EmailBison to read the full thread and respond.
+
+${ebLink}`;
+
+  const linkify = (text: string) =>
+    text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+
+  const htmlBody = body
+    .split("\n\n")
+    .map(para => `<p style="margin:0 0 16px 0;">${linkify(para.replace(/\n/g, "<br>"))}</p>`)
+    .join("");
+
+  const ebResponse = await fetch(
+    `${instanceUrl}/api/replies/${emailBisonReplyId}/reply`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        message: htmlBody,
+        sender_email_id: senderEmailId,
+        to_emails: [{ name: null, email_address: forwardTo }],
+        inject_previous_email_body: true,
+        content_type: "html",
+      }),
+    }
+  );
+
+  if (!ebResponse.ok) {
+    console.error(
+      "[auto-reply][forward] EmailBison error:",
+      ebResponse.status,
+      await ebResponse.text()
+    );
+    return false;
+  }
+  return true;
+}
+
 export async function processAutoReply(replyId: string, workspaceSlug: string): Promise<void> {
-  // Skip Hahnbeck, ITG Group, and Sonaro AI, the client handles replies directly
-  if (workspaceSlug === "hahnbeck" || workspaceSlug === "itg-group" || workspaceSlug === "sonaro-ai") {
+  // Workspaces that handle their own replies entirely (no forwarding, no auto-reply).
+  // Hahnbeck used to be on this list but now uses the forward_replies_to_email path.
+  if (workspaceSlug === "itg-group" || workspaceSlug === "sonaro-ai") {
     console.log(`[auto-reply] Skipping ${workspaceSlug} reply ${replyId}`);
     return;
   }
@@ -381,9 +455,9 @@ export async function processAutoReply(replyId: string, workspaceSlug: string): 
 
   const reply = claim.rows[0];
 
-  // Fetch workspace credentials + approval mode flag
+  // Fetch workspace credentials + approval mode flag + forwarding email
   const wsResult = await pool.query(
-    `SELECT email_bison_api_key, email_bison_instance_url, auto_reply_approval_mode FROM workspaces WHERE slug = $1`,
+    `SELECT email_bison_api_key, email_bison_instance_url, auto_reply_approval_mode, forward_replies_to_email FROM workspaces WHERE slug = $1`,
     [workspaceSlug]
   );
   if (wsResult.rows.length === 0) {
@@ -418,6 +492,73 @@ export async function processAutoReply(replyId: string, workspaceSlug: string): 
 
   const path1 = INTENT_TO_PATH[classification.intent] ?? "interested";
   console.log(`[auto-reply] ${replyId} classified as ${classification.intent} (${classification.confidence}), routing to ${path1}`);
+
+  // ── Forwarding path: workspace forwards interested replies to a chosen email ──
+  // When workspace.forward_replies_to_email is set, we never auto-reply or draft for
+  // this workspace. Interested-family replies get forwarded to the client; everything
+  // else is logged and skipped (the client handles it themselves).
+  if (workspace.forward_replies_to_email) {
+    if (FORWARDING_INTENTS.has(classification.intent)) {
+      const forwarded = await forwardReplyToClient(
+        replyWithCreds,
+        workspace.forward_replies_to_email,
+        classification.intent
+      );
+
+      if (forwarded) {
+        const sentId = `fwd-${replyId}-${Date.now()}`;
+        await pool.query(
+          `INSERT INTO sent_emails (id, reply_id, workspace_slug, lead_email, lead_name, email_type, subject, body, sent_at)
+           VALUES ($1,$2,$3,$4,$5,'forward_to_client',$6,$7,NOW())`,
+          [
+            sentId,
+            replyId,
+            workspaceSlug,
+            reply.lead_email,
+            reply.lead_name,
+            reply.subject ?? "",
+            `[Forwarded to ${workspace.forward_replies_to_email}]`,
+          ]
+        );
+      }
+
+      await pool.query(
+        `UPDATE replies SET status = $1, ai_analysis = $2, ai_analyzed_at = NOW() WHERE id = $3`,
+        [
+          forwarded ? "forwarded" : "new",
+          JSON.stringify({
+            intent: classification.intent,
+            confidence: classification.confidence,
+            forwarded_to: workspace.forward_replies_to_email,
+            forward_status: forwarded ? "sent" : "failed",
+          }),
+          replyId,
+        ]
+      );
+      console.log(
+        `[auto-reply] ${replyId} ${forwarded ? "forwarded" : "forward FAILED"} to ${workspace.forward_replies_to_email} (intent: ${classification.intent})`
+      );
+      return;
+    }
+
+    // Forwarding enabled but intent doesn't qualify: log only, do nothing.
+    await pool.query(
+      `UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+      [
+        JSON.stringify({
+          intent: classification.intent,
+          confidence: classification.confidence,
+          forwarding_enabled: true,
+          intent_below_forward_threshold: true,
+        }),
+        replyId,
+      ]
+    );
+    console.log(
+      `[auto-reply] ${replyId} forwarding skipped (intent ${classification.intent} below threshold for ${workspaceSlug})`
+    );
+    return;
+  }
 
   // ── No-action path: log only, no email ─────────────────────────────────────
   if (path1 === "no_action") {
