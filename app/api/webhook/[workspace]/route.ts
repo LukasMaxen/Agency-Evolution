@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import pool from "@/lib/db";
 import { processAutoReply } from "@/app/api/auto-reply/processor";
 import { notifyReply } from "@/lib/slack-notifications";
@@ -99,37 +99,46 @@ export async function POST(
         );
       }
 
-      // Follow_ups record for NEW leads is created by processAutoReply
-      // after intent is determined, sequence type (full/abbreviated/none)
-      // depends on what Claude reads in the reply.
+      // Schedule the heavy work to run AFTER the webhook response is sent.
+      // EmailBison's webhook delivery has a hard timeout, and naked
+      // fire-and-forget promises get killed by the Coolify/Next runtime once
+      // the response closes. Next 16's `after()` is the supported API for
+      // "run this after we've replied to the client" and is guaranteed to
+      // complete before the worker shuts down.
       //
-      // Fire-and-forget. EmailBison's webhook delivery has a hard timeout, and
-      // processAutoReply (Haiku classify + Sonnet draft + Slack post) regularly
-      // exceeds it. If we await, the platform kills the function mid-flight and
-      // the reply silently stalls at status='new' with no #reply-approval card.
-      // Detaching lets us 200 EmailBison immediately while the processor keeps
-      // running in the Node process.
-      processAutoReply(replyUuid, slug).catch(err =>
-        console.error(`[webhook] processAutoReply detached failure for ${replyUuid} (${slug}):`, err)
-      );
+      // The follow_ups row for new leads is created inside processAutoReply
+      // once intent has been classified.
+      after(async () => {
+        try {
+          await processAutoReply(replyUuid, slug);
+        } catch (err: any) {
+          console.error(`[webhook] processAutoReply (after) failure for ${replyUuid} (${slug}):`, err);
+        }
+      });
 
       // Slack notification to the client's [client]-replies channel.
       // Replaces the Make.com "Email Reply Notifications" scenario for this workspace.
       if (workspace.slack_channel_replies) {
         const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
-        notifyReply({
-          channel: workspace.slack_channel_replies,
-          workspaceName: workspace.name ?? slug,
-          leadName,
-          leadEmail,
-          leadCompany: lead.company ?? null,
-          campaign: campaign?.name ?? "",
-          subject: reply.email_subject ?? "",
-          message,
-          replyUrl: appUrl ? `${appUrl}/replies/${replyUuid}` : undefined,
-        }).catch(err =>
-          console.error(`[webhook] notifyReply detached failure for ${replyUuid} (${slug}):`, err)
-        );
+        const channel = workspace.slack_channel_replies as string;
+        const workspaceName = (workspace.name ?? slug) as string;
+        after(async () => {
+          try {
+            await notifyReply({
+              channel,
+              workspaceName,
+              leadName,
+              leadEmail,
+              leadCompany: lead.company ?? null,
+              campaign: campaign?.name ?? "",
+              subject: reply.email_subject ?? "",
+              message,
+              replyUrl: appUrl ? `${appUrl}/replies/${replyUuid}` : undefined,
+            });
+          } catch (err: any) {
+            console.error(`[webhook] notifyReply (after) failure for ${replyUuid} (${slug}):`, err);
+          }
+        });
       }
 
       return NextResponse.json({ ok: true, event: "LEAD_REPLIED", id: replyUuid });
