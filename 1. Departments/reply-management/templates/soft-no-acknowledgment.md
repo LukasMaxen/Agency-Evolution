@@ -5,6 +5,6 @@ description: Lead gave a soft no with timing language (not right now, too busy, 
 ---
 Hi {{lead_first_name}},
 
-Understood, no problem at all. If timing changes down the road, feel free to reach out.
+Understood, no problem at all. If things change down the road, feel free to reach out.
 
 {SENDER_EMAIL_SIGNATURE}
