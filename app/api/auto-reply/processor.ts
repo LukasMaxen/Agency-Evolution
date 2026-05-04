@@ -538,6 +538,22 @@ export async function processAutoReply(replyId: string, workspaceSlug: string): 
       console.log(
         `[auto-reply] ${replyId} ${forwarded ? "forwarded" : "forward FAILED"} to ${workspace.forward_replies_to_email} (intent: ${classification.intent})`
       );
+
+      if (!forwarded) {
+        // Auto-forward to the client failed (EmailBison error, missing creds, etc).
+        // Surface to #manual-replies so someone can forward by hand.
+        await postToSlack({
+          text: `Forward failed, ${workspaceSlug} / ${reply.lead_name}`,
+          blocks: buildSlackBlocks({
+            header: "Forward to client failed, needs manual forward",
+            workspaceSlug,
+            reply: replyWithCreds,
+            instanceUrl: workspace.email_bison_instance_url ?? "",
+            reason: `Auto-forward to ${workspace.forward_replies_to_email} failed. Please forward manually.`,
+            intent: classification.intent,
+          }),
+        });
+      }
       return;
     }
 
@@ -851,8 +867,24 @@ ${reply.message}`;
     await createFollowUpRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
 
   } else {
+    // do_nothing: Sonnet decided not to auto-handle this reply. Could be a
+    // forwarding workspace where the client handles replies themselves, a
+    // reply too specific to template, or a context the rules say to skip.
+    // Surface to #manual-replies so a human can decide what to do.
     await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
-    console.log(`[auto-reply] No action needed for ${replyId}`);
+    await postToSlack({
+      text: `Manual handling needed, ${workspaceSlug} / ${reply.lead_name}`,
+      blocks: buildSlackBlocks({
+        header: "Reply needs manual handling",
+        workspaceSlug,
+        reply: replyWithCreds,
+        instanceUrl: workspace.email_bison_instance_url ?? "",
+        reason: result.manual_reason ?? "Auto-reply rules said do nothing here, please review and respond manually",
+        intent: result.intent,
+        fuSequenceType: result.fu_sequence_type,
+      }),
+    });
+    console.log(`[auto-reply] do_nothing for ${replyId}, posted to manual-replies`);
   }
 }
 

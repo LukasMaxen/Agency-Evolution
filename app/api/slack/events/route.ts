@@ -196,16 +196,23 @@ async function approveReplyDraft(draft: ReplyDraftRow, slackUserId: string, chan
 }
 
 async function rejectReplyDraft(draft: ReplyDraftRow, slackUserId: string, channel: string, ts: string): Promise<void> {
+  // ❌ closes the reply out entirely. Draft is rejected, the reply is marked
+  // closed so it does not re-enter the inbox or get re-processed, and no
+  // email is sent. Any in-flight FU sequence for this reply is killed too.
   await pool.query(
     `UPDATE reply_drafts SET status = 'rejected', reviewed_at = NOW(), reviewed_by = $1 WHERE id = $2`,
     [slackUserId, draft.id]
   );
   await pool.query(
-    `UPDATE replies SET status = 'new' WHERE id = $1`,
+    `UPDATE replies SET status = 'closed' WHERE id = $1`,
     [draft.reply_id]
   );
-  await addReaction(channel, ts, "wastebasket");
-  console.log(`[slack-events] Rejected reply draft ${draft.id}`);
+  await pool.query(
+    `UPDATE follow_ups SET next_fu_due = NULL, outcome = 'manually_closed' WHERE reply_id = $1`,
+    [draft.reply_id]
+  );
+  await addReaction(channel, ts, "no_entry");
+  console.log(`[slack-events] Closed reply draft ${draft.id} via ❌`);
 }
 
 // ─── Follow-up draft handlers ──────────────────────────────────────────────────
@@ -275,27 +282,21 @@ async function approveFollowUpDraft(draft: FollowUpDraftRow, slackUserId: string
 }
 
 async function rejectFollowUpDraft(draft: FollowUpDraftRow, slackUserId: string, channel: string, ts: string): Promise<void> {
-  // Skip this step but keep the sequence alive: advance fu_step without sending, schedule next.
-  const isFinal = draft.fu_step >= draft.total_emails;
+  // ❌ kills the entire FU sequence. No more drafts get scheduled for this lead.
+  // The draft itself is marked rejected and no email is sent.
   await pool.query(
     `UPDATE follow_ups
-       SET fu_step = $1,
-           next_fu_due = $2,
-           outcome = $3
-     WHERE id = $4`,
-    [
-      draft.fu_step,
-      isFinal ? null : new Date(Date.now() + daysUntilNextStep(draft.fu_sequence_type, draft.fu_step) * 24 * 60 * 60 * 1000),
-      isFinal ? "exhausted" : null,
-      draft.follow_up_id,
-    ]
+       SET next_fu_due = NULL,
+           outcome = 'manually_closed'
+     WHERE id = $1`,
+    [draft.follow_up_id]
   );
   await pool.query(
     `UPDATE follow_up_drafts SET status = 'rejected', reviewed_at = NOW(), reviewed_by = $1 WHERE id = $2`,
     [slackUserId, draft.id]
   );
-  await addReaction(channel, ts, "wastebasket");
-  console.log(`[slack-events] Rejected FU draft ${draft.id}`);
+  await addReaction(channel, ts, "no_entry");
+  console.log(`[slack-events] Closed FU sequence via ❌, draft ${draft.id}`);
 }
 
 // ─── Reaction handler ──────────────────────────────────────────────────────────

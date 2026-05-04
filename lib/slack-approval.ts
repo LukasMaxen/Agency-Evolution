@@ -69,7 +69,7 @@ export function approvalFooterBlock(): object {
     elements: [
       {
         type: "mrkdwn",
-        text: "Two options:  :white_check_mark: send the draft as-is  ·  :pencil2: regenerate with your feedback (write what to change in this thread first, then react :pencil2: , review the new version posted in the thread, react :white_check_mark: to send when happy)",
+        text: "Three options:  :white_check_mark: send the draft as-is  ·  :pencil2: regenerate with your feedback (write what to change in this thread first, then react :pencil2: , review the new version, react :white_check_mark: to send)  ·  :x: close out without sending (kills this reply or the entire FU sequence, nothing goes to the lead)",
       },
     ],
   };
