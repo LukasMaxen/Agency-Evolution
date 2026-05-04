@@ -1,12 +1,13 @@
 // Next.js 16 instrumentation hook. Runs once when the Node server boots.
-// We use it to schedule three in-process timers that replace the Coolify
+// We use it to schedule four in-process timers that replace the Coolify
 // scheduled tasks (which kept failing because of host vs container shell,
-// port mismatches, env var expansion, etc). All three call exported runner
+// port mismatches, env var expansion, etc). All four call exported runner
 // functions directly inside the Node process, no HTTP roundtrip needed.
 //
 //   1. Auto-reply self-sweeper      every 60 seconds
-//   2. Follow-up processor          every 5 minutes
-//   3. Weekly feedback review       hourly check, fires Mondays 08-11 UTC
+//   2. EmailBison inbox sync        every 2 minutes (catches untracked replies)
+//   3. Follow-up processor          every 5 minutes
+//   4. Weekly feedback review       hourly check, fires Mondays 08-11 UTC
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
@@ -30,7 +31,28 @@ export async function register() {
 
   console.log("[instrumentation] auto-reply self-sweeper started, 60s interval");
 
-  // ── 2. Follow-up processor ────────────────────────────────────────────────
+  // ── 2. EmailBison inbox sync ──────────────────────────────────────────────
+  // Polls each workspace's inbox to catch replies the LEAD_REPLIED webhook
+  // misses. Most importantly, untracked replies (sent directly to a sender
+  // mailbox, not in response to a campaign send) — EmailBison never fires
+  // LEAD_REPLIED for those, so polling is the only way to see them.
+  const { runEmailBisonInboxSync } = await import("@/lib/emailbison-inbox-sync");
+
+  setTimeout(() => {
+    runEmailBisonInboxSync().catch(err =>
+      console.error("[instrumentation] initial inbox sync failed:", err)
+    );
+  }, 15_000);
+
+  setInterval(() => {
+    runEmailBisonInboxSync().catch(err =>
+      console.error("[instrumentation] periodic inbox sync failed:", err)
+    );
+  }, 2 * 60_000);
+
+  console.log("[instrumentation] EmailBison inbox sync started, 2min interval");
+
+  // ── 3. Follow-up processor ────────────────────────────────────────────────
   let fuRunning = false;
   const runFu = async (label: string) => {
     if (fuRunning) return;
@@ -57,7 +79,7 @@ export async function register() {
 
   console.log("[instrumentation] follow-up processor started, 5min interval");
 
-  // ── 3. Weekly feedback review ─────────────────────────────────────────────
+  // ── 4. Weekly feedback review ─────────────────────────────────────────────
   // Hourly check. Only fires inside the Monday 08-11 UTC window AND only if
   // no weekly_reviews row exists in the last 6 days (dedupe handled inside
   // the runner). Worst case: app restarts mid-window, dedupe ensures we
