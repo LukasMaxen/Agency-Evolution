@@ -102,13 +102,22 @@ export async function POST(
       // Follow_ups record for NEW leads is created by processAutoReply
       // after intent is determined, sequence type (full/abbreviated/none)
       // depends on what Claude reads in the reply.
-      await processAutoReply(replyUuid, slug);
+      //
+      // Fire-and-forget. EmailBison's webhook delivery has a hard timeout, and
+      // processAutoReply (Haiku classify + Sonnet draft + Slack post) regularly
+      // exceeds it. If we await, the platform kills the function mid-flight and
+      // the reply silently stalls at status='new' with no #reply-approval card.
+      // Detaching lets us 200 EmailBison immediately while the processor keeps
+      // running in the Node process.
+      processAutoReply(replyUuid, slug).catch(err =>
+        console.error(`[webhook] processAutoReply detached failure for ${replyUuid} (${slug}):`, err)
+      );
 
       // Slack notification to the client's [client]-replies channel.
       // Replaces the Make.com "Email Reply Notifications" scenario for this workspace.
       if (workspace.slack_channel_replies) {
         const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
-        await notifyReply({
+        notifyReply({
           channel: workspace.slack_channel_replies,
           workspaceName: workspace.name ?? slug,
           leadName,
@@ -118,7 +127,9 @@ export async function POST(
           subject: reply.email_subject ?? "",
           message,
           replyUrl: appUrl ? `${appUrl}/replies/${replyUuid}` : undefined,
-        });
+        }).catch(err =>
+          console.error(`[webhook] notifyReply detached failure for ${replyUuid} (${slug}):`, err)
+        );
       }
 
       return NextResponse.json({ ok: true, event: "LEAD_REPLIED", id: replyUuid });
