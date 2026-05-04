@@ -373,7 +373,8 @@ const FORWARDING_INTENTS = new Set(["interested", "interested_urgent", "needs_in
 async function forwardReplyToClient(
   replyWithCreds: Record<string, any>,
   forwardTo: string,
-  intent: string
+  intent: string,
+  ccEmails: string | null
 ): Promise<boolean> {
   const instanceUrl = replyWithCreds.email_bison_instance_url;
   const apiKey = replyWithCreds.email_bison_api_key;
@@ -405,6 +406,24 @@ ${ebLink}`;
     .map(para => `<p style="margin:0 0 16px 0;">${linkify(para.replace(/\n/g, "<br>"))}</p>`)
     .join("");
 
+  // Parse comma-separated CC list (per-workspace setting). Trim and drop empties.
+  const ccList = (ccEmails ?? "")
+    .split(",")
+    .map(e => e.trim())
+    .filter(Boolean)
+    .map(email_address => ({ name: null, email_address }));
+
+  const payload: Record<string, unknown> = {
+    message: htmlBody,
+    sender_email_id: senderEmailId,
+    to_emails: [{ name: null, email_address: forwardTo }],
+    inject_previous_email_body: true,
+    content_type: "html",
+  };
+  if (ccList.length > 0) {
+    payload.cc_emails = ccList;
+  }
+
   const ebResponse = await fetch(
     `${instanceUrl}/api/replies/${emailBisonReplyId}/reply`,
     {
@@ -414,13 +433,7 @@ ${ebLink}`;
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({
-        message: htmlBody,
-        sender_email_id: senderEmailId,
-        to_emails: [{ name: null, email_address: forwardTo }],
-        inject_previous_email_body: true,
-        content_type: "html",
-      }),
+      body: JSON.stringify(payload),
     }
   );
 
@@ -503,7 +516,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
 
   // Fetch workspace credentials + approval mode flag + forwarding email
   const wsResult = await pool.query(
-    `SELECT email_bison_api_key, email_bison_instance_url, auto_reply_approval_mode, forward_replies_to_email FROM workspaces WHERE slug = $1`,
+    `SELECT email_bison_api_key, email_bison_instance_url, auto_reply_approval_mode, forward_replies_to_email, forward_cc_emails FROM workspaces WHERE slug = $1`,
     [workspaceSlug]
   );
   if (wsResult.rows.length === 0) {
@@ -548,7 +561,8 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
       const forwarded = await forwardReplyToClient(
         replyWithCreds,
         workspace.forward_replies_to_email,
-        classification.intent
+        classification.intent,
+        workspace.forward_cc_emails ?? null
       );
 
       if (forwarded) {
