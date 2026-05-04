@@ -896,7 +896,11 @@ ${reply.message}`;
     }
 
   } else if (result.action === "manual") {
-    await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
+    // Set status to 'awaiting_manual' (NOT 'new') so the sweeper's atomic
+    // claim (which matches status='new') skips this reply on subsequent
+    // ticks. Without this, every 60s sweep re-claimed the row, Sonnet
+    // returned 'manual' again, and another #manual-replies card got posted.
+    await pool.query(`UPDATE replies SET status = 'awaiting_manual' WHERE id = $1`, [replyId]);
     await postToSlack({
       text: `Manual booking needed, ${workspaceSlug} / ${reply.lead_name}`,
       blocks: buildSlackBlocks({
