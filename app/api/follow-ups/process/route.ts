@@ -386,6 +386,42 @@ Draft FU step ${nextStep} now.`;
   return { status: "sent" };
 }
 
+// Exported so the in-process scheduler (instrumentation.ts) can call this
+// directly without going through HTTP. Keep it pure: no auth, no Response.
+export async function runFollowUpProcessorOnce(): Promise<{
+  processed: number;
+  results: { id: string; status: string; reason?: string }[];
+}> {
+  const due = await pool.query<FollowUpRow>(
+    `SELECT id, reply_id, workspace_slug, lead_name, lead_email, fu_step, total_emails, fu_sequence_type, next_fu_due
+     FROM follow_ups
+     WHERE next_fu_due IS NOT NULL
+       AND next_fu_due <= NOW()
+       AND meeting_booked = FALSE
+       AND (outcome IS NULL OR outcome NOT IN ('booked','re_engaged','exhausted','unsubscribed'))
+     ORDER BY next_fu_due ASC
+     LIMIT 10`
+  );
+
+  const results: { id: string; status: string; reason?: string }[] = [];
+  for (let i = 0; i < due.rows.length; i++) {
+    const fu = due.rows[i];
+    try {
+      const result = await processOne(fu);
+      results.push({ id: fu.id, ...result });
+    } catch (err: any) {
+      console.error("[fu-process] error processing", fu.id, err);
+      results.push({ id: fu.id, status: "error", reason: err.message });
+    }
+    // Pacing to stay under Anthropic 30k tokens/min limit.
+    if (i < due.rows.length - 1) {
+      await new Promise(r => setTimeout(r, 8000));
+    }
+  }
+
+  return { processed: results.length, results };
+}
+
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization") ?? "";
   const expected = process.env.CRON_SECRET;
@@ -394,38 +430,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const due = await pool.query<FollowUpRow>(
-      `SELECT id, reply_id, workspace_slug, lead_name, lead_email, fu_step, total_emails, fu_sequence_type, next_fu_due
-       FROM follow_ups
-       WHERE next_fu_due IS NOT NULL
-         AND next_fu_due <= NOW()
-         AND meeting_booked = FALSE
-         AND (outcome IS NULL OR outcome NOT IN ('booked','re_engaged','exhausted','unsubscribed'))
-       ORDER BY next_fu_due ASC
-       LIMIT 10`
-    );
-
-    const results: { id: string; status: string; reason?: string }[] = [];
-    for (let i = 0; i < due.rows.length; i++) {
-      const fu = due.rows[i];
-      try {
-        const result = await processOne(fu);
-        results.push({ id: fu.id, ...result });
-      } catch (err: any) {
-        console.error("[fu-process] error processing", fu.id, err);
-        results.push({ id: fu.id, status: "error", reason: err.message });
-      }
-      // Pacing to stay under Anthropic 30k tokens/min limit.
-      if (i < due.rows.length - 1) {
-        await new Promise(r => setTimeout(r, 8000));
-      }
-    }
-
-    return NextResponse.json({
-      ok: true,
-      processed: results.length,
-      results,
-    });
+    const result = await runFollowUpProcessorOnce();
+    return NextResponse.json({ ok: true, ...result });
   } catch (err: any) {
     console.error("[fu-process] fatal:", err);
     return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 });

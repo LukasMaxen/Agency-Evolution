@@ -85,11 +85,27 @@ export async function POST(req: NextRequest) {
   return GET(req);
 }
 
-export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization") ?? "";
-  const expected = process.env.CRON_SECRET;
-  if (expected && auth !== `Bearer ${expected}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+interface WeeklyReviewResult {
+  ok: boolean;
+  feedback_count?: number;
+  patterns_found?: number;
+  slack_ts?: string | null;
+  error?: string;
+  skipped?: string;
+}
+
+// Exported so the in-process scheduler (instrumentation.ts) can call this
+// directly without going through HTTP. `dedupeWindow=true` skips the run if
+// a weekly_reviews row was inserted within the last 6 days.
+export async function runWeeklyFeedbackReviewOnce(opts: { dedupeWindow?: boolean } = {}): Promise<WeeklyReviewResult> {
+  if (opts.dedupeWindow) {
+    const last = await pool.query(
+      `SELECT created_at FROM weekly_reviews ORDER BY created_at DESC LIMIT 1`
+    );
+    const lastAt = last.rows[0]?.created_at as Date | undefined;
+    if (lastAt && Date.now() - new Date(lastAt).getTime() < 6 * 24 * 60 * 60 * 1000) {
+      return { ok: true, skipped: "ran within last 6 days" };
+    }
   }
 
   // Aggregate stats for the past 7 days across both draft types.
@@ -157,7 +173,7 @@ export async function GET(req: NextRequest) {
         },
       ],
     });
-    return NextResponse.json({ ok: true, feedback_count: 0 });
+    return { ok: true, feedback_count: 0 };
   }
 
   // Load context files so Claude can propose targeted rule edits.
@@ -231,7 +247,7 @@ Identify patterns and propose rule updates now.`;
   const summary = await callClaude(systemPrompt, userMessage);
 
   if (!summary) {
-    return NextResponse.json({ error: "Claude error generating summary" }, { status: 500 });
+    return { ok: false, error: "Claude error generating summary" };
   }
 
   // Build the Slack post
@@ -312,10 +328,29 @@ Identify patterns and propose rule updates now.`;
     );
   }
 
-  return NextResponse.json({
+  return {
     ok: true,
     feedback_count: feedbackResult.rows.length,
     patterns_found: summary.patterns.length,
     slack_ts: slackTs,
-  });
+  };
+}
+
+export async function GET(req: NextRequest) {
+  const auth = req.headers.get("authorization") ?? "";
+  const expected = process.env.CRON_SECRET;
+  if (expected && auth !== `Bearer ${expected}`) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const result = await runWeeklyFeedbackReviewOnce();
+    if (!result.ok && result.error) {
+      return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+    return NextResponse.json(result);
+  } catch (err: any) {
+    console.error("[weekly-review] fatal:", err);
+    return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 });
+  }
 }
