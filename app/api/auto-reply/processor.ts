@@ -407,6 +407,9 @@ ${ebLink}`;
     .join("");
 
   // Parse comma-separated CC list (per-workspace setting). Trim and drop empties.
+  // EmailBison's /replies/{id}/reply endpoint silently ignores cc_emails, so we
+  // send via bcc_emails instead. If they also ignore bcc_emails, we will fall
+  // back to expanding into to_emails (visible to the recipient).
   const ccList = (ccEmails ?? "")
     .split(",")
     .map(e => e.trim())
@@ -421,7 +424,7 @@ ${ebLink}`;
     content_type: "html",
   };
   if (ccList.length > 0) {
-    payload.cc_emails = ccList;
+    payload.bcc_emails = ccList;
   }
 
   const ebResponse = await fetch(
