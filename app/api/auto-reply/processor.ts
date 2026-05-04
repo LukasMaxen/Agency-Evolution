@@ -436,6 +436,52 @@ ${ebLink}`;
 }
 
 export async function processAutoReply(replyId: string, workspaceSlug: string): Promise<void> {
+  // Outer guard: any uncaught throw inside the processor (SQL drift, Anthropic
+  // outage, EmailBison error, missing creds) marks the reply 'errored' so it
+  // does not get re-processed in a tight loop, and surfaces a card to
+  // #manual-replies. Without this, a single bug silently stalls every inbound
+  // reply, like the migration-009 incident.
+  try {
+    await processAutoReplyImpl(replyId, workspaceSlug);
+  } catch (err: any) {
+    console.error(`[auto-reply] CRASH for ${replyId} (${workspaceSlug}):`, err);
+
+    // Best-effort: mark the reply errored so retries do not pile up.
+    try {
+      await pool.query(`UPDATE replies SET status = 'errored' WHERE id = $1`, [replyId]);
+    } catch (sqlErr) {
+      console.error(`[auto-reply] Could not mark reply errored:`, sqlErr);
+    }
+
+    // Best-effort: surface to #manual-replies. Pull lead context for the card,
+    // fall back to a minimal card if even that lookup fails.
+    try {
+      const r = await pool.query(
+        `SELECT r.lead_name, r.lead_email, r.subject, r.message, r.campaign,
+                w.email_bison_instance_url
+         FROM replies r LEFT JOIN workspaces w ON w.slug = r.workspace_slug
+         WHERE r.id = $1`,
+        [replyId]
+      );
+      const reply = r.rows[0] ?? {};
+      const errMsg = ((err?.message ?? String(err)) || "unknown error").slice(0, 500);
+      await postToSlack({
+        text: `Auto-reply processor crashed, ${workspaceSlug} / ${reply.lead_name ?? replyId}`,
+        blocks: buildSlackBlocks({
+          header: "Auto-reply processor crashed, needs investigation",
+          workspaceSlug,
+          reply: { id: replyId, ...reply },
+          instanceUrl: reply.email_bison_instance_url ?? "",
+          reason: `Error: ${errMsg}\n\nReply marked status='errored' to prevent retry loop. Once fixed, UPDATE replies SET status='new' WHERE id='${replyId}' to re-queue.`,
+        }),
+      });
+    } catch (alertErr) {
+      console.error(`[auto-reply] Crash-alert post failed:`, alertErr);
+    }
+  }
+}
+
+async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Promise<void> {
   // Workspaces that handle their own replies entirely (no forwarding, no auto-reply).
   // Hahnbeck used to be on this list but now uses the forward_replies_to_email path.
   if (workspaceSlug === "itg-group" || workspaceSlug === "sonaro-ai") {
