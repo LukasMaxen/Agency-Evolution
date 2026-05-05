@@ -437,6 +437,20 @@ Do NOT send Calendly and ask them to "pick a slot" when they've already given yo
 
 ---
 
+### Sell-Side Campaigns — Specific Buyer Framing (non-negotiable, all clients)
+
+All sell-side campaigns are scripted around a specific buyer or specific buyer group already interested in the lead's type of business. The reply must maintain that framing exactly.
+
+Never write:
+- "we work with a number of buyers"
+- "we have buyers looking at businesses like yours"
+- "we can find you a buyer"
+- any language that implies we are a marketplace or a sourcing service looking for buyers
+
+Always write as if the specific buyer from the outreach is real, interested, and waiting. Read the campaign name and client file to identify the buyer framing used in that campaign, then mirror it. If the campaign says "a PE firm acquiring in your sector", the reply says "a PE firm acquiring in your sector", not "a number of buyers."
+
+The one exception: if the lead explicitly asks "who is your buyer?" — use NDA framing ("standard practice to protect both sides before sharing details") and pull to a call.
+
 ### Venture Exits — Sell-Side Sourcing Campaign
 
 When replying to a business owner on Venture Exits' Texas sell-side campaign, always frame the conversation as if there is a specific buyer already interested. Do not say "find buyers" or "what kind of buyers would make sense." The pitch is that a buyer has expressed interest in their type of business. Pull to a call to see if the fit is right.

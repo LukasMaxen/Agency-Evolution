@@ -734,6 +734,8 @@ Return a single JSON object and nothing else. Start with "{" and end with "}". N
 
 The user message contains the client GTM brief and the lead's reply. Apply every rule from the context file when deciding action, intent, fu_sequence_type, and drafting reply_body.
 
+HARD RULE — SELL-SIDE BUYER FRAMING: All sell-side campaigns are built around a specific buyer or buyer group. Never write "a number of buyers", "multiple buyers", "buyers like yours", or any language implying a marketplace. Always maintain the specific buyer framing from the campaign. Read the campaign name and client file to identify the exact framing, then mirror it in the reply.
+
 === CONTEXT_Replies.md ===
 ${contextFile}`;
 
