@@ -31,6 +31,13 @@ interface AutoReplyResult {
   recipient_name?: string;
 }
 
+// Map workspace slugs that should read another workspace's client file.
+// Avoids duplicating client context across multiple workspaces that share
+// the same business (eg internal-campaigns reuses agency-evolution).
+const CLIENT_FILE_ALIASES: Record<string, string> = {
+  "internal-campaigns": "agency-evolution",
+};
+
 function readFile(filePath: string): string {
   try {
     return fs.readFileSync(filePath, "utf-8");
@@ -529,8 +536,11 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   const workspace = wsResult.rows[0];
   const replyWithCreds = { ...reply, ...workspace };
 
-  // Read client file and global context
-  const clientFile = readFile(path.join(process.cwd(), "clients", `${workspaceSlug}.md`));
+  // Read client file and global context. Slug aliases let one client file
+  // back multiple workspaces (eg `internal-campaigns` is Agency Evolution's
+  // own outreach and shares the agency-evolution.md context).
+  const fileSlug = CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
+  const clientFile = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
   const contextFile = readFile(
     path.join(process.cwd(), "1. Departments", "reply-management", "CONTEXT_Replies.md")
   );
