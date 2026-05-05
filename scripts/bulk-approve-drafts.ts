@@ -4,8 +4,6 @@
  * Run: npx tsx scripts/bulk-approve-drafts.ts
  */
 
-import { config } from "dotenv";
-config({ path: ".env.local" });
 import pool from "../lib/db";
 import fs from "fs";
 import path from "path";
