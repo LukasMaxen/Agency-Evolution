@@ -252,7 +252,7 @@ Possible intents:
 - interested_urgent: explicit urgency ("call me now", "let's move fast")
 - interested: positive signal, open to a call ("happy to chat", "tell me more")
 - needs_info: asking a clarifying question, wants details before committing
-- neutral: vague, no clear signal either way
+- neutral: vague, no clear signal either way. Do NOT use for angry or frustrated replies ("why are you still emailing me", "did you not read my last email") — those are not_interested or unsubscribe.
 - forwarded: someone other than the original lead is replying (forwarded internally, EA, colleague), OR the lead is redirecting us to someone else with their email or name, OR the account is unused/inactive and the message contains a new email address to contact instead. If a redirect email address is present anywhere in the message, always classify as forwarded regardless of any OOO language.
 - not_interested: soft no with timing language ("not right now", "happy as is", "too busy", "bad timing")
 - hard_no: definite disinterest ("we never sell", "sold last year", "family business not for sale ever")
@@ -721,7 +721,7 @@ OUTPUT FORMAT (the only thing this prompt enforces directly):
 Return a single JSON object and nothing else. Start with "{" and end with "}". No preamble, no markdown fences, no commentary. The shape:
 
 {
-  "action": "auto_send" | "manual" | "do_nothing",
+  "action": "auto_send" | "manual" | "do_nothing",  // manual = ONLY when the lead gave a specific day/time to book or a phone number to call immediately. NEVER use manual for angry, ambiguous, or difficult replies — draft a response and use auto_send instead.
   "intent": "interested_urgent" | "interested" | "needs_info" | "neutral" | "not_interested" | "unsubscribe",
   "fu_sequence_type": "full" | "abbreviated" | "none",
   "reply_body": "full email body, plain text, greeting on its own line, blank lines between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line. Never write 'Best' or any name before the signature variable. Omit this field entirely if action is not auto_send.",
