@@ -45,11 +45,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { replyId, leadName, leadEmail, campaign, message } = await req.json();
+  const { replyId, leadName: rawLeadName, leadEmail, campaign, message } = await req.json();
+  const leadName = rawLeadName?.trim() || leadEmail?.trim() || "Unknown";
 
-  if (!leadName || !message) {
+  if (!message?.trim()) {
     return NextResponse.json(
-      { error: "leadName and message are required" },
+      { error: "message is required" },
       { status: 400 }
     );
   }
