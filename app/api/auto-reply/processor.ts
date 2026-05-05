@@ -679,7 +679,6 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
 
     const isUnsub = classification.intent === "unsubscribe" || classification.intent === "wrong_target";
     if (isUnsub) {
-      // Mark lead as unsubscribed and stop any future FU sequences.
       await pool.query(`UPDATE replies SET interested = FALSE WHERE id = $1`, [replyId]);
       await pool.query(
         `UPDATE follow_ups SET meeting_booked = FALSE, next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`,
@@ -687,46 +686,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
       );
     }
 
-    if (workspace.auto_reply_approval_mode) {
-      // Stage the templated reply in reply_drafts so the team can ✅ to send.
-      const draftId = `rd-${replyId}-${Date.now()}`;
-      const slackTs = await postReplyApprovalCard({
-        workspaceSlug,
-        reply: replyWithCreds,
-        instanceUrl: workspace.email_bison_instance_url ?? "",
-        result: {
-          action: "auto_send",
-          intent: classification.intent,
-          fu_sequence_type: "none",
-          reply_body: body,
-          flag_unsubscribe: isUnsub,
-          flag_meeting_booked: false,
-        },
-      });
-      await pool.query(
-        `INSERT INTO reply_drafts
-          (id, reply_id, workspace_slug, lead_name, lead_email, intent, action,
-           fu_sequence_type, flag_unsubscribe, flag_meeting_booked, manual_reason,
-           subject, body, status, slack_ts, created_at)
-         VALUES ($1,$2,$3,$4,$5,$6,'auto_send','none',$7,FALSE,$8,$9,$10,'pending',$11,NOW())`,
-        [
-          draftId, replyId, workspaceSlug, reply.lead_name, reply.lead_email,
-          classification.intent, isUnsub, `[template:${templateName}]`,
-          reply.subject ?? "", body, slackTs,
-        ]
-      );
-      await pool.query(
-        `UPDATE replies SET status = 'awaiting_approval', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
-        [
-          JSON.stringify({ intent: classification.intent, template: templateName, awaiting_approval: true }),
-          replyId,
-        ]
-      );
-      console.log(`[auto-reply] Staged template draft ${draftId} (${templateName}) for approval`);
-      return;
-    }
-
-    // Direct send: no approval needed for this workspace.
+    // Template replies always send directly, no approval gate, no Slack notification.
     const sent = await sendReplyToEmailBison(replyWithCreds, body);
     if (sent) {
       const sentId = `auto-${replyId}-${Date.now()}`;
