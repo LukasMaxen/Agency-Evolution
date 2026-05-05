@@ -253,12 +253,12 @@ Possible intents:
 - interested: positive signal, open to a call ("happy to chat", "tell me more")
 - needs_info: asking a clarifying question, wants details before committing
 - neutral: vague, no clear signal either way
-- forwarded: someone other than the original lead is replying (forwarded internally, EA, colleague), OR the lead is redirecting us to someone else with their email or name
+- forwarded: someone other than the original lead is replying (forwarded internally, EA, colleague), OR the lead is redirecting us to someone else with their email or name, OR the account is unused/inactive and the message contains a new email address to contact instead. If a redirect email address is present anywhere in the message, always classify as forwarded regardless of any OOO language.
 - not_interested: soft no with timing language ("not right now", "happy as is", "too busy", "bad timing")
 - hard_no: definite disinterest ("we never sell", "sold last year", "family business not for sale ever")
 - unsubscribe: explicit removal request ("remove me", "unsubscribe", "stop", "do not contact")
 - wrong_target: wrong person/company, no useful redirect ("I'm not the owner", "we are a nonprofit", "wrong sector")
-- out_of_office: vacation reply, will return on date
+- out_of_office: vacation reply, will return on date. Only use this if there is NO redirect email in the message.
 - bounce: delivery failure notification
 - spam: clearly automated or unrelated
 - nothing_to_address: thanks/acknowledgment with nothing to act on
