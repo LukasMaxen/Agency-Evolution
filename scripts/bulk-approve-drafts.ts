@@ -65,7 +65,7 @@ My number is in my signature below. Looking forward to speaking tomorrow.
 // ── Draft IDs to send (from the 2026-05-05 Slack approval batch) ─────────────
 
 const DRAFT_IDS_TO_SEND = [
-  "rd-a1b5085f-1f05-4424-863d-ae492765c7d8-1777989077633",   // Dilan / Larsen not_interested
+  "rd-a1b5085f-1f05-4424-863d-ae492769c7d8-1777989077633",   // Dilan / Larsen not_interested
   "rd-a1b5089f-4dda-4d4d-8651-5c5793d44815-1777989086481",   // Moses / Internal interested (body override)
   "rd-a1b50904-2a92-47e1-9308-cad509c98fb6-1777989142463",   // Brittany / 911 interested
   "rd-a1b50a95-32dd-4414-860b-ef660279b344-1777989441320",   // Sebastian / Larsen interested
