@@ -721,7 +721,7 @@ OUTPUT FORMAT (the only thing this prompt enforces directly):
 Return a single JSON object and nothing else. Start with "{" and end with "}". No preamble, no markdown fences, no commentary. The shape:
 
 {
-  "action": "auto_send" | "manual" | "do_nothing",  // manual = ONLY when the lead gave a specific day/time to book or a phone number to call immediately. NEVER use manual for angry, ambiguous, or difficult replies — draft a response and use auto_send instead.
+  "action": "auto_send" | "manual" | "do_nothing",  // manual = when the lead gives ANY specific time window ("next week", "Monday", "tomorrow", "around next week") OR a phone number to call. These need a human to open the calendar and book. auto_send = general interest with no time given ("happy to chat", "tell me more", "send the teaser"). NEVER use manual for angry, ambiguous, or difficult replies — draft and auto_send those instead.
   "intent": "interested_urgent" | "interested" | "needs_info" | "neutral" | "not_interested" | "unsubscribe",
   "fu_sequence_type": "full" | "abbreviated" | "none",
   "reply_body": "full email body, plain text, greeting on its own line, blank lines between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line. Never write 'Best' or any name before the signature variable. Omit this field entirely if action is not auto_send.",
