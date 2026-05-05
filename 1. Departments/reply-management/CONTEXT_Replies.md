@@ -24,6 +24,8 @@ Every inbound reply runs through two tiers:
 
 **Tier 2: Either Sonnet or template.** The Sonnet path uses the full draft logic in this file (intent, fu_sequence_type, reply_body, etc). The template path loads a markdown file from `1. Departments/reply-management/templates/`, substitutes variables (`{{lead_first_name}}`, `{{lead_company}}`, etc), and routes through the same approval / send pipeline.
 
+**Template check (non-negotiable):** Before sending any template, assess whether the lead's specific message, company, tone, or thread context allows for a better reply. If yes, draft a fresh reply using the template as a structural guide only. The template is the floor, not the ceiling. Only use the template as-is when the lead's message gives no additional context to work with (e.g. a single-line "remove me").
+
 This saves about 80% of API cost at scale because most replies (unsubscribes, soft nos, OOO, bounces) never touch Sonnet. See the templates folder README for the full variable list and how to edit templates.
 
 The rules in this document still apply to BOTH tiers: tone, dash-free, no colons in body, sender identity, recipient detection, etc. Templates respect them by being written that way; Sonnet respects them by reading this file.
