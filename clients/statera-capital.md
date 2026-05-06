@@ -70,6 +70,124 @@ EdTech investor or fund with appetite for a Seed Round investment with strong fu
 
 _Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
+### Project TelcoLab — PE Campaign
+_What's being pitched: Exclusive sell-side mandate for a specialized telecom software engineering and OSS/BSS integration platform. Revenue 5.6m EUR (2025A), adj. EBITDA 1.6m EUR at 29% margin. 15+ years embedded at Deutsche Telekom, AT&T, T-Mobile US, Vodafone, Telenor, Telefonica. 145 engineers across Eastern Europe and LATAM. Proprietary automation IP. Majority or full sale._
+
+_Teaser link: [PENDING — Svetlin to provide hosted link]_
+_Calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate_
+
+| ICP | Status |
+|---|---|
+| PE firms and growth equity funds (Europe + US) | Active |
+
+**Target titles:** Managing Partner, Investment Principal, Investment Partner, VP Corporate Development, Head of M&A, Partner
+**Target sectors:** Technology, tech-enabled services, telecom infrastructure, IT services
+
+**Step 1**
+Subject: `{Telecom Software Platform|OSS/BSS Acquisition|Project TelcoLab|Telecom Engineering Platform|Acquisition Opportunity}`
+
+Body:
+Hi {FIRST_NAME},
+
+Reaching out on behalf of Statera Capital. We are running an exclusive sell-side process for a specialized telecom software engineering platform with 15+ years of embedded delivery relationships across Tier-1 operators including Deutsche Telekom, AT&T, T-Mobile US, and Vodafone.
+
+Revenue grew from 3.3m to 5.6m EUR between 2024 and 2025, with adj. EBITDA reaching 1.6m EUR at a 29% margin. Management projects 6.1m in revenue and 2.0m EBITDA for 2026.
+
+The business operates through long-standing vendor relationships across 20+ operators globally and carries proprietary automation IP deployed on active Tier-1 programs. Delivery runs through approximately 145 engineers across 7 cities in Eastern Europe and LATAM.
+
+Want me to send over the teaser?
+
+{SENDER_EMAIL_SIGNATURE}
+
+P.S. If this is not relevant for your mandate, feel free to let me know and I will not follow up.
+
+**Step 2**
+Subject: `TelcoLab`
+
+Body:
+Following up in case of bad timing.
+
+Any interest in a telecom engineering platform with 29% EBITDA margins and embedded delivery relationships at Deutsche Telekom, AT&T, and Vodafone?
+
+{SENDER_EMAIL_SIGNATURE}
+
+**Step 3**
+Subject: `Project TelcoLab`
+
+Body:
+Reaching out again in case my previous notes got buried.
+
+The company has delivered across 20+ Tier-1 and Tier-2 operators globally for over 15 years. Revenue nearly doubled between 2024 and 2025 (3.3m to 5.6m EUR) and EBITDA grew from 0.5m to 1.6m in the same period. The business holds proprietary automation tooling and a scalable team of roughly 145 engineers across Eastern Europe and LATAM.
+
+This is an exclusive process led by Statera Capital. Qualified buyers receive the full CIM after NDA execution.
+
+Happy to send the teaser if helpful.
+
+{SENDER_EMAIL_SIGNATURE}
+
+P.S. If this is not relevant for your mandate, feel free to let me know and I will not follow up.
+
+---
+
+### Project TelcoLab — Strategics Campaign
+_What's being pitched: Same mandate as above, positioned toward strategic acquirers looking to add specialized telecom engineering capability, operator relationships, or OSS/BSS IP._
+
+_Teaser link: [PENDING — Svetlin to provide hosted link]_
+_Calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate_
+
+| ICP | Status |
+|---|---|
+| Telecom vendors, OSS/BSS software companies, IT services/SI firms (Europe + US) | Active |
+
+**Target titles:** VP Corporate Development, Head of M&A, Director of Corporate Development, Director of Strategy, Chief Strategy Officer, Managing Director
+**Target companies:** Telecom software vendors, OSS/BSS platform providers, managed telecom IT services, system integrators with telecom practices
+
+**Step 1**
+Subject: `{Telecom Engineering Acquisition|OSS/BSS Platform|Project TelcoLab|Specialized Telecom Platform|Telecom Engineering Team}`
+
+Body:
+Hi {FIRST_NAME},
+
+Reaching out on behalf of Statera Capital. We are advising on the exclusive sale of a specialized telecom software engineering and OSS/BSS integration business with 15+ years of active delivery across Deutsche Telekom, AT&T, T-Mobile US, Vodafone, Telenor, and Telefonica.
+
+The business covers OSS/BSS modernization, mediation, provisioning, activation, and CI/CD enablement across 20+ operators globally. It operates through a scalable delivery model with roughly 145 engineers across Eastern Europe and LATAM and carries proprietary automation tooling deployed on active Tier-1 programs.
+
+Revenue reached 5.6m EUR in 2025 at a 29% EBITDA margin.
+
+Want me to send over the teaser?
+
+{SENDER_EMAIL_SIGNATURE}
+
+P.S. If this is not relevant for {COMPANY}, feel free to let me know and I will not follow up.
+
+**Step 2**
+Subject: `TelcoLab`
+
+Body:
+Following up in case of bad timing.
+
+Any interest in acquiring a specialized telecom engineering platform embedded across 20+ Tier-1 operators, with proprietary OSS/BSS automation IP and 145 engineers in Eastern Europe and LATAM?
+
+{SENDER_EMAIL_SIGNATURE}
+
+**Step 3**
+Subject: `Project TelcoLab`
+
+Body:
+Reaching out again in case my previous notes got buried.
+
+The business has been embedded in Tier-1 operator programs for 15+ years. Capabilities cover OSS/BSS modernization, mediation, provisioning, activation, and cloud transformation. Revenue was 5.6m EUR in 2025, up from 3.3m the prior year, with an adj. EBITDA margin of 29%. Management projects 6.1m in revenue and 2.0m EBITDA for 2026.
+
+The deal is structured as a majority or full sale and is open to strategic and financial buyers. Qualified buyers receive the CIM after NDA execution.
+
+Happy to send the teaser if helpful.
+
+{SENDER_EMAIL_SIGNATURE}
+
+P.S. If this is not relevant for {COMPANY}, feel free to let me know and I will not follow up.
+
+---
+
 ### Sell Side Advisory
 _What's being pitched: Statera Capital's M&A advisory services to business owners considering an exit ($5M–$50M revenue)._
 
@@ -305,6 +423,8 @@ Investment focus/thesis, fund size if available.
 | Pause | Dallas Plastics | — | — | 0% | Failing — pause |
 | Pause | Graymar Environmental | — | — | 0% | Failing — pause |
 | Active | ZEBS Seed Round | — | — | — | See zebs-ibs.md for details |
+| Pending | TelcoLab PE | — | — | — | New mandate — awaiting teaser link from Svetlin |
+| Pending | TelcoLab Strategics | — | — | — | New mandate — awaiting teaser link from Svetlin |
 
 ---
 
