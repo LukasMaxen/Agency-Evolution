@@ -342,13 +342,7 @@ If the inbound reply contains both an explicit email address (eg "contact marion
 
 ## Scheduling: When to Send Calendly vs. Book Manually
 
-**Larsen Digital exception:** Always send the Calendly link for Larsen Digital, even when the lead mentions specific availability or a preferred time. Never book manually for this client. Find a natural reason to send the link instead (e.g. "easiest way to lock something in", "calendar fills up fast"). The excuse must feel genuine. This rule applies to Larsen Digital only.
-
-**Send Calendly link** when the lead expresses general interest and says "happy to jump on a call" or "let me know when you're free" — let them self-schedule.
-
-**Book manually** (go into the sender's calendar, find an open slot, create the event, then reply confirming it) when:
-- Lead gives a specific day or window: "Wednesday afternoon CET", "Monday works", "next week"
-- Lead says "send me a calendar invite" or "pick your slot"
+**Send Calendly link** when the lead asks for availability, wants to book a call, expresses general interest in speaking, or gives a time window. Use the correct link for the sender from the client file. This applies to all clients. No manual booking.
 - A meeting link broke and you need to reschedule immediately
 - Lead is confirming a time already proposed
 
