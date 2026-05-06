@@ -55,7 +55,7 @@ The intent classification (`interested_urgent`, `interested`, `needs_info`, `neu
 
 ## The Process
 
-1. **Lead replies → interested** — send the info reply. For Larsen Digital: include the Calendly link. For all other clients: post to #manual-replies so the team can book manually. Never send a Calendly link to non-Larsen leads.
+1. **Lead replies → interested** — send the info reply. Include the Calendly link from the client file when a lead asks for availability or wants to book a call. This applies to all clients.
 2. **Lead books a call** — send confirmation. Mark `meeting_booked = TRUE` in DB.
 3. **Lead replies but doesn't book** — assign follow-up sequence based on intent. See Follow-Up Sequence Assignment below.
 4. **No response after any FU** — send next FU in sequence per the timing in the FU table.
@@ -184,7 +184,7 @@ Example:
 - NEVER confirm or deny valuation/EV numbers upfront — keep vague, pull to call
 - NEVER agree to commission-only structures — politely decline and close
 - NEVER over-promise on buyer capabilities before a call
-- ALWAYS include the Calendly link for Larsen Digital leads. For all other clients, post to #manual-replies when a lead wants to speak — do not include a Calendly link.
+- ALWAYS include the Calendly link from the client file when a lead asks for availability or wants to book a call. Applies to all clients.
 - ALWAYS research the prospect company when they ask questions requiring context
 - Use NDA framing when asked about buyer identity: "standard practice to protect both sides"
 

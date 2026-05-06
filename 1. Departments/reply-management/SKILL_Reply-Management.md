@@ -80,7 +80,7 @@ Active mandate clients: **ACT Capital** (3 mandates), **Venture Exits** (Yoga & 
 ## Rules Claude must follow
 - Read the client file before drafting — never assume tone or offer details from memory
 - Match reply length to the lead's message — short reply = short email
-- Larsen Digital only: always include the Calendly link. For every other client: when a lead says yes to a call or wants to speak, post to #manual-replies instead. The team books manually.
+- Always include the Calendly link when a lead asks for availability, wants to book a call, or confirms interest in speaking. Use the correct link for the sender from the client file. No exceptions across any client.
 - Never use dashes of any kind — no em dashes, en dashes, or punctuation dashes. Restructure the sentence instead.
 - Never use bullet points in short replies
 - Never volunteer pricing unless the lead explicitly asks
@@ -94,9 +94,7 @@ Active mandate clients: **ACT Capital** (3 mandates), **Venture Exits** (Yoga & 
 
 ## When to Post to #manual-replies
 
-**Larsen Digital:** Always send the Calendly link. Never post to #manual-replies.
-
-**Every other client:** When a lead says yes to a call, wants to discuss, asks when we are free, or confirms interest in speaking — post to #manual-replies. Do NOT send a Calendly link. The team books manually.
+Do NOT post to #manual-replies when a lead asks for availability or wants to book a call. Draft the reply and include the Calendly link from the client file.
 
 Do NOT post to #manual-replies for:
 - Redirects to a new contact (e.g. "Arnaud is no longer here, contact g.mamboundi@...") — draft a reply and send directly to the new email via toEmailOverride
