@@ -16,11 +16,18 @@ Every inbound reply runs through two tiers:
 |---|---|
 | `interested_urgent`, `interested`, `needs_info`, `neutral` | Tier 2: Sonnet drafter (full personalised reply, optional approval in `#reply-approval`) |
 | `forwarded` (someone else replied for the lead) | Tier 2: Sonnet drafter (also populates `recipient_email` override) |
+| `advisor_engaged` (third-party M&A advisor or broker replying on behalf of the lead) | Tier 2: Sonnet drafter. See "Advisor engaged" scenario below for the response pattern. |
 | `not_interested` (soft no, timing language) | Tier 2: template `soft-no-acknowledgment.md` |
 | `hard_no` (definite, won't change) | Tier 2: template `hard-no-acknowledgment.md` |
 | `unsubscribe` (remove me, stop) | Tier 2: template `unsubscribe-confirmation.md` + mark unsubbed in DB |
 | `wrong_target` (not the right person, no redirect) | Tier 2: template `wrong-target-apology.md` + mark unsubbed |
-| `out_of_office`, `bounce`, `spam`, `nothing_to_address` | No action, log + return. No email sent. |
+| `hostile` (abusive or angry language) | Tier 2: template `hostile-acknowledgment.md` + mark unsubbed in DB |
+| `reschedule_request` (lead booked, wants to move) | Manual route, post to `#manual-replies`. Human cancels and rebooks the calendar event. |
+| `phone_call_requested` (lead gave a phone number, wants a call now) | Manual route, post to `#manual-replies`. Human calls the number. |
+| `their_process_required` (lead wants us to enter their intake form or external application) | Manual route, post to `#manual-replies`. Human fills out the form by hand or skips. |
+| `out_of_office`, `bounce`, `spam`, `nothing_to_address`, `automated_notice` | No action, log + return. No email sent. |
+
+**Routing principle:** Manual route is reserved strictly for replies that need a physical action the AI cannot perform itself (move a calendar event, place a phone call, fill out a third-party form). Anything that is just an email reply, even if the right answer requires judgment, goes through Sonnet and into `#reply-approval` so the team can review and approve.
 
 **Tier 2: Either Sonnet or template.** The Sonnet path uses the full draft logic in this file (intent, fu_sequence_type, reply_body, etc). The template path loads a markdown file from `1. Departments/reply-management/templates/`, substitutes variables (`{{lead_first_name}}`, `{{lead_company}}`, etc), and routes through the same approval / send pipeline.
 
@@ -697,6 +704,31 @@ Two sub-patterns:
 *(Melina, La Cerise sur le Gâteau — GN Motion)*
 
 **Response pattern:** No reply needed to the original contact. Email Marion directly with the original intro context.
+
+---
+
+### 17a. Advisor Engaged on Behalf of the Lead
+
+**Lead message:** "Mr. Petrov, your recent email to my client Kathy Brenner at Melrose Nameplate and Label was forwarded to me to respond on her behalf. We have been engaged by Melrose and Ms. Brenner to assist her with developing and implementing an exit strategy."
+*(M&A advisor responding for the seller, Statera Capital)*
+
+**Lead message (alt):** "I represent the owner of [Company] and am handling all M&A inquiries on their behalf. Please send through your buyer parameters so we can assess fit."
+
+**Response pattern:** Acknowledge the engagement, do not pitch directly to the advisor as if they were the seller. Confirm we are buy-side (or whatever the client is) and propose a quick advisor-to-advisor call to walk through the buyer's brief and the seller's process. Do not request financials over email. Do not reveal the buyer's identity in writing. Treat the advisor as a peer, not a lead.
+
+> Hi [Advisor first name],
+>
+> Thanks for the introduction. We are working with a [PE firm / strategic / family office] focused on [sector / mandate], and {{lead_company}} fits the brief on first read.
+>
+> Best to walk through this advisor to advisor on a quick call so I can share the buyer brief and you can outline where Ms. Brenner is in her process. Standard NDA before any materials change hands.
+>
+> If so, [Day 1] at [Time 1] or [Day 2] at [Time 2] both work. If neither fits, feel free to grab a time here [Calendly link].
+>
+> {SENDER_EMAIL_SIGNATURE}
+
+**Flag:** Set `recipient_email` and `recipient_name` to the advisor (per Recipient Detection on Redirects). The advisor is now the contact for this lead.
+
+**Never:** Pitch the seller's value directly to the advisor, send financials in writing, or push for a call with the seller around the advisor.
 
 ---
 

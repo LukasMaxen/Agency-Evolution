@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-export type TemplatePath = "interested" | "template" | "no_action";
+export type TemplatePath = "interested" | "template" | "no_action" | "manual";
 
 /**
  * Maps a Haiku-classified intent to a tier-2 routing decision.
@@ -14,18 +14,29 @@ export const INTENT_TO_PATH: Record<string, TemplatePath> = {
   needs_info: "interested",
   neutral: "interested",
   forwarded: "interested",
+  advisor_engaged: "interested",
 
   // Template path: deterministic responses, no AI for the body
   not_interested: "template",
   hard_no: "template",
   unsubscribe: "template",
   wrong_target: "template",
+  hostile: "template",
+
+  // Manual path: post to #manual-replies. Used only when a physical action is
+  // required that the AI cannot perform itself (move a calendar event, place a
+  // phone call, complete a third-party intake form). Anything that is just an
+  // email reply belongs on the Sonnet path so it can flow through reply-approval.
+  reschedule_request: "manual",
+  phone_call_requested: "manual",
+  their_process_required: "manual",
 
   // No-action path: log only, no send
   out_of_office: "no_action",
   bounce: "no_action",
   spam: "no_action",
   nothing_to_address: "no_action",
+  automated_notice: "no_action",
 };
 
 /**
@@ -38,6 +49,17 @@ export const INTENT_TO_TEMPLATE: Record<string, string> = {
   hard_no: "hard-no-acknowledgment",
   unsubscribe: "unsubscribe-confirmation",
   wrong_target: "wrong-target-apology",
+  hostile: "hostile-acknowledgment",
+};
+
+/**
+ * Per-intent reason text shown on the #manual-replies card for manual-path intents.
+ * Keeps the Slack card concise and tells the team what action to take.
+ */
+export const MANUAL_INTENT_REASONS: Record<string, string> = {
+  reschedule_request: "Lead has booked and wants to move the meeting. Cancel the existing slot and rebook to the new time.",
+  phone_call_requested: "Lead provided a phone number and wants a call directly. Call the number in the reply, do not send Calendly.",
+  their_process_required: "Lead is redirecting us into their own intake form or external application process. Decide whether to comply (fill out their form by hand) or skip.",
 };
 
 interface TemplateFrontmatter {

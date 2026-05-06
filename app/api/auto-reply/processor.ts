@@ -13,6 +13,7 @@ import {
 import {
   INTENT_TO_PATH,
   INTENT_TO_TEMPLATE,
+  MANUAL_INTENT_REASONS,
   renderTemplate,
   varsFromReply,
 } from "@/lib/template-replies";
@@ -258,9 +259,15 @@ Possible intents:
 - hard_no: definite disinterest ("we never sell", "sold last year", "family business not for sale ever")
 - unsubscribe: explicit removal request ("remove me", "unsubscribe", "stop", "do not contact")
 - wrong_target: wrong person/company, no useful redirect ("I'm not the owner", "we are a nonprofit", "wrong sector")
+- reschedule_request: lead has already booked or confirmed a meeting and is asking to move it ("can't make it Tuesday", "let's reschedule", "today is a bank holiday so I can't make it")
+- phone_call_requested: lead gives a direct phone number and wants to be called ("call me at 720-878-9184", "my cell is X", "telephone number please" in a thread where they asked us to call)
+- their_process_required: lead redirects us into their own intake funnel or external application process ("apply for funding here", "submit your information through our intake form")
+- advisor_engaged: a third-party M&A advisor, broker, or investment bank replies on behalf of the lead, often with their own engagement language ("we have been engaged by X to assist with their exit", "I represent the seller")
+- hostile: abusive, angry, or threatening language ("get out of my inbox", "stop spamming me you idiots", "this is harassment")
 - out_of_office: vacation reply, will return on date. Only use this if there is NO redirect email in the message.
 - bounce: delivery failure notification
-- spam: clearly automated or unrelated
+- automated_notice: system-generated noise that is not marketing spam (SharePoint or Dropbox file shares, ClickUp/Asana invites, Google security alerts, anti-spam confirmation challenges like Mailinblack, "your message expired in moderation", calendar invite notifications)
+- spam: marketing blasts, newsletters, or unrelated cold pitches sent TO us (not from leads)
 - nothing_to_address: thanks/acknowledgment with nothing to act on
 
 Read the reply text, output the single most accurate intent. Be decisive, prefer high or medium confidence.`;
@@ -661,6 +668,43 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     return;
   }
 
+  // ── Manual path: post to #manual-replies, no AI draft, human handles ──────
+  // Used only for intents where a physical out-of-band action is required
+  // that the AI cannot perform itself (move a calendar event, place a phone
+  // call, fill out a third-party intake form). Anything that is just an email
+  // reply must stay on the Sonnet path so it flows through reply-approval.
+  if (path1 === "manual") {
+    const reason = MANUAL_INTENT_REASONS[classification.intent]
+      ?? "Reply needs manual handling.";
+
+    await postToSlack({
+      text: `Manual handling needed, ${workspaceSlug} / ${reply.lead_name}`,
+      blocks: buildSlackBlocks({
+        header: "Reply needs manual handling",
+        workspaceSlug,
+        reply: replyWithCreds,
+        instanceUrl: workspace.email_bison_instance_url ?? "",
+        reason,
+        intent: classification.intent,
+      }),
+    });
+
+    await pool.query(
+      `UPDATE replies SET status = 'awaiting_manual', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+      [
+        JSON.stringify({
+          intent: classification.intent,
+          confidence: classification.confidence,
+          auto_replied: false,
+          manual_reason: reason,
+        }),
+        replyId,
+      ]
+    );
+    console.log(`[auto-reply] ${replyId} routed to #manual-replies (intent: ${classification.intent})`);
+    return;
+  }
+
   // ── Template path: deterministic substitute, no AI body ────────────────────
   if (path1 === "template") {
     const templateName = INTENT_TO_TEMPLATE[classification.intent];
@@ -677,7 +721,9 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
       return;
     }
 
-    const isUnsub = classification.intent === "unsubscribe" || classification.intent === "wrong_target";
+    const isUnsub = classification.intent === "unsubscribe"
+      || classification.intent === "wrong_target"
+      || classification.intent === "hostile";
     if (isUnsub) {
       await pool.query(`UPDATE replies SET interested = FALSE WHERE id = $1`, [replyId]);
       await pool.query(
