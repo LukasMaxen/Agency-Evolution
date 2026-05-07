@@ -60,7 +60,6 @@ def main():
     print(f"Loaded {len(workspaces)} workspaces")
 
     flags = []
-    follow_up_zeros = 0
     total_active = 0
 
     for slug, api_key, instance_url in workspaces:
@@ -75,8 +74,6 @@ def main():
             remaining = total_leads - contacted
 
             if name == "Follow Ups" or "spam" in name.lower():
-                if name == "Follow Ups" and remaining <= 0:
-                    follow_up_zeros += 1
                 continue
 
             total_active += 1
@@ -90,7 +87,7 @@ def main():
                     "deficit": int(max_new * 0.8 - remaining),
                 })
 
-    print(f"Active: {total_active}, Flagged: {len(flags)}, Follow Up zeros: {follow_up_zeros}")
+    print(f"Active: {total_active}, Flagged: {len(flags)}")
 
     if not flags and not follow_up_zeros:
         msg = f"\U0001f7e2 *Lead supply* — {today}\nAll clear."
@@ -115,9 +112,6 @@ def main():
                 else:
                     lines.append(f"  • {n} — `{r}` left (need {d:,} more)")
             lines.append("")
-
-        if follow_up_zeros:
-            lines.append(f"_{follow_up_zeros} Follow Up queue{'s' if follow_up_zeros != 1 else ''} also empty_")
 
         msg = "\n".join(lines).strip()
 
