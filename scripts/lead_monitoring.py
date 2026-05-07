@@ -144,12 +144,15 @@ def main():
             max_new = c.get("max_new_leads_per_day") or 0
             total_active += 1
 
-            if remaining < max_new * 0.8:
+
+            threshold = max_new * 0.8
+            in_followup_mode = remaining <= 0 and contacted > 0
+            if remaining < threshold and not in_followup_mode:
                 flags.append({
                     "workspace": slug,
                     "campaign": name,
                     "remaining": remaining,
-                    "deficit": int(max_new * 0.8 - remaining),
+                    "deficit": int(threshold - remaining),
                     "comments": comments_for_campaign(name, replies),
                 })
 
