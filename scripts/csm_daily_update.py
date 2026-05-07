@@ -24,18 +24,17 @@ def query(sql):
             rows[p[0]] = p[1:]
     return rows
 
-# Sent: only sequence_step = 1 (initial outreach, no follow-ups), UTC
+# Sent: all sequence steps, UTC (matches EmailBison dashboard totals)
 S = {k: int(v[0]) for k, v in query(
     f"SELECT workspace_slug, COUNT(*) FROM emails_sent "
     f"WHERE sent_at >= '{yesterday} 00:00:00' "
     f"AND sent_at < '{next_day} 00:00:00' "
-    f"AND sequence_step = 1 "
     f"GROUP BY workspace_slug"
 ).items()}
 
-# Replies: UTC
+# Replies: count distinct leads (not individual messages), UTC
 R = {k: (int(v[0]), int(v[1])) for k, v in query(
-    f"SELECT workspace_slug, COUNT(*), COUNT(*) FILTER (WHERE interested = true) FROM replies "
+    f"SELECT workspace_slug, COUNT(DISTINCT lead_email), COUNT(DISTINCT lead_email) FILTER (WHERE interested = true) FROM replies "
     f"WHERE received_at >= '{yesterday} 00:00:00' "
     f"AND received_at < '{next_day} 00:00:00' "
     f"GROUP BY workspace_slug"
