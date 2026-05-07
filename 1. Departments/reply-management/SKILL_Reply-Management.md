@@ -94,9 +94,12 @@ Active mandate clients: **ACT Capital** (3 mandates), **Venture Exits** (Yoga & 
 
 ## When to Post to #manual-replies
 
-Do NOT post to #manual-replies when a lead asks for availability or wants to book a call. Draft the reply and include the Calendly link from the client file.
+DO post to #manual-replies when:
+- Lead says "call me", asks to be called, or gives a phone number. Kasper will book it manually and notify the client to call the lead.
+- Lead gives a specific day or time window for a meeting (non-Larsen Digital).
 
 Do NOT post to #manual-replies for:
+- General interest or availability requests — draft the reply and include the Calendly link
 - Redirects to a new contact (e.g. "Arnaud is no longer here, contact g.mamboundi@...") — draft a reply and send directly to the new email via toEmailOverride
 - General interest replies — just respond normally
 - Ambiguous replies — draft and send, do not escalate

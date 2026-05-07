@@ -23,7 +23,7 @@ Every inbound reply runs through two tiers:
 | `wrong_target` (not the right person, no redirect) | Tier 2: template `wrong-target-apology.md` + mark unsubbed |
 | `hostile` (abusive or angry language) | Tier 2: template `hostile-acknowledgment.md` + mark unsubbed in DB |
 | `reschedule_request` (lead booked, wants to move) | Manual route, post to `#manual-replies`. Human cancels and rebooks the calendar event. |
-| `phone_call_requested` (lead gave a phone number, wants a call now) | Manual route, post to `#manual-replies`. Human calls the number. |
+| `phone_call_requested` (lead says "call me", gives a phone number, or explicitly asks for a phone call rather than a video/calendar booking) | Manual route, post to `#manual-replies`. Kasper books manually and notifies the client to call the lead. |
 | `their_process_required` (lead wants us to enter their intake form or external application) | Manual route, post to `#manual-replies`. Human fills out the form by hand or skips. |
 | `out_of_office`, `bounce`, `spam`, `nothing_to_address`, `automated_notice` | No action, log + return. No email sent. |
 
@@ -46,7 +46,7 @@ Every inbound reply is classified into one of three actions by the auto-reply pr
 | Action | When to use | What happens |
 |---|---|---|
 | `auto_send` | Any reply that can be handled without a human. Covers: general interest (send Calendly), teaser requests (send teaser + Calendly), reschedule requests (send Calendly), soft declines (1 to 2 line acknowledgment), unsubscribes (2-line confirmation). When in doubt, draft and auto-send. | First response is sent via EmailBison. Sequence type is set. FU clock starts. |
-| `manual` | ONLY when the lead has given a specific day or time window that requires manually booking a calendar event, OR they request a phone call to a specific number immediately. Do NOT use for general interest, objections, or ambiguity. | A Slack notification is posted to `#manual-replies`. The team handles the booking by hand. |
+| `manual` | ONLY when: (1) the lead has given a specific day or time window requiring manual calendar booking, (2) the lead says "call me", asks for a phone call, or gives a phone number. Do NOT use for general interest, objections, or ambiguity. | A Slack notification is posted to `#manual-replies`. Kasper books manually. For phone call requests, the client is notified to call the lead. |
 | `do_nothing` | Out-of-office auto-replies, delivery failure notices, or replies that are already fully handled with nothing left to address. | Reply marked as read, no email sent, no sequence created. |
 
 The intent classification (`interested_urgent`, `interested`, `needs_info`, `neutral`, `not_interested`, `unsubscribe`) is independent of the action and drives the FU sequence type per the table in "Follow-Up Sequence Assignment" below.
