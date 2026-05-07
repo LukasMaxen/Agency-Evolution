@@ -1,24 +1,19 @@
 import json
 import urllib.request
+import urllib.parse
 import subprocess
 import datetime
 import os
 import sys
 
-try:
-    import pytz
-except ImportError:
-    subprocess.run([sys.executable, "-m", "pip", "install", "pytz", "-q"])
-    import pytz
-
-NY = pytz.timezone("America/New_York")
-now_ny = datetime.datetime.now(NY)
-yesterday = (now_ny - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-next_day = now_ny.strftime("%Y-%m-%d")
-date_label = (now_ny - datetime.timedelta(days=1)).strftime("%d %b %Y")
+now_utc = datetime.datetime.now(datetime.timezone.utc)
+yesterday = (now_utc - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+next_day = now_utc.strftime("%Y-%m-%d")
+date_label = (now_utc - datetime.timedelta(days=1)).strftime("%d %b %Y")
 
 db = os.environ.get("DATABASE_URL", "postgresql://aird:QWEdsa123@77.42.71.101:5433/ai_reply_desk")
-token = os.environ.get("SLACK_BOT_TOKEN", "xoxb-5094014227030-11028184509637-q5B8xeOO4Wv19671uvAeri6i")
+slack_token = os.environ.get("SLACK_BOT_TOKEN", "xoxb-5094014227030-11028184509637-q5B8xeOO4Wv19671uvAeri6i")
+airtable_key = os.environ.get("AIRTABLE_API_KEY", "")
 
 def query(sql):
     r = subprocess.run(["psql", db, "-t", "-A", "-F", "|", "-c", sql], capture_output=True, text=True)
@@ -29,27 +24,58 @@ def query(sql):
             rows[p[0]] = p[1:]
     return rows
 
+# Sent: only sequence_step = 1 (initial outreach, no follow-ups), UTC
 S = {k: int(v[0]) for k, v in query(
     f"SELECT workspace_slug, COUNT(*) FROM emails_sent "
-    f"WHERE sent_at AT TIME ZONE 'America/New_York' >= '{yesterday} 00:00:00' "
-    f"AND sent_at AT TIME ZONE 'America/New_York' < '{next_day} 00:00:00' "
+    f"WHERE sent_at >= '{yesterday} 00:00:00' "
+    f"AND sent_at < '{next_day} 00:00:00' "
+    f"AND sequence_step = 1 "
     f"GROUP BY workspace_slug"
 ).items()}
 
+# Replies: UTC
 R = {k: (int(v[0]), int(v[1])) for k, v in query(
     f"SELECT workspace_slug, COUNT(*), COUNT(*) FILTER (WHERE interested = true) FROM replies "
-    f"WHERE received_at AT TIME ZONE 'America/New_York' >= '{yesterday} 00:00:00' "
-    f"AND received_at AT TIME ZONE 'America/New_York' < '{next_day} 00:00:00' "
+    f"WHERE received_at >= '{yesterday} 00:00:00' "
+    f"AND received_at < '{next_day} 00:00:00' "
     f"GROUP BY workspace_slug"
 ).items()}
 
-M = {k: int(v[0]) for k, v in query(
-    f"SELECT workspace_slug, COUNT(*) FROM replies "
-    f"WHERE meeting_booked = true "
-    f"AND received_at AT TIME ZONE 'America/New_York' >= '{yesterday} 00:00:00' "
-    f"AND received_at AT TIME ZONE 'America/New_York' < '{next_day} 00:00:00' "
-    f"GROUP BY workspace_slug"
-).items()}
+# Airtable meetings config: (base_id, table_id, field_name)
+AIRTABLE_MEETINGS = {
+    "911-restoration":    ("appGTy1rR6eZjKu62", "tblVEhq27whUNk4KY", "Meeting booked date"),
+    "acceler8rs":         ("appV8wpBdqTgCi4Ws", "tblCATnaPTV9fb2Ab", "Meeting booked date"),
+    "act-capital":        ("appECObQrdSRjeXeM", "tblTnxArHDVMNOxSI", "Meeting Booked Date"),
+    "gn-motion":          ("appL5fZEyULdqpyx5", "tblTnxArHDVMNOxSI", "Meeting Booked Date"),
+    "hahnbeck":           ("appUZr45I0MK7uv3w", "tbl9KatGYqPFB45Hs", "Meeting booked date"),
+    "internal-campaigns": ("app9rWZ2iE4eWECEN", "tblCATnaPTV9fb2Ab", "Meeting booked date"),
+    "itg-group":          ("appajhv22WuCEw7Aa", "tblTnxArHDVMNOxSI", "Meeting Booked Date"),
+    "larsen-digital":     ("appmixoDAnp7FicCS", "tblB3gNeQNs29SMgO", "Meeting booked date"),
+    "micro-nordic":       ("appBH1m8XsGoRmSPZ", "tblVEhq27whUNk4KY", "Meeting booked date"),
+    "sonaro-ai":          ("appNMGCTwXVOLLzmA", "tblTnxArHDVMNOxSI", "Meeting Booked Date"),
+    "statera-capital":    ("app0EI3nqT3ScUJOf", "tblTnxArHDVMNOxSI", "Meeting Booked Date"),
+    "venture-exits":      ("appA3W783M4v9IShx", "tblTnxArHDVMNOxSI", "Meeting Booked Date"),
+    "wrobel-capital":     ("appFvPc98WyrPibkV", "tblTnxArHDVMNOxSI", "Meeting Booked Date"),
+    "zebs-ibs":           ("appdpPuzEjTqFSOi2", "tblTnxArHDVMNOxSI", "Meeting Booked Date"),
+}
+
+def airtable_meetings_yesterday(slug):
+    if not airtable_key or slug not in AIRTABLE_MEETINGS:
+        return 0
+    base_id, table_id, field = AIRTABLE_MEETINGS[slug]
+    formula = urllib.parse.quote(f"IS_SAME({{{field}}}, '{yesterday}', 'day')")
+    url = f"https://api.airtable.com/v0/{base_id}/{table_id}?filterByFormula={formula}&fields[]={urllib.parse.quote(field)}"
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {airtable_key}"})
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read())
+            return len(data.get("records", []))
+    except Exception as e:
+        print(f"Airtable error for {slug}: {e}", file=sys.stderr)
+        return 0
+
+# Pull meetings from Airtable for each client
+M = {slug: airtable_meetings_yesterday(slug) for slug in AIRTABLE_MEETINGS}
 
 NAMES = {
     "911-restoration": "911 Restoration",
@@ -68,7 +94,8 @@ NAMES = {
     "zebs-ibs": "Zebs IBS",
 }
 
-slugs = sorted(set(list(S.keys()) + list(R.keys())), key=lambda s: NAMES.get(s, s))
+# Only include slugs that have email sends tracked
+slugs = sorted(S.keys(), key=lambda s: NAMES.get(s, s))
 
 def cd(v, d=2):
     return f"{v:.{d}f}".replace(".", ",")
@@ -138,7 +165,7 @@ payload = json.dumps({"channel": "C092ZPT3T2P", "text": msg}).encode()
 req = urllib.request.Request(
     "https://slack.com/api/chat.postMessage",
     data=payload,
-    headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    headers={"Authorization": f"Bearer {slack_token}", "Content-Type": "application/json"},
 )
 with urllib.request.urlopen(req) as resp:
     res = json.loads(resp.read())
