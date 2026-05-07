@@ -260,7 +260,7 @@ Possible intents:
 - unsubscribe: explicit removal request ("remove me", "unsubscribe", "stop", "do not contact")
 - wrong_target: wrong person/company, no useful redirect ("I'm not the owner", "we are a nonprofit", "wrong sector")
 - reschedule_request: lead has already booked or confirmed a meeting and is asking to move it ("can't make it Tuesday", "let's reschedule", "today is a bank holiday so I can't make it")
-- phone_call_requested: lead gives a direct phone number and wants to be called ("call me at 720-878-9184", "my cell is X", "telephone number please" in a thread where they asked us to call)
+- phone_call_requested: lead asks to be called or gives a phone number ("call me", "give me a call", "call me at 720-878-9184", "my cell is X", "telephone number please", "prefer a phone call over video"). Any explicit request for a phone call, with or without a number.
 - their_process_required: lead redirects us into their own intake funnel or external application process ("apply for funding here", "submit your information through our intake form")
 - advisor_engaged: a third-party M&A advisor, broker, or investment bank replies on behalf of the lead, often with their own engagement language ("we have been engaged by X to assist with their exit", "I represent the seller")
 - hostile: abusive, angry, or threatening language ("get out of my inbox", "stop spamming me you idiots", "this is harassment")
