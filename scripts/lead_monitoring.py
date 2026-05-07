@@ -293,7 +293,8 @@ def main():
                 d = item["scheduled_dat"]
                 thr = item["threshold"]
                 n = item["campaign"]
-                lines.append(f"  • {n} — tmrw: `{t}` / dat: `{d}` (need {thr}+)")
+                note = f" — _{item['note']}_" if item.get("note") else ""
+                lines.append(f"  • {n} — tmrw: `{t}` / dat: `{d}` (need {thr}+){note}")
             lines.append("")
 
         poa_items = [f for f in flags if f["comments"]]
