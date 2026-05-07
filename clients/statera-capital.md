@@ -73,7 +73,7 @@ _Structure: one block per offer. Each offer lists its ICPs as rows. Changing the
 ### Project TelcoLab — PE Campaign
 _What's being pitched: Exclusive sell-side mandate for a specialized telecom software engineering and OSS/BSS integration platform. Revenue 5.6m EUR (2025A), adj. EBITDA 1.6m EUR at 29% margin. 15+ years embedded at Deutsche Telekom, AT&T, T-Mobile US, Vodafone, Telenor, Telefonica. 145 engineers across Eastern Europe and LATAM. Proprietary automation IP. Majority or full sale._
 
-_Teaser link: [PENDING — Svetlin to provide hosted link]_
+_Teaser link: https://drive.google.com/file/d/1-TH2jhPDyiK9Plnmk4ug1Pv45yIwOC7d/view?usp=drive_link_
 _Calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate_
 
 | ICP | Status |
@@ -132,7 +132,7 @@ P.S. If this is not relevant for your mandate, feel free to let me know and I wi
 ### Project TelcoLab — Strategics Campaign
 _What's being pitched: Same mandate as above, positioned toward strategic acquirers looking to add specialized telecom engineering capability, operator relationships, or OSS/BSS IP._
 
-_Teaser link: [PENDING — Svetlin to provide hosted link]_
+_Teaser link: https://drive.google.com/file/d/1-TH2jhPDyiK9Plnmk4ug1Pv45yIwOC7d/view?usp=drive_link_
 _Calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate_
 
 | ICP | Status |
