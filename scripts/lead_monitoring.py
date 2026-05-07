@@ -73,7 +73,8 @@ def main():
             contacted = c.get("total_leads_contacted") or 0
             remaining = total_leads - contacted
 
-            if name == "Follow Ups" or "spam" in name.lower():
+            name_lower = name.lower()
+            if "follow" in name_lower or "spam" in name_lower:
                 continue
 
             total_active += 1
