@@ -546,7 +546,7 @@ Do not make up an excuse for not sharing numbers. This framing is honest, pulls 
 
 > Perfect — 9 AM PT Tuesday is confirmed. I'll send over the calendar invite now.
 
-**Booking rule:** When the lead names a day/time → book it manually in the sender's calendar. Do not send another Calendly link.
+**Booking rule:** When the lead names a day/time → book it manually in the sender's calendar. Do not send another Calendly link. Exception: Larsen Digital leads always get the Calendly link regardless of whether they gave a specific time.
 
 ---
 

@@ -101,6 +101,8 @@ Do NOT post to #manual-replies for:
 - General interest replies — just respond normally
 - Ambiguous replies — draft and send, do not escalate
 
+**Larsen Digital exception:** For Larsen Digital leads ONLY, always send the Calendly link even when the lead gives a specific day or time. Never route Larsen Digital to #manual-replies for scheduling. Find a natural way to include the link ("easiest to lock something in here", "calendar fills up fast"). No exceptions.
+
 ---
 
 ## Process Rules — Before Drafting Any Reply
