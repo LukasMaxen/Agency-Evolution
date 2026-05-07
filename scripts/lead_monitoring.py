@@ -80,19 +80,14 @@ def main():
                 continue
 
             total_active += 1
-            cid = c["id"]
             max_new = c.get("max_new_leads_per_day") or 0
 
-            senders_data = eb_get(f"{instance_url}/api/campaigns/{cid}/sender-emails", api_key)
-            senders = senders_data.get("data", [])
-            max_daily = sum(s.get("daily_limit", 25) for s in senders) if senders else max_new
-
-            if remaining < max_daily * 0.8:
+            if remaining < max_new * 0.8:
                 flags.append({
                     "workspace": slug,
                     "campaign": name,
                     "remaining": remaining,
-                    "deficit": int(max_daily * 0.8 - remaining),
+                    "deficit": int(max_new * 0.8 - remaining),
                 })
 
     print(f"Active: {total_active}, Flagged: {len(flags)}, Follow Up zeros: {follow_up_zeros}")
