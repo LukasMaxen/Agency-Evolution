@@ -7,6 +7,20 @@ EmailBison. Each sender account sends 25 emails/day. Sending days are Monday-Fri
 
 ---
 
+## EmailBison API Reference
+
+All calls use workspace credentials from DB (`email_bison_api_key`, `email_bison_instance_url`).
+
+| What | Endpoint |
+|---|---|
+| List sender accounts | `GET {instanceUrl}/api/sender-emails` — response has `data[]`, count rows for total |
+| List all campaigns | `GET {instanceUrl}/api/campaigns` — response has `data[]` with fields: `id`, `name`, `status`, `total_leads`, `total_leads_contacted`, `max_new_leads_per_day` |
+| Campaigns per sender | `GET {instanceUrl}/api/sender-emails/{sender_id}/campaigns` |
+
+**Sending schedule endpoint (queued leads by date): UNKNOWN.** This is needed for Task 1 step 3. Has not been used in the codebase yet. Needs to be discovered via EmailBison API docs or by inspecting network requests in the EmailBison UI.
+
+---
+
 ## Task 1 — Short-Term Alert (Daily Send Volume Check)
 
 Run for each workspace:
@@ -31,7 +45,9 @@ Run for each active campaign:
    - Week 1: daily send volume x 5 = new sends (Step 1 emails).
    - Weeks 2-3: follow-ups go to the same leads, consuming capacity but not requiring new leads.
    - **Total leads needed = daily send volume x 5** (one week of new leads, followed by 2 weeks of follow-ups).
-4. Testing stage: new campaigns launch with ~1,000 test leads. Only apply the runway check to campaigns that have passed testing (i.e., are running at full scale).
+4. Testing stage: new campaigns launch with ~1,000 test leads. Only apply the runway check to campaigns that have passed testing.
+   - Remaining leads between 700 and 1,400 = most likely still in testing. Skip the runway check.
+   - Remaining leads under 700 or over 1,400 = treat as past testing, apply the runway check normally.
 5. If remaining leads < 3-week requirement: flag the campaign.
 
 **Report fields:** campaign name, workspace, current lead count, required lead count (3-week runway), deficit.
