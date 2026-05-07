@@ -82,6 +82,7 @@ Active mandate clients: **ACT Capital** (3 mandates), **Venture Exits** (Yoga & 
 - Match reply length to the lead's message — short reply = short email
 - Always include the Calendly link when a lead asks for availability, wants to book a call, or confirms interest in speaking. Use the correct link for the sender from the client file. No exceptions across any client.
 - Never suggest or fabricate specific time slots or availability (e.g. "Tuesday at 10am works"). There is no calendar API access, so actual availability is unknown. Always direct leads to the Calendly link instead.
+- If the lead has already said they are open to a call or interested in speaking, do not ask "Worth a quick call?" or any version of it. They already answered. Acknowledge briefly and send the Calendly link.
 - Never use dashes of any kind — no em dashes, en dashes, or punctuation dashes. Restructure the sentence instead.
 - Never use bullet points in short replies
 - Never volunteer pricing unless the lead explicitly asks
