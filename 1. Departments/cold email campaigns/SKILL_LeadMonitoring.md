@@ -66,11 +66,65 @@ Default mode: post a **full status report every morning** (even when everything 
 
 ## Output
 
-Post all reports and alerts to Slack channel `C0B268H8Z2S`.
+Post to Slack channel `C0B268H8Z2S` as **two separate messages** (one per task).
 
-Each alert must include:
-- Workspace name
-- Campaign name
-- Current lead count or queued count
-- Required lead count or threshold
-- The deficit
+### Formatting rules
+
+1. Group by client. Use `*CLIENT NAME*` (bold, uppercase) as section headers.
+2. Sort clients by total deficit descending (most critical first).
+3. Sort campaigns within each client by deficit descending.
+4. Use inline code backticks for remaining counts: `0`, `24`, `145`.
+5. Show deficit in parentheses after each line: `(deficit: 300)`.
+6. Emoji at top of each message only: 🔴 daily supply, 🟠 runway, 🟢 all healthy.
+7. Collapse "Follow Ups" campaigns: if multiple clients have Follow Ups at 0, show a summary line at the bottom: `_N Follow Up queues are also at 0._`
+8. Add a summary line at the top: `X of Y campaigns flagged`.
+9. Only include flagged campaigns. Skip healthy ones.
+10. No tables. No pipe separators. No capacity/threshold numbers (they're the same for everything and add noise). Bullet lists only.
+11. Keep lines under 60 characters for mobile readability.
+12. Split daily vs runway into separate messages.
+
+### Message 1 format (Daily Supply)
+
+```
+🔴 *Daily lead supply* — May 7, 2026
+17 of 33 campaigns flagged (below 80% capacity)
+
+*ACT CAPITAL* — 6 campaigns, all critical
+• Tequila (PE/FO Owners) — `11` left (deficit: 289)
+• Tequila (Shared List) — `0` (deficit: 300)
+• Sell Side Advisory — `0` (deficit: 300)
+• Excavation (Buyer) — `0` (deficit: 300)
+• Northern Cali — `0` (deficit: 300)
+
+*VENTURE EXITS* — 2 campaigns
+• Yoga (PE/FO) — `24` left (deficit: 276)
+• Yoga (Strategic) — `145` left (deficit: 155)
+
+*ITG GROUP* — 1 campaign
+• Managers Campaign — `4` left (deficit: 296)
+
+_33 campaigns checked across 16 workspaces_
+```
+
+### Message 2 format (3-Week Runway)
+
+```
+🟠 *3-Week runway* — May 7, 2026
+21 of 33 campaigns flagged (below 3-week supply)
+
+*ACT CAPITAL* — 5 campaigns
+• Sell Side Advisory — `0` / 5,500 needed (deficit: 5,500)
+• Tequila (PE/FO) — `11` / 1,000 needed (deficit: 989)
+• Excavation (Buyer) — `0` / 1,000 needed (deficit: 1,000)
+• Northern Cali — `0` / 1,000 needed (deficit: 1,000)
+• Tequila (Shared List) — `0` / 175 needed (deficit: 175)
+
+_33 campaigns checked across 16 workspaces_
+```
+
+### What NOT to do
+- No raw pipe-separated data
+- No Slack block kit tables
+- No capacity/threshold numbers in the output
+- No color attachments
+- No single giant message combining both tasks
