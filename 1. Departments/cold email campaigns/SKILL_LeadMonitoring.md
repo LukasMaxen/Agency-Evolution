@@ -11,27 +11,29 @@ EmailBison. Each sender account sends 25 emails/day. Sending days are Monday-Fri
 
 All calls use workspace credentials from DB (`email_bison_api_key`, `email_bison_instance_url`).
 
-| What | Endpoint |
-|---|---|
-| List sender accounts | `GET {instanceUrl}/api/sender-emails` — response has `data[]`, count rows for total |
-| List all campaigns | `GET {instanceUrl}/api/campaigns` — response has `data[]` with fields: `id`, `name`, `status`, `total_leads`, `total_leads_contacted`, `max_new_leads_per_day` |
-| Campaigns per sender | `GET {instanceUrl}/api/sender-emails/{sender_id}/campaigns` |
+| What | Endpoint | Key fields |
+|---|---|---|
+| List all campaigns | `GET {instanceUrl}/api/campaigns` | `id`, `name`, `status`, `total_leads`, `total_leads_contacted`, `max_new_leads_per_day`, `max_emails_per_day` |
+| Single campaign | `GET {instanceUrl}/api/campaigns/{id}` | same as above |
+| Sender accounts for a campaign | `GET {instanceUrl}/api/campaigns/{id}/sender-emails` | `id`, `email`, `status`, `daily_limit` |
+| All sender accounts | `GET {instanceUrl}/api/sender-emails` | `id`, `email`, `status`, `daily_limit` |
+| Scheduled emails (all) | `GET {instanceUrl}/api/scheduled-emails` | `campaign_id`, `scheduled_date`, `status` — paginated, 84k+ records, no working date filter |
 
-**Sending schedule endpoint (queued leads by date): UNKNOWN.** This is needed for Task 1 step 3. Has not been used in the codebase yet. Needs to be discovered via EmailBison API docs or by inspecting network requests in the EmailBison UI.
+**Note on date filtering:** The `/api/scheduled-emails` endpoint does not support date filtering. Use remaining leads (`total_leads - total_leads_contacted`) from the campaigns endpoint as a proxy for Task 1. This gives the same signal: if remaining leads are below threshold, sending will fall short.
+
+**Note on sender capacity:** Use `daily_limit` per sender from the campaign sender-emails endpoint rather than hardcoding 25. Sum `daily_limit` across all connected senders to get true max daily capacity for a campaign.
 
 ---
 
 ## Task 1 — Short-Term Alert (Daily Send Volume Check)
 
-Run for each workspace:
+Run for each active campaign per workspace:
 
-1. Pull sender accounts for the workspace: count how many exist.
-2. Calculate max daily volume: sender accounts x 25.
-3. Check leads queued for **day after tomorrow** (use the sending schedule date dropdown).
-4. If queued leads < 80% of max daily volume: flag this workspace.
-   - Identify which active campaigns are short on leads.
+1. Call `GET /api/campaigns/{id}/sender-emails` and sum `daily_limit` across all connected senders to get true max daily capacity for the campaign.
+2. Get remaining leads: `total_leads - total_leads_contacted` from `GET /api/campaigns`.
+3. If remaining leads < 80% of max daily capacity: flag this campaign.
 
-**Report fields:** workspace name, campaign name(s) short on leads, current queued count, required count (80% threshold), deficit.
+**Report fields:** workspace name, campaign name, remaining leads, max daily capacity, 80% threshold, deficit.
 
 ---
 
