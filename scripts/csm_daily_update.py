@@ -24,11 +24,12 @@ def query(sql):
             rows[p[0]] = p[1:]
     return rows
 
-# Sent: all sequence steps, UTC (matches EmailBison dashboard totals)
+# Sent: exclude NULL sequence_step (those are manual Deal Team campaigns, not cold sequence emails)
 S = {k: int(v[0]) for k, v in query(
     f"SELECT workspace_slug, COUNT(*) FROM emails_sent "
     f"WHERE sent_at >= '{yesterday} 00:00:00' "
     f"AND sent_at < '{next_day} 00:00:00' "
+    f"AND sequence_step IS NOT NULL "
     f"GROUP BY workspace_slug"
 ).items()}
 
