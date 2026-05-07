@@ -234,12 +234,17 @@ def main():
             tmrw_is_sending = tomorrow_date.weekday() < 5
             dat_is_sending = dat_date.weekday() < 5
 
-            # Flag if any sending day is below threshold
+            # Flag if any sending day is below threshold.
+            # If a campaign doesn't appear in the schedule at all (0/0), it means
+            # EmailBison hasn't queued those sends yet — not a real shortage.
+            # Only flag zero-count days if the campaign IS present in at least one day's schedule.
+            appears_in_schedule = tmrw > 0 or dat > 0
             flagged = False
-            if tmrw_is_sending and tmrw < threshold:
-                flagged = True
-            if dat_is_sending and dat < threshold:
-                flagged = True
+            if appears_in_schedule:
+                if tmrw_is_sending and tmrw < threshold:
+                    flagged = True
+                if dat_is_sending and dat < threshold:
+                    flagged = True
 
             if flagged:
                 flags.append({
