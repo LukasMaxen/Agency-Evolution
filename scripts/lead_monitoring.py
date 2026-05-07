@@ -227,16 +227,31 @@ def main():
             threshold = max_new * 0.8
             tmrw = counts_tmrw.get(name, 0)
             dat = counts_dat.get(name, 0)
-            worst = min(tmrw, dat)
 
-            if worst < threshold:
+            # Only check sending days (Mon-Fri). Skip weekend days.
+            tomorrow_date = date.today() + timedelta(days=1)
+            dat_date = date.today() + timedelta(days=2)
+            tmrw_is_sending = tomorrow_date.weekday() < 5
+            dat_is_sending = dat_date.weekday() < 5
+
+            # Flag if any sending day is below threshold
+            flagged = False
+            if tmrw_is_sending and tmrw < threshold:
+                flagged = True
+            if dat_is_sending and dat < threshold:
+                flagged = True
+
+            if flagged:
                 flags.append({
                     "workspace": slug,
                     "campaign": name,
                     "scheduled_tmrw": tmrw,
                     "scheduled_dat": dat,
                     "threshold": int(threshold),
-                    "deficit": int(threshold - worst),
+                    "deficit": int(threshold - min(
+                        tmrw if tmrw_is_sending else threshold,
+                        dat if dat_is_sending else threshold
+                    )),
                     "comments": comments_for_campaign(name, replies),
                 })
 
