@@ -88,9 +88,9 @@ _Info reply templates and FU templates for each client live in `clients/[slug].m
 
 | Step | Timing | Angle | Booking prompt |
 |---|---|---|---|
-| **FU1** | +2 days after reply | Address their specific objection using the objection reframes in the client file. Reference their sector or company type in the reframe. Introduce partial sale or flexible structure if not yet raised. | 2 slots + link |
+| **FU1** | +2 days after reply | Address their specific objection using the objection reframes in the client file. Reference their sector or company type in the reframe. Introduce partial sale or flexible structure if not yet raised. | Link only (no fabricated slots) |
 | **FU2** | +5 days after FU1 | Sector-specific market dynamic or buyer activity relevant to their space. Low-commitment framing — a call does not commit them to anything. | Link only |
-| **FU3** | +7 days after FU2 | Case study matched to their industry. Frame the owner type and hesitation to mirror this lead's situation. | 2 slots + link |
+| **FU3** | +7 days after FU2 | Case study matched to their industry. Frame the owner type and hesitation to mirror this lead's situation. | Link only (no fabricated slots) |
 | **FU4** | +7 days after FU3 | Active mandate urgency with a sector or geography-specific hook. Mandate is live, not expiring — mild urgency only. | Link only |
 | **FU5** | +14 days after FU4 | Soft break-up. Reference their company by name. Leave the door genuinely open with no pressure and no hint it is the final email. | Optional |
 
@@ -167,14 +167,12 @@ Looking forward to speaking.
 - Signatures: always end with {SENDER_EMAIL_SIGNATURE} on its own line. Never write "Best," or "Best regards," or any name before it. The variable resolves to the full sender signature on send.
 - Always use a blank line between each paragraph. Never run sentences together into one block.
 
-**Booking CTA paragraph break (non-negotiable):** the meeting ask ("Worth a quick call?") and the actual time slots + link must be separated by a blank line. Never run them together in the same paragraph. The call ask closes one paragraph; the two time slots and Calendly link open the next.
+**Booking CTA format:** the meeting ask ("Worth a quick call?") is followed by the Calendly link on the next line. Do not fabricate specific time slots — there is no calendar access to confirm what is actually free. Keep it simple.
 
 Example:
 > Worth a quick 30-minute call to walk through the details?
 >
-> If so, Tuesday at 10am CT or Wednesday at 2pm CT both work. If neither fits, feel free to grab a time here: [link]
-
-**CTA transition phrasing:** after asking "Worth a quick call?", open the slots paragraph with a conditional bridge such as "If so, Tuesday at 3pm or Wednesday at 11am BST both work." or "If so, I have availability Tuesday 10am CT or Wednesday 2pm CT." Do not jump straight to slot times without a connective. The Calendly fallback follows as a final sentence: "If neither works, feel free to grab a time here: [link]"
+> Feel free to grab a time here: [link]
 
 ---
 
@@ -300,6 +298,7 @@ If the inbound reply contains both an explicit email address (eg "contact marion
 - Confirm or deny a valuation before a discovery call
 - Use AI-sounding phrases or overly enthusiastic language
 - Ask multiple clarifying questions — just draft and proceed
+- Suggest specific time slots or fabricate availability (e.g. "Tuesday at 10am or Wednesday at 2pm") — there is no calendar API access. Always use only the Calendly link
 
 ---
 
@@ -414,7 +413,7 @@ Do NOT send Calendly and ask them to "pick a slot" when they've already given yo
 >
 > Worth 20 minutes?
 >
-> If so, Tuesday at 2pm or Wednesday at 11am both work. If neither fits, feel free to grab a time here: [Calendly link]
+> Feel free to grab a time here: [Calendly link]
 
 ---
 
@@ -489,7 +488,7 @@ Do not make up an excuse for not sharing numbers. This framing is honest, pulls 
 >
 > Worth a quick call this week or next?
 >
-> If so, Tuesday at 3pm or Wednesday at 11am both work. If neither fits, feel free to grab a time here: [Calendly link]
+> Feel free to grab a time here: [Calendly link]
 >
 > [Sender name]
 
@@ -563,7 +562,7 @@ Do not make up an excuse for not sharing numbers. This framing is honest, pulls 
 >
 > Worth 20 minutes next week?
 >
-> If so, Tuesday at 10am or Thursday at 2pm both work. If neither fits, feel free to grab a time here: [Calendly link]
+> Feel free to grab a time here: [Calendly link]
 
 ---
 
@@ -675,7 +674,7 @@ Two sub-patterns:
 >
 > Worth 15 minutes next week?
 >
-> If so, Tuesday at 11am or Thursday at 3pm both work. If neither fits, feel free to grab a time here: [Calendly link]
+> Feel free to grab a time here: [Calendly link]
 
 ---
 
@@ -716,7 +715,7 @@ Two sub-patterns:
 >
 > Best to walk through this advisor to advisor on a quick call so I can share the buyer brief and you can outline where Ms. Brenner is in her process. Standard NDA before any materials change hands.
 >
-> If so, [Day 1] at [Time 1] or [Day 2] at [Time 2] both work. If neither fits, feel free to grab a time here [Calendly link].
+> Feel free to grab a time here: [Calendly link]
 >
 > {SENDER_EMAIL_SIGNATURE}
 
