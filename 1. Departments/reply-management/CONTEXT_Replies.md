@@ -161,7 +161,7 @@ Looking forward to speaking.
 ## Formatting Rules
 
 - Prose over lists wherever possible
-- Booking prompt format: always 2 specific available time slots followed by the Calendly link. Never 1 slot, never 3+. Example: "Are any of these times good — Tuesday 3pm or Wednesday 11am? Or grab a time that works: [link]"
+- Booking prompt format: Calendly link only. Do NOT suggest specific time slots (e.g. "Tuesday 3pm or Wednesday 11am") — there is no calendar API access, so actual availability is unknown. Fabricating slots that may not exist creates scheduling conflicts. Just send the Calendly link with a soft CTA line. Example: "Worth a quick call? Feel free to grab a time here: [link]"
 - No bare URLs on their own line — always give a link context ("Feel free to grab a time here: [link]")
 - Subject lines: short, contextual (e.g. "Re: Buyer for ORPC", "Re: Acquisition Interest")
 - Signatures: always end with {SENDER_EMAIL_SIGNATURE} on its own line. Never write "Best," or "Best regards," or any name before it. The variable resolves to the full sender signature on send.
