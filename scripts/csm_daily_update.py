@@ -17,8 +17,8 @@ yesterday = (now_ny - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
 next_day = now_ny.strftime("%Y-%m-%d")
 date_label = (now_ny - datetime.timedelta(days=1)).strftime("%d %b %Y")
 
-db = os.environ["DATABASE_URL"]
-token = os.environ["SLACK_BOT_TOKEN"]
+db = os.environ.get("DATABASE_URL", "postgresql://aird:QWEdsa123@77.42.71.101:5433/ai_reply_desk")
+token = os.environ.get("SLACK_BOT_TOKEN", "xoxb-5094014227030-11028184509637-q5B8xeOO4Wv19671uvAeri6i")
 
 def query(sql):
     r = subprocess.run(["psql", db, "-t", "-A", "-F", "|", "-c", sql], capture_output=True, text=True)
