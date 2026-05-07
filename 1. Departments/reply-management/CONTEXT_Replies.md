@@ -200,6 +200,8 @@ Example:
 - Address all CC'd people in the reply (e.g., "Hi Melanie, Alex")
 - Match the language of the correspondence — French reply = French email
 
+**Human touch (non-negotiable):** every reply must sound like it came from a real person who read the whole conversation. Reference something specific from the thread or the lead's situation. Generic phrasing that could apply to anyone is wrong. Read the full correspondence and all context files before drafting — no exceptions.
+
 **Tone and length mirroring (non-negotiable):** before drafting, assess the lead's reply — its length, formality, and energy level. The draft must match that register. A short, neutral reply warrants a short, measured response. A warmer or more detailed reply can justify slightly more. Do not default to a standard 3-paragraph structure if the lead wrote two sentences. This rule overrides any template shape.
 
 **Meeting confirmation replies:** when a lead confirms a meeting has already been booked and an invitation sent, reply only with a short confirmation (2 lines max). Do not add "if anything shifts", rescheduling offers, or any conditional language. The lead has already acted — acknowledge and close. See Scenario 4 in the Scenario Library for the correct pattern.

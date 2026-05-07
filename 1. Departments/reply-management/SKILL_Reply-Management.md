@@ -28,11 +28,12 @@ Ask Claude:
 
 1. Read `clients/[client-slug].md` for tone, offer details, calendar link, objection handling, and FU templates
 2. Read `1. Departments/reply-management/CONTEXT_Replies.md` for global reply rules
-3. Classify the reply intent: `interested_urgent | interested | needs_info | neutral | not_interested | unsubscribe`
-4. Select the correct response strategy based on intent and client profile
-5. Draft the reply — prose only, matched to the lead's message length
-6. Include the correct calendar link for the sender (from the client file)
-7. Flag if the lead should be marked `unsubscribe` or `meeting_booked` in the system
+3. Read the full thread — every message sent and received — to understand the relationship, what has already been said, and how this lead has engaged
+4. Classify the reply intent: `interested_urgent | interested | needs_info | neutral | not_interested | unsubscribe`
+5. Select the correct response strategy based on intent and client profile
+6. Draft the reply — prose only, matched to the lead's message length, with human touch. The reply must reflect that a real person read everything and is responding to this specific lead, not filling in a template. Generic = wrong.
+7. Include the correct calendar link for the sender (from the client file)
+8. Flag if the lead should be marked `unsubscribe` or `meeting_booked` in the system
 
 ---
 
