@@ -59,8 +59,7 @@ def main():
 
     print(f"Loaded {len(workspaces)} workspaces")
 
-    supply_flags = []   # remaining < 80% of daily capacity
-    runway_flags = []   # remaining < max_new_leads_per_day x 15 (3 weeks, 5 sending days/week)
+    flags = []
     follow_up_zeros = 0
     total_active = 0
 
@@ -88,80 +87,47 @@ def main():
             senders = senders_data.get("data", [])
             max_daily = sum(s.get("daily_limit", 25) for s in senders) if senders else max_new
 
-            # Task 1: daily supply
             if remaining < max_daily * 0.8:
-                supply_flags.append({
+                flags.append({
                     "workspace": slug,
                     "campaign": name,
                     "remaining": remaining,
                     "deficit": int(max_daily * 0.8 - remaining),
                 })
 
-            # Task 2: 3-week runway (5 sending days x 3 weeks = 15). Skip testing stage (700-1400).
-            if not (700 <= remaining <= 1400):
-                required = max_new * 15
-                if remaining < required:
-                    runway_flags.append({
-                        "workspace": slug,
-                        "campaign": name,
-                        "remaining": remaining,
-                        "required": required,
-                        "deficit": int(required - remaining),
-                    })
+    print(f"Active: {total_active}, Flagged: {len(flags)}, Follow Up zeros: {follow_up_zeros}")
 
-    print(f"Active: {total_active}, Supply flags: {len(supply_flags)}, Runway flags: {len(runway_flags)}, Follow Up zeros: {follow_up_zeros}")
-
-    def build_message(flags, emoji_alert, title, subtitle, extra_line_fn, footer_zeros):
-        if not flags and not footer_zeros:
-            return f"\U0001f7e2 *{title}* — {today}\nAll clear."
-
+    if not flags and not follow_up_zeros:
+        msg = f"\U0001f7e2 *Lead supply* — {today}\nAll clear."
+    else:
         by_ws = defaultdict(list)
         for f in flags:
             by_ws[f["workspace"]].append(f)
         ws_order = sorted(by_ws.keys(), key=lambda w: sum(x["deficit"] for x in by_ws[w]), reverse=True)
 
         count = len(flags)
-        lines = [f"{emoji_alert} *{title}* — {today}", subtitle(count), ""]
+        lines = [f"\U0001f534 *Lead supply* — {today}", f"{count} campaign{'s' if count != 1 else ''} below 80% capacity", ""]
 
         for ws in ws_order:
             items = sorted(by_ws[ws], key=lambda x: x["deficit"], reverse=True)
             lines.append(f"*{ws.upper().replace('-', ' ')}*")
             for item in items:
-                lines.append(extra_line_fn(item))
+                r, d, n = item["remaining"], item["deficit"], item["campaign"]
+                if r < 0:
+                    lines.append(f"  • {n} — `{r}` ⚠️ (need {d:,} more)")
+                elif r == 0:
+                    lines.append(f"  • {n} — empty (need {d:,})")
+                else:
+                    lines.append(f"  • {n} — `{r}` left (need {d:,} more)")
             lines.append("")
 
-        if footer_zeros:
-            lines.append(f"_{footer_zeros} Follow Up queue{'s' if footer_zeros != 1 else ''} also empty_")
+        if follow_up_zeros:
+            lines.append(f"_{follow_up_zeros} Follow Up queue{'s' if follow_up_zeros != 1 else ''} also empty_")
 
-        return "\n".join(lines).strip()
+        msg = "\n".join(lines).strip()
 
-    def supply_bullet(item):
-        r, d, n = item["remaining"], item["deficit"], item["campaign"]
-        if r < 0:
-            return f"  • {n} — `{r}` ⚠️ (need {d:,} more)"
-        elif r == 0:
-            return f"  • {n} — empty (need {d:,})"
-        return f"  • {n} — `{r}` left (need {d:,} more)"
-
-    def runway_bullet(item):
-        r, req, d, n = item["remaining"], item["required"], item["deficit"], item["campaign"]
-        return f"  • {n} — `{r}` / {req:,} needed (short {d:,})"
-
-    msg1 = build_message(
-        supply_flags, "\U0001f534", "Lead supply",
-        lambda c: f"{c} campaign{'s' if c != 1 else ''} below 80% capacity",
-        supply_bullet, follow_up_zeros
-    )
-    msg2 = build_message(
-        runway_flags, "\U0001f7e0", "3-Week runway",
-        lambda c: f"{c} campaign{'s' if c != 1 else ''} below 3-week supply (max_new x 15)",
-        runway_bullet, 0
-    )
-
-    print("\n--- Supply ---\n" + msg1)
-    print("\n--- Runway ---\n" + msg2)
-    slack_post(msg1)
-    slack_post(msg2)
+    print("\n" + msg)
+    slack_post(msg)
     print("\nDone.")
 
 
