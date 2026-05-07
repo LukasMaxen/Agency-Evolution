@@ -42,25 +42,27 @@ def slack_post(text):
 
 
 def get_campaign_max_new(api_key):
-    """Return dict of campaign_name -> max_new_leads_per_day from EmailBison API."""
+    """Return (max_new_map, completion_map) for active campaigns."""
     req = urllib.request.Request(
         f"{BASE_URL}/api/campaigns",
         headers={"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
     )
     try:
         data = json.loads(urllib.request.urlopen(req, timeout=15).read())
-        result = {}
+        max_new_map = {}
+        completion_map = {}
         for c in data.get("data", []):
             if c.get("status") == "active":
                 name = c.get("name", "")
                 name_lower = name.lower()
                 if "follow" in name_lower or "spam" in name_lower:
                     continue
-                result[name] = c.get("max_new_leads_per_day") or 0
-        return result
+                max_new_map[name] = c.get("max_new_leads_per_day") or 0
+                completion_map[name] = round(c.get("completion_percentage") or 0, 1)
+        return max_new_map, completion_map
     except Exception as e:
         print(f"  ERROR fetching campaigns: {e}")
-        return {}
+        return {}, {}
 
 
 def get_schedule_counts(api_key, schedule_type):
@@ -202,7 +204,7 @@ def main():
         print(f"Checking {slug}...")
 
         # Get max_new_leads_per_day per active campaign
-        max_new_map = get_campaign_max_new(api_key)
+        max_new_map, completion_map = get_campaign_max_new(api_key)
         if not max_new_map:
             continue
 
@@ -234,17 +236,21 @@ def main():
             tmrw_is_sending = tomorrow_date.weekday() < 5
             dat_is_sending = dat_date.weekday() < 5
 
-            # Flag if any sending day is below threshold.
-            # If a campaign doesn't appear in the schedule at all (0/0), it means
-            # EmailBison hasn't queued those sends yet — not a real shortage.
-            # Only flag zero-count days if the campaign IS present in at least one day's schedule.
             appears_in_schedule = tmrw > 0 or dat > 0
+            completion = completion_map.get(name, 0)
+            note = None
             flagged = False
+
             if appears_in_schedule:
+                # In schedule but below threshold on a sending day
                 if tmrw_is_sending and tmrw < threshold:
                     flagged = True
                 if dat_is_sending and dat < threshold:
                     flagged = True
+            elif completion >= 90:
+                # Not in schedule because it's nearly done — needs new leads
+                flagged = True
+                note = f"{completion}% complete"
 
             if flagged:
                 flags.append({
@@ -257,6 +263,7 @@ def main():
                         tmrw if tmrw_is_sending else threshold,
                         dat if dat_is_sending else threshold
                     )),
+                    "note": note,
                     "comments": comments_for_campaign(name, replies),
                 })
 
