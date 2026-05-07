@@ -103,13 +103,13 @@ def main():
 
     # 1. Get workspaces from DB
     result = subprocess.run(
-        ["psql", DB_URL, "-t", "-A", "-F|",
+        ["psql", DB_URL, "-t", "-A", "-F\t",
          "-c", "SELECT slug, email_bison_api_key, email_bison_instance_url FROM workspaces"],
         capture_output=True, text=True
     )
     workspaces = []
     for line in result.stdout.strip().splitlines():
-        parts = line.strip().split("|")
+        parts = line.strip().split("\t")
         if len(parts) == 3:
             workspaces.append(tuple(parts))
 
