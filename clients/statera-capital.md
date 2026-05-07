@@ -423,8 +423,8 @@ Investment focus/thesis, fund size if available.
 | Pause | Dallas Plastics | — | — | 0% | Failing — pause |
 | Pause | Graymar Environmental | — | — | 0% | Failing — pause |
 | Active | ZEBS Seed Round | — | — | — | See zebs-ibs.md for details |
-| Pending | TelcoLab PE | — | — | — | New mandate — awaiting teaser link from Svetlin |
-| Pending | TelcoLab Strategics | — | — | — | New mandate — awaiting teaser link from Svetlin |
+| Active | TelcoLab PE | — | — | — | Teaser live as of 2026-05-07 |
+| Active | TelcoLab Strategics | — | — | — | Teaser live as of 2026-05-07 |
 
 ---
 
