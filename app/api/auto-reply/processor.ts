@@ -399,10 +399,11 @@ async function shouldRouteToApproval(): Promise<boolean> {
       ORDER BY 1 DESC
       LIMIT 7
     )
-    SELECT COALESCE(AVG(cnt), 20) AS avg_per_day FROM daily
+    SELECT AVG(cnt) AS avg_per_day FROM daily
   `);
-  const avgPerDay = parseFloat(avgResult.rows[0]?.avg_per_day ?? "20");
-  const dailyQuota = Math.max(1, Math.ceil(avgPerDay * 0.25));
+  const rawAvg = parseFloat(avgResult.rows[0]?.avg_per_day ?? "20");
+  const avgPerDay = Math.max(20, rawAvg); // floor at 20 so quota is always at least 5
+  const dailyQuota = Math.ceil(avgPerDay * 0.25);
 
   // Count how many have already been staged for approval today (UTC date is fine here).
   const todayResult = await pool.query<{ cnt: string }>(`
