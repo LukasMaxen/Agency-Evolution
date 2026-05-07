@@ -46,7 +46,8 @@ Run for each active campaign:
 3. Calculate 3-week lead requirement:
    - Week 1: daily send volume x 5 = new sends (Step 1 emails).
    - Weeks 2-3: follow-ups go to the same leads, consuming capacity but not requiring new leads.
-   - **Total leads needed = daily send volume x 5** (one week of new leads, followed by 2 weeks of follow-ups).
+   - **Total leads needed = max_new_leads_per_day x 15** (5 sending days x 3 weeks).
+   - Follow-ups do not consume new leads. Each lead gets 1 initial + 2 follow-ups, but it is the same person. Lead burn rate = max_new_leads_per_day only.
 4. Testing stage: new campaigns launch with ~1,000 test leads. Only apply the runway check to campaigns that have passed testing.
    - Remaining leads between 700 and 1,400 = most likely still in testing. Skip the runway check.
    - Remaining leads under 700 or over 1,400 = treat as past testing, apply the runway check normally.
