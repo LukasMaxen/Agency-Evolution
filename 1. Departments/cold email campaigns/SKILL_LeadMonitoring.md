@@ -1,48 +1,58 @@
-# Skill: Campaign Health Check
+# Skill: Lead Monitoring and Slack Alert System
 
-## What this skill does
-Checks all active EmailBison campaigns across every client workspace.
-For each campaign it tells you:
-- How many new leads per day the campaign is set to contact
-- Weekly sending capacity (new leads/day × 5 sending days)
-- How many leads are remaining (not yet contacted)
-- Whether there's a shortfall — and exactly how many leads to add
+## Platform
+EmailBison. Each sender account sends 25 emails/day. Sending days are Monday-Friday only (5 days/week). All volume and runway calculations use 5 sending days, not 7.
+
+**Workspace max daily capacity** = sender accounts x 25.
 
 ---
 
-## When to run this
-Every Monday before the week starts, or any time you want to check
-if a campaign will run out of leads mid-week.
+## Task 1 — Short-Term Alert (Daily Send Volume Check)
+
+Run for each workspace:
+
+1. Pull sender accounts for the workspace: count how many exist.
+2. Calculate max daily volume: sender accounts x 25.
+3. Check leads queued for **day after tomorrow** (use the sending schedule date dropdown).
+4. If queued leads < 80% of max daily volume: flag this workspace.
+   - Identify which active campaigns are short on leads.
+
+**Report fields:** workspace name, campaign name(s) short on leads, current queued count, required count (80% threshold), deficit.
 
 ---
 
-## How to run
-Ask Claude:
-> "Run the campaign health check"
-> "Check campaign health for 911 Restoration"
-> "Which campaigns are running out of leads this week?"
-> "How many leads does ACT Capital need to add?"
+## Task 2 — Runway Alert (3-Week Lead Supply Check)
+
+Run for each active campaign:
+
+1. Pull the campaign's daily sending volume from Campaign Settings.
+2. Check how many sender accounts are assigned to the campaign.
+3. Calculate 3-week lead requirement:
+   - Week 1: daily send volume x 5 = new sends (Step 1 emails).
+   - Weeks 2-3: follow-ups go to the same leads, consuming capacity but not requiring new leads.
+   - **Total leads needed = daily send volume x 5** (one week of new leads, followed by 2 weeks of follow-ups).
+4. Testing stage: new campaigns launch with ~1,000 test leads. Only apply the runway check to campaigns that have passed testing (i.e., are running at full scale).
+5. If remaining leads < 3-week requirement: flag the campaign.
+
+**Report fields:** campaign name, workspace, current lead count, required lead count (3-week runway), deficit.
 
 ---
 
-## What Claude will do
+## Schedule
 
-1. Read all workspaces from the `workspaces` table on Hetzner PostgreSQL
-2. For each workspace call EmailBison: `GET /api/campaigns`
-3. Filter for active campaigns only (status = Active)
-4. For each campaign calculate:
-   - `new_leads_per_day` = `max_new_leads_per_day` from the campaign
-   - `weekly_capacity` = `new_leads_per_day × 5`
-   - `remaining` = `total_leads - total_leads_contacted`
-   - `shortfall` = `max(0, weekly_capacity - remaining)`
-   - `coverage_pct` = `remaining / weekly_capacity × 100`
-5. Flag status:
-   - **Empty** — remaining = 0, nothing will send
-   - **Critical** — coverage under 50%
-   - **Low** — some shortfall but still sending
-   - **Healthy** — enough leads for the full week
-6. Output plain English summary grouped by client
+Run both checks every day at **9:00 AM CET/CEST (Denmark time)**.
+
+Default mode: post a **full status report every morning** (even when everything looks fine) so results can be verified. Once confirmed reliable, switch to alerts-only mode (only post when something is flagged).
 
 ---
 
-## Output format
+## Output
+
+Post all reports and alerts to Slack channel `C0B268H8Z2S`.
+
+Each alert must include:
+- Workspace name
+- Campaign name
+- Current lead count or queued count
+- Required lead count or threshold
+- The deficit
