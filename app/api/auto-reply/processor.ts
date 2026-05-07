@@ -379,6 +379,48 @@ async function sendReplyToEmailBison(
 const FORWARDING_INTENTS = new Set(["interested", "interested_urgent", "needs_info"]);
 
 /**
+ * Returns true if this reply should go to #reply-approval.
+ * Logic: daily approval quota = 25% of the 7-day rolling average of interested
+ * replies processed per active day. Once today's approval count hits the quota,
+ * all remaining replies auto-send.
+ */
+async function shouldRouteToApproval(): Promise<boolean> {
+  // 7-day average: count interested replies per day over the last 7 active days
+  // (active = at least 5 interested replies that day, to exclude weekends/dead days).
+  const avgResult = await pool.query<{ avg_per_day: string }>(`
+    WITH daily AS (
+      SELECT DATE(received_at AT TIME ZONE 'America/New_York') AS day,
+             COUNT(*) AS cnt
+      FROM replies
+      WHERE interested = TRUE
+        AND received_at >= NOW() - INTERVAL '21 days'
+      GROUP BY 1
+      HAVING COUNT(*) >= 5
+      ORDER BY 1 DESC
+      LIMIT 7
+    )
+    SELECT COALESCE(AVG(cnt), 20) AS avg_per_day FROM daily
+  `);
+  const avgPerDay = parseFloat(avgResult.rows[0]?.avg_per_day ?? "20");
+  const dailyQuota = Math.max(1, Math.ceil(avgPerDay * 0.25));
+
+  // Count how many have already been staged for approval today (UTC date is fine here).
+  const todayResult = await pool.query<{ cnt: string }>(`
+    SELECT COUNT(*) AS cnt
+    FROM reply_drafts
+    WHERE status = 'pending'
+      AND created_at >= CURRENT_DATE
+  `);
+  const todayApprovalCount = parseInt(todayResult.rows[0]?.cnt ?? "0", 10);
+
+  console.log(
+    `[auto-reply] approval quota: ${todayApprovalCount}/${dailyQuota} used today (avg ${avgPerDay.toFixed(1)}/day)`
+  );
+
+  return todayApprovalCount < dailyQuota;
+}
+
+/**
  * Forward an interested-family reply to the client's chosen email via EmailBison.
  * Reuses the existing /replies/{id}/reply endpoint with `to_emails` overridden
  * to the forwarding address, and `inject_previous_email_body: true` so the
@@ -858,8 +900,10 @@ ${reply.message}`;
       replyWithCreds.preferred_recipient_name = result.recipient_name ?? null;
     }
 
-    // Approval gate: stage in reply_drafts and post to #reply-approval if workspace is in approval mode.
-    if (workspace.auto_reply_approval_mode) {
+    // Approval gate: route to #reply-approval only while today's quota (25% of
+    // 7-day rolling average) is not yet filled. Once filled, auto-send directly.
+    const withinQuota = workspace.auto_reply_approval_mode && await shouldRouteToApproval();
+    if (withinQuota) {
       const draftId = `rd-${replyId}-${Date.now()}`;
       const slackTs = await postReplyApprovalCard({
         workspaceSlug,
