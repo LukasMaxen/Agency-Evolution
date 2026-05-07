@@ -810,7 +810,7 @@ Do NOT: "If anything changes down the road feel free to reach out and best of lu
 >
 > Worth a quick call to see if there is something worth exploring?
 >
-> If so, Tuesday at 2pm or Thursday at 10am both work. If neither fits, feel free to grab a time here: [Calendly link]
+> Feel free to grab a time here: [Calendly link]
 
 ---
 
