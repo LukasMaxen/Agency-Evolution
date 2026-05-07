@@ -74,8 +74,8 @@ def main():
             contacted = c.get("total_leads_contacted") or 0
             remaining = total_leads - contacted
 
-            if name == "Follow Ups":
-                if remaining <= 0:
+            if name == "Follow Ups" or "spam" in name.lower():
+                if name == "Follow Ups" and remaining <= 0:
                     follow_up_zeros += 1
                 continue
 
