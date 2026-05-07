@@ -997,24 +997,32 @@ ${reply.message}`;
     await createFollowUpRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
 
   } else {
-    // do_nothing: Sonnet decided not to auto-handle this reply. Could be a
-    // forwarding workspace where the client handles replies themselves, a
-    // reply too specific to template, or a context the rules say to skip.
-    // Surface to #manual-replies so a human can decide what to do.
+    // do_nothing: Sonnet decided not to auto-handle this reply.
+    // For clear closes (not_interested or unsubscribe with no FU), just mark read and move on.
+    // Only surface to #manual-replies for ambiguous do_nothing cases that need a human eye.
+    const isClearClose =
+      (result.intent === "not_interested" || result.intent === "unsubscribe") &&
+      result.fu_sequence_type === "none";
+
     await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
-    await postToSlack({
-      text: `Manual handling needed, ${workspaceSlug} / ${reply.lead_name}`,
-      blocks: buildSlackBlocks({
-        header: "Reply needs manual handling",
-        workspaceSlug,
-        reply: replyWithCreds,
-        instanceUrl: workspace.email_bison_instance_url ?? "",
-        reason: result.manual_reason ?? "Auto-reply rules said do nothing here, please review and respond manually",
-        intent: result.intent,
-        fuSequenceType: result.fu_sequence_type,
-      }),
-    });
-    console.log(`[auto-reply] do_nothing for ${replyId}, posted to manual-replies`);
+
+    if (!isClearClose) {
+      await postToSlack({
+        text: `Manual handling needed, ${workspaceSlug} / ${reply.lead_name}`,
+        blocks: buildSlackBlocks({
+          header: "Reply needs manual handling",
+          workspaceSlug,
+          reply: replyWithCreds,
+          instanceUrl: workspace.email_bison_instance_url ?? "",
+          reason: result.manual_reason ?? "Auto-reply rules said do nothing here, please review and respond manually",
+          intent: result.intent,
+          fuSequenceType: result.fu_sequence_type,
+        }),
+      });
+      console.log(`[auto-reply] do_nothing for ${replyId}, posted to manual-replies`);
+    } else {
+      console.log(`[auto-reply] do_nothing for ${replyId}, clear close (intent: ${result.intent}), silently closed`);
+    }
   }
 }
 
