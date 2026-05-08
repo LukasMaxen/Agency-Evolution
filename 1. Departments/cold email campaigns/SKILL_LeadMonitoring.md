@@ -1,131 +1,80 @@
 # Skill: Lead Monitoring and Slack Alert System
 
 ## Platform
-EmailBison. Each sender account sends 25 emails/day. Sending days are Monday-Friday only (5 days/week). All volume and runway calculations use 5 sending days, not 7.
+EmailBison. Each sender account sends 25 emails/day. Sending days are Monday-Friday only.
 
-**Workspace max daily capacity** = sender accounts x 25.
+**Workspace daily capacity** = active sender accounts x 25.
+
+---
+
+## How EmailBison Sending Works
+
+Each campaign runs a 3-step sequence:
+- Step 1: sends immediately when lead enters campaign
+- Step 2: sends 7 calendar days after Step 1
+- Step 3: sends 7 calendar days after Step 2
+
+All steps share the workspace sender capacity. Priority order: Step 1 > Step 2 > Step 3.
+
+`step_0` = never_contacted leads (new leads waiting for Step 1). This is the only thing a new lead upload fixes.
+
+**DRAINING** = step_0 is 0 but leads are still in-sequence (Steps 2/3 still sending). Campaign is healthy, do NOT flag.
+
+**NEEDS LEADS** = step_0 = 0 AND in-sequence runway < 3 days. Flag immediately.
 
 ---
 
 ## EmailBison API Reference
 
-All calls use workspace credentials from DB (`email_bison_api_key`, `email_bison_instance_url`).
-
 | What | Endpoint | Key fields |
 |---|---|---|
-| List all campaigns | `GET {instanceUrl}/api/campaigns` | `id`, `name`, `status`, `total_leads`, `total_leads_contacted`, `max_new_leads_per_day`, `max_emails_per_day` |
-| Single campaign | `GET {instanceUrl}/api/campaigns/{id}` | same as above |
-| Sender accounts for a campaign | `GET {instanceUrl}/api/campaigns/{id}/sender-emails` | `id`, `email`, `status`, `daily_limit` |
-| All sender accounts | `GET {instanceUrl}/api/sender-emails` | `id`, `email`, `status`, `daily_limit` |
-| Scheduled emails (all) | `GET {instanceUrl}/api/scheduled-emails` | `campaign_id`, `scheduled_date`, `status` — paginated, 84k+ records, no working date filter |
-
-**Note on date filtering:** The `/api/scheduled-emails` endpoint does not support date filtering. Use remaining leads (`total_leads - total_leads_contacted`) from the campaigns endpoint as a proxy for Task 1. This gives the same signal: if remaining leads are below threshold, sending will fall short.
-
-**Note on sender capacity:** Use `daily_limit` per sender from the campaign sender-emails endpoint rather than hardcoding 25. Sum `daily_limit` across all connected senders to get true max daily capacity for a campaign.
+| List all campaigns | `GET {instanceUrl}/api/campaigns` | `id`, `name`, `status`, `max_new_leads_per_day`, `max_emails_per_day`, `completion_percentage` |
+| Sender accounts for campaign | `GET {instanceUrl}/api/campaigns/{id}/sender-emails` | `daily_limit`, `status` |
+| Lead count by stage | `GET {instanceUrl}/api/campaigns/{id}/leads?filters[lead_campaign_status]=never_contacted&per_page=1` | `meta.total` |
+| In-sequence count | `GET {instanceUrl}/api/campaigns/{id}/leads?filters[lead_campaign_status]=in_sequence&per_page=1` | `meta.total` |
 
 ---
 
-## Task 1 — Short-Term Alert (Daily Send Volume Check)
+## Check Logic
 
-Run for each active campaign per workspace:
+For each active campaign (skip Follow Ups, skip anything with "spam" in the name):
 
-1. Call `GET /api/campaigns/{id}/sender-emails` and sum `daily_limit` across all connected senders to get true max daily capacity for the campaign.
-2. Get remaining leads: `total_leads - total_leads_contacted` from `GET /api/campaigns`.
-3. If remaining leads < 80% of max daily capacity: flag this campaign.
-
-**Report fields:** workspace name, campaign name, remaining leads, max daily capacity, 80% threshold, deficit.
-
----
-
-## Task 2 — Runway Alert (3-Week Lead Supply Check)
-
-Run for each active campaign:
-
-1. Pull the campaign's daily sending volume from Campaign Settings.
-2. Check how many sender accounts are assigned to the campaign.
-3. Calculate 3-week lead requirement:
-   - Week 1: daily send volume x 5 = new sends (Step 1 emails).
-   - Weeks 2-3: follow-ups go to the same leads, consuming capacity but not requiring new leads.
-   - **Total leads needed = max_new_leads_per_day x 15** (5 sending days x 3 weeks).
-   - Follow-ups do not consume new leads. Each lead gets 1 initial + 2 follow-ups, but it is the same person. Lead burn rate = max_new_leads_per_day only.
-4. Testing stage: new campaigns launch with ~1,000 test leads. Only apply the runway check to campaigns that have passed testing.
-   - Remaining leads between 700 and 1,400 = most likely still in testing. Skip the runway check.
-   - Remaining leads under 700 or over 1,400 = treat as past testing, apply the runway check normally.
-5. If remaining leads < 3-week requirement: flag the campaign.
-
-**Report fields:** campaign name, workspace, current lead count, required lead count (3-week runway), deficit.
-
----
-
-## Schedule
-
-Run the daily supply check every day at **9:00 AM CET/CEST (Denmark time)**. Do not run the runway check.
-
-Default mode: post a **full status report every morning** (even when everything looks fine) so results can be verified. Once confirmed reliable, switch to alerts-only mode (only post when something is flagged).
+1. Pull `step_0` = never_contacted lead count
+2. Pull `in_seq` = in_sequence lead count
+3. Pull `daily_cap` = sum of `daily_limit` across active sender accounts on that campaign
+4. Calculate: `remaining_sends = in_seq * 1.5` (average ~1.5 emails remaining per in-sequence lead)
+5. Calculate: `days_left = remaining_sends / daily_cap`
+6. **Flag if: step_0 = 0 AND days_left <= 3**
 
 ---
 
 ## Output
 
-Post to Slack channel `C0B268H8Z2S` as **one message** (daily supply check only).
+Post ONE message to Slack channel `C0B268H8Z2S`.
 
-### Formatting rules
+- Only flagged campaigns (needs leads within 3 days)
+- Group by client, sort by most urgent first (fewest days left)
+- Show in-sequence count and days left
+- Skip Follow Up campaigns entirely
+- Skip any campaign with "spam" in the name
 
-1. Group by client. Use `*CLIENT NAME*` (bold, uppercase) as section headers.
-2. Sort clients by total deficit descending (most critical first).
-3. Sort campaigns within each client by deficit descending.
-4. Use inline code backticks for remaining counts: `0`, `24`, `145`.
-5. Show deficit in parentheses after each line: `(deficit: 300)`.
-6. Emoji at top of each message only: 🔴 daily supply, 🟠 runway, 🟢 all healthy.
-7. Collapse "Follow Ups" campaigns: if multiple clients have Follow Ups at 0, show a summary line at the bottom: `_N Follow Up queues are also at 0._`
-8. Add a summary line at the top: `X of Y campaigns flagged`.
-9. Only include flagged campaigns. Skip healthy ones.
-10. No tables. No pipe separators. No capacity/threshold numbers (they're the same for everything and add noise). Bullet lists only.
-11. Keep lines under 60 characters for mobile readability.
-12. Split daily vs runway into separate messages.
-
-### Message 1 format (Daily Supply)
+### Format
 
 ```
-🔴 *Daily lead supply* — May 7, 2026
-17 of 33 campaigns flagged (below 80% capacity)
+🔴 *Campaigns needing leads within 3 days* — May 8, 2026
+7 of 28 campaigns flagged
 
-*ACT CAPITAL* — 6 campaigns, all critical
-• Tequila (PE/FO Owners) — `11` left (deficit: 289)
-• Tequila (Shared List) — `0` (deficit: 300)
-• Sell Side Advisory — `0` (deficit: 300)
-• Excavation (Buyer) — `0` (deficit: 300)
-• Northern Cali — `0` (deficit: 300)
+*ACT CAPITAL*
+• Tequila (Shared List) — `151` in sequence (~1d left)
+• Northern Cali - Sell Side — `352` in sequence (~1d left)
 
-*VENTURE EXITS* — 2 campaigns
-• Yoga (PE/FO) — `24` left (deficit: 276)
-• Yoga (Strategic) — `145` left (deficit: 155)
-
-*ITG GROUP* — 1 campaign
-• Managers Campaign — `4` left (deficit: 296)
-
-_33 campaigns checked across 16 workspaces_
+_28 campaigns checked across 15 workspaces_
 ```
 
-### Message 2 format (3-Week Runway)
+If nothing flagged: post 🟢 all clear message.
 
-```
-🟠 *3-Week runway* — May 7, 2026
-21 of 33 campaigns flagged (below 3-week supply)
+---
 
-*ACT CAPITAL* — 5 campaigns
-• Sell Side Advisory — `0` / 5,500 needed (deficit: 5,500)
-• Tequila (PE/FO) — `11` / 1,000 needed (deficit: 989)
-• Excavation (Buyer) — `0` / 1,000 needed (deficit: 1,000)
-• Northern Cali — `0` / 1,000 needed (deficit: 1,000)
-• Tequila (Shared List) — `0` / 175 needed (deficit: 175)
+## Schedule
 
-_33 campaigns checked across 16 workspaces_
-```
-
-### What NOT to do
-- No raw pipe-separated data
-- No Slack block kit tables
-- No capacity/threshold numbers in the output
-- No color attachments
-- No single giant message combining both tasks
+Run every day at **9:00 AM CET/CEST** Mon-Fri.
