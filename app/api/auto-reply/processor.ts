@@ -380,13 +380,17 @@ const FORWARDING_INTENTS = new Set(["interested", "interested_urgent", "needs_in
 
 /**
  * Returns true if this reply should go to #reply-approval.
- * Logic: daily approval quota = 25% of the 7-day rolling average of interested
- * replies processed per active day. Once today's approval count hits the quota,
- * all remaining replies auto-send.
+ *
+ * Rule:
+ *   Phase 1 (default): first 5 eligible replies each day go to approval, rest auto-send.
+ *   Phase 2 (weekly recalibration): quota = 25% of 7-day rolling average of eligible
+ *   replies per active weekday. Minimum quota is always 5.
+ *
+ * "Today" resets at midnight Eastern time so it stays consistent with EmailBison timezone.
  */
 async function shouldRouteToApproval(): Promise<boolean> {
-  // 7-day average: count interested replies per day over the last 7 active days
-  // (active = at least 5 interested replies that day, to exclude weekends/dead days).
+  // 7-day rolling average: count interested replies per active weekday (>=5 replies)
+  // over the last 21 days. Excludes weekends naturally via the HAVING >= 5 filter.
   const avgResult = await pool.query<{ avg_per_day: string }>(`
     WITH daily AS (
       SELECT DATE(received_at AT TIME ZONE 'America/New_York') AS day,
@@ -401,21 +405,24 @@ async function shouldRouteToApproval(): Promise<boolean> {
     )
     SELECT AVG(cnt) AS avg_per_day FROM daily
   `);
-  const rawAvg = parseFloat(avgResult.rows[0]?.avg_per_day ?? "20");
-  const avgPerDay = Math.max(20, rawAvg); // floor at 20 so quota is always at least 5
+  const rawAvg = parseFloat(avgResult.rows[0]?.avg_per_day ?? "0");
+  // Minimum base of 20 ensures quota never drops below 5. Once real volume data
+  // exists and weekly average > 20, the 25% formula takes over.
+  const avgPerDay = Math.max(20, rawAvg);
   const dailyQuota = Math.ceil(avgPerDay * 0.25);
 
-  // Count how many have already been staged for approval today (UTC date is fine here).
+  // Count how many have been staged for approval so far today (Eastern time).
   const todayResult = await pool.query<{ cnt: string }>(`
     SELECT COUNT(*) AS cnt
     FROM reply_drafts
     WHERE status = 'pending'
-      AND created_at >= CURRENT_DATE
+      AND (created_at AT TIME ZONE 'America/New_York')::date
+          = (NOW() AT TIME ZONE 'America/New_York')::date
   `);
   const todayApprovalCount = parseInt(todayResult.rows[0]?.cnt ?? "0", 10);
 
   console.log(
-    `[auto-reply] approval quota: ${todayApprovalCount}/${dailyQuota} used today (avg ${avgPerDay.toFixed(1)}/day)`
+    `[auto-reply] approval quota: ${todayApprovalCount}/${dailyQuota} used today (7d avg ${rawAvg > 0 ? rawAvg.toFixed(1) : "no data yet"}/day)`
   );
 
   return todayApprovalCount < dailyQuota;
