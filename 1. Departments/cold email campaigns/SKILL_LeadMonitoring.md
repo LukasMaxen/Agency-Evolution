@@ -59,7 +59,7 @@ Run for each active campaign:
 
 ## Schedule
 
-Run both checks every day at **9:00 AM CET/CEST (Denmark time)**.
+Run the daily supply check every day at **9:00 AM CET/CEST (Denmark time)**. Do not run the runway check.
 
 Default mode: post a **full status report every morning** (even when everything looks fine) so results can be verified. Once confirmed reliable, switch to alerts-only mode (only post when something is flagged).
 
@@ -67,7 +67,7 @@ Default mode: post a **full status report every morning** (even when everything 
 
 ## Output
 
-Post to Slack channel `C0B268H8Z2S` as **two separate messages** (one per task).
+Post to Slack channel `C0B268H8Z2S` as **one message** (daily supply check only).
 
 ### Formatting rules
 

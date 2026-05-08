@@ -107,8 +107,9 @@ NAMES = {
     "zebs-ibs": "Zebs IBS",
 }
 
-# Only include slugs that have email sends tracked
-slugs = sorted(S.keys(), key=lambda s: NAMES.get(s, s))
+# Include all known workspaces (internal-campaigns may have 0 sends if webhook not tracked)
+all_slugs = set(S.keys()) | set(NAMES.keys())
+slugs = sorted(all_slugs, key=lambda s: NAMES.get(s, s))
 
 def cd(v, d=2):
     return f"{v:.{d}f}".replace(".", ",")
