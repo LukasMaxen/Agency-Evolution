@@ -96,7 +96,7 @@ NAMES = {
     "act-capital": "ACT Capital",
     "gn-motion": "GN Motion",
     "hahnbeck": "Hahnbeck",
-    "internal-campaigns": "Internal Campaigns",
+    "internal-campaigns": "Agency Evolution CRM",
     "itg-group": "ITG Group",
     "larsen-digital": "Larsen Digital",
     "micro-nordic": "Micro Nordic",
