@@ -111,6 +111,19 @@ Do NOT post to #manual-replies for:
 
 ---
 
+## Reply Approval Quota (non-negotiable)
+
+Only the first N eligible interested replies each day go to #reply-approval. The rest are auto-sent without review.
+
+- Phase 1 (default): quota = 5/day. First 5 eligible go to #reply-approval, rest auto-send.
+- Phase 2 (weekly): quota = 25% of 7-day rolling average of eligible weekday replies (min 5).
+- Eligible = interested replies not routed to #manual-replies.
+- Resets at midnight Eastern.
+
+Never route all interested replies to approval. Never bypass the quota. See CONTEXT_Replies.md for full details.
+
+---
+
 ## Process Rules — Before Drafting Any Reply
 
 1. **Check the interested flag.** Only reply to leads marked `interested = true` in the system. Do not reply based on message content alone.

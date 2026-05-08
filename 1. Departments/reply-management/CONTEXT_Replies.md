@@ -6,6 +6,22 @@
 
 ---
 
+## Reply Approval Quota (non-negotiable, always active)
+
+Only the first N eligible interested replies each day go to #reply-approval. Everything beyond that quota is auto-sent directly, no review.
+
+**Phase 1 (default, no data yet):** quota = 5 per day. First 5 eligible replies go to #reply-approval, the rest auto-send.
+
+**Phase 2 (weekly recalibration, automatic):** At the end of each week, quota updates to 25% of the 7-day rolling average of eligible replies per active weekday. Minimum is always 5. Example: 32 avg/day = 8 go to approval, rest auto-send.
+
+Eligible = interested replies not already routed to #manual-replies (no phone call requests, no specific time windows for non-Larsen clients).
+
+"Today" resets at midnight Eastern time (matches EmailBison timezone).
+
+This is implemented in `app/api/auto-reply/processor.ts` via `shouldRouteToApproval()`. Do not bypass it.
+
+---
+
 ## Two-Tier Auto-Reply Flow (cost optimisation)
 
 Every inbound reply runs through two tiers:
