@@ -13,7 +13,20 @@ date_label = (now_utc - datetime.timedelta(days=1)).strftime("%d %b %Y")
 
 db = os.environ.get("DATABASE_URL", "postgresql://aird:QWEdsa123@77.42.71.101:5433/ai_reply_desk")
 slack_token = os.environ.get("SLACK_BOT_TOKEN", "xoxb-5094014227030-11028184509637-q5B8xeOO4Wv19671uvAeri6i")
+
+# Load AIRTABLE_API_KEY from .env.local if not in environment
 airtable_key = os.environ.get("AIRTABLE_API_KEY", "")
+if not airtable_key:
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env.local")
+    try:
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("AIRTABLE_API_KEY="):
+                    airtable_key = line.split("=", 1)[1].strip().strip('"').strip("'")
+                    break
+    except Exception:
+        pass
 
 def query(sql):
     r = subprocess.run(["psql", db, "-t", "-A", "-F", "|", "-c", sql], capture_output=True, text=True)
