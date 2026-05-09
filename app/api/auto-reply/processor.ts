@@ -516,6 +516,10 @@ ${ebLink}`;
 }
 
 export async function processAutoReply(replyId: string, workspaceSlug: string): Promise<void> {
+  if (process.env.AUTO_REPLY_PAUSED === "true") {
+    console.log(`[auto-reply] PAUSED — skipping ${replyId} (${workspaceSlug})`);
+    return;
+  }
   // Outer guard: any uncaught throw inside the processor (SQL drift, Anthropic
   // outage, EmailBison error, missing creds) marks the reply 'errored' so it
   // does not get re-processed in a tight loop, and surfaces a card to
