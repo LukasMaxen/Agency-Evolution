@@ -585,6 +585,17 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
 
   const reply = claim.rows[0];
 
+  // 6-minute hold: do not process until at least 6 minutes have passed since
+  // the lead replied. Releases the claim so the sweep picks it up later.
+  const receivedAt = new Date(reply.received_at).getTime();
+  const ageMs = Date.now() - receivedAt;
+  if (ageMs < 6 * 60 * 1000) {
+    const waitSec = Math.ceil((6 * 60 * 1000 - ageMs) / 1000);
+    console.log(`[auto-reply] Holding ${replyId} — ${waitSec}s remaining in 6-min window`);
+    await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
+    return;
+  }
+
   // Fetch workspace credentials + approval mode flag + forwarding email
   const wsResult = await pool.query(
     `SELECT email_bison_api_key, email_bison_instance_url, auto_reply_approval_mode, forward_replies_to_email, forward_cc_emails FROM workspaces WHERE slug = $1`,

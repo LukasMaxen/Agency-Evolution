@@ -126,7 +126,18 @@ Never route all interested replies to approval. Never bypass the quota. See CONT
 
 ## Process Rules — Before Drafting Any Reply
 
-1. **Check the interested flag.** Only reply to leads marked `interested = true` in the system. Do not reply based on message content alone.
-2. **Check excluded clients.** Hahnbeck, ITG Group, and Sonaro AI are excluded from all replies — the client handles directly. Do nothing for these workspaces.
-3. **Read the full thread.** Check what has already been sent to this lead. Do not repeat stats, stories, links, or value props already in the thread.
-4. **Adapt to the message.** Never paste a template that doesn't match what the lead actually said. If they asked for a call, lead with booking the call. If they asked for info, lead with the info. The template is a starting point, not a script.
+1. **6-minute hold.** Never send a reply the moment a lead responds. Always wait exactly 6 minutes after the lead's message timestamp before sending. The processor enforces this automatically, but the rule applies to manual replies too.
+
+2. **No template auto-select.** Do not select a template and send it. Templates exist as reference examples only. Template matching is unreliable and has caused wrong replies to go to wrong leads. For every reply, follow the full drafting process below before writing a single word:
+   - Read `1. Departments/reply-management/SKILL_Reply-Management.md` in full
+   - Read `1. Departments/follow-up-management/` for relevant follow-up context
+   - Read `clients/[client-slug].md` for this specific client (offer, ICP, tone, reply guidelines, approved FU templates)
+   - Read the full existing thread with the lead
+   - Draft from scratch, situationally, based on what the lead actually said and the files above
+   - If a template happens to fit exactly, use it as a base but adapt it to the lead, their message, and thread history. Never copy-paste blindly.
+   - If you cannot identify the correct client file or context is unclear, do not send. Flag for manual review.
+
+3. **Check the interested flag.** Only reply to leads marked `interested = true` in the system. Do not reply based on message content alone.
+4. **Check excluded clients.** Hahnbeck, ITG Group, and Sonaro AI are excluded from all replies — the client handles directly. Do nothing for these workspaces.
+5. **Read the full thread.** Check what has already been sent to this lead. Do not repeat stats, stories, links, or value props already in the thread.
+6. **Adapt to the message.** If they asked for a call, lead with booking the call. If they asked for info, lead with the info.
