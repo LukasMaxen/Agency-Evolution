@@ -116,7 +116,7 @@ Do NOT post to #manual-replies for:
 Only the first N eligible interested replies each day go to #reply-approval. The rest are auto-sent without review.
 
 - Phase 1 (default): quota = 5/day. First 5 eligible go to #reply-approval, rest auto-send.
-- Phase 2 (weekly): quota = 25% of 7-day rolling average of eligible weekday replies (min 5).
+- Phase 2 (weekly): quota = 50% of 7-day rolling average of eligible weekday replies (min 5).
 - Eligible = interested replies not routed to #manual-replies.
 - Resets at midnight Eastern.
 

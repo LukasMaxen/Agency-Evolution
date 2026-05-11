@@ -380,7 +380,7 @@ const FORWARDING_INTENTS = new Set(["interested", "interested_urgent", "needs_in
  *
  * Rule:
  *   Phase 1 (default): first 5 eligible replies each day go to approval, rest auto-send.
- *   Phase 2 (weekly recalibration): quota = 25% of 7-day rolling average of eligible
+ *   Phase 2 (weekly recalibration): quota = 50% of 7-day rolling average of eligible
  *   replies per active weekday. Minimum quota is always 5.
  *
  * "Today" resets at midnight Eastern time so it stays consistent with EmailBison timezone.
@@ -406,7 +406,7 @@ async function shouldRouteToApproval(): Promise<boolean> {
   // Minimum base of 20 ensures quota never drops below 5. Once real volume data
   // exists and weekly average > 20, the 25% formula takes over.
   const avgPerDay = Math.max(20, rawAvg);
-  const dailyQuota = Math.ceil(avgPerDay * 0.25);
+  const dailyQuota = Math.ceil(avgPerDay * 0.50);
 
   // Count how many have been staged for approval so far today (Eastern time).
   const todayResult = await pool.query<{ cnt: string }>(`
@@ -897,7 +897,7 @@ ${reply.message}`;
       replyWithCreds.preferred_recipient_name = result.recipient_name ?? null;
     }
 
-    // Approval gate: route to #reply-approval only while today's quota (25% of
+    // Approval gate: route to #reply-approval only while today's quota (50% of
     // 7-day rolling average) is not yet filled. Once filled, auto-send directly.
     // Unsubscribes, hard nos, hostile, wrong-target, and soft-no closes never go
     // to the approval queue — they send immediately like the old template path did.
