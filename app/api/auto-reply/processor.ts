@@ -12,10 +12,7 @@ import {
 } from "@/lib/slack-approval";
 import {
   INTENT_TO_PATH,
-  INTENT_TO_TEMPLATE,
   MANUAL_INTENT_REASONS,
-  renderTemplate,
-  varsFromReply,
 } from "@/lib/template-replies";
 
 interface AutoReplyResult {
@@ -770,82 +767,59 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     return;
   }
 
-  // ── Template path: deterministic substitute, no AI body ────────────────────
-  if (path1 === "template") {
-    const templateName = INTENT_TO_TEMPLATE[classification.intent];
-    if (!templateName) {
-      console.error(`[auto-reply] No template mapped for intent ${classification.intent}, treating as no_action`);
-      await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
-      return;
-    }
-    const vars = varsFromReply(reply, workspaceSlug);
-    const body = renderTemplate(templateName, vars);
-    if (!body) {
-      console.error(`[auto-reply] Template ${templateName} missing or empty for ${replyId}`);
-      await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
-      return;
-    }
+  // ── Sonnet path: all non-manual, non-no-action intents drafted from scratch ──
+  // Templates are reference only. Every reply is drafted situationally by reading
+  // the SKILL file, context file, and client file before writing a single word.
 
-    const isUnsub = classification.intent === "unsubscribe"
-      || classification.intent === "wrong_target"
-      || classification.intent === "hostile";
-    if (isUnsub) {
-      await pool.query(`UPDATE replies SET interested = FALSE WHERE id = $1`, [replyId]);
-      await pool.query(
-        `UPDATE follow_ups SET meeting_booked = FALSE, next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`,
-        [replyId]
-      );
-    }
+  // Intents that were previously template-handled auto-send directly (no approval gate).
+  // Unsubscribes, hard nos, hostile, wrong-target must never sit in a review queue.
+  const ALWAYS_AUTO_SEND = new Set(["unsubscribe", "hard_no", "wrong_target", "hostile", "not_interested"]);
 
-    // Template replies always send directly, no approval gate, no Slack notification.
-    const sent = await sendReplyToEmailBison(replyWithCreds, body);
-    if (sent) {
-      const sentId = `auto-${replyId}-${Date.now()}`;
-      await pool.query(
-        `INSERT INTO sent_emails (id, reply_id, workspace_slug, lead_email, lead_name, email_type, subject, body, sent_at)
-         VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
-        [sentId, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", body]
-      );
-      await pool.query(
-        `UPDATE replies SET status = 'replied', interested = $1, ai_analysis = $2, ai_analyzed_at = NOW() WHERE id = $3`,
-        [
-          isUnsub ? false : null,
-          JSON.stringify({ intent: classification.intent, template: templateName, auto_replied: true }),
-          replyId,
-        ]
-      );
-      console.log(`[auto-reply] Sent template ${templateName} to ${reply.lead_name}`);
-    } else {
-      await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
-    }
-    return;
-  }
+  const skillFile = readFile(
+    path.join(process.cwd(), "1. Departments", "reply-management", "SKILL_Reply-Management.md")
+  );
 
-  // ── Sonnet path (interested family): full draft via existing flow ──────────
-  // Falls through to the Sonnet system prompt below.
+  const systemPrompt = `You are the auto-reply agent for Maxen Partners. Your job is to draft a situational first response to an inbound lead reply.
 
-  const systemPrompt = `You are the auto-reply agent for Maxen Partners. Your only job is to classify one inbound reply and, if applicable, draft the first response.
+OPERATING INSTRUCTIONS:
+1. Read SKILL_Reply-Management.md in full (provided below) — it defines the complete reply process, intent definitions, FU sequence assignment, tone, formatting, and scenario library.
+2. Read CONTEXT_Replies.md in full (provided below) — it contains global reply rules, objection handling, formatting rules, and approval quota logic.
+3. Read the CLIENT FILE provided in the user message — it is your most important input. It contains the offer, ICP, tone, reply guidelines, active mandates, teaser links, and Calendly link for this specific client.
+4. Draft a reply from scratch, situationally, based on what the lead actually said. Never copy-paste a template blindly. Templates in the SKILL file are a floor, not a ceiling — adapt to this specific lead and thread.
+5. If the correct client file cannot be identified or the reply context is unclear, set action to "do_nothing" so it can be flagged for manual review.
 
-All rules, action logic, intent definitions, FU sequence assignment, tone, formatting, scenarios, and templates live in the context file below. Read it, then classify and draft per the rules it defines.
-
-OUTPUT FORMAT (the only thing this prompt enforces directly):
-Return a single JSON object and nothing else. Start with "{" and end with "}". No preamble, no markdown fences, no commentary. The shape:
+OUTPUT FORMAT:
+Return a single JSON object and nothing else. Start with "{" and end with "}". No preamble, no markdown fences, no commentary.
 
 {
-  "action": "auto_send" | "manual" | "do_nothing",  // manual = when the lead gives ANY specific time window ("next week", "Monday", "tomorrow", "around next week") OR a phone number to call. These need a human to open the calendar and book. auto_send = general interest with no time given ("happy to chat", "tell me more", "send the teaser"). NEVER use manual for angry, ambiguous, or difficult replies — draft and auto_send those instead.
-  "intent": "interested_urgent" | "interested" | "needs_info" | "neutral" | "not_interested" | "unsubscribe",
+  "action": "auto_send" | "manual" | "do_nothing",
+  "intent": "interested_urgent" | "interested" | "needs_info" | "neutral" | "not_interested" | "hard_no" | "unsubscribe" | "wrong_target" | "hostile",
   "fu_sequence_type": "full" | "abbreviated" | "none",
-  "reply_body": "full email body, plain text, greeting on its own line, blank lines between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line. Never write 'Best' or any name before the signature variable. Omit this field entirely if action is not auto_send.",
+  "reply_body": "full email body, plain text, greeting on its own line, blank lines between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line. Never write 'Best' or any name before the signature variable. Omit if action is not auto_send.",
   "manual_reason": "one short sentence on what needs human attention. Only include if action is manual.",
   "flag_unsubscribe": true | false,
   "flag_meeting_booked": true | false,
-  "recipient_email": "OPTIONAL. Populate ONLY when the inbound reply is from a different person than the original lead (forward, redirect, EA, colleague). Set this to the email address of the person who actually wrote the reply. Read CONTEXT_Replies.md 'Recipient Detection on Redirects' for when this fires. Omit when the lead replied directly themselves.",
-  "recipient_name": "OPTIONAL. The display name of the new recipient when recipient_email is populated. Omit otherwise."
+  "recipient_email": "OPTIONAL. Only when a different person than the original lead wrote the reply. See Recipient Detection section in CONTEXT_Replies.md.",
+  "recipient_name": "OPTIONAL. Display name when recipient_email is populated."
 }
 
-The user message contains the client GTM brief and the lead's reply. Apply every rule from the context file when deciding action, intent, fu_sequence_type, and drafting reply_body.
+INTENT RULES:
+- manual = lead gives a specific time window ("next week", "Monday") OR a phone number. Needs a human to open the calendar. NOT for angry, difficult, or ambiguous replies — draft and auto_send those.
+- not_interested = soft no with timing language ("not right now", "bad timing") — abbreviated FU sequence (2 steps), auto_send a 1-line acknowledgment
+- hard_no = definite close ("sold last year", "never doing M&A") — FU sequence none, auto_send a 2-line professional close
+- unsubscribe = explicit removal request — FU sequence none, flag_unsubscribe true, auto_send a 1-sentence confirmation
+- wrong_target = wrong person/company with no redirect — FU sequence none, flag_unsubscribe true, auto_send a brief apology
+- hostile = abusive language — FU sequence none, flag_unsubscribe true, auto_send a 1-line acknowledgment
 
-HARD RULE — SELL-SIDE BUYER FRAMING: All sell-side campaigns are built around a specific buyer or buyer group. Never write "a number of buyers", "multiple buyers", "buyers like yours", or any language implying a marketplace. Always maintain the specific buyer framing from the campaign. Read the campaign name and client file to identify the exact framing, then mirror it in the reply.
+FU SEQUENCE RULES:
+- interested_urgent, interested, needs_info, neutral, forwarded, advisor_engaged → full (6 steps)
+- not_interested → abbreviated (2 steps)
+- hard_no, unsubscribe, wrong_target, hostile → none
+
+HARD RULE — SELL-SIDE BUYER FRAMING: Never write "a number of buyers", "multiple buyers", or any marketplace language. Always mirror the specific buyer framing from the campaign.
+
+=== SKILL_Reply-Management.md ===
+${skillFile}
 
 === CONTEXT_Replies.md ===
 ${contextFile}`;
@@ -925,7 +899,11 @@ ${reply.message}`;
 
     // Approval gate: route to #reply-approval only while today's quota (25% of
     // 7-day rolling average) is not yet filled. Once filled, auto-send directly.
-    const withinQuota = workspace.auto_reply_approval_mode && await shouldRouteToApproval();
+    // Unsubscribes, hard nos, hostile, wrong-target, and soft-no closes never go
+    // to the approval queue — they send immediately like the old template path did.
+    const withinQuota = !ALWAYS_AUTO_SEND.has(result.intent)
+      && workspace.auto_reply_approval_mode
+      && await shouldRouteToApproval();
     if (withinQuota) {
       const draftId = `rd-${replyId}-${Date.now()}`;
       const slackTs = await postReplyApprovalCard({
@@ -971,10 +949,11 @@ ${reply.message}`;
          VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
         [sentId, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", result.reply_body]
       );
+      const isPositiveIntent = ["interested", "interested_urgent", "needs_info"].includes(result.intent);
       await pool.query(
         `UPDATE replies SET status = 'replied', interested = $1, ai_analysis = $2, ai_analyzed_at = NOW() WHERE id = $3`,
         [
-          ["interested", "interested_urgent", "needs_info"].includes(result.intent) ? true : null,
+          isPositiveIntent ? true : null,
           JSON.stringify({ intent: result.intent, auto_replied: true, fu_sequence_type: result.fu_sequence_type }),
           replyId,
         ]
