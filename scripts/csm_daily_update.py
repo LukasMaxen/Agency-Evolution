@@ -7,9 +7,26 @@ import os
 import sys
 
 now_utc = datetime.datetime.now(datetime.timezone.utc)
-yesterday = (now_utc - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-next_day = now_utc.strftime("%Y-%m-%d")
-date_label = (now_utc - datetime.timedelta(days=1)).strftime("%d %b %Y")
+is_monday = now_utc.weekday() == 0
+
+if is_monday:
+    # Last Mon-Fri
+    last_friday = now_utc - datetime.timedelta(days=3)
+    last_monday = now_utc - datetime.timedelta(days=7)
+    period_start = last_monday.strftime("%Y-%m-%d")
+    period_end_exclusive = now_utc.strftime("%Y-%m-%d")  # up to (not including) today
+    date_label = f"{last_monday.strftime('%d %b')} - {last_friday.strftime('%d %b %Y')} (Last Week)"
+    report_label = "Weekly Email Performance"
+    total_label = "Total Numbers Last Week"
+else:
+    period_start = (now_utc - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    period_end_exclusive = now_utc.strftime("%Y-%m-%d")
+    date_label = (now_utc - datetime.timedelta(days=1)).strftime("%d %b %Y")
+    report_label = "Daily Email Performance"
+    total_label = "Total Numbers Yesterday"
+
+yesterday = period_start  # used in Airtable formula — keep as period start for Airtable date match
+next_day = period_end_exclusive
 
 db = os.environ.get("DATABASE_URL", "postgresql://aird:QWEdsa123@77.42.71.101:5433/ai_reply_desk")
 slack_token = os.environ.get("SLACK_BOT_TOKEN", "xoxb-5094014227030-11028184509637-q5B8xeOO4Wv19671uvAeri6i")
@@ -76,7 +93,12 @@ def airtable_meetings_yesterday(slug):
     if not airtable_key or slug not in AIRTABLE_MEETINGS:
         return 0
     base_id, table_id, field = AIRTABLE_MEETINGS[slug]
-    formula = urllib.parse.quote(f"IS_SAME({{{field}}}, '{yesterday}', 'day')")
+    if is_monday:
+        formula = urllib.parse.quote(
+            f"AND(IS_AFTER({{{field}}}, DATEADD('{period_start}', -1, 'day')), IS_BEFORE({{{field}}}, '{period_end_exclusive}'))"
+        )
+    else:
+        formula = urllib.parse.quote(f"IS_SAME({{{field}}}, '{period_start}', 'day')")
     url = f"https://api.airtable.com/v0/{base_id}/{table_id}?filterByFormula={formula}&fields[]={urllib.parse.quote(field)}"
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {airtable_key}"})
     try:
@@ -117,7 +139,7 @@ def cd(v, d=2):
 def ft(v):
     return f"{v:,}"
 
-lines = [f"*Daily Email Performance - {date_label}*\n"]
+lines = [f"*{report_label} - {date_label}*\n"]
 ts = tr = ti = tm = 0
 
 for slug in slugs:
@@ -160,7 +182,7 @@ e2lt = ft(round(ts / ti)) if ti else "-"
 e2mt = ft(round(ts / tm)) if tm else "-"
 
 lines += [
-    "*Total Numbers Yesterday:*\n",
+    f"*{total_label}:*\n",
     f"Emails Sent: {ft(ts)}",
     f"Total Replies: {tr}",
     f"Reply Rate %: {orr}",
