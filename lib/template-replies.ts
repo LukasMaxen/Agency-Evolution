@@ -16,12 +16,13 @@ export const INTENT_TO_PATH: Record<string, TemplatePath> = {
   forwarded: "interested",
   advisor_engaged: "interested",
 
-  // Template path: deterministic responses, no AI for the body
-  not_interested: "template",
-  hard_no: "template",
-  unsubscribe: "template",
-  wrong_target: "template",
-  hostile: "template",
+  // These intents go through Sonnet. Templates exist as reference only.
+  // The processor bypasses the approval gate for these and auto-sends directly.
+  not_interested: "interested",
+  hard_no: "interested",
+  unsubscribe: "interested",
+  wrong_target: "interested",
+  hostile: "interested",
 
   // Manual path: post to #manual-replies. Used only when a physical action is
   // required that the AI cannot perform itself (move a calendar event, place a
