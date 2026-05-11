@@ -605,13 +605,21 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   const workspace = wsResult.rows[0];
   const replyWithCreds = { ...reply, ...workspace };
 
-  // Read client file and global context. Slug aliases let one client file
-  // back multiple workspaces (eg `internal-campaigns` is Agency Evolution's
-  // own outreach and shares the agency-evolution.md context).
+  // Load all context: client file, all skill files, all context files.
+  // Slug aliases let one client file back multiple workspaces.
   const fileSlug = CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
   const clientFile = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
   const contextFile = readFile(
     path.join(process.cwd(), "1. Departments", "reply-management", "CONTEXT_Replies.md")
+  );
+  const skillFile = readFile(
+    path.join(process.cwd(), "1. Departments", "reply-management", "SKILL_Reply-Management.md")
+  );
+  const fuSkillFile = readFile(
+    path.join(process.cwd(), "1. Departments", "follow-up-management", "SKILL_FollowUps.md")
+  );
+  const fuContextFile = readFile(
+    path.join(process.cwd(), "1. Departments", "follow-up-management", "CONTEXT_FollowUps.md")
   );
 
   if (!clientFile) {
@@ -620,30 +628,18 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     return;
   }
 
-  // ── TIER 1: cheap Haiku classification ────────────────────────────────────
-  // Routes the reply to either the Sonnet drafter (interested/needs_info etc),
-  // the template engine (not_interested/unsubscribe etc), or no-action (OOO/bounce).
-  const classification = await classifyIntent(reply.message, reply.lead_name, reply.lead_company);
-  if (!classification) {
-    // Could not classify, reset and bail. Falling back to manual handling.
-    await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
-    console.error(`[auto-reply] Tier-1 classification failed for ${replyId}`);
-    return;
-  }
-
-  const path1 = INTENT_TO_PATH[classification.intent] ?? "interested";
-  console.log(`[auto-reply] ${replyId} classified as ${classification.intent} (${classification.confidence}), routing to ${path1}`);
-
   // ── Forwarding path: workspace forwards interested replies to a chosen email ──
-  // When workspace.forward_replies_to_email is set, we never auto-reply or draft for
-  // this workspace. Interested-family replies get forwarded to the client; everything
-  // else is logged and skipped (the client handles it themselves).
   if (workspace.forward_replies_to_email) {
-    if (FORWARDING_INTENTS.has(classification.intent)) {
+    // Use a lightweight intent check to decide whether to forward.
+    // Only forward replies that are plausibly interested — skip OOO, bounce, spam.
+    const skipKeywords = /out of office|on vacation|auto.?reply|bounce|undeliverable/i;
+    const looksLikeNoAction = skipKeywords.test(reply.message ?? "");
+
+    if (!looksLikeNoAction) {
       const forwarded = await forwardReplyToClient(
         replyWithCreds,
         workspace.forward_replies_to_email,
-        classification.intent,
+        "interested",
         workspace.forward_cc_emails ?? null
       );
 
@@ -669,21 +665,15 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
         [
           forwarded ? "forwarded" : "new",
           JSON.stringify({
-            intent: classification.intent,
-            confidence: classification.confidence,
             forwarded_to: workspace.forward_replies_to_email,
             forward_status: forwarded ? "sent" : "failed",
           }),
           replyId,
         ]
       );
-      console.log(
-        `[auto-reply] ${replyId} ${forwarded ? "forwarded" : "forward FAILED"} to ${workspace.forward_replies_to_email} (intent: ${classification.intent})`
-      );
+      console.log(`[auto-reply] ${replyId} ${forwarded ? "forwarded" : "forward FAILED"} to ${workspace.forward_replies_to_email}`);
 
       if (!forwarded) {
-        // Auto-forward to the client failed (EmailBison error, missing creds, etc).
-        // Surface to #manual-replies so someone can forward by hand.
         await postToSlack({
           text: `Forward failed, ${workspaceSlug} / ${reply.lead_name}`,
           blocks: buildSlackBlocks({
@@ -692,101 +682,34 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
             reply: replyWithCreds,
             instanceUrl: workspace.email_bison_instance_url ?? "",
             reason: `Auto-forward to ${workspace.forward_replies_to_email} failed. Please forward manually.`,
-            intent: classification.intent,
           }),
         });
       }
-      return;
+    } else {
+      await pool.query(
+        `UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ forwarding_enabled: true, skipped_reason: "auto-reply/OOO/bounce detected" }), replyId]
+      );
+      console.log(`[auto-reply] ${replyId} forwarding skipped (OOO/bounce/spam detected)`);
     }
-
-    // Forwarding enabled but intent doesn't qualify: log only, do nothing.
-    await pool.query(
-      `UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
-      [
-        JSON.stringify({
-          intent: classification.intent,
-          confidence: classification.confidence,
-          forwarding_enabled: true,
-          intent_below_forward_threshold: true,
-        }),
-        replyId,
-      ]
-    );
-    console.log(
-      `[auto-reply] ${replyId} forwarding skipped (intent ${classification.intent} below threshold for ${workspaceSlug})`
-    );
     return;
   }
 
-  // ── No-action path: log only, no email ─────────────────────────────────────
-  if (path1 === "no_action") {
-    await pool.query(
-      `UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
-      [
-        JSON.stringify({ intent: classification.intent, confidence: classification.confidence, auto_replied: false, no_action_reason: "low-value classification" }),
-        replyId,
-      ]
-    );
-    return;
-  }
-
-  // ── Manual path: post to #manual-replies, no AI draft, human handles ──────
-  // Used only for intents where a physical out-of-band action is required
-  // that the AI cannot perform itself (move a calendar event, place a phone
-  // call, fill out a third-party intake form). Anything that is just an email
-  // reply must stay on the Sonnet path so it flows through reply-approval.
-  if (path1 === "manual") {
-    const reason = MANUAL_INTENT_REASONS[classification.intent]
-      ?? "Reply needs manual handling.";
-
-    await postToSlack({
-      text: `Manual handling needed, ${workspaceSlug} / ${reply.lead_name}`,
-      blocks: buildSlackBlocks({
-        header: "Reply needs manual handling",
-        workspaceSlug,
-        reply: replyWithCreds,
-        instanceUrl: workspace.email_bison_instance_url ?? "",
-        reason,
-        intent: classification.intent,
-      }),
-    });
-
-    await pool.query(
-      `UPDATE replies SET status = 'awaiting_manual', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
-      [
-        JSON.stringify({
-          intent: classification.intent,
-          confidence: classification.confidence,
-          auto_replied: false,
-          manual_reason: reason,
-        }),
-        replyId,
-      ]
-    );
-    console.log(`[auto-reply] ${replyId} routed to #manual-replies (intent: ${classification.intent})`);
-    return;
-  }
-
-  // ── Sonnet path: all non-manual, non-no-action intents drafted from scratch ──
-  // Templates are reference only. Every reply is drafted situationally by reading
-  // the SKILL file, context file, and client file before writing a single word.
-
-  // Intents that were previously template-handled auto-send directly (no approval gate).
-  // Unsubscribes, hard nos, hostile, wrong-target must never sit in a review queue.
+  // Intents that bypass the approval gate and auto-send directly.
   const ALWAYS_AUTO_SEND = new Set(["unsubscribe", "hard_no", "wrong_target", "hostile", "not_interested"]);
-
-  const skillFile = readFile(
-    path.join(process.cwd(), "1. Departments", "reply-management", "SKILL_Reply-Management.md")
-  );
 
   const systemPrompt = `You are the auto-reply agent for Maxen Partners. Your job is to draft a situational first response to an inbound lead reply.
 
 OPERATING INSTRUCTIONS:
-1. Read SKILL_Reply-Management.md in full (provided below) — it defines the complete reply process, intent definitions, FU sequence assignment, tone, formatting, and scenario library.
-2. Read CONTEXT_Replies.md in full (provided below) — it contains global reply rules, objection handling, formatting rules, and approval quota logic.
-3. Read the CLIENT FILE provided in the user message — it is your most important input. It contains the offer, ICP, tone, reply guidelines, active mandates, teaser links, and Calendly link for this specific client.
-4. Draft a reply from scratch, situationally, based on what the lead actually said. Never copy-paste a template blindly. Templates in the SKILL file are a floor, not a ceiling — adapt to this specific lead and thread.
-5. If the correct client file cannot be identified or the reply context is unclear, set action to "do_nothing" so it can be flagged for manual review.
+1. Read every file provided below in full before writing a single word. They are your complete operating context.
+2. SKILL_Reply-Management.md defines the reply process, intent definitions, FU sequence assignment, tone, formatting, and scenario library.
+3. CONTEXT_Replies.md contains global reply rules, objection handling, formatting rules, and routing logic.
+4. SKILL_FollowUps.md and CONTEXT_FollowUps.md define the follow-up sequence structure, step purposes, and FU drafting rules.
+5. The CLIENT FILE is your most important input. It contains the offer, ICP, tone, reply guidelines, active mandates, teaser links, and Calendly link for this specific client.
+6. The FULL THREAD HISTORY shows every email previously sent to this lead. Read it before drafting. Never repeat anything already said.
+7. Draft a reply from scratch based on what the lead actually said, the full thread, and the client context. Never copy-paste anything blindly.
+8. If the reply is an out-of-office, automated notice, bounce, or spam, set action to "do_nothing".
+9. If the reply context is unclear or the client file cannot be matched, set action to "do_nothing" so it is flagged for manual review.
 
 OUTPUT FORMAT:
 Return a single JSON object and nothing else. Start with "{" and end with "}". No preamble, no markdown fences, no commentary.
@@ -822,7 +745,13 @@ HARD RULE — SELL-SIDE BUYER FRAMING: Never write "a number of buyers", "multip
 ${skillFile}
 
 === CONTEXT_Replies.md ===
-${contextFile}`;
+${contextFile}
+
+=== SKILL_FollowUps.md ===
+${fuSkillFile}
+
+=== CONTEXT_FollowUps.md ===
+${fuContextFile}`;
 
   // Fetch full thread: all emails previously sent to this lead so Sonnet
   // can read the complete correspondence before drafting.
