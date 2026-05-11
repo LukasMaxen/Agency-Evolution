@@ -824,10 +824,28 @@ ${skillFile}
 === CONTEXT_Replies.md ===
 ${contextFile}`;
 
+  // Fetch full thread: all emails previously sent to this lead so Sonnet
+  // can read the complete correspondence before drafting.
+  const threadResult = await pool.query<{ email_type: string; subject: string; body: string; sent_at: Date }>(
+    `SELECT email_type, subject, body, sent_at
+     FROM sent_emails
+     WHERE workspace_slug = $1 AND lead_email = $2
+     ORDER BY sent_at ASC`,
+    [workspaceSlug, reply.lead_email]
+  );
+  const threadHistory = threadResult.rows.length > 0
+    ? threadResult.rows.map((e, i) =>
+        `--- Email ${i + 1} (${e.email_type}, ${new Date(e.sent_at).toISOString().slice(0, 10)}) ---\nSubject: ${e.subject}\n${e.body}`
+      ).join("\n\n")
+    : "No prior emails on record for this lead.";
+
   const userMessage = `CLIENT WORKSPACE: ${workspaceSlug}
 
 CLIENT FILE:
 ${clientFile}
+
+FULL THREAD HISTORY (all emails previously sent to this lead, oldest first):
+${threadHistory}
 
 INBOUND LEAD REPLY:
 Lead name: ${reply.lead_name}
