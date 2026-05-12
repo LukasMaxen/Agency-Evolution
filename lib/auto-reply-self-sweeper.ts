@@ -18,30 +18,36 @@ export async function runAutoReplySweep(): Promise<void> {
     const { processAutoReply } = await import("@/app/api/auto-reply/processor");
     const { postToSlack, MANUAL_REPLIES_CHANNEL } = await import("@/lib/slack-approval");
 
-    // Alert on any replies stuck at 'new' for >24h — these are permanently excluded
-    // from auto-processing and need manual attention.
+    // Silently mark any replies stuck at 'new' for >24h as errored and post
+    // ONE summary card if there are any. Never post per-reply cards — this
+    // caused 250+ Slack notifications when the DB had a backlog of old stuck replies.
     const stale = await pool.query(
       `SELECT id, workspace_slug, lead_name, lead_email, received_at
        FROM replies
        WHERE status = 'new'
          AND received_at <= NOW() - INTERVAL '24 hours'
-       LIMIT 10`
+       LIMIT 50`
     );
-    for (const row of stale.rows) {
-      console.warn(`[self-sweep] Stale reply >24h: ${row.workspace_slug} / ${row.lead_name} <${row.lead_email}> received ${row.received_at}`);
-      await pool.query(`UPDATE replies SET status = 'errored' WHERE id = $1`, [row.id]);
+    if (stale.rows.length > 0) {
+      // Mark all errored in one query
+      const ids = stale.rows.map(r => r.id);
+      await pool.query(
+        `UPDATE replies SET status = 'errored' WHERE id = ANY($1::uuid[])`,
+        [ids]
+      );
+      stale.rows.forEach(row =>
+        console.warn(`[self-sweep] Stale >24h, marked errored: ${row.workspace_slug} / ${row.lead_name} <${row.lead_email}>`)
+      );
+      // One summary card only
+      const lines = stale.rows.map(r => `• ${r.workspace_slug} — ${r.lead_name ?? "unknown"} <${r.lead_email}>`).join("\n");
       await postToSlack({
         channel: MANUAL_REPLIES_CHANNEL,
-        text: `Reply stuck >24h and auto-dropped, needs manual handling`,
+        text: `${stale.rows.length} reply/replies stuck >24h, marked errored`,
         blocks: [
-          { type: "header", text: { type: "plain_text", text: "Reply stuck >24h, needs manual handling", emoji: true } },
-          { type: "section", fields: [
-            { type: "mrkdwn", text: `*Client:*\n${row.workspace_slug}` },
-            { type: "mrkdwn", text: `*Lead:*\n${row.lead_name ?? "unknown"} <${row.lead_email}>` },
-          ]},
-          { type: "section", text: { type: "mrkdwn", text: `Reply received at ${new Date(row.received_at).toISOString()} was never processed. Marked errored. Open EmailBison and reply manually.\n\nTo re-queue: \`UPDATE replies SET status='new' WHERE id='${row.id}';\`` }},
+          { type: "header", text: { type: "plain_text", text: `${stale.rows.length} reply/replies stuck >24h, marked errored`, emoji: true } },
+          { type: "section", text: { type: "mrkdwn", text: `These replies were never processed and have been marked errored. Check EmailBison and reply manually if needed.\n\n${lines}` } },
         ],
-      }).catch(e => console.error("[self-sweep] Failed to post stale reply alert:", e));
+      }).catch(e => console.error("[self-sweep] Failed to post stale summary:", e));
     }
 
     const r = await pool.query(
