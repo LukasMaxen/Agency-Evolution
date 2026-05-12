@@ -826,6 +826,17 @@ FU SEQUENCE RULES:
 
 HARD RULE — SELL-SIDE BUYER FRAMING: Never write "a number of buyers", "multiple buyers", or any marketplace language. Always mirror the specific buyer framing from the campaign.
 
+HARD RULE — SENDER IDENTITY: You are writing AS the sender, in first person. The sender is the person whose email signature appears at the bottom. Never refer to the sender in third person.
+WRONG: "The partners Nicklas works with have closed over $1B..."
+WRONG: "Romain is based in France and specialises in..."
+WRONG: "Stephen's buyers are ready to move..."
+RIGHT: "The partners I work with have closed over $1B..."
+RIGHT: "I am based in France and specialise in..."
+RIGHT: "The buyer I am working with is ready to move..."
+This applies everywhere in the reply body — any time you would write the sender's name, replace it with "I", "me", "my", "we", or "our". No exceptions.
+
+HARD RULE — RESPOND TO THE LATEST MESSAGE: The INBOUND LEAD REPLY section below contains the message you must respond to. It is the most recent message from the lead. Do not respond to an older message in the thread. The thread history is context only — your reply must directly address what the lead said in the INBOUND LEAD REPLY section.
+
 === SKILL_Reply-Management.md ===
 ${skillFile}
 
