@@ -16,6 +16,62 @@ import {
   daysUntilNextStep,
 } from "@/lib/template-replies";
 
+// Shared with auto-reply processor: extract structured lead intelligence from
+// their message and signature so the FU drafter has real context about who they are.
+function extractLeadIntelligence(message: string, leadEmail: string): string {
+  if (!message) return "";
+  const lines = message.split("\n").map(l => l.trim()).filter(Boolean);
+  const intel: string[] = [];
+  const domain = leadEmail.split("@")[1] ?? "";
+  if (domain && !["gmail","yahoo","hotmail","outlook"].some(d => domain.includes(d))) {
+    intel.push(`Company domain: ${domain}`);
+  }
+  const urls = message.match(/https?:\/\/(?!calendly|linkedin|twitter|facebook|instagram|tiktok|youtube|google|aka\.ms)[^\s\]>)]+/g) ?? [];
+  if (urls.length > 0) intel.push(`Company website(s): ${[...new Set(urls)].slice(0,2).join(", ")}`);
+  const selfDesc = lines.filter(l =>
+    /^(we (are|work|help|focus|specialize|operate)|our (company|firm|fund|team|business)|i (am|work|run|represent))/i.test(l) && l.length > 20 && l.length < 300
+  );
+  if (selfDesc.length > 0) intel.push(`Lead's self-description: ${selfDesc.slice(0,2).join(" | ")}`);
+  if (intel.length === 0) return "";
+  return `LEAD INTELLIGENCE:\n${intel.join("\n")}`;
+}
+
+// Haiku critic for FU drafts — same quality gate as the auto-reply processor.
+async function critiqueFuDraft(draft: string, originalReply: string, workspace: string): Promise<string | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 200,
+        system: `You are a quality checker for follow-up cold emails. Check the draft and output "PASS" if it is good, or a short list of issues (2-3 words each) if not.
+
+Checklist:
+1. Is it written in first person? (never "Nicklas works with", always "I work with")
+2. Does it bring a new angle not visible in the original reply context?
+3. Is it free of AI filler? ("Sounds great", "I'd love to", "Excited to show you")
+4. Is it appropriately concise — not padded?
+5. Does it NOT confirm availability or suggest specific time slots?
+6. Does it end with {SENDER_EMAIL_SIGNATURE}?
+
+Output only "PASS" or a short issues list. Nothing else.`,
+        messages: [{ role: "user", content: `Original lead reply:\n${originalReply.slice(0,400)}\n\nFU draft:\n${draft}\n\nCheck now.` }],
+      }),
+      signal: controller.signal,
+    });
+  } catch { return null; } finally { clearTimeout(timeout); }
+  if (!response.ok) return null;
+  const data = await response.json();
+  const result = (data.content?.[0]?.text ?? "").trim();
+  return result.toUpperCase().startsWith("PASS") ? null : (result || null);
+}
+
 interface FollowUpRow {
   id: string;
   reply_id: string;
@@ -223,29 +279,61 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
     return { status: "skipped", reason: "CONTEXT_FollowUps.md missing" };
   }
 
-  const systemPrompt = `You are an email drafter for Maxen Partners. Your only job is to draft one follow-up email for one lead.
+  const systemPrompt = `You are the follow-up email drafter for Maxen Partners. You draft follow-up emails that are indistinguishable from what a sharp, experienced human operator would write after carefully reading the full thread.
 
-All rules, step purposes, tone, examples, and process live in the two context files below. Read them, then draft the email per the rules they define.
+The standard is not "good enough to send." The standard is: would a senior person at Maxen Partners look at this and be proud to put their name on it?
 
-OUTPUT FORMAT (the only thing this prompt enforces directly):
-Return a single JSON object and nothing else. Start with "{" and end with "}". No preamble, no markdown fences, no thinking aloud, no commentary. The shape:
+---
 
-{
-  "subject": "short subject line, no Re: prefix",
-  "body": "full email body, plain text, greeting on its own line, blank line between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line. No subject line inside the body."
-}
+BEFORE DRAFTING — read in this order:
+1. The CLIENT FILE in full. Know the offer, the sender identity, the Calendly link, the GTM brief, and the FU scaffolding.
+2. CONTEXT_Replies.md — especially the "Hard Rules — Learned From Live Incidents" section. These apply to FUs too.
+3. CONTEXT_FollowUps.md — step purposes, sequence structure, and FU-specific rules.
+4. The FULL THREAD — every email sent and every reply received. Do not repeat any angle, link, case study, or objection reframe already used.
+5. The ORIGINAL REPLY — what the lead said that started this sequence. Their intent and language should inform every FU.
+
+---
+
+HARD RULES (same as first replies — no exceptions):
+
+SENDER IDENTITY: Write in first person always. Never refer to the sender in third person.
+WRONG: "Stephen's buyers are ready to move" / "Nicklas works with brands like yours"
+RIGHT: "The buyers I work with are ready to move" / "I work with brands like yours"
+
+NEVER CONFIRM AVAILABILITY: No calendar access. Never write "Tuesday works" or suggest specific slots. Only use the Calendly link.
+
+NEVER REPEAT: Check the thread. If a case study, stat, link, or angle was already used — do not use it again. Every FU must bring something new.
+
+MATCH TONE: Read how the lead wrote their original reply. Match their register — formal stays formal, casual stays casual.
+
+NO AI PHRASES: Never use "Sounds great", "I'd love to", "Excited to show you", "Straightforward", "Genuinely", "Thrilled." Write like a real person.
+
+NO DASHES: No em dashes, en dashes, or hyphens as punctuation.
+
+SIGNATURE: Always end with {SENDER_EMAIL_SIGNATURE} on its own line. Never write "Best," or any name before it.
+
+---
 
 WHICH STEP TO DRAFT:
 Sequence type: ${fu.fu_sequence_type}
 Step to draft: FU${nextStep} of ${fu.total_emails}
 
-Apply the step purpose from CONTEXT_FollowUps.md that matches the sequence type and step number above. Apply all tone, formatting, and content rules from both context files. The user message contains the client GTM brief, the lead's data, and every email we have already sent in this thread.
+Apply the step purpose from CONTEXT_FollowUps.md for this sequence type and step number. The step purpose defines the angle — use it as the frame, then write fresh content specific to this lead.
+
+OUTPUT FORMAT:
+Return a single JSON object and nothing else. Start with "{" and end with "}".
+{
+  "subject": "short subject line, no Re: prefix",
+  "body": "full email body, plain text, greeting on its own line, blank line between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line."
+}
 
 === CONTEXT_FollowUps.md ===
 ${followUpContext}
 
-=== CONTEXT_Replies.md (cross-cutting tone, formatting, content rules apply to FUs too) ===
+=== CONTEXT_Replies.md ===
 ${replyContext}`;
+
+  const leadIntelligence = extractLeadIntelligence(reply.message ?? "", reply.lead_email ?? "");
 
   const userMessage = `CLIENT WORKSPACE: ${fu.workspace_slug}
 
@@ -257,12 +345,12 @@ Name: ${reply.lead_name}
 Company: ${reply.lead_company ?? "unknown"}
 Title: ${reply.lead_title ?? "unknown"}
 Email: ${reply.lead_email}
-
+${leadIntelligence ? `\n${leadIntelligence}\n` : ""}
 ORIGINAL REPLY (the one that started this sequence):
 ${reply.message}
 
-PREVIOUS EMAILS WE SENT (the lead has read these and not replied back, do not repeat any angles or greetings):
-${prevBodies.length > 0 ? prevBodies.map((b, i) => `=== Email ${i + 1}${i === 0 ? " (our first response to their reply)" : ` (FU step ${i})`} ===\n${b}`).join("\n\n") : "(none on record, but assume our cold email reached them and they replied to it)"}
+FULL THREAD — ALL EMAILS SENT AND RECEIVED (do not repeat any angle, link, case study, or stat already used):
+${prevBodies.length > 0 ? prevBodies.map((b, i) => `=== Message ${i + 1} ===\n${b}`).join("\n\n") : "(none on record)"}
 
 Draft FU step ${nextStep} now.`;
 
