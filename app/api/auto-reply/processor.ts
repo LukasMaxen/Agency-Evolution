@@ -852,6 +852,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // Hahnbeck used to be on this list but now uses the forward_replies_to_email path.
   if (workspaceSlug === "itg-group" || workspaceSlug === "sonaro-ai") {
     console.log(`[auto-reply] Skipping ${workspaceSlug} reply ${replyId}`);
+    await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1 AND status = 'new'`, [replyId]);
     return;
   }
 
