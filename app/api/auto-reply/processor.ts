@@ -316,98 +316,6 @@ function isNoActionReply(message: string): boolean {
   );
 }
 
-// Dead code removed: classifyIntent (Haiku tier) was never called in the main
-// processor flow — every reply went straight to Sonnet regardless. Removing to
-// keep the codebase honest about what actually runs.
-
-async function _classifyIntent_UNUSED(replyMessage: string, leadName: string, leadCompany: string | null): Promise<null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
-
-  const systemPrompt = `Classify the inbound email reply into ONE intent. Output ONLY a JSON object, no preamble. Shape: {"intent":"...","confidence":"high"|"medium"|"low"}.
-
-Possible intents:
-- interested_urgent: explicit urgency ("call me now", "let's move fast")
-- interested: positive signal, open to a call ("happy to chat", "tell me more")
-- needs_info: asking a clarifying question, wants details before committing
-- neutral: vague, no clear signal either way. Do NOT use for angry or frustrated replies ("why are you still emailing me", "did you not read my last email") — those are not_interested or unsubscribe.
-- forwarded: someone other than the original lead is replying (forwarded internally, EA, colleague), OR the lead is redirecting us to someone else with their email or name, OR the account is unused/inactive and the message contains a new email address to contact instead. If a redirect email address is present anywhere in the message, always classify as forwarded regardless of any OOO language.
-- not_interested: soft no with timing language ("not right now", "happy as is", "too busy", "bad timing")
-- hard_no: definite disinterest ("we never sell", "sold last year", "family business not for sale ever")
-- unsubscribe: explicit removal request ("remove me", "unsubscribe", "stop", "do not contact")
-- wrong_target: wrong person/company, no useful redirect ("I'm not the owner", "we are a nonprofit", "wrong sector")
-- reschedule_request: lead has already booked or confirmed a meeting and is asking to move it ("can't make it Tuesday", "let's reschedule", "today is a bank holiday so I can't make it")
-- phone_call_requested: lead asks to be called or gives a phone number ("call me", "give me a call", "call me at 720-878-9184", "my cell is X", "telephone number please", "prefer a phone call over video"). Any explicit request for a phone call, with or without a number.
-- their_process_required: lead redirects us into their own intake funnel or external application process ("apply for funding here", "submit your information through our intake form")
-- advisor_engaged: a third-party M&A advisor, broker, or investment bank replies on behalf of the lead, often with their own engagement language ("we have been engaged by X to assist with their exit", "I represent the seller")
-- hostile: abusive, angry, or threatening language ("get out of my inbox", "stop spamming me you idiots", "this is harassment")
-- out_of_office: vacation reply, will return on date. Only use this if there is NO redirect email in the message.
-- bounce: delivery failure notification
-- automated_notice: system-generated noise that is not marketing spam (SharePoint or Dropbox file shares, ClickUp/Asana invites, Google security alerts, anti-spam confirmation challenges like Mailinblack, "your message expired in moderation", calendar invite notifications)
-- spam: marketing blasts, newsletters, or unrelated cold pitches sent TO us (not from leads)
-- nothing_to_address: thanks/acknowledgment with nothing to act on
-
-Read the reply text, output the single most accurate intent. Be decisive, prefer high or medium confidence.`;
-
-  const userMessage = `Lead name: ${leadName}
-Lead company: ${leadCompany ?? "unknown"}
-
-Reply text:
-${replyMessage}
-
-Classify now.`;
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000); // 30-second timeout for Haiku
-
-  let response: Response;
-  try {
-    response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 200,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userMessage }],
-      }),
-      signal: controller.signal,
-    });
-  } catch (err: any) {
-    if (err?.name === "AbortError") {
-      console.error("[auto-reply] Haiku classify timed out after 30s");
-    } else {
-      console.error("[auto-reply] Haiku classify fetch error:", err?.message ?? err);
-    }
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
-
-  if (!response.ok) {
-    console.error("[auto-reply] Haiku classify error:", response.status, await response.text());
-    return null;
-  }
-  const data = await response.json();
-  const raw = (data.content?.[0]?.text ?? "").replace(/```json|```/g, "").trim();
-  // Tolerant parse: extract first {...}.
-  const firstBrace = raw.indexOf("{");
-  const lastBrace = raw.lastIndexOf("}");
-  if (firstBrace === -1 || lastBrace === -1) {
-    console.error("[auto-reply] classify: no JSON in response:", raw.slice(0, 200));
-    return null;
-  }
-  try {
-    return JSON.parse(raw.slice(firstBrace, lastBrace + 1)) as ClassifyResult;
-  } catch {
-    console.error("[auto-reply] classify: JSON parse failed:", raw.slice(0, 200));
-    return null;
-  }
-}
 
 async function sendReplyToEmailBison(
   reply: Record<string, any>,
@@ -953,6 +861,15 @@ ${reply.message}`;
       console.warn(`[auto-reply] reply_body too short (${bodyWithoutSignature.length} chars) for ${replyId} — routing to manual`);
       result.action = "manual";
       result.manual_reason = "Generated reply body was too short (possible LLM output issue). Needs manual review before sending.";
+    }
+  }
+
+  // Guard: {SENDER_EMAIL_SIGNATURE} must be present in every outgoing body.
+  // If Claude dropped it, append it rather than sending a signatureless email.
+  if (result.action === "auto_send" && result.reply_body) {
+    if (!/\{SENDER_EMAIL_SIGNATURE\}/i.test(result.reply_body)) {
+      console.warn(`[auto-reply] reply_body missing signature placeholder for ${replyId} — appending`);
+      result.reply_body = result.reply_body.trimEnd() + "\n\n{SENDER_EMAIL_SIGNATURE}";
     }
   }
 
