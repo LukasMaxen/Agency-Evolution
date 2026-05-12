@@ -4,11 +4,18 @@
  */
 
 import { Pool } from "pg";
-import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
 
-dotenv.config({ path: path.join(process.cwd(), ".env.local") });
+// Load .env.local manually without dotenv dependency
+const envPath = path.join(process.cwd(), ".env.local");
+if (fs.existsSync(envPath)) {
+  const lines = fs.readFileSync(envPath, "utf-8").split("\n");
+  for (const line of lines) {
+    const match = line.match(/^([^#=]+)=(.*)$/);
+    if (match) process.env[match[1].trim()] = match[2].trim();
+  }
+}
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: false });
 
