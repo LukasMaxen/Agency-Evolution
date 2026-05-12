@@ -753,30 +753,42 @@ ${fuSkillFile}
 === CONTEXT_FollowUps.md ===
 ${fuContextFile}`;
 
-  // Fetch full thread: all emails previously sent to this lead so Sonnet
-  // can read the complete correspondence before drafting.
-  const threadResult = await pool.query<{ email_type: string; subject: string; body: string; sent_at: Date }>(
-    `SELECT email_type, subject, body, sent_at
+  // Fetch full thread: outgoing emails AND inbound replies, merged chronologically.
+  // Without inbound replies Claude only sees half the conversation and misses context
+  // like forwarded threads, questions from new contacts, or multi-turn exchanges.
+  const outboundResult = await pool.query<{ direction: string; email_type: string; subject: string; body: string; sent_at: Date }>(
+    `SELECT 'outbound' AS direction, email_type, subject, body, sent_at
      FROM sent_emails
-     WHERE workspace_slug = $1 AND lead_email = $2
-     ORDER BY sent_at ASC`,
+     WHERE workspace_slug = $1 AND lead_email = $2`,
     [workspaceSlug, reply.lead_email]
   );
-  const threadHistory = threadResult.rows.length > 0
-    ? threadResult.rows.map((e, i) =>
-        `--- Email ${i + 1} (${e.email_type}, ${new Date(e.sent_at).toISOString().slice(0, 10)}) ---\nSubject: ${e.subject}\n${e.body}`
-      ).join("\n\n")
-    : "No prior emails on record for this lead.";
+  const inboundResult = await pool.query<{ direction: string; email_type: string; subject: string; body: string; sent_at: Date }>(
+    `SELECT 'inbound' AS direction, 'lead_reply' AS email_type, subject, message AS body, received_at AS sent_at
+     FROM replies
+     WHERE workspace_slug = $1 AND lead_email = $2 AND id != $3
+     ORDER BY received_at ASC`,
+    [workspaceSlug, reply.lead_email, replyId]
+  );
+
+  const allMessages = [...outboundResult.rows, ...inboundResult.rows]
+    .sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
+
+  const threadHistory = allMessages.length > 0
+    ? allMessages.map((e, i) => {
+        const label = e.direction === "inbound" ? "LEAD" : `US (${e.email_type})`;
+        return `--- Message ${i + 1} [${label}, ${new Date(e.sent_at).toISOString().slice(0, 10)}] ---\nSubject: ${e.subject}\n${e.body}`;
+      }).join("\n\n")
+    : "No prior messages on record for this lead.";
 
   const userMessage = `CLIENT WORKSPACE: ${workspaceSlug}
 
 CLIENT FILE:
 ${clientFile}
 
-FULL THREAD HISTORY (all emails previously sent to this lead, oldest first):
+FULL THREAD HISTORY (all messages with this lead, oldest first — includes both our outgoing emails and their inbound replies):
 ${threadHistory}
 
-INBOUND LEAD REPLY:
+INBOUND LEAD REPLY (the message you are now responding to):
 Lead name: ${reply.lead_name}
 Lead company: ${reply.lead_company ?? "unknown"}
 Lead title: ${reply.lead_title ?? "unknown"}
