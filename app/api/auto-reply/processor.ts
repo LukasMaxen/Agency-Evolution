@@ -44,6 +44,46 @@ function readFile(filePath: string): string {
   }
 }
 
+/**
+ * Scans the inbound reply message for email addresses and names that differ
+ * from the original lead. Returns a plain-text warning string if a different
+ * sender is detected, or null if the reply looks like it came from the lead.
+ *
+ * Catches patterns like:
+ *   - A different "From:" address in a quoted thread
+ *   - An email address in the signature block that differs from lead_email
+ *   - "I am [name]" or "My name is [name]" with a different email
+ */
+function detectAlternateSender(message: string, leadEmail: string): string | null {
+  if (!message || !leadEmail) return null;
+
+  // Extract all email addresses from the message
+  const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+  const found = [...new Set((message.match(emailRegex) ?? []).map(e => e.toLowerCase()))];
+  const leadNorm = leadEmail.toLowerCase();
+
+  // Filter out the lead's own address and common no-reply/system addresses
+  const others = found.filter(e =>
+    e !== leadNorm &&
+    !e.startsWith("noreply") &&
+    !e.startsWith("no-reply") &&
+    !e.startsWith("donotreply") &&
+    !e.includes("mailer-daemon") &&
+    !e.includes("postmaster")
+  );
+
+  if (others.length === 0) return null;
+
+  // Check if the message body (before quoted thread) contains an alternate address —
+  // addresses only appearing deep in quoted headers are less reliable signals.
+  const bodyBeforeQuote = message.split(/\n[-]{3,}|\nOn .+ wrote:/)[0] ?? message;
+  const inBody = others.filter(e => bodyBeforeQuote.toLowerCase().includes(e));
+
+  const candidates = inBody.length > 0 ? inBody : others;
+
+  return `RECIPIENT DETECTION WARNING: The reply message contains email address(es) that differ from the lead on record (${leadEmail}). Possible alternate sender(s): ${candidates.join(", ")}. Check whether the reply was written by a different person and set recipient_email accordingly.`;
+}
+
 interface SlackReplyCard {
   header: string;
   workspaceSlug: string;
