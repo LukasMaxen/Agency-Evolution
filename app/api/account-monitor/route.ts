@@ -1,31 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+// GET /api/account-monitor?days=7&workspace=all
+//
+// Sender accounts are sourced from the sender_accounts table, which is kept
+// in sync with EmailBison via POST /api/sync-sender-accounts.
+// Accounts deleted from EB are also deleted from sender_accounts, so they
+// never appear here even if they still have rows in emails_sent.
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const days = parseInt(searchParams.get("days") ?? "7");
+  const days      = parseInt(searchParams.get("days") ?? "7");
   const workspace = searchParams.get("workspace") ?? "all";
 
   const MIN_SENDS = 20;
 
   try {
-    const wsFilter   = workspace !== "all" ? "AND workspace_slug = $2" : "";
-    const wsFilterEs = workspace !== "all" ? "AND es.workspace_slug = $2" : "";
+    const wsFilter   = workspace !== "all" ? "AND es.workspace_slug = $2" : "";
+    const wsFilterR  = workspace !== "all" ? "AND workspace_slug = $2" : "";
     const params: (number | string)[] = [days];
     if (workspace !== "all") params.push(workspace);
 
+    // Only include sender_emails that currently exist in sender_accounts
+    // (i.e. are active in EmailBison). Senders deleted from EB will have
+    // been removed from sender_accounts by the sync job and won't appear.
     const sql = `
-      WITH sent_counts AS (
+      WITH active_senders AS (
+        SELECT email AS sender_email, workspace_slug
+        FROM sender_accounts
+        ${workspace !== "all" ? "WHERE workspace_slug = $2" : ""}
+      ),
+      sent_counts AS (
         SELECT
-          sender_email,
-          workspace_slug,
-          COUNT(id)::int AS emails_sent
-        FROM emails_sent
-        WHERE sent_at >= NOW() - ($1 || ' days')::interval
-          AND sender_email IS NOT NULL
-          AND sender_email != ''
+          es.sender_email,
+          es.workspace_slug,
+          COUNT(es.id)::int AS emails_sent
+        FROM emails_sent es
+        INNER JOIN active_senders sa
+          ON  sa.sender_email   = es.sender_email
+          AND sa.workspace_slug = es.workspace_slug
+        WHERE es.sent_at >= NOW() - ($1 || ' days')::interval
+          AND es.sender_email IS NOT NULL
+          AND es.sender_email != ''
           ${wsFilter}
-        GROUP BY sender_email, workspace_slug
+        GROUP BY es.sender_email, es.workspace_slug
       ),
       bounce_counts AS (
         SELECT
@@ -37,10 +55,13 @@ export async function GET(req: NextRequest) {
           ON  eb.workspace_slug = es.workspace_slug
           AND eb.lead_email     = es.lead_email
           AND eb.bounced_at    >= NOW() - ($1 || ' days')::interval
+        INNER JOIN active_senders sa
+          ON  sa.sender_email   = es.sender_email
+          AND sa.workspace_slug = es.workspace_slug
         WHERE es.sent_at >= NOW() - ($1 || ' days')::interval
           AND es.sender_email IS NOT NULL
           AND es.sender_email != ''
-          ${wsFilterEs}
+          ${wsFilter}
         GROUP BY es.sender_email, es.workspace_slug
       ),
       reply_counts AS (
@@ -52,6 +73,7 @@ export async function GET(req: NextRequest) {
         WHERE received_at >= NOW() - ($1 || ' days')::interval
           AND sender_email IS NOT NULL
           AND sender_email != ''
+          ${wsFilterR}
         GROUP BY sender_email, workspace_slug
       )
       SELECT
@@ -81,16 +103,22 @@ export async function GET(req: NextRequest) {
 
     const result = await pool.query(sql, params);
 
+    // Check when sender_accounts was last synced
+    const syncResult = await pool.query(
+      `SELECT MAX(synced_at) AS last_synced FROM sender_accounts`
+    );
+    const lastSynced = syncResult.rows[0]?.last_synced ?? null;
+
     type Status = "spam_risk" | "low_replies" | "healthy";
     type AccountRow = {
-      sender_email: string;
+      sender_email:   string;
       workspace_slug: string;
-      emails_sent: number;
-      bounces: number;
-      replies: number;
-      bounce_rate: number;
-      reply_rate: number;
-      status: Status;
+      emails_sent:    number;
+      bounces:        number;
+      replies:        number;
+      bounce_rate:    number;
+      reply_rate:     number;
+      status:         Status;
     };
 
     const accountRows: AccountRow[] = result.rows.map((r) => {
@@ -115,11 +143,11 @@ export async function GET(req: NextRequest) {
     });
 
     const workspaceMap: Record<string, {
-      slug: string;
-      accounts: AccountRow[];
-      totalSent: number;
-      totalReplies: number;
-      totalBounces: number;
+      slug:          string;
+      accounts:      AccountRow[];
+      totalSent:     number;
+      totalReplies:  number;
+      totalBounces:  number;
       spamRiskCount: number;
     }> = {};
 
@@ -157,8 +185,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       workspaces,
-      summary: { totalAccounts, totalSpamRisk, totalSent, avgReplyRate },
+      summary:    { totalAccounts, totalSpamRisk, totalSent, avgReplyRate },
       days,
+      lastSynced, // lets the UI show "last synced X ago"
     });
 
   } catch (err: any) {

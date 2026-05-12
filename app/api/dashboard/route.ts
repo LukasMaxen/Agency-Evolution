@@ -6,6 +6,40 @@ export async function GET(req: NextRequest) {
   const workspace = searchParams.get("workspace") ?? "all";
 
   try {
+    // ── Workspaces (from DB, always — so UI stays in sync with EB) ────────
+    const workspacesResult = await pool.query(`
+      SELECT
+        id::text                  AS id,
+        slug,
+        name,
+        email_bison_instance_url  AS "instanceUrl"
+      FROM workspaces
+      ORDER BY name ASC
+    `);
+
+    // Assign stable colours and initials so the UI renders correctly for any
+    // workspace added to EB and the DB without touching mock-data.ts.
+    const PALETTE = [
+      "#185FA5", "#0F6E56", "#7C3AED", "#B45309", "#DC2626",
+      "#533AB7", "#0369A1", "#0F6E56", "#185FA5", "#9D174D",
+      "#065F46", "#1E3A5F", "#6D28D9", "#92400E", "#0F766E",
+      "#374151", "#7C2D12", "#1D4ED8", "#065F46", "#78350F",
+    ];
+    const dbWorkspaces = workspacesResult.rows.map((row, i) => {
+      const words = row.name.split(/[\s\-]+/).filter(Boolean);
+      const initials = words.length >= 2
+        ? (words[0][0] + words[1][0]).toUpperCase()
+        : row.name.slice(0, 2).toUpperCase();
+      return {
+        id:          row.id,
+        slug:        row.slug,
+        name:        row.name,
+        instanceUrl: row.instanceUrl ?? "",
+        color:       PALETTE[i % PALETTE.length],
+        initials,
+      };
+    });
+
     // ── Replies (last 30 days) ─────────────────────────────────────────────
     const repliesQuery = `
       SELECT
@@ -130,6 +164,7 @@ export async function GET(req: NextRequest) {
     };
 
     return NextResponse.json({
+      workspaces:  dbWorkspaces,
       replies:     repliesResult.rows,
       followUps:   fuResult.rows,
       meetings:    meetingsResult.rows,

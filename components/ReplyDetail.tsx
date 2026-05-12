@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Reply, WORKSPACES, AIAnalysis } from "@/lib/mock-data";
+import { Reply, AIAnalysis } from "@/lib/mock-data";
+import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
 import { analyzeReply, INTENT_CONFIG } from "@/lib/ai-analysis";
 import { AIBadge } from "@/components/AIBadge";
 import { CalendlySlotPicker } from "@/components/CalendlySlotPicker";
@@ -90,9 +91,9 @@ export function ReplyDetail({
   const [sentEmailsLoading, setSentEmailsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const workspace = WORKSPACES.find((w) => w.id === reply.workspaceId)
-    ?? { id: reply.workspaceId, name: "Unknown", slug: "unknown", color: "#6b7280", initials: "?", instanceUrl: "" };
+  
+const workspaces = useWorkspaces();
+  const workspace = findWorkspace(workspaces, reply.workspaceId);
   const emailBisonUrl = buildEmailBisonUrl(workspace.instanceUrl, reply.emailBisonId);
 
   useEffect(() => {

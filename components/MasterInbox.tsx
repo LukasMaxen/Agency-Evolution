@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Reply, Notification, AIAnalysis, WORKSPACES } from "@/lib/mock-data";
+import { Reply, Notification, AIAnalysis } from "@/lib/mock-data";
+import { WorkspacesContext, buildWorkspaceFromRow, findWorkspace } from "@/lib/workspaces-context";
 import { analyzeReply } from "@/lib/ai-analysis";
 import { ReplyList } from "@/components/ReplyList";
 import { ReplyDetail } from "@/components/ReplyDetail";
@@ -10,18 +11,16 @@ import { NotificationFeed } from "@/components/NotificationFeed";
 import { ReplyDashboard } from "@/components/ReplyDashboard";
 import { LeadMonitoring } from "@/components/LeadMonitoring";
 import { AccountMonitor } from "@/components/AccountMonitor";
-
 import { VariantRefresh } from "@/components/VariantRefresh";
-
 import { Inbox, Bell, BarChart2, RefreshCw, ShieldAlert, RotateCcw, Users } from "lucide-react";
 
 type View = "inbox" | "notifications" | "dashboard" | "lead-monitoring" | "account-monitor" | "variant-refresh";
 
-function dbRowToReply(r: any): Reply {
-  const workspace = WORKSPACES.find(w => w.slug === r.workspaceSlug || w.id === r.workspaceId);
+function dbRowToReply(r: any, workspaces: ReturnType<typeof buildWorkspaceFromRow>[]): Reply {
+  const workspace = findWorkspace(workspaces, r.workspaceSlug ?? r.workspaceId ?? "");
   return {
     id:           r.id,
-    workspaceId:  workspace?.id ?? r.workspaceId ?? "w1",
+    workspaceId:  workspace.id !== "unknown" ? workspace.id : (r.workspaceId ?? "w1"),
     emailBisonId: r.emailBisonId ?? r.id,
     leadEmail:    r.leadEmail,
     leadName:     r.leadName,
@@ -53,22 +52,37 @@ function replyToNotification(reply: Reply, aiAnalysis?: AIAnalysis): Notificatio
 }
 
 export function MasterInbox() {
-  const [view, setView]                   = useState<View>("notifications");
-  const [replies, setReplies]             = useState<Reply[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [selectedId, setSelectedId]       = useState<string | null>(null);
-  const [search, setSearch]               = useState("");
-  const [filterStatus, setFilterStatus]       = useState("all");
+  const [workspaces, setWorkspaces]         = useState<ReturnType<typeof buildWorkspaceFromRow>[]>([]);
+  const [view, setView]                     = useState<View>("notifications");
+  const [replies, setReplies]               = useState<Reply[]>([]);
+  const [notifications, setNotifications]   = useState<Notification[]>([]);
+  const [selectedId, setSelectedId]         = useState<string | null>(null);
+  const [search, setSearch]                 = useState("");
+  const [filterStatus, setFilterStatus]     = useState("all");
   const [filterWorkspace, setFilterWorkspace] = useState("all");
-  const [aiCache, setAiCache]             = useState<Record<string, AIAnalysis>>({});
-  const [loading, setLoading]             = useState(true);
-  const [lastRefresh, setLastRefresh]     = useState<Date>(new Date());
+  const [aiCache, setAiCache]               = useState<Record<string, AIAnalysis>>({});
+  const [loading, setLoading]               = useState(true);
+  const [lastRefresh, setLastRefresh]       = useState<Date>(new Date());
 
   const analyzedIds = useRef<Set<string>>(new Set());
 
   const selectedReply   = selectedId ? replies.find(r => r.id === selectedId) ?? null : null;
   const unreadCount     = notifications.filter(n => !n.read).length;
   const newRepliesCount = replies.filter(r => r.status === "new").length;
+
+  // ── Fetch workspaces from DB once on mount ────────────────────────────────
+  // This is the ONLY place workspaces are loaded. The DB is the source of truth
+  // (seeded from EmailBison). Any workspace added/removed in EB and synced to
+  // the DB automatically appears/disappears — no changes to this file needed.
+  useEffect(() => {
+    fetch("/api/workspaces")
+      .then(r => r.json())
+      .then(data => {
+        const rows = data.workspaces ?? [];
+        setWorkspaces(rows.map((row: any, i: number) => buildWorkspaceFromRow(row, i)));
+      })
+      .catch(err => console.error("[MasterInbox] failed to fetch workspaces:", err));
+  }, []);
 
   const fetchReplies = useCallback(async () => {
     try {
@@ -90,34 +104,37 @@ export function MasterInbox() {
 
       setAiCache(prev => ({ ...dbCache, ...prev }));
 
-      const mapped = rows.map(dbRowToReply);
+      // workspaces may not be loaded yet on first fetch — use current ref value
+      setWorkspaces(currentWorkspaces => {
+        const mapped = rows.map((r: any) => dbRowToReply(r, currentWorkspaces));
 
-      setReplies(prev => {
-        return mapped.map((r: Reply) => {
-          const existing = prev.find(p => p.id === r.id);
-          if (existing) {
-            return {
-              ...r,
-              status: existing.status === "replied" ? "replied"
-                    : existing.status === "read" && r.status === "new" ? "read"
-                    : r.status,
-              interested: existing.interested !== null ? existing.interested : r.interested,
-            };
-          }
-          return r;
-        });
+        setReplies(prev =>
+          mapped.map((r: Reply) => {
+            const existing = prev.find(p => p.id === r.id);
+            if (existing) {
+              return {
+                ...r,
+                status: existing.status === "replied" ? "replied"
+                      : existing.status === "read" && r.status === "new" ? "read"
+                      : r.status,
+                interested: existing.interested !== null ? existing.interested : r.interested,
+              };
+            }
+            return r;
+          })
+        );
+
+        setNotifications(prev =>
+          mapped.map((r: Reply) => {
+            const existing = prev.find(p => p.replyId === r.id);
+            const aiAnalysis = dbCache[r.id] ?? existing?.aiAnalysis;
+            return replyToNotification(r, aiAnalysis);
+          })
+        );
+
+        setLastRefresh(new Date());
+        return currentWorkspaces; // no change to workspaces
       });
-
-      setNotifications(prev => {
-        return mapped.map((r: Reply) => {
-          const existing = prev.find(p => p.replyId === r.id);
-          const aiAnalysis = dbCache[r.id] ?? existing?.aiAnalysis;
-          const notif = replyToNotification(r, aiAnalysis);
-          return notif;
-        });
-      });
-
-      setLastRefresh(new Date());
     } catch (err) {
       console.error("[fetch] error:", err);
     } finally {
@@ -144,16 +161,10 @@ export function MasterInbox() {
       for (const reply of newUnanalyzed) {
         if (cancelled) break;
         if (analyzedIds.current.has(reply.id)) continue;
-
         analyzedIds.current.add(reply.id);
-
         try {
           const analysis = await analyzeReply(
-            reply.id,
-            reply.leadName,
-            reply.leadEmail,
-            reply.campaign,
-            reply.message
+            reply.id, reply.leadName, reply.leadEmail, reply.campaign, reply.message
           );
           if (!cancelled) {
             handleAIAnalyzed(reply.id, analysis);
@@ -176,7 +187,6 @@ export function MasterInbox() {
           analyzedIds.current.delete(reply.id);
           console.error("[auto-analyze]", err);
         }
-
         await new Promise(r => setTimeout(r, 1500));
       }
     }
@@ -267,128 +277,121 @@ export function MasterInbox() {
   }
 
   const NAV: { id: View; label: string; icon: React.ElementType; badge: number }[] = [
-    { id: "notifications",   label: "Notifications", icon: Bell,         badge: unreadCount },
-    { id: "inbox",           label: "Inbox",          icon: Inbox,        badge: newRepliesCount },
-    { id: "dashboard",       label: "Dashboard",      icon: BarChart2,    badge: 0 },
-    { id: "lead-monitoring", label: "Lead Monitoring", icon: Users,        badge: 0 },
-    { id: "account-monitor", label: "Acct Monitor",   icon: ShieldAlert,  badge: 0 },
-    { id: "variant-refresh", label: "Var Refresh",    icon: RotateCcw,    badge: 0 },
+    { id: "notifications",   label: "Notifications",  icon: Bell,        badge: unreadCount },
+    { id: "inbox",           label: "Inbox",           icon: Inbox,       badge: newRepliesCount },
+    { id: "dashboard",       label: "Dashboard",       icon: BarChart2,   badge: 0 },
+    { id: "lead-monitoring", label: "Lead Monitoring", icon: Users,       badge: 0 },
+    { id: "account-monitor", label: "Acct Monitor",    icon: ShieldAlert, badge: 0 },
+    { id: "variant-refresh", label: "Var Refresh",     icon: RotateCcw,   badge: 0 },
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "#f8f7f5" }}>
-      {/* Sidebar */}
-      <div className="w-48 shrink-0 flex flex-col py-5 px-3 gap-0.5"
-        style={{ background: "#ffffff", borderRight: "1px solid #ede9e3" }}>
+    // Provide DB workspaces to every child component via context.
+    // No child needs to import WORKSPACES from mock-data.ts anymore.
+    <WorkspacesContext.Provider value={workspaces}>
+      <div className="flex h-screen overflow-hidden" style={{ background: "#f8f7f5" }}>
+        {/* Sidebar */}
+        <div className="w-48 shrink-0 flex flex-col py-5 px-3 gap-0.5"
+          style={{ background: "#ffffff", borderRight: "1px solid #ede9e3" }}>
 
-        <div className="px-3 mb-6">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: "#1a56db" }}>
-              <span className="text-white text-[10px] font-bold tracking-tight">AI</span>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-gray-900 leading-none">AI Reply Desk</p>
-              <p className="text-[10px] text-gray-400 mt-0.5 leading-none">by Agency Evolution</p>
-            </div>
-          </div>
-        </div>
-
-        {NAV.map(({ id, label, icon: Icon, badge }) => (
-          <button key={id} onClick={() => setView(id)}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all"
-            style={{
-              background: view === id ? "#eff6ff" : "transparent",
-              color: view === id ? "#1a56db" : "#6b7280",
-            }}
-          >
-            <Icon size={15} strokeWidth={view === id ? 2.2 : 1.8} />
-            <span className="text-xs flex-1" style={{ fontWeight: view === id ? 600 : 400 }}>
-              {label}
-            </span>
-            {badge > 0 && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-                style={{
-                  background: view === id ? "#1a56db" : "#e5e7eb",
-                  color: view === id ? "#ffffff" : "#374151",
-                }}>
-                {badge}
-              </span>
-            )}
-          </button>
-        ))}
-
-        <div className="mt-auto px-3 pb-2">
-          <div className="flex items-center gap-1.5">
-            <RefreshCw size={10} className="text-gray-300" />
-            <span className="text-[10px] text-gray-300" suppressHydrationWarning>
-              {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
-        {view === "notifications" && (
-          <NotificationFeed
-            notifications={notifications}
-            onMarkRead={handleMarkRead}
-            onMarkAllRead={handleMarkAllRead}
-            onOpenReply={handleOpenReply}
-            onUpdateNotification={handleUpdateNotification}
-          />
-        )}
-
-        {view === "inbox" && (
-          <>
-            <ReplyList
-              replies={replies}
-              selectedId={selectedId}
-              search={search}
-              filterStatus={filterStatus}
-              filterWorkspace={filterWorkspace}
-              onSelect={handleSelect}
-              onSearchChange={setSearch}
-              onStatusChange={setFilterStatus}
-              onWorkspaceChange={setFilterWorkspace}
-            />
-            {loading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <p className="text-sm text-gray-400">Loading replies...</p>
+          <div className="px-3 mb-6">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: "#1a56db" }}>
+                <span className="text-white text-[10px] font-bold tracking-tight">AI</span>
               </div>
-            ) : selectedReply ? (
-              <ReplyDetail
-                key={selectedReply.id}
-                reply={selectedReply}
-                aiAnalysis={aiCache[selectedReply.id]}
-                onMarkInterested={handleMarkInterested}
-                onReplySent={handleReplySent}
-                onAIAnalyzed={handleAIAnalyzed}
-                onMarkUnread={handleMarkUnread}
+              <div>
+                <p className="text-xs font-semibold text-gray-900 leading-none">AI Reply Desk</p>
+                <p className="text-[10px] text-gray-400 mt-0.5 leading-none">by Agency Evolution</p>
+              </div>
+            </div>
+          </div>
+
+          {NAV.map(({ id, label, icon: Icon, badge }) => (
+            <button key={id} onClick={() => setView(id)}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all"
+              style={{
+                background: view === id ? "#eff6ff" : "transparent",
+                color: view === id ? "#1a56db" : "#6b7280",
+              }}
+            >
+              <Icon size={15} strokeWidth={view === id ? 2.2 : 1.8} />
+              <span className="text-xs flex-1" style={{ fontWeight: view === id ? 600 : 400 }}>
+                {label}
+              </span>
+              {badge > 0 && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+                  style={{
+                    background: view === id ? "#1a56db" : "#e5e7eb",
+                    color: view === id ? "#ffffff" : "#374151",
+                  }}>
+                  {badge}
+                </span>
+              )}
+            </button>
+          ))}
+
+          <div className="mt-auto px-3 pb-2">
+            <div className="flex items-center gap-1.5">
+              <RefreshCw size={10} className="text-gray-300" />
+              <span className="text-[10px] text-gray-300" suppressHydrationWarning>
+                {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 flex overflow-hidden">
+          {view === "notifications" && (
+            <NotificationFeed
+              notifications={notifications}
+              onMarkRead={handleMarkRead}
+              onMarkAllRead={handleMarkAllRead}
+              onOpenReply={handleOpenReply}
+              onUpdateNotification={handleUpdateNotification}
+            />
+          )}
+
+          {view === "inbox" && (
+            <>
+              <ReplyList
+                replies={replies}
+                selectedId={selectedId}
+                search={search}
+                filterStatus={filterStatus}
+                filterWorkspace={filterWorkspace}
+                onSelect={handleSelect}
+                onSearchChange={setSearch}
+                onStatusChange={setFilterStatus}
+                onWorkspaceChange={setFilterWorkspace}
               />
-            ) : (
-              <EmptyState />
-            )}
-          </>
-        )}
+              {loading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Loading replies...</p>
+                </div>
+              ) : selectedReply ? (
+                <ReplyDetail
+                  key={selectedReply.id}
+                  reply={selectedReply}
+                  aiAnalysis={aiCache[selectedReply.id]}
+                  onMarkInterested={handleMarkInterested}
+                  onReplySent={handleReplySent}
+                  onAIAnalyzed={handleAIAnalyzed}
+                  onMarkUnread={handleMarkUnread}
+                />
+              ) : (
+                <EmptyState />
+              )}
+            </>
+          )}
 
-        {view === "dashboard" && (
-          <ReplyDashboard />
-        )}
-
-        {view === "lead-monitoring" && (
-          <LeadMonitoring />
-        )}
-
-        {view === "account-monitor" && (
-          <AccountMonitor />
-        )}
-
-        {view === "variant-refresh" && (
-          <VariantRefresh />
-        )}
+          {view === "dashboard" && <ReplyDashboard />}
+          {view === "lead-monitoring" && <LeadMonitoring />}
+          {view === "account-monitor" && <AccountMonitor />}
+          {view === "variant-refresh" && <VariantRefresh />}
+        </div>
       </div>
-    </div>
+    </WorkspacesContext.Provider>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { WORKSPACES } from "@/lib/mock-data";
+import { useState, useMemo, useEffect, useCallback, createContext, useContext } from "react";
 import { X, RefreshCw, Loader2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -9,6 +8,15 @@ import { X, RefreshCw, Loader2 } from "lucide-react";
 type DateFilter  = "today" | "yesterday" | "7days" | "30days" | "all";
 type QueueFilter = "today" | "tomorrow" | "yesterday" | "7days" | "30days" | "all";
 type ModalType   = "replies" | "interested" | "followup" | "meetings" | null;
+
+interface DBWorkspace {
+  id: string;
+  slug: string;
+  name: string;
+  color: string;
+  initials: string;
+  instanceUrl: string;
+}
 
 interface DashboardReply {
   id: string;
@@ -43,7 +51,6 @@ interface MeetingLead {
   status: string;
 }
 
-
 interface EmailStat {
   workspaceId: string;
   total: number;
@@ -63,6 +70,19 @@ interface EmailTotals {
   last30: number;
   replies: number;
   interested: number;
+}
+
+// ─── Workspace context — avoids prop-drilling into every sub-component ────────
+
+const WorkspacesContext = createContext<DBWorkspace[]>([]);
+
+function useWorkspaces() {
+  return useContext(WorkspacesContext);
+}
+
+function wsInfo(workspaces: DBWorkspace[], slugOrId: string): { name: string; color: string } {
+  const ws = workspaces.find(w => w.slug === slugOrId || w.id === slugOrId);
+  return { name: ws?.name ?? slugOrId, color: ws?.color ?? "#6b7280" };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -108,15 +128,11 @@ function getFUStatus(lead: FollowUpLead) {
   return              { label: "Upcoming",  bg: "#f1f5f9", color: "#475569", border: "#e2e8f0", order: 3 };
 }
 
-function wsInfo(slugOrId: string): { name: string; color: string } {
-  const ws = WORKSPACES.find(w => w.slug === slugOrId || w.id === slugOrId);
-  return { name: ws?.name ?? slugOrId, color: ws?.color ?? "#6b7280" };
-}
-
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ClientBadge({ workspaceId }: { workspaceId: string }) {
-  const { name, color } = wsInfo(workspaceId);
+  const workspaces = useWorkspaces();
+  const { name, color } = wsInfo(workspaces, workspaceId);
   return (
     <span style={{
       fontSize: 10, padding: "2px 8px", borderRadius: 20,
@@ -287,11 +303,12 @@ function Modal({ type, replies, fuLeads, meetings, onClose }: {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function ReplyDashboard() {
-  const [replies,   setReplies]   = useState<DashboardReply[]>([]);
-  const [followUps, setFollowUps] = useState<FollowUpLead[]>([]);
-  const [meetings,  setMeetings]  = useState<MeetingLead[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState<string | null>(null);
+  const [workspaces,  setWorkspaces]  = useState<DBWorkspace[]>([]);
+  const [replies,     setReplies]     = useState<DashboardReply[]>([]);
+  const [followUps,   setFollowUps]   = useState<FollowUpLead[]>([]);
+  const [meetings,    setMeetings]    = useState<MeetingLead[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState<string | null>(null);
   const [emailStats,  setEmailStats]  = useState<EmailStat[]>([]);
   const [emailTotals, setEmailTotals] = useState<EmailTotals | null>(null);
 
@@ -310,6 +327,10 @@ export function ReplyDashboard() {
         throw new Error(d.error ?? "Failed to load dashboard");
       }
       const data = await res.json();
+      // workspaces now comes from the DB via the dashboard route,
+      // so any workspace added/removed in EB and synced to the DB
+      // automatically appears/disappears here without touching this file.
+      setWorkspaces(data.workspaces ?? []);
       setReplies(data.replies ?? []);
       setFollowUps(data.followUps ?? []);
       setMeetings(data.meetings ?? []);
@@ -331,36 +352,39 @@ export function ReplyDashboard() {
       ...meetings.map(m => m.workspaceId),
       ...emailStats.map(e => e.workspaceId),
     ]);
-    return Array.from(slugs).map(slug => wsInfo(slug).name).filter(Boolean).sort();
-  }, [replies, followUps, meetings, emailStats]);
+    return Array.from(slugs)
+      .map(slug => wsInfo(workspaces, slug).name)
+      .filter(Boolean)
+      .sort();
+  }, [replies, followUps, meetings, emailStats, workspaces]);
 
   function matchesClient(workspaceId: string): boolean {
     if (clientFilter === "all") return true;
-    return wsInfo(workspaceId).name === clientFilter;
+    return wsInfo(workspaces, workspaceId).name === clientFilter;
   }
 
   const filteredReplies = useMemo(() =>
     replies.filter(r => matchesClient(r.workspaceId) && inDateRange(r.date, metricFilter)),
-    [replies, clientFilter, metricFilter]
+    [replies, clientFilter, metricFilter, workspaces]
   );
 
   const filteredFULeads = useMemo(() =>
     followUps
       .filter(l => matchesClient(l.workspaceId) && inQueueRange(l.nextFUDue, queueFilter))
       .sort((a, b) => getFUStatus(a).order - getFUStatus(b).order || new Date(a.nextFUDue).getTime() - new Date(b.nextFUDue).getTime()),
-    [followUps, clientFilter, queueFilter]
+    [followUps, clientFilter, queueFilter, workspaces]
   );
 
   const filteredMeetings = useMemo(() =>
     meetings
       .filter(m => matchesClient(m.workspaceId))
       .sort((a, b) => new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime()),
-    [meetings, clientFilter]
+    [meetings, clientFilter, workspaces]
   );
 
   const overdueCount = useMemo(() =>
     followUps.filter(l => matchesClient(l.workspaceId) && diffDays(l.nextFUDue) <= 0).length,
-    [followUps, clientFilter]
+    [followUps, clientFilter, workspaces]
   );
 
   const metricOptions = [
@@ -396,107 +420,166 @@ export function ReplyDashboard() {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", background: "#f8f7f5", padding: 20 }}>
+    // Provide workspaces to all child components via context
+    <WorkspacesContext.Provider value={workspaces}>
+      <div style={{ flex: 1, overflowY: "auto", background: "#f8f7f5", padding: 20 }}>
 
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-        <div>
-          <p style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>Reply Dashboard</p>
-          <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-            {today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" })} · {today.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "America/New_York" })} EST
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <DateFilterBar value={metricFilter} onChange={v => setMetricFilter(v as DateFilter)} options={metricOptions} />
-          <select
-            value={clientFilter}
-            onChange={e => setClientFilter(e.target.value)}
-            style={{ fontSize: 11, padding: "5px 10px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", color: "#374151" }}
-          >
-            <option value="all">All clients</option>
-            {allClients.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <button onClick={fetchDashboard} disabled={loading}
-            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, padding: "5px 10px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", color: "#6b7280", cursor: "pointer" }}>
-            <RefreshCw size={11} className={loading ? "animate-spin" : ""} />
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* Metric cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
-        <MetricCard label="Total replies"   value={filteredReplies.length}                                      color="#1a56db" sub="Click to see all replies"      onClick={() => setModal("replies")}   loading={loading} />
-        <MetricCard label="New interested"  value={filteredReplies.filter(r => r.type === "interested").length} color="#16a34a" sub="Click to see interested leads" onClick={() => setModal("interested")} loading={loading} />
-        <MetricCard label="Follow-ups due"  value={overdueCount}                                                color="#dc2626" sub="Click to see follow-up queue"  onClick={() => setModal("followup")}  loading={loading} />
-        <MetricCard label="Meetings booked" value={filteredMeetings.length}                                     color="#1a56db" sub="Click to see all meetings"     onClick={() => setModal("meetings")}  loading={loading} />
-      </div>
-
-      {/* Follow-up queue */}
-      <div style={{ background: "#ffffff", borderRadius: 12, border: "1px solid #ede9e3", overflow: "hidden", marginBottom: 14 }}>
-        <div style={{ padding: "14px 16px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
           <div>
-            <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Follow-up queue</p>
-            <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Interested leads awaiting follow-up — sorted by urgency</p>
+            <p style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>Reply Dashboard</p>
+            <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+              {today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" })} · {today.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "America/New_York" })} EST
+            </p>
           </div>
-          <DateFilterBar value={queueFilter} onChange={v => setQueueFilter(v as QueueFilter)} options={queueOptions} />
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <DateFilterBar value={metricFilter} onChange={v => setMetricFilter(v as DateFilter)} options={metricOptions} />
+            <select
+              value={clientFilter}
+              onChange={e => setClientFilter(e.target.value)}
+              style={{ fontSize: 11, padding: "5px 10px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", color: "#374151" }}
+            >
+              <option value="all">All clients</option>
+              {allClients.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <button onClick={fetchDashboard} disabled={loading}
+              style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, padding: "5px 10px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", color: "#6b7280", cursor: "pointer" }}>
+              <RefreshCw size={11} className={loading ? "animate-spin" : ""} />
+              Refresh
+            </button>
+          </div>
         </div>
 
-        <div style={{ overflowX: "auto" }}>
+        {/* Metric cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
+          <MetricCard label="Total replies"   value={filteredReplies.length}                                      color="#1a56db" sub="Click to see all replies"      onClick={() => setModal("replies")}   loading={loading} />
+          <MetricCard label="New interested"  value={filteredReplies.filter(r => r.type === "interested").length} color="#16a34a" sub="Click to see interested leads" onClick={() => setModal("interested")} loading={loading} />
+          <MetricCard label="Follow-ups due"  value={overdueCount}                                                color="#dc2626" sub="Click to see follow-up queue"  onClick={() => setModal("followup")}  loading={loading} />
+          <MetricCard label="Meetings booked" value={filteredMeetings.length}                                     color="#1a56db" sub="Click to see all meetings"     onClick={() => setModal("meetings")}  loading={loading} />
+        </div>
+
+        {/* Follow-up queue */}
+        <div style={{ background: "#ffffff", borderRadius: 12, border: "1px solid #ede9e3", overflow: "hidden", marginBottom: 14 }}>
+          <div style={{ padding: "14px 16px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Follow-up queue</p>
+              <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Interested leads awaiting follow-up, sorted by urgency</p>
+            </div>
+            <DateFilterBar value={queueFilter} onChange={v => setQueueFilter(v as QueueFilter)} options={queueOptions} />
+          </div>
+
+          <div style={{ overflowX: "auto" }}>
+            {loading ? (
+              <div style={{ padding: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <Loader2 size={14} className="animate-spin" style={{ color: "#9ca3af" }} />
+                <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading...</span>
+              </div>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
+                <thead>
+                  <tr style={{ background: "#f8f7f5" }}>
+                    {["Lead", "Email", "Client", "First replied", "Last FU sent", "Emails sent", "Next FU due", "Status", "Action"].map(h => (
+                      <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 10, fontWeight: 500, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredFULeads.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+                        No follow-ups for this period
+                      </td>
+                    </tr>
+                  ) : filteredFULeads.map(l => {
+                    const s = getFUStatus(l);
+                    const d = diffDays(l.nextFUDue);
+                    const dLabel = d < 0
+                      ? <span style={{ color: "#dc2626", fontWeight: 500 }}>{Math.abs(d)}d overdue</span>
+                      : d === 0 ? <span style={{ color: "#d97706", fontWeight: 500 }}>Today</span>
+                      : d === 1 ? <span style={{ color: "#d97706" }}>Tomorrow</span>
+                      : <span style={{ color: "#6b7280" }}>in {d}d</span>;
+                    const rowBg = s.order === 0 ? "#fff8f8" : s.order === 1 ? "#fffdf0" : "#ffffff";
+                    const borderLeft = s.order <= 1 ? `3px solid ${s.border}` : "3px solid transparent";
+                    return (
+                      <tr key={l.id} style={{ background: rowBg, borderLeft }}>
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, fontWeight: 500, color: "#111827" }}>{l.name}</span></td>
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#6b7280" }}>{l.email}</span></td>
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><ClientBadge workspaceId={l.workspaceId} /></td>
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#374151" }}>{fmtDate(l.firstReplied)}</span></td>
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#374151" }}>{l.lastFUSent ? fmtDate(l.lastFUSent) : "—"}</span></td>
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{l.totalEmails}</span>
+                          <span style={{ fontSize: 10, color: "#9ca3af", marginLeft: 4 }}>emails</span>
+                          <span style={{ fontSize: 10, background: "#f1f5f9", color: "#475569", padding: "1px 6px", borderRadius: 20, marginLeft: 4 }}>FU {l.fuStep}</span>
+                        </td>
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                          <span style={{ fontSize: 11, fontWeight: 500, color: "#374151", display: "block" }}>{fmtDate(l.nextFUDue)}</span>
+                          <span style={{ fontSize: 10, display: "block", marginTop: 1 }}>{dLabel}</span>
+                        </td>
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                          <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 20, fontWeight: 500, background: s.bg, color: s.color, border: `1px solid ${s.border}`, whiteSpace: "nowrap" }}>{s.label}</span>
+                        </td>
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
+                          <button style={{ fontSize: 10, fontWeight: 500, padding: "5px 10px", borderRadius: 7, border: "none", background: "#1a56db", color: "#ffffff", cursor: "pointer", whiteSpace: "nowrap" }}>
+                            Send FU {l.fuStep + 1}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+        {/* Meetings booked */}
+        <div style={{ background: "#ffffff", borderRadius: 12, border: "1px solid #ede9e3", overflow: "hidden" }}>
+          <div style={{ padding: "14px 16px", borderBottom: "1px solid #f3f4f6" }}>
+            <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Meetings booked</p>
+            <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Leads who booked a meeting</p>
+          </div>
           {loading ? (
             <div style={{ padding: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
               <Loader2 size={14} className="animate-spin" style={{ color: "#9ca3af" }} />
               <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading...</span>
             </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#f8f7f5" }}>
-                  {["Lead", "Email", "Client", "First replied", "Last FU sent", "Emails sent", "Next FU due", "Status", "Action"].map(h => (
+                  {["Lead", "Email", "Client", "Meeting date", "Duration", "Status"].map(h => (
                     <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 10, fontWeight: 500, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filteredFULeads.length === 0 ? (
+                {filteredMeetings.length === 0 ? (
                   <tr>
-                    <td colSpan={9} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
-                      No follow-ups for this period
-                    </td>
+                    <td colSpan={6} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No meetings booked</td>
                   </tr>
-                ) : filteredFULeads.map(l => {
-                  const s = getFUStatus(l);
-                  const d = diffDays(l.nextFUDue);
-                  const dLabel = d < 0
-                    ? <span style={{ color: "#dc2626", fontWeight: 500 }}>{Math.abs(d)}d overdue</span>
-                    : d === 0 ? <span style={{ color: "#d97706", fontWeight: 500 }}>Today</span>
-                    : d === 1 ? <span style={{ color: "#d97706" }}>Tomorrow</span>
-                    : <span style={{ color: "#6b7280" }}>in {d}d</span>;
-                  const rowBg = s.order === 0 ? "#fff8f8" : s.order === 1 ? "#fffdf0" : "#ffffff";
-                  const borderLeft = s.order <= 1 ? `3px solid ${s.border}` : "3px solid transparent";
+                ) : filteredMeetings.map(m => {
+                  const md = diffDays(m.meetingDate);
+                  const mLabel = md < 0 ? "Completed" : md === 0 ? "Today!" : `in ${md}d`;
+                  const mColor = md < 0 ? "#9ca3af" : md === 0 ? "#16a34a" : "#1a56db";
                   return (
-                    <tr key={l.id} style={{ background: rowBg, borderLeft }}>
-                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, fontWeight: 500, color: "#111827" }}>{l.name}</span></td>
-                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#6b7280" }}>{l.email}</span></td>
-                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><ClientBadge workspaceId={l.workspaceId} /></td>
-                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#374151" }}>{fmtDate(l.firstReplied)}</span></td>
-                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#374151" }}>{l.lastFUSent ? fmtDate(l.lastFUSent) : "—"}</span></td>
+                    <tr key={m.id} style={{ background: "#ffffff" }}>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, fontWeight: 500, color: "#111827" }}>{m.name}</span></td>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#6b7280" }}>{m.email}</span></td>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><ClientBadge workspaceId={m.workspaceId} /></td>
                       <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{l.totalEmails}</span>
-                        <span style={{ fontSize: 10, color: "#9ca3af", marginLeft: 4 }}>emails</span>
-                        <span style={{ fontSize: 10, background: "#f1f5f9", color: "#475569", padding: "1px 6px", borderRadius: 20, marginLeft: 4 }}>FU {l.fuStep}</span>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#374151" }}>{fmtDate(m.meetingDate)}</span>
+                        <span style={{ fontSize: 10, color: mColor, marginLeft: 6, fontWeight: 500 }}>{mLabel}</span>
                       </td>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#374151" }}>{m.durationMinutes ?? 30} min</span></td>
                       <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                        <span style={{ fontSize: 11, fontWeight: 500, color: "#374151", display: "block" }}>{fmtDate(l.nextFUDue)}</span>
-                        <span style={{ fontSize: 10, display: "block", marginTop: 1 }}>{dLabel}</span>
-                      </td>
-                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                        <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 20, fontWeight: 500, background: s.bg, color: s.color, border: `1px solid ${s.border}`, whiteSpace: "nowrap" }}>{s.label}</span>
-                      </td>
-                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                        <button style={{ fontSize: 10, fontWeight: 500, padding: "5px 10px", borderRadius: 7, border: "none", background: "#1a56db", color: "#ffffff", cursor: "pointer", whiteSpace: "nowrap" }}>
-                          Send FU {l.fuStep + 1}
-                        </button>
+                        <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 20, fontWeight: 500,
+                          background: m.status === "completed" ? "#f1f5f9" : "#d1fae5",
+                          color: m.status === "completed" ? "#475569" : "#065f46",
+                          border: `1px solid ${m.status === "completed" ? "#e2e8f0" : "#6ee7b7"}`,
+                          whiteSpace: "nowrap" }}>
+                          {m.status === "completed" ? "Completed" : "Scheduled"}
+                        </span>
                       </td>
                     </tr>
                   );
@@ -505,159 +588,82 @@ export function ReplyDashboard() {
             </table>
           )}
         </div>
-      </div>
 
-      {/* Meetings booked */}
-      <div style={{ background: "#ffffff", borderRadius: 12, border: "1px solid #ede9e3", overflow: "hidden" }}>
-        <div style={{ padding: "14px 16px", borderBottom: "1px solid #f3f4f6" }}>
-          <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Meetings booked</p>
-          <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Leads who booked a meeting</p>
-        </div>
-        {loading ? (
-          <div style={{ padding: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Loader2 size={14} className="animate-spin" style={{ color: "#9ca3af" }} />
-            <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading...</span>
-          </div>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f8f7f5" }}>
-                {["Lead", "Email", "Client", "Meeting date", "Duration", "Status"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 10, fontWeight: 500, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredMeetings.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No meetings booked</td>
-                </tr>
-              ) : filteredMeetings.map(m => {
-                const md = diffDays(m.meetingDate);
-                const mLabel = md < 0 ? "Completed" : md === 0 ? "Today!" : `in ${md}d`;
-                const mColor = md < 0 ? "#9ca3af" : md === 0 ? "#16a34a" : "#1a56db";
-                return (
-                  <tr key={m.id} style={{ background: "#ffffff" }}>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, fontWeight: 500, color: "#111827" }}>{m.name}</span></td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#6b7280" }}>{m.email}</span></td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><ClientBadge workspaceId={m.workspaceId} /></td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: "#374151" }}>{fmtDate(m.meetingDate)}</span>
-                      <span style={{ fontSize: 10, color: mColor, marginLeft: 6, fontWeight: 500 }}>{mLabel}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 11, color: "#374151" }}>{m.durationMinutes ?? 30} min</span></td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 20, fontWeight: 500,
-                        background: m.status === "completed" ? "#f1f5f9" : "#d1fae5",
-                        color: m.status === "completed" ? "#475569" : "#065f46",
-                        border: `1px solid ${m.status === "completed" ? "#e2e8f0" : "#6ee7b7"}`,
-                        whiteSpace: "nowrap" }}>
-                        {m.status === "completed" ? "Completed" : "Scheduled"}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Emails Sent */}
-      <div style={{ background: "#ffffff", borderRadius: 12, border: "1px solid #ede9e3", overflow: "hidden", marginTop: 14 }}>
-        <div style={{ padding: "14px 16px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Emails sent</p>
-            <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Volume and bounce rate per workspace</p>
-          </div>
-          {emailTotals && (
-            <div style={{ display: "flex", alignItems: "center", gap: 0, flexWrap: "wrap" }}>
-              {[
-                { label: "Yesterday",   value: emailTotals.yesterday.toLocaleString(), color: "#374151" },
-                { label: "Today",       value: emailTotals.today.toLocaleString(),     color: "#1a56db" },
-                { label: "Last 7 days", value: emailTotals.last7.toLocaleString(),     color: "#1a56db" },
-                { label: "All time",    value: emailTotals.total.toLocaleString(),      color: "#374151" },
-                { label: "Replies",     value: emailTotals.replies.toLocaleString(),    color: "#0f6e56" },
-                { label: "Interested",  value: emailTotals.interested.toLocaleString(), color: "#16a34a" },
-              ].map((stat, i, arr) => (
-                <div key={stat.label} style={{
-                  display: "flex", alignItems: "center",
-                }}>
-                  <div style={{ textAlign: "right", padding: "0 20px" }}>
-                    <p style={{ fontSize: 10, color: "#9ca3af", whiteSpace: "nowrap" }}>{stat.label}</p>
-                    <p style={{ fontSize: 16, fontWeight: 600, color: stat.color, marginTop: 2 }}>{stat.value}</p>
-                  </div>
-                  {i < arr.length - 1 && (
-                    <div style={{ width: 1, height: 28, background: "#e5e7eb", flexShrink: 0 }} />
-                  )}
-                </div>
-              ))}
+        {/* Emails Sent */}
+        <div style={{ background: "#ffffff", borderRadius: 12, border: "1px solid #ede9e3", overflow: "hidden", marginTop: 14 }}>
+          <div style={{ padding: "14px 16px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Emails sent</p>
+              <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Volume and bounce rate per workspace</p>
             </div>
+            {emailTotals && (
+              <div style={{ display: "flex", alignItems: "center", gap: 0, flexWrap: "wrap" }}>
+                {[
+                  { label: "Yesterday",   value: emailTotals.yesterday.toLocaleString(), color: "#374151" },
+                  { label: "Today",       value: emailTotals.today.toLocaleString(),     color: "#1a56db" },
+                  { label: "Last 7 days", value: emailTotals.last7.toLocaleString(),     color: "#1a56db" },
+                  { label: "All time",    value: emailTotals.total.toLocaleString(),      color: "#374151" },
+                  { label: "Replies",     value: emailTotals.replies.toLocaleString(),    color: "#0f6e56" },
+                  { label: "Interested",  value: emailTotals.interested.toLocaleString(), color: "#16a34a" },
+                ].map((stat, i, arr) => (
+                  <div key={stat.label} style={{ display: "flex", alignItems: "center" }}>
+                    <div style={{ textAlign: "right", padding: "0 20px" }}>
+                      <p style={{ fontSize: 10, color: "#9ca3af", whiteSpace: "nowrap" }}>{stat.label}</p>
+                      <p style={{ fontSize: 16, fontWeight: 600, color: stat.color, marginTop: 2 }}>{stat.value}</p>
+                    </div>
+                    {i < arr.length - 1 && (
+                      <div style={{ width: 1, height: 28, background: "#e5e7eb", flexShrink: 0 }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {loading ? (
+            <div style={{ padding: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <Loader2 size={14} className="animate-spin" style={{ color: "#9ca3af" }} />
+              <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading...</span>
+            </div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f8f7f5" }}>
+                  {["Client", "Yesterday", "Today", "Last 7 days", "Last 30 days", "All time", "Replies", "Interested"].map(h => (
+                    <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 10, fontWeight: 500, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {emailStats.filter(e => matchesClient(e.workspaceId)).length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No email data yet</td>
+                  </tr>
+                ) : emailStats.filter(e => matchesClient(e.workspaceId)).map(e => (
+                  <tr key={e.workspaceId} style={{ background: "#ffffff" }}>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><ClientBadge workspaceId={e.workspaceId} /></td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, color: "#374151" }}>{e.yesterday.toLocaleString()}</span></td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, fontWeight: 500, color: "#1a56db" }}>{e.today.toLocaleString()}</span></td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, color: "#374151" }}>{e.last7.toLocaleString()}</span></td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, color: "#374151" }}>{e.last30.toLocaleString()}</span></td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, color: "#6b7280" }}>{e.total.toLocaleString()}</span></td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, color: "#0f6e56", fontWeight: 500 }}>{e.replies.toLocaleString()}</span></td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}><span style={{ fontSize: 12, color: "#16a34a", fontWeight: 500 }}>{e.interested.toLocaleString()}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
 
-        {loading ? (
-          <div style={{ padding: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Loader2 size={14} className="animate-spin" style={{ color: "#9ca3af" }} />
-            <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading...</span>
-          </div>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f8f7f5" }}>
-                {["Client", "Yesterday", "Today", "Last 7 days", "Last 30 days", "All time", "Replies", "Interested"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 10, fontWeight: 500, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {emailStats.filter(e => matchesClient(e.workspaceId)).length === 0 ? (
-                <tr>
-                  <td colSpan={8} style={{ padding: 24, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No email data yet</td>
-                </tr>
-              ) : emailStats.filter(e => matchesClient(e.workspaceId)).map(e => {
-                return (
-                  <tr key={e.workspaceId} style={{ background: "#ffffff" }}>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <ClientBadge workspaceId={e.workspaceId} />
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 12, color: "#374151" }}>{e.yesterday.toLocaleString()}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 12, fontWeight: 500, color: "#1a56db" }}>{e.today.toLocaleString()}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 12, color: "#374151" }}>{e.last7.toLocaleString()}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 12, color: "#374151" }}>{e.last30.toLocaleString()}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 12, color: "#6b7280" }}>{e.total.toLocaleString()}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 12, color: "#0f6e56", fontWeight: 500 }}>{e.replies.toLocaleString()}</span>
-                    </td>
-                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #f9f9f8" }}>
-                      <span style={{ fontSize: 12, color: "#16a34a", fontWeight: 500 }}>{e.interested.toLocaleString()}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        <Modal
+          type={modal}
+          replies={filteredReplies}
+          fuLeads={filteredFULeads}
+          meetings={filteredMeetings}
+          onClose={() => setModal(null)}
+        />
       </div>
-
-
-      <Modal
-        type={modal}
-        replies={filteredReplies}
-        fuLeads={filteredFULeads}
-        meetings={filteredMeetings}
-        onClose={() => setModal(null)}
-      />
-    </div>
+    </WorkspacesContext.Provider>
   );
 }

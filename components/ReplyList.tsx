@@ -1,6 +1,7 @@
 "use client";
 
-import { Reply, WORKSPACES } from "@/lib/mock-data";
+import { Reply } from "@/lib/mock-data";
+import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
 import { getInitials, timeAgo } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
 import { Search } from "lucide-react";
@@ -21,6 +22,7 @@ export function ReplyList({
   replies, selectedId, search, filterStatus, filterWorkspace,
   onSelect, onSearchChange, onStatusChange, onWorkspaceChange,
 }: Props) {
+  const workspaces = useWorkspaces();
   const newCount = replies.filter((r) => r.status === "new").length;
 
   const filtered = replies.filter((r) => {
@@ -42,11 +44,11 @@ export function ReplyList({
   });
 
   const STATUS_FILTERS = [
-    { value: "all", label: "All" },
-    { value: "new", label: "New" },
-    { value: "interested", label: "Interested" },
+    { value: "all",          label: "All" },
+    { value: "new",          label: "New" },
+    { value: "interested",   label: "Interested" },
     { value: "not_interested", label: "Not interested" },
-    { value: "replied", label: "Replied" },
+    { value: "replied",      label: "Replied" },
   ];
 
   return (
@@ -117,7 +119,7 @@ export function ReplyList({
           }}
         >
           <option value="all">All workspaces</option>
-          {WORKSPACES.map((w) => (
+          {workspaces.map((w) => (
             <option key={w.id} value={w.id}>{w.name}</option>
           ))}
         </select>
@@ -129,7 +131,7 @@ export function ReplyList({
           <div className="py-12 text-center text-xs text-gray-400">No replies found</div>
         )}
         {filtered.map((r) => {
-          const ws = WORKSPACES.find((w) => w.id === r.workspaceId)!;
+          const ws = findWorkspace(workspaces, r.workspaceId);
           const isSelected = selectedId === r.id;
           const isNew = r.status === "new";
 
@@ -177,9 +179,9 @@ export function ReplyList({
                         {r.leadName}
                       </span>
                     </div>
-                  <span className="text-[10px] text-gray-400 shrink-0" suppressHydrationWarning>
-  {timeAgo(r.receivedAt)}
-</span>
+                    <span className="text-[10px] text-gray-400 shrink-0" suppressHydrationWarning>
+                      {timeAgo(r.receivedAt)}
+                    </span>
                   </div>
 
                   {/* Row 2: workspace + badge */}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw, Loader2, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Clock } from "lucide-react";
-import { WORKSPACES } from "@/lib/mock-data";
+import { useWorkspaces } from "@/lib/workspaces-context";
 
 interface VariantStat {
   email_body: string;
@@ -412,7 +412,15 @@ function CampaignSection({
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export function VariantRefresh() {
-  const [workspace, setWorkspace] = useState(WORKSPACES[0]?.slug ?? "");
+  const workspaces = useWorkspaces();
+const [workspace, setWorkspace] = useState("");
+
+useEffect(() => {
+  if (workspaces.length > 0 && !workspace) {
+    setWorkspace(workspaces[0].slug);
+  }
+}, [workspaces]);
+
   const [data, setData] = useState<VariantData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -488,9 +496,9 @@ export function VariantRefresh() {
             padding: "5px 10px", background: "#fff", color: "#374151", cursor: "pointer",
           }}
         >
-          {WORKSPACES.map(w => (
-            <option key={w.slug} value={w.slug}>{w.name}</option>
-          ))}
+          {workspaces.map(w => (
+  <option key={w.slug} value={w.slug}>{w.name}</option>
+))}
         </select>
 
         {/* Refresh button */}

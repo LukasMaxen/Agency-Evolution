@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Notification, WORKSPACES } from "@/lib/mock-data";
+import { Notification } from "@/lib/mock-data";
+import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
 import { analyzeReply, INTENT_CONFIG } from "@/lib/ai-analysis";
 import { AIBadge } from "@/components/AIBadge";
 import { timeAgo } from "@/lib/utils";
@@ -36,8 +37,7 @@ const SECTIONS = [
     bg: "#f0fdf4",
     border: "#bbf7d0",
     headingColor: "#15803d",
-    match: (n: Notification) =>
-      n.aiAnalysis?.intent === "interested_urgent",
+    match: (n: Notification) => n.aiAnalysis?.intent === "interested_urgent",
   },
   {
     id: "interested",
@@ -86,6 +86,7 @@ const SECTIONS = [
 export function NotificationFeed({
   notifications, onMarkRead, onMarkAllRead, onOpenReply, onUpdateNotification,
 }: Props) {
+  const workspaces = useWorkspaces();
   const [filterWorkspace, setFilterWorkspace] = useState("all");
   const [showRead, setShowRead] = useState(false);
   const [analyzing, setAnalyzing] = useState<Record<string, boolean>>({});
@@ -100,17 +101,18 @@ export function NotificationFeed({
   const analyzedCount = notifications.filter(n => n.aiAnalysis).length;
   const anyAnalyzing  = Object.values(analyzing).some(Boolean);
 
+  // Only show tabs for workspaces that actually have notifications
+  const activeWorkspaceIds = [...new Set(notifications.map(n => n.workspaceId))];
+  const activeWorkspaces   = workspaces.filter(w =>
+    activeWorkspaceIds.includes(w.id) || activeWorkspaceIds.includes(w.slug)
+  );
+
   async function handleAnalyze(n: Notification) {
     if (analyzing[n.id] || n.aiAnalysis) return;
     setAnalyzing(p => ({ ...p, [n.id]: true }));
     try {
-      // Use full message, fall back to snippet
       const analysis = await analyzeReply(
-        n.replyId,
-        n.leadName,
-        n.leadEmail,
-        n.campaign,
-        n.message ?? n.snippet
+        n.replyId, n.leadName, n.leadEmail, n.campaign, n.message ?? n.snippet
       );
       onUpdateNotification(n.id, { aiAnalysis: analysis });
     } catch (err) {
@@ -130,9 +132,6 @@ export function NotificationFeed({
     }
   }
 
-  const activeWorkspaceIds = [...new Set(notifications.map(n => n.workspaceId))];
-  const activeWorkspaces   = WORKSPACES.filter(w => activeWorkspaceIds.includes(w.id));
-
   function getSectionItems(sectionId: string) {
     const section = SECTIONS.find(s => s.id === sectionId)!;
     return baseFiltered.filter(n => {
@@ -145,7 +144,7 @@ export function NotificationFeed({
   }
 
   function NotificationCard({ n }: { n: Notification }) {
-    const ws  = WORKSPACES.find(w => w.id === n.workspaceId) ?? WORKSPACES[0];
+    const ws  = findWorkspace(workspaces, n.workspaceId);
     const cfg = EVENT_CONFIG[n.event];
     const Icon = cfg.icon;
     const isAnalyzing = analyzing[n.id];
@@ -302,7 +301,7 @@ export function NotificationFeed({
               All
             </button>
             {activeWorkspaces.map(w => {
-              const hasUnread = notifications.some(n => n.workspaceId === w.id && !n.read);
+              const hasUnread = notifications.some(n => (n.workspaceId === w.id || n.workspaceId === w.slug) && !n.read);
               const isActive  = filterWorkspace === w.id;
               return (
                 <button key={w.id}

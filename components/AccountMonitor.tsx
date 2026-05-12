@@ -5,7 +5,7 @@ import {
   RefreshCw, Loader2, ChevronLeft, AlertTriangle, CheckCircle,
   TrendingDown, WifiOff, Wifi, Flame, ChevronDown, ChevronUp,
 } from "lucide-react";
-import { WORKSPACES } from "@/lib/mock-data";
+import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -61,12 +61,16 @@ interface CampaignItem {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function wsName(slug: string): string {
-  return WORKSPACES.find(w => w.slug === slug)?.name ?? slug;
+// These are module-level hooks that take workspaces as a param (not hooks themselves)
+// so they can be called from sub-components that also consume the context.
+function resolveWsName(workspaces: ReturnType<typeof useWorkspaces>, slug: string): string {
+  return findWorkspace(workspaces, slug).name !== "Unknown"
+    ? findWorkspace(workspaces, slug).name
+    : slug;
 }
 
-function wsColor(slug: string): string {
-  return WORKSPACES.find(w => w.slug === slug)?.color ?? "#6b7280";
+function resolveWsColor(workspaces: ReturnType<typeof useWorkspaces>, slug: string): string {
+  return findWorkspace(workspaces, slug).color;
 }
 
 const STATUS_CFG: Record<Status, { label: string; bg: string; color: string; border: string; icon: React.ElementType }> = {
@@ -201,14 +205,10 @@ function SummaryCard({ label, value, color }: { label: string; value: string | n
   );
 }
 
-// ── Campaign dropdown (opens on email click) ──────────────────────────────────
+// ── Campaign dropdown ─────────────────────────────────────────────────────────
 
 function CampaignDropdown({
-  senderEmail,
-  workspaceSlug,
-  onCampaignRemoved,
-  onAllRemoved,
-  onActionDone,
+  senderEmail, workspaceSlug, onCampaignRemoved, onAllRemoved, onActionDone,
 }: {
   senderEmail: string;
   workspaceSlug: string;
@@ -240,13 +240,7 @@ function CampaignDropdown({
       const res = await fetch("/api/account-monitor/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sender_email: senderEmail,
-          workspace_slug: workspaceSlug,
-          action: "remove",
-          campaign_id: campId,
-          sender_id: senderId ?? undefined,
-        }),
+        body: JSON.stringify({ sender_email: senderEmail, workspace_slug: workspaceSlug, action: "remove", campaign_id: campId, sender_id: senderId ?? undefined }),
       });
       const data: ActionResult = await res.json();
       if (!res.ok || !data.ok) { onActionDone(data.error ?? "Failed", "error"); return; }
@@ -267,12 +261,7 @@ function CampaignDropdown({
       const res = await fetch("/api/account-monitor/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sender_email: senderEmail,
-          workspace_slug: workspaceSlug,
-          action: "remove",
-          sender_id: senderId ?? undefined,
-        }),
+        body: JSON.stringify({ sender_email: senderEmail, workspace_slug: workspaceSlug, action: "remove", sender_id: senderId ?? undefined }),
       });
       const data: ActionResult = await res.json();
       if (!res.ok || !data.ok) { onActionDone(data.error ?? "Failed", "error"); return; }
@@ -325,24 +314,13 @@ function CampaignDropdown({
             <span style={{ fontSize: 11, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {c.name || `Campaign #${c.id}`}
             </span>
-            {/* Reply count badge */}
             {c.reply_count > 0 ? (
-              <span style={{
-                flexShrink: 0, fontSize: 9, fontWeight: 600,
-                padding: "1px 6px", borderRadius: 10,
-                background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97",
-                whiteSpace: "nowrap",
-              }}>
+              <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 10, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", whiteSpace: "nowrap" }}>
                 {c.reply_count} {c.reply_count === 1 ? "reply" : "replies"}
                 {c.interested_count > 0 && ` · ${c.interested_count} interested`}
               </span>
             ) : (
-              <span style={{
-                flexShrink: 0, fontSize: 9, fontWeight: 500,
-                padding: "1px 6px", borderRadius: 10,
-                background: "#f3f4f6", color: "#9ca3af", border: "0.5px solid #e5e7eb",
-                whiteSpace: "nowrap",
-              }}>
+              <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 500, padding: "1px 6px", borderRadius: 10, background: "#f3f4f6", color: "#9ca3af", border: "0.5px solid #e5e7eb", whiteSpace: "nowrap" }}>
                 0 replies
               </span>
             )}
@@ -351,23 +329,17 @@ function CampaignDropdown({
             onClick={() => removeFromOne(c.id, c.name || `Campaign #${c.id}`)}
             disabled={busy}
             style={{
-              marginLeft: 8, flexShrink: 0,
-              display: "inline-flex", alignItems: "center", gap: 3,
+              marginLeft: 8, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3,
               fontSize: 10, padding: "2px 7px", borderRadius: 5,
               border: "0.5px solid #F09595", background: "#FCEBEB", color: "#A32D2D",
-              cursor: busy ? "not-allowed" : "pointer", fontFamily: "inherit",
-              fontWeight: 500, opacity: busy ? 0.5 : 1,
+              cursor: busy ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500, opacity: busy ? 0.5 : 1,
             }}
           >
-            {removingId === c.id
-              ? <Loader2 size={8} style={{ animation: "spin 1s linear infinite" }} />
-              : <WifiOff size={8} />
-            }
+            {removingId === c.id ? <Loader2 size={8} style={{ animation: "spin 1s linear infinite" }} /> : <WifiOff size={8} />}
             Remove
           </button>
         </div>
       ))}
-
       {campaigns.length > 1 && (
         <button
           onClick={removeFromAll}
@@ -377,8 +349,7 @@ function CampaignDropdown({
             display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
             fontSize: 10, padding: "5px 0", borderRadius: 6,
             border: "0.5px solid #F09595", background: "#FCEBEB", color: "#A32D2D",
-            cursor: busy ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500,
-            opacity: busy ? 0.5 : 1,
+            cursor: busy ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500, opacity: busy ? 0.5 : 1,
           }}
         >
           {removingAll
@@ -394,7 +365,9 @@ function CampaignDropdown({
 // ── Level 1: Workspace cards ──────────────────────────────────────────────────
 
 function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void }) {
-  const color = wsColor(ws.slug);
+  const workspaces = useWorkspaces();
+  const color = resolveWsColor(workspaces, ws.slug);
+  const name  = resolveWsName(workspaces, ws.slug);
   const hasRisk = ws.spamRiskCount > 0;
 
   return (
@@ -411,7 +384,7 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
       onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.boxShadow = "none"}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{wsName(ws.slug)}</p>
+        <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{name}</p>
         {hasRisk
           ? <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595", fontWeight: 500 }}>{ws.spamRiskCount} at risk</span>
           : <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", fontWeight: 500 }}>All healthy</span>
@@ -437,18 +410,18 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
 
 // ── Level 2: Account table ────────────────────────────────────────────────────
 
-function AccountTable({
-  ws, days, onBack, onActionDone,
-}: {
+function AccountTable({ ws, days, onBack, onActionDone }: {
   ws: WorkspaceData;
   days: number;
   onBack: () => void;
   onActionDone: (msg: string, type: "success" | "error") => void;
 }) {
-  const color = wsColor(ws.slug);
-  const [expandedEmail, setExpandedEmail]   = useState<string | null>(null);
-  const [loadingMap, setLoadingMap]         = useState<Record<string, ActionKey | null>>({});
-  const [removedSet, setRemovedSet]         = useState<Set<string>>(new Set());
+  const workspaces = useWorkspaces();
+  const color = resolveWsColor(workspaces, ws.slug);
+  const name  = resolveWsName(workspaces, ws.slug);
+  const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
+  const [loadingMap, setLoadingMap]       = useState<Record<string, ActionKey | null>>({});
+  const [removedSet, setRemovedSet]       = useState<Set<string>>(new Set());
 
   async function runAction(senderEmail: string, action: ActionKey) {
     setLoadingMap(prev => ({ ...prev, [senderEmail]: action }));
@@ -468,16 +441,10 @@ function AccountTable({
           ? data.warmup === "enabled" ? ", warmup enabled"
           : data.warmup === "already_enabled" ? ", warmup already on" : ""
           : "";
-        onActionDone(
-          `${senderEmail} removed from ${data.campaigns_affected} ${campWord}${warmupNote}.`,
-          data.failed > 0 ? "error" : "success"
-        );
+        onActionDone(`${senderEmail} removed from ${data.campaigns_affected} ${campWord}${warmupNote}.`, data.failed > 0 ? "error" : "success");
       } else {
         setRemovedSet(prev => { const s = new Set(prev); s.delete(senderEmail); return s; });
-        onActionDone(
-          `${senderEmail} re-attached to ${data.campaigns_affected} ${campWord}.`,
-          data.failed > 0 ? "error" : "success"
-        );
+        onActionDone(`${senderEmail} re-attached to ${data.campaigns_affected} ${campWord}.`, data.failed > 0 ? "error" : "success");
       }
     } catch (err: any) {
       onActionDone(err.message ?? "Network error", "error");
@@ -504,7 +471,7 @@ function AccountTable({
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         <div>
           <p style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>
-            <span style={{ color }}>{wsName(ws.slug)}</span> — sender accounts
+            <span style={{ color }}>{name}</span> — sender accounts
           </p>
           <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
             Last {days} days · {ws.accounts.length} accounts{ws.spamRiskCount > 0 ? ` · ${ws.spamRiskCount} at spam risk` : ""}
@@ -558,30 +525,25 @@ function AccountTable({
 
               return (
                 <>
-                  {/* Main row */}
                   <tr key={acc.sender_email}
                     style={{
                       borderBottom: isExpanded ? "none" : isLast ? "none" : "0.5px solid #f3f4f6",
                       background: rowBg, transition: "background 0.2s",
                     }}>
-
-                    {/* Sender email — clickable to expand */}
                     <td style={{ padding: "9px 10px" }}>
                       <button
                         onClick={() => setExpandedEmail(isExpanded ? null : acc.sender_email)}
                         style={{
                           display: "inline-flex", alignItems: "center", gap: 5,
                           background: "none", border: "none", cursor: "pointer",
-                          padding: 0, fontFamily: "inherit", textAlign: "left",
-                          maxWidth: "100%",
+                          padding: 0, fontFamily: "inherit", textAlign: "left", maxWidth: "100%",
                         }}
                       >
                         <span style={{
                           fontSize: 12, fontWeight: 500,
                           color: isExpanded ? "#1a56db" : "#111827",
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                          textDecoration: isExpanded ? "underline" : "none",
-                          textUnderlineOffset: 2,
+                          textDecoration: isExpanded ? "underline" : "none", textUnderlineOffset: 2,
                         }}>
                           {acc.sender_email}
                         </span>
@@ -596,72 +558,36 @@ function AccountTable({
                         </span>
                       )}
                     </td>
-
                     <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{acc.emails_sent.toLocaleString()}</td>
                     <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{acc.bounces}</td>
                     <td style={{ padding: "9px 10px", textAlign: "right" }}><RateCell value={acc.bounce_rate} type="bounce" /></td>
                     <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{acc.replies}</td>
                     <td style={{ padding: "9px 10px", textAlign: "right" }}><RateCell value={acc.reply_rate} type="reply" /></td>
                     <td style={{ padding: "9px 10px", textAlign: "center" }}><StatusBadge status={acc.status} /></td>
-
                     <td style={{ padding: "8px 10px", textAlign: "center" }}>
                       <div style={{ display: "flex", gap: 5, justifyContent: "center", flexWrap: "wrap" }}>
                         {isRemoved ? (
-                          <ActionButton
-                            label="Re-attach"
-                            icon={Wifi}
-                            onClick={() => runAction(acc.sender_email, "reattach")}
-                            loading={isLoading && loadingAction === "reattach"}
-                            variant="success"
-                            disabled={isLoading}
-                          />
+                          <ActionButton label="Re-attach" icon={Wifi} onClick={() => runAction(acc.sender_email, "reattach")} loading={isLoading && loadingAction === "reattach"} variant="success" disabled={isLoading} />
                         ) : acc.status === "spam_risk" ? (
                           <>
-                            <ActionButton
-                              label="Remove all"
-                              icon={WifiOff}
-                              onClick={() => runAction(acc.sender_email, "remove")}
-                              loading={isLoading && loadingAction === "remove"}
-                              variant="danger"
-                              disabled={isLoading}
-                            />
-                            <ActionButton
-                              label="Remove + warmup"
-                              icon={Flame}
-                              onClick={() => runAction(acc.sender_email, "remove_and_warmup")}
-                              loading={isLoading && loadingAction === "remove_and_warmup"}
-                              variant="warmup"
-                              disabled={isLoading}
-                            />
+                            <ActionButton label="Remove all"     icon={WifiOff} onClick={() => runAction(acc.sender_email, "remove")}           loading={isLoading && loadingAction === "remove"}           variant="danger" disabled={isLoading} />
+                            <ActionButton label="Remove + warmup" icon={Flame}  onClick={() => runAction(acc.sender_email, "remove_and_warmup")} loading={isLoading && loadingAction === "remove_and_warmup"} variant="warmup" disabled={isLoading} />
                           </>
                         ) : (
-                          <ActionButton
-                            label="Remove all"
-                            icon={WifiOff}
-                            onClick={() => runAction(acc.sender_email, "remove")}
-                            loading={isLoading && loadingAction === "remove"}
-                            variant="danger"
-                            disabled={isLoading}
-                          />
+                          <ActionButton label="Remove all" icon={WifiOff} onClick={() => runAction(acc.sender_email, "remove")} loading={isLoading && loadingAction === "remove"} variant="danger" disabled={isLoading} />
                         )}
                       </div>
                     </td>
                   </tr>
-
-                  {/* Expanded campaign dropdown row */}
                   {isExpanded && (
-                    <tr key={`${acc.sender_email}-expanded`}
-                      style={{ borderBottom: isLast ? "none" : "0.5px solid #f3f4f6", background: rowBg }}>
+                    <tr key={`${acc.sender_email}-expanded`} style={{ borderBottom: isLast ? "none" : "0.5px solid #f3f4f6", background: rowBg }}>
                       <td colSpan={8} style={{ padding: 0 }}>
                         <div style={{ borderTop: "0.5px solid #e5e7eb", margin: "0 10px" }}>
                           <CampaignDropdown
                             senderEmail={acc.sender_email}
                             workspaceSlug={ws.slug}
                             onCampaignRemoved={() => {}}
-                            onAllRemoved={() => {
-                              setRemovedSet(prev => new Set([...prev, acc.sender_email]));
-                              setExpandedEmail(null);
-                            }}
+                            onAllRemoved={() => { setRemovedSet(prev => new Set([...prev, acc.sender_email])); setExpandedEmail(null); }}
                             onActionDone={onActionDone}
                           />
                         </div>
@@ -681,6 +607,7 @@ function AccountTable({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function AccountMonitor() {
+  const workspaces = useWorkspaces();
   const [days, setDays]         = useState(7);
   const [data, setData]         = useState<{ workspaces: WorkspaceData[]; summary: Summary } | null>(null);
   const [loading, setLoading]   = useState(true);
@@ -711,7 +638,6 @@ export function AccountMonitor() {
 
   return (
     <div style={{ flex: 1, overflowY: "auto", background: "#f8f7f5", padding: 20 }}>
-
       {toast && <Toast msg={toast.msg} type={toast.type} onDismiss={() => setToast(null)} />}
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
@@ -719,7 +645,7 @@ export function AccountMonitor() {
           <p style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>Account monitor</p>
           <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
             {selectedWs
-              ? `${wsName(selectedWs.slug)} — sender accounts`
+              ? `${resolveWsName(workspaces, selectedWs.slug)} — sender accounts`
               : "Sender-level spam & reply rate monitoring across all workspaces"}
           </p>
         </div>
@@ -747,21 +673,16 @@ export function AccountMonitor() {
       )}
 
       {!loading && selectedWs && (
-        <AccountTable
-          ws={selectedWs}
-          days={days}
-          onBack={() => setSelected(null)}
-          onActionDone={(msg, type) => setToast({ msg, type })}
-        />
+        <AccountTable ws={selectedWs} days={days} onBack={() => setSelected(null)} onActionDone={(msg, type) => setToast({ msg, type })} />
       )}
 
       {!loading && !selectedWs && data && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
             <SummaryCard label="Total accounts"  value={data.summary.totalAccounts} color="#185FA5" />
-            <SummaryCard label="Spam risk"       value={data.summary.totalSpamRisk} color={data.summary.totalSpamRisk > 0 ? "#A32D2D" : "#111827"} />
-            <SummaryCard label="Emails sent"     value={data.summary.totalSent.toLocaleString()} />
-            <SummaryCard label="Avg reply rate"  value={`${data.summary.avgReplyRate}%`} color={data.summary.avgReplyRate < 1 ? "#A32D2D" : data.summary.avgReplyRate < 2 ? "#854F0B" : "#3B6D11"} />
+            <SummaryCard label="Spam risk"        value={data.summary.totalSpamRisk} color={data.summary.totalSpamRisk > 0 ? "#A32D2D" : "#111827"} />
+            <SummaryCard label="Emails sent"      value={data.summary.totalSent.toLocaleString()} />
+            <SummaryCard label="Avg reply rate"   value={`${data.summary.avgReplyRate}%`} color={data.summary.avgReplyRate < 1 ? "#A32D2D" : data.summary.avgReplyRate < 2 ? "#854F0B" : "#3B6D11"} />
           </div>
 
           {data.workspaces.length === 0 ? (

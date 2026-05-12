@@ -1,13 +1,16 @@
 // Next.js 16 instrumentation hook. Runs once when the Node server boots.
-// We use it to schedule four in-process timers that replace the Coolify
+// We use it to schedule five in-process timers that replace the Coolify
 // scheduled tasks (which kept failing because of host vs container shell,
-// port mismatches, env var expansion, etc). All four call exported runner
+// port mismatches, env var expansion, etc). All five call exported runner
 // functions directly inside the Node process, no HTTP roundtrip needed.
 //
 //   1. Auto-reply self-sweeper      every 60 seconds
 //   2. EmailBison inbox sync        every 2 minutes (catches untracked replies)
 //   3. Follow-up processor          every 5 minutes
 //   4. Weekly feedback review       hourly check, fires Mondays 08-11 UTC
+//   5. Sender account sync          every 6 hours (keeps sender_accounts in
+//                                   sync with EmailBison — removed senders
+//                                   are deleted from DB and disappear from UI)
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
@@ -32,10 +35,6 @@ export async function register() {
   console.log("[instrumentation] auto-reply self-sweeper started, 60s interval");
 
   // ── 2. EmailBison inbox sync ──────────────────────────────────────────────
-  // Polls each workspace's inbox to catch replies the LEAD_REPLIED webhook
-  // misses. Most importantly, untracked replies (sent directly to a sender
-  // mailbox, not in response to a campaign send) — EmailBison never fires
-  // LEAD_REPLIED for those, so polling is the only way to see them.
   const { runEmailBisonInboxSync } = await import("@/lib/emailbison-inbox-sync");
 
   setTimeout(() => {
@@ -80,10 +79,6 @@ export async function register() {
   console.log("[instrumentation] follow-up processor started, 5min interval");
 
   // ── 4. Weekly feedback review ─────────────────────────────────────────────
-  // Hourly check. Only fires inside the Monday 08-11 UTC window AND only if
-  // no weekly_reviews row exists in the last 6 days (dedupe handled inside
-  // the runner). Worst case: app restarts mid-window, dedupe ensures we
-  // never post twice.
   let wrRunning = false;
   const tryWeeklyReview = async () => {
     const d = new Date();
@@ -112,8 +107,43 @@ export async function register() {
   };
 
   setInterval(() => void tryWeeklyReview(), 60 * 60_000);
-  // Also check 60s after boot so a fresh deploy on Monday morning still fires.
   setTimeout(() => void tryWeeklyReview(), 60_000);
 
   console.log("[instrumentation] weekly feedback review hourly check started");
+
+  // ── 5. Sender account sync ────────────────────────────────────────────────
+  // Fetches the full sender email list from EmailBison for every workspace,
+  // upserts into sender_accounts, and DELETES senders that no longer exist
+  // in EB. This keeps the Account Monitor in sync automatically — senders
+  // removed from EmailBison disappear from the UI after the next sync.
+  let senderSyncRunning = false;
+  const runSenderSync = async (label: string) => {
+    if (senderSyncRunning) return;
+    senderSyncRunning = true;
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const res = await fetch(`${baseUrl}/api/sync-sender-accounts`, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.text();
+        console.error(`[instrumentation] ${label} sender sync HTTP error:`, err);
+        return;
+      }
+      const data = await res.json();
+      console.log(
+        `[instrumentation] ${label} sender sync: ` +
+        `+${data.totalAdded} added, -${data.totalRemoved} removed, ` +
+        `${data.synced}/${data.synced + data.failed} workspaces ok`
+      );
+    } catch (err: any) {
+      console.error(`[instrumentation] ${label} sender sync failed:`, err);
+    } finally {
+      senderSyncRunning = false;
+    }
+  };
+
+  // Run once 45s after boot (let other timers settle first), then every 6h
+  setTimeout(() => void runSenderSync("initial"), 45_000);
+  setInterval(() => void runSenderSync("periodic"), 6 * 60 * 60_000);
+
+  console.log("[instrumentation] sender account sync started, 6h interval");
 }
