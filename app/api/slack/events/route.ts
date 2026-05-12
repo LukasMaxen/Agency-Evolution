@@ -724,7 +724,7 @@ async function regenerateReplyDraft(draft: ReplyDraftRow, reviewerName: string, 
   // Extract lead intelligence from their original message to help Claude write a specific, non-generic revision.
   const domain = (reply.lead_email ?? "").split("@")[1] ?? "";
   const leadDomain = domain && !["gmail","yahoo","hotmail","outlook"].some(d => domain.includes(d)) ? `Company domain: ${domain}` : "";
-  const selfDesc = (reply.message ?? "").split("\n").find(l =>
+  const selfDesc = (reply.message ?? "").split("\n").find((l: string) =>
     /^(we (are|work|help|focus)|our (company|firm|fund)|i (am|work|run))/i.test(l.trim()) && l.length > 20 && l.length < 300
   ) ?? "";
   const leadIntelNote = [leadDomain, selfDesc ? `Lead described: ${selfDesc}` : ""].filter(Boolean).join("\n");
