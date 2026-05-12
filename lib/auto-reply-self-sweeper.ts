@@ -21,10 +21,13 @@ export async function runAutoReplySweep(): Promise<void> {
     // ONE summary card if there are any. Never post per-reply cards — this
     // caused 250+ Slack notifications when the DB had a backlog of old stuck replies.
     const stale = await pool.query(
-      `SELECT id, workspace_slug, lead_name, lead_email, received_at
+      `SELECT id, workspace_slug, lead_name, lead_email, received_at, status
        FROM replies
-       WHERE status = 'new'
-         AND received_at <= NOW() - INTERVAL '4 hours'
+       WHERE (
+         (status = 'new' AND received_at <= NOW() - INTERVAL '4 hours')
+         OR
+         (status = 'processing' AND received_at <= NOW() - INTERVAL '30 minutes')
+       )
        LIMIT 50`
     );
     if (stale.rows.length > 0) {
@@ -36,7 +39,7 @@ export async function runAutoReplySweep(): Promise<void> {
         [ids]
       );
       stale.rows.forEach(row =>
-        console.warn(`[self-sweep] Stale >4h, marked errored silently: ${row.workspace_slug} / ${row.lead_name} <${row.lead_email}>`)
+        console.warn(`[self-sweep] Stale (${row.status} >${row.status === 'processing' ? '30min' : '4h'}), marked errored: ${row.workspace_slug} / ${row.lead_name} <${row.lead_email}>`)
       );
     }
 

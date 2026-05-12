@@ -228,7 +228,7 @@ async function reviseDraft(
         system: systemPrompt,
         messages: [
           { role: "user", content: userMessage },
-          { role: "assistant", content: `{"action":"auto_send","intent":"interested","fu_sequence_type":"full","reply_body":"${originalDraft.replace(/"/g, '\\"').replace(/\n/g, "\\n")}","flag_unsubscribe":false,"flag_meeting_booked":false}` },
+          { role: "assistant", content: JSON.stringify({ action: "auto_send", intent: "interested", fu_sequence_type: "full", reply_body: originalDraft, flag_unsubscribe: false, flag_meeting_booked: false }) },
           { role: "user", content: `A quality check found the following issues with the reply_body you drafted:\n${critique}\n\nRevise ONLY the reply_body to fix these issues. Return the complete JSON object again with the revised reply_body. All other fields stay the same.` },
         ],
       }),
@@ -1294,8 +1294,15 @@ ${reply.message}`;
       console.log(`[auto-reply] Haiku critique for ${replyId}: ${critique}`);
       const revised = await reviseDraft(result.reply_body, critique, systemPrompt, userMessage);
       if (revised) {
-        result.reply_body = sanitizeDashes(revised);
-        console.log(`[auto-reply] Reply revised based on critique for ${replyId}`);
+        const revisedClean = sanitizeDashes(revised);
+        // Only use revision if it is at least as long as the original — never downgrade
+        const revisedWithoutSig = revisedClean.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
+        if (revisedWithoutSig.length >= 80) {
+          result.reply_body = revisedClean;
+          console.log(`[auto-reply] Reply revised based on critique for ${replyId}`);
+        } else {
+          console.warn(`[auto-reply] Revised body too short (${revisedWithoutSig.length} chars) — keeping original for ${replyId}`);
+        }
       }
     }
   }
