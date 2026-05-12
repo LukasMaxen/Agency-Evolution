@@ -61,8 +61,6 @@ interface CampaignItem {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// These are module-level hooks that take workspaces as a param (not hooks themselves)
-// so they can be called from sub-components that also consume the context.
 function resolveWsName(workspaces: ReturnType<typeof useWorkspaces>, slug: string): string {
   return findWorkspace(workspaces, slug).name !== "Unknown"
     ? findWorkspace(workspaces, slug).name
@@ -206,21 +204,27 @@ function SummaryCard({ label, value, color }: { label: string; value: string | n
 }
 
 // ── Campaign dropdown ─────────────────────────────────────────────────────────
+// Active mode: shows campaigns with Remove buttons.
+// Re-attach mode: after removal, shows the same campaigns with Re-attach
+// buttons so the user can restore specific ones.
 
 function CampaignDropdown({
-  senderEmail, workspaceSlug, onCampaignRemoved, onAllRemoved, onActionDone,
+  senderEmail, workspaceSlug, senderId: externalSenderId, onAllRemoved, onActionDone,
 }: {
   senderEmail: string;
   workspaceSlug: string;
-  onCampaignRemoved: (campaignId: number) => void;
+  senderId: number | null;
   onAllRemoved: () => void;
   onActionDone: (msg: string, type: "success" | "error") => void;
 }) {
-  const [campaigns, setCampaigns]     = useState<CampaignItem[] | null>(null);
-  const [senderId, setSenderId]       = useState<number | null>(null);
-  const [loading, setLoading]         = useState(false);
-  const [removingId, setRemovingId]   = useState<number | null>(null);
-  const [removingAll, setRemovingAll] = useState(false);
+  const [campaigns, setCampaigns]               = useState<CampaignItem[] | null>(null);
+  const [removedCampaigns, setRemovedCampaigns] = useState<CampaignItem[]>([]);
+  const [senderId, setSenderId]                 = useState<number | null>(externalSenderId);
+  const [loading, setLoading]                   = useState(false);
+  const [mode, setMode]                         = useState<"active" | "reattach">("active");
+  const [actionMap, setActionMap]               = useState<Record<number, "removing" | "reattaching" | null>>({});
+  const [reattachedIds, setReattachedIds]       = useState<Set<number>>(new Set());
+  const [reattachingAll, setReattachingAll]     = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -228,57 +232,112 @@ function CampaignDropdown({
       .then(r => r.json())
       .then(d => {
         if (d.error) { onActionDone(d.error, "error"); setCampaigns([]); }
-        else { setCampaigns(d.campaigns ?? []); setSenderId(d.sender_id ?? null); }
+        else {
+          setCampaigns(d.campaigns ?? []);
+          if (!senderId && d.sender_id) setSenderId(d.sender_id);
+        }
       })
       .catch(err => { onActionDone(err.message, "error"); setCampaigns([]); })
       .finally(() => setLoading(false));
   }, [senderEmail, workspaceSlug]);
 
-  async function removeFromOne(campId: number, campName: string) {
-    setRemovingId(campId);
+  async function removeOne(camp: CampaignItem) {
+    setActionMap(prev => ({ ...prev, [camp.id]: "removing" }));
     try {
       const res = await fetch("/api/account-monitor/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sender_email: senderEmail, workspace_slug: workspaceSlug, action: "remove", campaign_id: campId, sender_id: senderId ?? undefined }),
+        body: JSON.stringify({
+          sender_email: senderEmail, workspace_slug: workspaceSlug,
+          action: "remove", campaign_id: camp.id, sender_id: senderId ?? undefined,
+        }),
       });
       const data: ActionResult = await res.json();
       if (!res.ok || !data.ok) { onActionDone(data.error ?? "Failed", "error"); return; }
-      setCampaigns(prev => prev ? prev.filter(c => c.id !== campId) : prev);
-      onCampaignRemoved(campId);
-      onActionDone(`Removed from "${campName}".`, "success");
+      setRemovedCampaigns(prev => [...prev, camp]);
+      setCampaigns(prev => prev ? prev.filter(c => c.id !== camp.id) : prev);
+      onActionDone(`Removed from "${camp.name}".`, "success");
     } catch (err: any) {
       onActionDone(err.message, "error");
     } finally {
-      setRemovingId(null);
+      setActionMap(prev => ({ ...prev, [camp.id]: null }));
     }
   }
 
-  async function removeFromAll() {
+  async function removeAll() {
     if (!campaigns?.length) return;
-    setRemovingAll(true);
+    const toRemove = [...campaigns];
+    for (const camp of toRemove) {
+      setActionMap(prev => ({ ...prev, [camp.id]: "removing" }));
+      try {
+        const res = await fetch("/api/account-monitor/action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sender_email: senderEmail, workspace_slug: workspaceSlug,
+            action: "remove", campaign_id: camp.id, sender_id: senderId ?? undefined,
+          }),
+        });
+        const data: ActionResult = await res.json();
+        if (res.ok && data.ok) {
+          setRemovedCampaigns(prev => [...prev, camp]);
+          setCampaigns(prev => prev ? prev.filter(c => c.id !== camp.id) : prev);
+        }
+      } catch {}
+      finally { setActionMap(prev => ({ ...prev, [camp.id]: null })); }
+    }
+    onAllRemoved();
+    onActionDone(`Removed from all ${toRemove.length} campaigns.`, "success");
+  }
+
+  async function reattachOne(camp: CampaignItem) {
+    setActionMap(prev => ({ ...prev, [camp.id]: "reattaching" }));
     try {
       const res = await fetch("/api/account-monitor/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sender_email: senderEmail, workspace_slug: workspaceSlug, action: "remove", sender_id: senderId ?? undefined }),
+        body: JSON.stringify({
+          sender_email: senderEmail, workspace_slug: workspaceSlug,
+          action: "reattach", campaign_id: camp.id, sender_id: senderId ?? undefined,
+        }),
       });
       const data: ActionResult = await res.json();
       if (!res.ok || !data.ok) { onActionDone(data.error ?? "Failed", "error"); return; }
-      setCampaigns([]);
-      onAllRemoved();
-      onActionDone(
-        `Removed from all ${data.campaigns_affected} campaign(s).${data.failed > 0 ? ` ${data.failed} failed.` : ""}`,
-        data.failed > 0 ? "error" : "success"
-      );
+      setReattachedIds(prev => new Set([...prev, camp.id]));
+      onActionDone(`Re-attached to "${camp.name}".`, "success");
     } catch (err: any) {
       onActionDone(err.message, "error");
     } finally {
-      setRemovingAll(false);
+      setActionMap(prev => ({ ...prev, [camp.id]: null }));
     }
   }
 
-  const busy = removingId !== null || removingAll;
+  async function reattachAll() {
+    const pending = removedCampaigns.filter(c => !reattachedIds.has(c.id));
+    if (!pending.length) return;
+    setReattachingAll(true);
+    let succeeded = 0; let failed = 0;
+    for (const camp of pending) {
+      try {
+        const res = await fetch("/api/account-monitor/action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sender_email: senderEmail, workspace_slug: workspaceSlug,
+            action: "reattach", campaign_id: camp.id, sender_id: senderId ?? undefined,
+          }),
+        });
+        const data: ActionResult = await res.json();
+        if (res.ok && data.ok) { setReattachedIds(prev => new Set([...prev, camp.id])); succeeded++; }
+        else failed++;
+      } catch { failed++; }
+    }
+    setReattachingAll(false);
+    onActionDone(
+      `Re-attached to ${succeeded} campaign(s).${failed > 0 ? ` ${failed} failed.` : ""}`,
+      failed > 0 ? "error" : "success"
+    );
+  }
 
   if (loading) {
     return (
@@ -288,9 +347,78 @@ function CampaignDropdown({
     );
   }
 
-  if (!campaigns) return null;
+  // ── Re-attach mode ────────────────────────────────────────────────────────
+  if (mode === "reattach" || (campaigns?.length === 0 && removedCampaigns.length > 0)) {
+    const pending = removedCampaigns.filter(c => !reattachedIds.has(c.id));
+    return (
+      <div style={{ padding: "6px 10px 10px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <p style={{ fontSize: 10, color: "#6b7280", fontWeight: 500 }}>
+            Previously attached — pick which to restore:
+          </p>
+          {mode === "reattach" && campaigns && campaigns.length > 0 && (
+            <button onClick={() => setMode("active")}
+              style={{ fontSize: 10, color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
+              ← back
+            </button>
+          )}
+        </div>
+        {removedCampaigns.map(c => {
+          const isReattached = reattachedIds.has(c.id);
+          const isLoading    = actionMap[c.id] === "reattaching";
+          return (
+            <div key={c.id} style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "4px 8px", marginBottom: 4, borderRadius: 6,
+              background: isReattached ? "#f0fdf4" : "#f8f7f5",
+              border: `0.5px solid ${isReattached ? "#C0DD97" : "#e5e7eb"}`,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, background: isReattached ? "#3B6D11" : "#9ca3af" }} />
+                <span style={{ fontSize: 11, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {c.name || `Campaign #${c.id}`}
+                </span>
+                {isReattached && (
+                  <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 10, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97" }}>
+                    restored
+                  </span>
+                )}
+              </div>
+              {!isReattached && (
+                <button onClick={() => reattachOne(c)} disabled={isLoading || reattachingAll}
+                  style={{
+                    marginLeft: 8, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3,
+                    fontSize: 10, padding: "2px 7px", borderRadius: 5,
+                    border: "0.5px solid #C0DD97", background: "#EAF3DE", color: "#3B6D11",
+                    cursor: isLoading || reattachingAll ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500,
+                  }}>
+                  {isLoading ? <Loader2 size={8} style={{ animation: "spin 1s linear infinite" }} /> : <Wifi size={8} />}
+                  Re-attach
+                </button>
+              )}
+            </div>
+          );
+        })}
+        {pending.length > 1 && (
+          <button onClick={reattachAll} disabled={reattachingAll}
+            style={{
+              marginTop: 6, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+              fontSize: 10, padding: "5px 0", borderRadius: 6,
+              border: "0.5px solid #C0DD97", background: "#EAF3DE", color: "#3B6D11",
+              cursor: reattachingAll ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500,
+            }}>
+            {reattachingAll
+              ? <><Loader2 size={9} style={{ animation: "spin 1s linear infinite" }} /> Re-attaching...</>
+              : <><Wifi size={9} /> Re-attach to all {pending.length} campaigns</>
+            }
+          </button>
+        )}
+      </div>
+    );
+  }
 
-  if (campaigns.length === 0) {
+  // ── Active mode ───────────────────────────────────────────────────────────
+  if (!campaigns || campaigns.length === 0) {
     return (
       <div style={{ padding: "7px 10px 9px", fontSize: 11, color: "#9ca3af", fontStyle: "italic" }}>
         Not attached to any active campaigns.
@@ -298,64 +426,73 @@ function CampaignDropdown({
     );
   }
 
+  const busy = Object.values(actionMap).some(v => v !== null);
+
   return (
     <div style={{ padding: "6px 10px 10px" }}>
-      {campaigns.map(c => (
-        <div key={c.id} style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "4px 8px", marginBottom: 4, borderRadius: 6,
-          background: "#f8f7f5", border: "0.5px solid #e5e7eb",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-            <span style={{
-              width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
-              background: ["Active", "active", 1, 2].includes(c.status) ? "#3B6D11" : "#9ca3af",
-            }} />
-            <span style={{ fontSize: 11, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {c.name || `Campaign #${c.id}`}
-            </span>
-            {c.reply_count > 0 ? (
-              <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 10, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", whiteSpace: "nowrap" }}>
-                {c.reply_count} {c.reply_count === 1 ? "reply" : "replies"}
-                {c.interested_count > 0 && ` · ${c.interested_count} interested`}
+      {campaigns.map(c => {
+        const isLoading = actionMap[c.id] === "removing";
+        return (
+          <div key={c.id} style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "4px 8px", marginBottom: 4, borderRadius: 6,
+            background: "#f8f7f5", border: "0.5px solid #e5e7eb",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, background: ["Active", "active", 1, 2].includes(c.status) ? "#3B6D11" : "#9ca3af" }} />
+              <span style={{ fontSize: 11, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {c.name || `Campaign #${c.id}`}
               </span>
-            ) : (
-              <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 500, padding: "1px 6px", borderRadius: 10, background: "#f3f4f6", color: "#9ca3af", border: "0.5px solid #e5e7eb", whiteSpace: "nowrap" }}>
-                0 replies
-              </span>
-            )}
+              {c.reply_count > 0 ? (
+                <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 10, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", whiteSpace: "nowrap" }}>
+                  {c.reply_count} {c.reply_count === 1 ? "reply" : "replies"}
+                  {c.interested_count > 0 && ` · ${c.interested_count} interested`}
+                </span>
+              ) : (
+                <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 500, padding: "1px 6px", borderRadius: 10, background: "#f3f4f6", color: "#9ca3af", border: "0.5px solid #e5e7eb", whiteSpace: "nowrap" }}>
+                  0 replies
+                </span>
+              )}
+            </div>
+            <button onClick={() => removeOne(c)} disabled={isLoading || busy}
+              style={{
+                marginLeft: 8, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3,
+                fontSize: 10, padding: "2px 7px", borderRadius: 5,
+                border: "0.5px solid #F09595", background: "#FCEBEB", color: "#A32D2D",
+                cursor: isLoading || busy ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500,
+                opacity: busy && !isLoading ? 0.5 : 1,
+              }}>
+              {isLoading ? <Loader2 size={8} style={{ animation: "spin 1s linear infinite" }} /> : <WifiOff size={8} />}
+              Remove
+            </button>
           </div>
-          <button
-            onClick={() => removeFromOne(c.id, c.name || `Campaign #${c.id}`)}
-            disabled={busy}
-            style={{
-              marginLeft: 8, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3,
-              fontSize: 10, padding: "2px 7px", borderRadius: 5,
-              border: "0.5px solid #F09595", background: "#FCEBEB", color: "#A32D2D",
-              cursor: busy ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500, opacity: busy ? 0.5 : 1,
-            }}
-          >
-            {removingId === c.id ? <Loader2 size={8} style={{ animation: "spin 1s linear infinite" }} /> : <WifiOff size={8} />}
-            Remove
-          </button>
-        </div>
-      ))}
+        );
+      })}
+
       {campaigns.length > 1 && (
-        <button
-          onClick={removeFromAll}
-          disabled={busy}
+        <button onClick={removeAll} disabled={busy}
           style={{
-            marginTop: 6, width: "100%",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+            marginTop: 6, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
             fontSize: 10, padding: "5px 0", borderRadius: 6,
             border: "0.5px solid #F09595", background: "#FCEBEB", color: "#A32D2D",
             cursor: busy ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500, opacity: busy ? 0.5 : 1,
-          }}
-        >
-          {removingAll
-            ? <><Loader2 size={9} style={{ animation: "spin 1s linear infinite" }} /> Removing all...</>
+          }}>
+          {busy
+            ? <><Loader2 size={9} style={{ animation: "spin 1s linear infinite" }} /> Removing...</>
             : <><WifiOff size={9} /> Remove from all {campaigns.length} campaigns</>
           }
+        </button>
+      )}
+
+      {removedCampaigns.length > 0 && (
+        <button onClick={() => setMode("reattach")}
+          style={{
+            marginTop: 6, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+            fontSize: 10, padding: "5px 0", borderRadius: 6,
+            border: "0.5px solid #C0DD97", background: "#EAF3DE", color: "#3B6D11",
+            cursor: "pointer", fontFamily: "inherit", fontWeight: 500,
+          }}>
+          <Wifi size={9} /> View {removedCampaigns.length} removed — re-attach?
         </button>
       )}
     </div>
@@ -488,8 +625,7 @@ function AccountTable({ ws, days, onBack, onActionDone }: {
 
       <div style={{ background: "#f8f7f5", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "9px 12px", marginBottom: 14, fontSize: 11, color: "#6b7280", lineHeight: 1.6 }}>
         <strong style={{ color: "#374151" }}>Tip:</strong>{" "}
-        Click an email address to see which campaigns it is attached to and remove from individual ones.
-        Use the action buttons to remove from all at once or enable warmup.
+        Click an email to see its campaigns. Remove it, then use the re-attach dropdown to restore it to specific campaigns.
       </div>
 
       <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 12, overflow: "hidden" }}>
@@ -567,11 +703,11 @@ function AccountTable({ ws, days, onBack, onActionDone }: {
                     <td style={{ padding: "8px 10px", textAlign: "center" }}>
                       <div style={{ display: "flex", gap: 5, justifyContent: "center", flexWrap: "wrap" }}>
                         {isRemoved ? (
-                          <ActionButton label="Re-attach" icon={Wifi} onClick={() => runAction(acc.sender_email, "reattach")} loading={isLoading && loadingAction === "reattach"} variant="success" disabled={isLoading} />
+                          <ActionButton label="Re-attach" icon={Wifi} onClick={() => { setExpandedEmail(acc.sender_email); setRemovedSet(prev => { const s = new Set(prev); s.delete(acc.sender_email); return s; }); }} loading={false} variant="success" />
                         ) : acc.status === "spam_risk" ? (
                           <>
-                            <ActionButton label="Remove all"     icon={WifiOff} onClick={() => runAction(acc.sender_email, "remove")}           loading={isLoading && loadingAction === "remove"}           variant="danger" disabled={isLoading} />
-                            <ActionButton label="Remove + warmup" icon={Flame}  onClick={() => runAction(acc.sender_email, "remove_and_warmup")} loading={isLoading && loadingAction === "remove_and_warmup"} variant="warmup" disabled={isLoading} />
+                            <ActionButton label="Remove all"      icon={WifiOff} onClick={() => runAction(acc.sender_email, "remove")}           loading={isLoading && loadingAction === "remove"}           variant="danger" disabled={isLoading} />
+                            <ActionButton label="Remove + warmup" icon={Flame}   onClick={() => runAction(acc.sender_email, "remove_and_warmup")} loading={isLoading && loadingAction === "remove_and_warmup"} variant="warmup" disabled={isLoading} />
                           </>
                         ) : (
                           <ActionButton label="Remove all" icon={WifiOff} onClick={() => runAction(acc.sender_email, "remove")} loading={isLoading && loadingAction === "remove"} variant="danger" disabled={isLoading} />
@@ -586,8 +722,8 @@ function AccountTable({ ws, days, onBack, onActionDone }: {
                           <CampaignDropdown
                             senderEmail={acc.sender_email}
                             workspaceSlug={ws.slug}
-                            onCampaignRemoved={() => {}}
-                            onAllRemoved={() => { setRemovedSet(prev => new Set([...prev, acc.sender_email])); setExpandedEmail(null); }}
+                            senderId={null}
+                            onAllRemoved={() => setRemovedSet(prev => new Set([...prev, acc.sender_email]))}
                             onActionDone={onActionDone}
                           />
                         </div>
@@ -607,13 +743,14 @@ function AccountTable({ ws, days, onBack, onActionDone }: {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function AccountMonitor() {
-  const workspaces = useWorkspaces();
-  const [days, setDays]         = useState(7);
-  const [data, setData]         = useState<{ workspaces: WorkspaceData[]; summary: Summary } | null>(null);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState<string | null>(null);
-  const [selected, setSelected] = useState<WorkspaceData | null>(null);
-  const [toast, setToast]       = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const workspaces        = useWorkspaces();
+  const [days, setDays]           = useState(7);
+  const [data, setData]           = useState<{ workspaces: WorkspaceData[]; summary: Summary } | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState<string | null>(null);
+  const [selected, setSelected]   = useState<WorkspaceData | null>(null);
+  const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [nukingAll, setNukingAll] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -631,6 +768,40 @@ export function AccountMonitor() {
   }, [days]);
 
   useEffect(() => { load(); }, [load]);
+
+  async function removeAllRisky() {
+    if (!data) return;
+    const riskyAccounts = data.workspaces.flatMap(ws =>
+      ws.accounts.filter(a => a.status === "spam_risk").map(a => ({
+        sender_email: a.sender_email, workspace_slug: a.workspace_slug,
+      }))
+    );
+    if (riskyAccounts.length === 0) return;
+    const confirmed = window.confirm(
+      `Remove ${riskyAccounts.length} spam-risk accounts from all campaigns across all workspaces? This cannot be undone.`
+    );
+    if (!confirmed) return;
+    setNukingAll(true);
+    let succeeded = 0; let failed = 0;
+    for (const acc of riskyAccounts) {
+      try {
+        const res = await fetch("/api/account-monitor/action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sender_email: acc.sender_email, workspace_slug: acc.workspace_slug, action: "remove" }),
+        });
+        const d = await res.json();
+        if (res.ok && d.ok) succeeded++;
+        else failed++;
+      } catch { failed++; }
+    }
+    setNukingAll(false);
+    setToast({
+      msg: `Done — ${succeeded} accounts removed.${failed > 0 ? ` ${failed} failed.` : ""}`,
+      type: failed > 0 ? "error" : "success",
+    });
+    load();
+  }
 
   const selectedWs = selected && data
     ? data.workspaces.find(w => w.slug === selected.slug) ?? null
@@ -651,6 +822,17 @@ export function AccountMonitor() {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <DayToggle value={days} onChange={setDays} />
+          {data && data.summary.totalSpamRisk > 0 && !selectedWs && (
+            <button onClick={removeAllRisky} disabled={nukingAll || loading}
+              style={{
+                display: "flex", alignItems: "center", gap: 6, fontSize: 11, padding: "5px 10px",
+                borderRadius: 8, border: "0.5px solid #F09595", background: "#FCEBEB", color: "#A32D2D",
+                cursor: nukingAll ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500,
+              }}>
+              {nukingAll ? <Loader2 size={11} className="animate-spin" /> : <WifiOff size={11} />}
+              {nukingAll ? "Removing..." : `Remove all ${data.summary.totalSpamRisk} risky`}
+            </button>
+          )}
           <button onClick={load} disabled={loading}
             style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, padding: "5px 10px", borderRadius: 8, border: "0.5px solid #e5e7eb", background: "#fff", color: "#6b7280", cursor: "pointer", fontFamily: "inherit" }}>
             <RefreshCw size={11} className={loading ? "animate-spin" : ""} />

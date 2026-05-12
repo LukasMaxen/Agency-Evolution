@@ -49,34 +49,48 @@ export async function POST(req: NextRequest) {
       Accept: "application/json",
     };
 
-    // 2. Resolve sender ID (use provided one to skip lookup if already known)
+   // 2. Resolve sender ID — check sender_accounts DB first (avoids EB search pagination issues),
+    //    fall back to EB search only if not found in DB.
     let senderId: number = providedSenderId;
     let warmupAlreadyEnabled = false;
 
     if (!senderId) {
-      const searchRes = await fetch(
-        `${instanceUrl}/api/sender-emails?search=${encodeURIComponent(sender_email)}`,
-        { headers }
+      // Try DB first — eb_sender_id is stored during sync
+      const dbSender = await pool.query(
+        `SELECT eb_sender_id, warmup_enabled FROM sender_accounts
+         WHERE workspace_slug = $1 AND email = $2 LIMIT 1`,
+        [workspace_slug, sender_email.toLowerCase()]
       );
-      if (!searchRes.ok) {
-        const err = await searchRes.text();
-        return NextResponse.json(
-          { error: `EmailBison sender lookup failed (${searchRes.status}): ${err}` },
-          { status: 502 }
+
+      if (dbSender.rows.length > 0 && dbSender.rows[0].eb_sender_id) {
+        senderId = dbSender.rows[0].eb_sender_id;
+        warmupAlreadyEnabled = dbSender.rows[0].warmup_enabled ?? false;
+      } else {
+        // Fall back to EB search
+        const searchRes = await fetch(
+          `${instanceUrl}/api/sender-emails?search=${encodeURIComponent(sender_email)}`,
+          { headers }
         );
-      }
-      const searchData = await searchRes.json();
-      const sender = (searchData.data ?? []).find(
-        (s: any) => s.email?.toLowerCase() === sender_email.toLowerCase()
-      );
-      if (!sender) {
-        return NextResponse.json(
-          { error: `Sender '${sender_email}' not found in EmailBison` },
-          { status: 404 }
+        if (!searchRes.ok) {
+          const err = await searchRes.text();
+          return NextResponse.json(
+            { error: `EmailBison sender lookup failed (${searchRes.status}): ${err}` },
+            { status: 502 }
+          );
+        }
+        const searchData = await searchRes.json();
+        const sender = (searchData.data ?? []).find(
+          (s: any) => s.email?.toLowerCase() === sender_email.toLowerCase()
         );
+        if (!sender) {
+          return NextResponse.json(
+            { error: `Sender '${sender_email}' not found in EmailBison` },
+            { status: 404 }
+          );
+        }
+        senderId = sender.id;
+        warmupAlreadyEnabled = sender.warmup_enabled ?? false;
       }
-      senderId = sender.id;
-      warmupAlreadyEnabled = sender.warmup_enabled ?? false;
     }
 
     // 3. Build the list of campaigns to act on
