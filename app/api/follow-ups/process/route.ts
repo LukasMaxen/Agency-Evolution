@@ -262,9 +262,12 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
     })
     .filter(Boolean);
 
+  // Slug aliases: some workspaces share a client file (eg internal-campaigns → agency-evolution).
+  const CLIENT_FILE_ALIASES: Record<string, string> = { "internal-campaigns": "agency-evolution" };
+  const fileSlug = CLIENT_FILE_ALIASES[fu.workspace_slug] ?? fu.workspace_slug;
+
   // Read client file + workflow context. Both define ALL rules.
-  // The processor is intentionally rule-free: edit the markdown to change behaviour.
-  const clientFile = readFile(path.join(process.cwd(), "clients", `${fu.workspace_slug}.md`));
+  const clientFile = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
   const followUpContext = readFile(
     path.join(process.cwd(), "1. Departments", "follow-up-management", "CONTEXT_FollowUps.md")
   );

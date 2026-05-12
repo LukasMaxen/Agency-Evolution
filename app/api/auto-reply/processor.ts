@@ -1157,11 +1157,24 @@ Return a single JSON object and nothing else. Start with "{" and end with "}". N
 - wrong_target = wrong person/company, no redirect — FU none, flag_unsubscribe true, auto_send brief apology
 - hostile = abusive language — FU none, flag_unsubscribe true, auto_send 1-line acknowledgment
 
+## FLAG RULES
+
+**flag_meeting_booked: true** when:
+- Lead says they have already booked via the Calendly link ("I signed up", "I booked a slot", "I grabbed a time", "I scheduled a call")
+- Lead confirms a specific meeting time was already set ("Talk to you Monday", "See you Tuesday at 3pm", "Looking forward to our call")
+- Lead mentions they received a calendar invite
+Set flag_meeting_booked true AND reply with a short 2-line confirmation. Stop all FU sequences (fu_sequence_type: "none").
+
+**flag_unsubscribe: true** when:
+- Lead explicitly asks to be removed, unsubscribed, or says stop contacting them
+Set flag_unsubscribe true, fu_sequence_type: "none".
+
 ## FU SEQUENCE RULES
 
 - interested_urgent, interested, needs_info, neutral → full (6 steps)
 - not_interested → abbreviated (2 steps)
 - hard_no, unsubscribe, wrong_target, hostile → none
+- flag_meeting_booked = true → none (always stop FU when meeting is booked)
 
 ---
 
