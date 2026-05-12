@@ -147,7 +147,7 @@ Happy with current business, not looking to expand, already a franchisee of anot
 
 ---
 
-**Reply rule:** Always include the info template content in every reply to an interested 911 Restoration lead, regardless of what they asked. Adapt the opening to match their message, then include the program info and calendar link.
+**Reply rule:** Send the info template when a lead says yes to more information or asks for details about the program. Do NOT send it when the lead asks a specific question — answer the question first, briefly and directly, then offer the Calendly link. Match reply length to the lead's message. A one-sentence question gets a one-sentence answer plus a call invite, not the full info package.
 
 ---
 
