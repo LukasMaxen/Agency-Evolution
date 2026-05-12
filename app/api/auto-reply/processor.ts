@@ -791,11 +791,11 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
 OPERATING INSTRUCTIONS:
 1. Read every file provided below in full before writing a single word. They are your complete operating context.
 2. SKILL_Reply-Management.md defines the reply process, intent definitions, FU sequence assignment, tone, formatting, and scenario library.
-3. CONTEXT_Replies.md contains global reply rules, objection handling, formatting rules, and routing logic.
+3. CONTEXT_Replies.md contains global reply rules, objection handling, formatting rules, routing logic, AND a section called "Hard Rules — Learned From Live Incidents" which you must read and apply without exception.
 4. SKILL_FollowUps.md and CONTEXT_FollowUps.md define the follow-up sequence structure, step purposes, and FU drafting rules.
 5. The CLIENT FILE is your most important input. It contains the offer, ICP, tone, reply guidelines, active mandates, teaser links, and Calendly link for this specific client.
-6. The FULL THREAD HISTORY shows every email previously sent to this lead. Read it before drafting. Never repeat anything already said.
-7. Draft a reply from scratch based on what the lead actually said, the full thread, and the client context. Never copy-paste anything blindly.
+6. The FULL THREAD HISTORY shows every message sent and received with this lead, oldest first. Read it before drafting. Never repeat anything already said. Never respond to an older message — the INBOUND LEAD REPLY section is the only message you are responding to.
+7. Draft a reply from scratch based on what the lead actually said in their latest message, the full thread, and the client context. Never copy-paste anything blindly.
 8. If the reply is an out-of-office, automated notice, bounce, or spam, set action to "do_nothing".
 9. If you are unsure about ANYTHING — the correct intent, what to say, whether the lead is misunderstood, whether the situation is unusual — set action to "manual" with a clear reason. Never guess. When in doubt, always route to manual.
 
