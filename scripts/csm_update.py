@@ -154,14 +154,12 @@ def airtable_count(base_id, table_id, field, days):
     return total
 
 
-def fetch_meetings():
+def fetch_meetings(days=1):
+    """Fetch meeting counts from Airtable for the given number of days back.
+    Airtable is the sole source of truth for meetings — never use the DB."""
     result = {}
     for slug, (base_id, table_id, field) in AIRTABLE_MEETINGS.items():
-        result[slug] = {
-            "24h": airtable_count(base_id, table_id, field, 1),
-            "7d":  airtable_count(base_id, table_id, field, 7),
-            "30d": airtable_count(base_id, table_id, field, 30),
-        }
+        result[slug] = airtable_count(base_id, table_id, field, days)
         print(f"  {slug}: {result[slug]}")
     return result
 
