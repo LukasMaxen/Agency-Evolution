@@ -198,20 +198,36 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1500,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90_000); // 90-second hard timeout
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2500,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }],
+      }),
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      console.error("[auto-reply] Claude API call timed out after 90s");
+    } else {
+      console.error("[auto-reply] Claude API fetch error:", err?.message ?? err);
+    }
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     console.error("[auto-reply] Claude API error:", response.status, await response.text());
@@ -222,10 +238,18 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
   const raw = data.content?.[0]?.text ?? "";
   const clean = raw.replace(/```json|```/g, "").trim();
 
+  // Tolerant parse: try strict first, fall back to extracting the outermost {...}
   try {
     return JSON.parse(clean) as AutoReplyResult;
   } catch {
-    console.error("[auto-reply] Failed to parse Claude response:", raw);
+    const firstBrace = clean.indexOf("{");
+    const lastBrace = clean.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      try {
+        return JSON.parse(clean.slice(firstBrace, lastBrace + 1)) as AutoReplyResult;
+      } catch { /* fall through */ }
+    }
+    console.error("[auto-reply] Failed to parse Claude response:", raw.slice(0, 500));
     return null;
   }
 }
@@ -277,20 +301,36 @@ ${replyMessage}
 
 Classify now.`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 200,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000); // 30-second timeout for Haiku
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 200,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }],
+      }),
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      console.error("[auto-reply] Haiku classify timed out after 30s");
+    } else {
+      console.error("[auto-reply] Haiku classify fetch error:", err?.message ?? err);
+    }
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     console.error("[auto-reply] Haiku classify error:", response.status, await response.text());

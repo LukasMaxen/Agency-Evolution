@@ -769,6 +769,17 @@ Produce the revised draft now.`;
   const newBody = sanitizeDashes(regen.body);
   const newSubject = regen.subject ? sanitizeDashes(regen.subject) : draft.subject;
 
+  // Guard: reject a regenerated body that is too short — same truncation risk as the main processor.
+  const bodyWithoutSignature = newBody.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
+  if (bodyWithoutSignature.length < 80) {
+    await postToSlack({
+      channel,
+      threadTs: ts,
+      text: "Regenerated body was too short (possible truncation). Not saved. Add more specific feedback and try again.",
+    });
+    return;
+  }
+
   await pool.query(
     `UPDATE reply_drafts SET body = $1, subject = $2 WHERE id = $3`,
     [newBody, newSubject, draft.id]
@@ -861,6 +872,17 @@ Produce the revised follow-up draft now.`;
 
   const newBody = sanitizeDashes(regen.body);
   const newSubject = regen.subject ? sanitizeDashes(regen.subject) : draft.subject;
+
+  // Guard: reject a regenerated body that is too short.
+  const bodyWithoutSignature = newBody.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
+  if (bodyWithoutSignature.length < 80) {
+    await postToSlack({
+      channel,
+      threadTs: ts,
+      text: "Regenerated body was too short (possible truncation). Not saved. Add more specific feedback and try again.",
+    });
+    return;
+  }
 
   await pool.query(
     `UPDATE follow_up_drafts SET body = $1, subject = $2 WHERE id = $3`,
