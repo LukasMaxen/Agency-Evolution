@@ -719,6 +719,15 @@ async function regenerateReplyDraft(draft: ReplyDraftRow, reviewerName: string, 
 
   const clientFile = readContextFile(`clients/${draft.workspace_slug}.md`);
   const replyContext = readContextFile(`1. Departments/reply-management/CONTEXT_Replies.md`);
+  const skillFile = readContextFile(`1. Departments/reply-management/SKILL_Reply-Management.md`);
+
+  // Extract lead intelligence from their original message to help Claude write a specific, non-generic revision.
+  const domain = (reply.lead_email ?? "").split("@")[1] ?? "";
+  const leadDomain = domain && !["gmail","yahoo","hotmail","outlook"].some(d => domain.includes(d)) ? `Company domain: ${domain}` : "";
+  const selfDesc = (reply.message ?? "").split("\n").find(l =>
+    /^(we (are|work|help|focus)|our (company|firm|fund)|i (am|work|run))/i.test(l.trim()) && l.length > 20 && l.length < 300
+  ) ?? "";
+  const leadIntelNote = [leadDomain, selfDesc ? `Lead described: ${selfDesc}` : ""].filter(Boolean).join("\n");
 
   const systemPrompt = `You are revising a drafted first-response email for Maxen Partners based on human feedback. Apply the feedback to produce a new draft.
 
@@ -728,12 +737,22 @@ OUTPUT FORMAT (CRITICAL): The very first character of your response MUST be "{" 
   "body": "full revised email body, plain text, greeting on its own line, blank lines between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line. Plain text only."
 }
 
-Apply the human feedback as the priority. Keep what is already good in the original draft. Honour every rule in CONTEXT_Replies.md (tone, formatting, no dashes, no colons in body, banned phrases, booking prompt format, etc).
+Apply the human feedback as the priority. Keep what is already good in the original draft. Honour every rule in CONTEXT_Replies.md — especially the "Hard Rules — Learned From Live Incidents" section.
+
+HARD RULES (always apply, even during revision):
+- Write in first person always — never refer to the sender by name as the subject of a sentence
+- Never confirm availability or suggest specific time slots
+- Reference something specific from the lead's message — not generic
+- No AI filler phrases ("Sounds great", "I'd love to", "Excited to show you")
+- End with {SENDER_EMAIL_SIGNATURE} on its own line, nothing before it
 
 If the human feedback contradicts a rule in CONTEXT_Replies.md, follow the feedback (humans are training the system).
 
 === CONTEXT_Replies.md ===
-${replyContext}`;
+${replyContext}
+
+=== SKILL_Reply-Management.md ===
+${skillFile}`;
 
   const userMessage = `CLIENT WORKSPACE: ${draft.workspace_slug}
 

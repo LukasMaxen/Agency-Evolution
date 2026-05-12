@@ -394,6 +394,28 @@ Draft FU step ${nextStep} now.`;
   draft.body = sanitizeDashes(draft.body);
   draft.subject = sanitizeDashes(draft.subject);
 
+  // Two-pass quality check: Haiku critiques, if issues found discard and re-draft with Sonnet.
+  // Only runs on Sonnet-drafted steps — templates are pre-approved text.
+  if (!templateName) {
+    const critique = await critiqueFuDraft(draft.body, reply.message ?? "", fu.workspace_slug);
+    if (critique) {
+      console.log(`[fu-process] Haiku critique for ${fu.id} step ${nextStep}: ${critique}`);
+      const revised = await callClaude(
+        systemPrompt,
+        `${userMessage}\n\nA quality check found issues with your previous draft:\n${critique}\n\nRevise the draft to fix these issues. Return the full JSON object.`
+      );
+      if (revised?.body) {
+        const revisedClean = sanitizeDashes(revised.body);
+        const revisedWithoutSig = revisedClean.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
+        if (revisedWithoutSig.length >= 80) {
+          draft.body = revisedClean;
+          if (revised.subject) draft.subject = sanitizeDashes(revised.subject);
+          console.log(`[fu-process] FU draft revised based on critique for ${fu.id} step ${nextStep}`);
+        }
+      }
+    }
+  }
+
   // Guard: reject a body that is too short — same truncation risk as the auto-reply processor.
   const bodyWithoutSignature = draft.body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
   if (bodyWithoutSignature.length < 80) {

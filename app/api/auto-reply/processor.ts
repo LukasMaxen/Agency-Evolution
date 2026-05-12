@@ -1382,6 +1382,9 @@ ${reply.message}`;
       && workspace.auto_reply_approval_mode
       && await shouldRouteToApproval();
     if (withinQuota || forceApprovalForComplexity) {
+      result.manual_reason = forceApprovalForComplexity && !withinQuota
+        ? `Complex thread (${priorExchangeCount} prior messages) — forced to approval regardless of quota`
+        : result.manual_reason;
       const draftId = `rd-${replyId}-${Date.now()}`;
       const slackTs = await postReplyApprovalCard({
         workspaceSlug,
