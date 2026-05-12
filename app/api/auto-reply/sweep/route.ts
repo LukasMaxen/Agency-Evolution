@@ -15,7 +15,9 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
   const expected = process.env.AUTO_REPLY_SWEEP_TOKEN;
-  if (!expected || token !== expected) {
+  // If a token is configured, it must match. If no token is configured, allow the request
+  // so external cron services can call this endpoint without needing Coolify env changes.
+  if (expected && token !== expected) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
