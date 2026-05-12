@@ -299,17 +299,28 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
   }
 }
 
-interface ClassifyResult {
-  intent: string;
-  confidence: "high" | "medium" | "low";
+/**
+ * OOO / bounce / spam pre-filter. Returns true if the message is clearly
+ * a no-action reply that should never reach Claude. Catches the most common
+ * patterns before spending a Sonnet call on them.
+ */
+function isNoActionReply(message: string): boolean {
+  if (!message) return false;
+  const m = message.toLowerCase();
+  return (
+    /out of office|on vacation|away from (the )?office|annual leave|maternity leave|parental leave/.test(m) ||
+    /auto.?reply|automated (response|reply)|this is an automated/.test(m) ||
+    /undeliverable|delivery has failed|delivery failure|bounce|mailer.daemon|postmaster/.test(m) ||
+    /do not reply to this (email|message)|please do not reply/.test(m) ||
+    /message could not be delivered/.test(m)
+  );
 }
 
-/**
- * Tier-1 classification using Haiku. Cheap (~$0.001), fast, only returns the
- * intent bucket so we can route to either the Sonnet drafter (interested
- * family) or the template engine (not-interested family) or skip entirely.
- */
-async function classifyIntent(replyMessage: string, leadName: string, leadCompany: string | null): Promise<ClassifyResult | null> {
+// Dead code removed: classifyIntent (Haiku tier) was never called in the main
+// processor flow — every reply went straight to Sonnet regardless. Removing to
+// keep the codebase honest about what actually runs.
+
+async function _classifyIntent_UNUSED(replyMessage: string, leadName: string, leadCompany: string | null): Promise<null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
@@ -848,6 +859,18 @@ ${fuSkillFile}
 
 === CONTEXT_FollowUps.md ===
 ${fuContextFile}`;
+
+  // OOO / bounce / spam pre-filter: skip Claude entirely for obvious no-action replies.
+  // This catches out-of-office, delivery failures, and auto-replies before spending
+  // a Sonnet call on them.
+  if (isNoActionReply(reply.message ?? "")) {
+    await pool.query(
+      `UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+      [JSON.stringify({ intent: "out_of_office_or_bounce", auto_replied: false, skipped_reason: "pre-filter: OOO/bounce/spam detected" }), replyId]
+    );
+    console.log(`[auto-reply] ${replyId} skipped by OOO/bounce pre-filter`);
+    return;
+  }
 
   // Fetch full thread: outgoing emails AND inbound replies, merged chronologically.
   // Without inbound replies Claude only sees half the conversation and misses context

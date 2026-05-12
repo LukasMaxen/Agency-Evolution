@@ -25,7 +25,7 @@ export async function runAutoReplySweep(): Promise<void> {
       `SELECT id, workspace_slug, lead_name, lead_email, received_at
        FROM replies
        WHERE status = 'new'
-         AND received_at <= NOW() - INTERVAL '24 hours'
+         AND received_at <= NOW() - INTERVAL '4 hours'
        LIMIT 50`
     );
     if (stale.rows.length > 0) {
