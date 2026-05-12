@@ -498,6 +498,13 @@ async function postReplyApprovalCard(opts: ReplyApprovalCardOpts): Promise<strin
     },
   ];
 
+  if (result.manual_reason) {
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: `:warning: *Note:* ${result.manual_reason}` },
+    });
+  }
+
   if (ebLink) {
     blocks.push({
       type: "section",
