@@ -46,20 +46,36 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Dr
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1500,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90_000);
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2500,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }],
+      }),
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      console.error("[fu-process] Claude API call timed out after 90s");
+    } else {
+      console.error("[fu-process] Claude API fetch error:", err?.message ?? err);
+    }
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     console.error("[fu-process] Claude API error:", response.status, await response.text());
@@ -73,7 +89,14 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Dr
   try {
     return JSON.parse(clean) as DraftResult;
   } catch {
-    console.error("[fu-process] Failed to parse Claude response:", raw);
+    const firstBrace = clean.indexOf("{");
+    const lastBrace = clean.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      try {
+        return JSON.parse(clean.slice(firstBrace, lastBrace + 1)) as DraftResult;
+      } catch { /* fall through */ }
+    }
+    console.error("[fu-process] Failed to parse Claude response:", raw.slice(0, 500));
     return null;
   }
 }
@@ -161,12 +184,27 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
   }
   const reply = replyResult.rows[0];
 
-  // Pull previous FU bodies so Claude doesn't repeat angles
+  // Pull full thread: all outgoing emails + any subsequent inbound replies from the lead.
+  // Including manual replies and inbound replies prevents Claude from repeating angles
+  // already covered or ignoring things the lead has said since the sequence started.
   const prevSent = await pool.query(
-    `SELECT body FROM sent_emails WHERE reply_id = $1 AND email_type IN ('follow_up','auto_reply') ORDER BY sent_at ASC`,
-    [fu.reply_id]
+    `SELECT 'outbound' AS direction, email_type, body, sent_at
+     FROM sent_emails
+     WHERE reply_id = $1
+       AND email_type IN ('follow_up', 'auto_reply', 'reply')
+     UNION ALL
+     SELECT 'inbound' AS direction, 'lead_reply' AS email_type, message AS body, received_at AS sent_at
+     FROM replies
+     WHERE workspace_slug = $2 AND lead_email = $3 AND id != $1
+     ORDER BY sent_at ASC`,
+    [fu.reply_id, fu.workspace_slug, fu.lead_email]
   );
-  const prevBodies = prevSent.rows.map(r => r.body).filter(Boolean);
+  const prevBodies = prevSent.rows
+    .map(r => {
+      const label = r.direction === "inbound" ? "[LEAD REPLIED]" : `[US — ${r.email_type}]`;
+      return `${label}\n${r.body}`;
+    })
+    .filter(Boolean);
 
   // Read client file + workflow context. Both define ALL rules.
   // The processor is intentionally rule-free: edit the markdown to change behaviour.
@@ -267,6 +305,13 @@ Draft FU step ${nextStep} now.`;
   // Strip any em/en dashes Claude leaked through despite the prompt.
   draft.body = sanitizeDashes(draft.body);
   draft.subject = sanitizeDashes(draft.subject);
+
+  // Guard: reject a body that is too short — same truncation risk as the auto-reply processor.
+  const bodyWithoutSignature = draft.body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
+  if (bodyWithoutSignature.length < 80) {
+    console.warn(`[fu-process] FU body too short (${bodyWithoutSignature.length} chars) for ${fu.workspace_slug} / ${fu.lead_name} step ${nextStep} — skipping`);
+    return { status: "failed", reason: "generated body too short, possible truncation" };
+  }
 
   // Approval mode → stage in follow_up_drafts + post to Slack
   if (reply.fu_approval_mode) {

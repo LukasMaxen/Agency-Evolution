@@ -181,7 +181,7 @@ async function approveReplyDraft(draft: ReplyDraftRow, slackUserId: string, chan
 
   // Now create the FU record (only after approved + sent)
   if (draft.fu_sequence_type && draft.fu_sequence_type !== "none" && !draft.flag_meeting_booked && !draft.flag_unsubscribe) {
-    const totalEmails = draft.fu_sequence_type === "abbreviated" ? 2 : 5;
+    const totalEmails = draft.fu_sequence_type === "abbreviated" ? 2 : 6;
     const fuId = `fu-${draft.reply_id}-${Date.now()}`;
     await pool.query(
       `INSERT INTO follow_ups (id, reply_id, workspace_slug, lead_name, lead_email, first_replied_at, fu_step, total_emails, fu_sequence_type, meeting_booked, next_fu_due)
