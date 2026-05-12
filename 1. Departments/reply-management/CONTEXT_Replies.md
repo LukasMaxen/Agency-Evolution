@@ -981,11 +981,22 @@ When a lead confirms a booking or says yes to a call: 2-3 lines max. Do not re-p
 
 ---
 
-### 6. Mandate campaigns — always include the teaser
+### 6. Mandate campaigns include the teaser. All other campaigns are call-only. Never confuse them.
 
-When replying to any interested lead on a sell-side mandate campaign (ACT Capital, Venture Exits, Statera TelcoLab, ZEBS), always include the correct teaser link. The mandate pre-match in the processor identifies which teaser to use. Always use the one provided in the MANDATE MATCH note. Never send a different mandate's teaser.
+**Campaigns WITH a teaser — send it when a lead is interested:**
+- ACT Capital mandate campaigns (Tequila, Excavation, Contractor)
+- Venture Exits mandate campaigns (Yoga & Wellness)
+- Statera Capital TelcoLab
+- ZEBS Seed Round
 
-If no MANDATE MATCH is injected, check the campaign name and client file carefully to identify the correct mandate before sending any link.
+**Campaigns with NO teaser — never mention one, call only:**
+- Statera Capital Sell Side Advisory (emailing business owners about an exit)
+- Statera Capital PE Add-On campaigns (Brite, ID Images, PEAK, PowerX etc.)
+- ACT Capital Sell Side Advisory
+- Wrobel Capital sell-side
+- 911 Restoration, Larsen Digital, GN Motion, Acceler8rs, internal-campaigns
+
+If a MANDATE MATCH note is present in the context, use that teaser. If no MANDATE MATCH is present and the campaign name does not explicitly indicate a mandate (Acquisition, TelcoLab, ZEBS, Yoga), do not mention a teaser. Direct the lead to a call only.
 
 ---
 

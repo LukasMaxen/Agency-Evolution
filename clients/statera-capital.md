@@ -322,10 +322,11 @@ Any reply expressing openness to a conversation with a buyer.
 **CRITICAL — Sell Side Advisory vs PE Add-On campaigns:**
 These are two completely different campaign types in the same account. Never mix their language.
 
-- **Sell Side Advisory** (emailing business owners about an exit): Frame as "a specific buyer interested in your business." Never use "add-on acquisitions", "platform business", or revenue range language. The buyer is interested in THIS specific company.
+- **Sell Side Advisory** (emailing business owners about an exit): Frame as "a specific buyer interested in your business." Never use "add-on acquisitions", "platform business", or revenue range language. The buyer is interested in THIS specific company. **There is no teaser for Sell Side Advisory — never mention or offer one. The only next step is a call.**
 - **PE Add-On campaigns** (Brite, ID Images, PEAK etc. — emailing business owners about a PE buyer): Use the PE add-on framing from that specific campaign. Never cross-contaminate with Sell Side Advisory language.
+- **TelcoLab / mandate campaigns**: These DO have teasers. Only use teaser language when the campaign is explicitly a mandate (TelcoLab, ZEBS).
 
-Check the campaign name before drafting. "Sell Side Advisory" = specific buyer interested in them. "Brite / ID Images / PEAK / PowerX" = PE firm doing add-ons.
+Check the campaign name before drafting. "Sell Side Advisory" = specific buyer, call only, no teaser. "TelcoLab / ZEBS" = mandate, send teaser. "Brite / ID Images / PEAK / PowerX" = PE add-on framing.
 
 **Interested signal (ZEBS track):**
 Any reply asking for the teaser or expressing interest in the investment.
