@@ -1279,6 +1279,27 @@ ${reply.message}`;
     result.manual_reason = sanitizeDashes(result.manual_reason);
   }
 
+  // Two-pass quality check: Haiku critiques the draft, Sonnet revises if issues found.
+  // Only runs on auto_send drafts — no point critiquing manual or do_nothing decisions.
+  // Haiku call costs ~$0.001. Sonnet revision only fires when Haiku finds real issues.
+  if (result.action === "auto_send" && result.reply_body) {
+    const senderContext = `Sender is writing as themselves in first person (workspace: ${workspaceSlug})`;
+    const critique = await critiqueDraft(
+      result.reply_body,
+      reply.message ?? "",
+      reply.lead_name ?? "",
+      senderContext
+    );
+    if (critique) {
+      console.log(`[auto-reply] Haiku critique for ${replyId}: ${critique}`);
+      const revised = await reviseDraft(result.reply_body, critique, systemPrompt, userMessage);
+      if (revised) {
+        result.reply_body = sanitizeDashes(revised);
+        console.log(`[auto-reply] Reply revised based on critique for ${replyId}`);
+      }
+    }
+  }
+
   // Guard: if reply_body is suspiciously short after removing the signature placeholder,
   // route to manual instead of sending an incomplete reply to the lead.
   if (result.action === "auto_send" && result.reply_body) {
