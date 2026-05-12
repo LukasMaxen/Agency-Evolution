@@ -1064,14 +1064,17 @@ Use this decision tree strictly:
 - Out-of-office, vacation reply, delivery failure, automated notice, bounce
 - Nothing to respond to (empty message, forwarding notice with no new content)
 
-**manual** if:
-- Lead gives a phone number and asks to be called
-- Lead explicitly requests a phone call over a video/calendar booking
-- Lead gives a specific day AND time for non-Larsen Digital clients (e.g. "Monday at 2pm", "tomorrow morning")
-- The situation is genuinely unusual and you are not confident in the correct response — route to manual rather than guessing
+**manual** ONLY if:
+- Lead gives a phone number AND explicitly asks to be called (signature phone numbers alone are NOT manual)
+- Lead explicitly requests a phone call over video/calendar
+- Lead gives a specific day AND time for non-Larsen Digital clients
+
+**NEVER route to manual for: unsubscribe, not_interested, hard_no, wrong_target, hostile.**
+"Stop", "No interest", "Not interested", "Remove me from your list", "We're not interested" — these are ALWAYS auto_send. Draft a 1-line confirmation and send. Do not route to manual no matter how short, blunt, or unusual the message is.
 
 **auto_send** for everything else, including:
-- Angry replies, hostile replies, difficult objections — draft and send, do not escalate
+- Unsubscribes, not interested, hard nos, hostile — 1-line confirmation, auto_send always
+- Angry replies, difficult objections — draft and send
 - Ambiguous replies — draft the most reasonable response and send
 - All interested signals — draft and send (or stage for approval)
 
@@ -1324,6 +1327,23 @@ ${reply.message}`;
         } else {
           console.warn(`[auto-reply] Revised body too short (${revisedWithoutSig.length} chars) — keeping original for ${replyId}`);
         }
+      }
+    }
+  }
+
+  // Override: if Claude returned manual but the intent is always-auto-send,
+  // force auto_send with a standard 1-line reply. These intents (unsubscribe,
+  // hard_no, not_interested, wrong_target, hostile) never need human review.
+  if (result.action === "manual" && ALWAYS_AUTO_SEND.has(result.intent)) {
+    console.warn(`[auto-reply] Overriding manual routing for ${result.intent} reply ${replyId} — always auto-send`);
+    result.action = "auto_send";
+    if (!result.reply_body) {
+      if (result.intent === "unsubscribe" || result.intent === "hostile" || result.intent === "wrong_target") {
+        result.reply_body = `Hi ${reply.lead_name?.split(" ")[0] ?? "there"},\n\nRemoved — you won't hear from us again.\n\n{SENDER_EMAIL_SIGNATURE}`;
+      } else if (result.intent === "not_interested") {
+        result.reply_body = `Hi ${reply.lead_name?.split(" ")[0] ?? "there"},\n\nUnderstood. Won't follow up further.\n\n{SENDER_EMAIL_SIGNATURE}`;
+      } else if (result.intent === "hard_no") {
+        result.reply_body = `Hi ${reply.lead_name?.split(" ")[0] ?? "there"},\n\nGot it. Won't follow up.\n\n{SENDER_EMAIL_SIGNATURE}`;
       }
     }
   }
