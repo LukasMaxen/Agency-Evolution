@@ -16,7 +16,6 @@ export async function runAutoReplySweep(): Promise<void> {
 
   try {
     const { processAutoReply } = await import("@/app/api/auto-reply/processor");
-    const { postToSlack, MANUAL_REPLIES_CHANNEL } = await import("@/lib/slack-approval");
 
     // Silently mark any replies stuck at 'new' for >24h as errored and post
     // ONE summary card if there are any. Never post per-reply cards — this
@@ -29,25 +28,16 @@ export async function runAutoReplySweep(): Promise<void> {
        LIMIT 50`
     );
     if (stale.rows.length > 0) {
-      // Mark all errored in one query
+      // Silently mark all errored — no Slack notification.
+      // #manual-replies is for leads that need a human reply, not system cleanup noise.
       const ids = stale.rows.map(r => r.id);
       await pool.query(
         `UPDATE replies SET status = 'errored' WHERE id = ANY($1::uuid[])`,
         [ids]
       );
       stale.rows.forEach(row =>
-        console.warn(`[self-sweep] Stale >24h, marked errored: ${row.workspace_slug} / ${row.lead_name} <${row.lead_email}>`)
+        console.warn(`[self-sweep] Stale >4h, marked errored silently: ${row.workspace_slug} / ${row.lead_name} <${row.lead_email}>`)
       );
-      // One summary card only
-      const lines = stale.rows.map(r => `• ${r.workspace_slug} — ${r.lead_name ?? "unknown"} <${r.lead_email}>`).join("\n");
-      await postToSlack({
-        channel: MANUAL_REPLIES_CHANNEL,
-        text: `${stale.rows.length} reply/replies stuck >24h, marked errored`,
-        blocks: [
-          { type: "header", text: { type: "plain_text", text: `${stale.rows.length} reply/replies stuck >24h, marked errored`, emoji: true } },
-          { type: "section", text: { type: "mrkdwn", text: `These replies were never processed and have been marked errored. Check EmailBison and reply manually if needed.\n\n${lines}` } },
-        ],
-      }).catch(e => console.error("[self-sweep] Failed to post stale summary:", e));
     }
 
     const r = await pool.query(
