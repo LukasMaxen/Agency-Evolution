@@ -18,6 +18,10 @@ export async function register() {
   if (process.env.NEXT_PHASE === "phase-production-build") return;
 
   // ── 1. Auto-reply self-sweeper ────────────────────────────────────────────
+  // Two paths for resilience:
+  // A) In-process: calls runAutoReplySweep() directly inside the Node process
+  // B) HTTP self-ping: hits the open sweep endpoint every 90s as a fallback
+  //    in case the in-process function has issues or the running flag is stuck.
   const { runAutoReplySweep } = await import("@/lib/auto-reply-self-sweeper");
 
   setTimeout(() => {
@@ -32,7 +36,17 @@ export async function register() {
     );
   }, 60_000);
 
-  console.log("[instrumentation] auto-reply self-sweeper started, 60s interval");
+  // HTTP self-ping fallback — runs every 90s on a staggered interval so it
+  // picks up anything the in-process sweeper missed (e.g. running=true stuck).
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://inbox.agencyevolution.eu";
+  setInterval(() => {
+    fetch(`${appUrl}/api/auto-reply/sweep?limit=20`)
+      .then(r => r.json())
+      .then(d => { if (d.processed_ok > 0) console.log(`[instrumentation] HTTP sweep: ${d.processed_ok} processed`); })
+      .catch(err => console.error("[instrumentation] HTTP sweep ping failed:", err));
+  }, 90_000);
+
+  console.log("[instrumentation] auto-reply self-sweeper started (60s in-process + 90s HTTP fallback)");
 
   // ── 2. EmailBison inbox sync ──────────────────────────────────────────────
   const { runEmailBisonInboxSync } = await import("@/lib/emailbison-inbox-sync");
