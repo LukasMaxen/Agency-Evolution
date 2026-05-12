@@ -51,36 +51,37 @@ export async function POST(req: NextRequest) {
         let page = 1;
         let hasMore = true;
 
-        while (hasMore) {
-          const res = await fetch(
-            `${instanceUrl}/api/sender-emails?per_page=100&page=${page}`,
-            {
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                Accept: "application/json",
-              },
-            }
-          );
+       while (hasMore) {
+  const res = await fetch(
+    `${instanceUrl}/api/sender-emails?page=${page}`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+      },
+    }
+  );
 
-          if (!res.ok) {
-            throw new Error(`EmailBison API error (${res.status}): ${await res.text()}`);
-          }
+  if (!res.ok) {
+    throw new Error(`EmailBison API error (${res.status}): ${await res.text()}`);
+  }
 
-          const data = await res.json();
-          const rows = data.data ?? [];
-          ebSenders.push(
-            ...rows.map((s: any) => ({
-              id:             s.id,
-              email:          s.email?.toLowerCase().trim(),
-              warmup_enabled: s.warmup_enabled ?? false,
-              status:         s.status ?? "active",
-            }))
-          );
+  const data = await res.json();
+  const rows = data.data ?? [];
+  ebSenders.push(
+    ...rows.map((s: any) => ({
+      id:             s.id,
+      email:          s.email?.toLowerCase().trim(),
+      warmup_enabled: s.warmup_enabled ?? false,
+      status:         s.status ?? "active",
+    }))
+  );
 
-          // Stop if we got fewer than per_page, or no next page
-          hasMore = rows.length === 100 && (data.meta?.current_page ?? page) < (data.meta?.last_page ?? page);
-          page++;
-        }
+  const currentPage = data.meta?.current_page ?? page;
+  const lastPage    = data.meta?.last_page ?? page;
+  hasMore = currentPage < lastPage;
+  page++;
+}
 
         const ebEmailSet = new Set(ebSenders.map(s => s.email));
 
