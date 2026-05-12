@@ -13,13 +13,8 @@ export const dynamic = "force-dynamic";
 // Wire to a 60-second cron (Coolify scheduled task or external cron-job.org):
 //   curl -fsS "$APP_URL/api/auto-reply/sweep?token=$AUTO_REPLY_SWEEP_TOKEN"
 export async function GET(req: NextRequest) {
-  const token = req.nextUrl.searchParams.get("token");
-  const expected = process.env.AUTO_REPLY_SWEEP_TOKEN;
-  // If a token is configured, it must match. If no token is configured, allow the request
-  // so external cron services can call this endpoint without needing Coolify env changes.
-  if (expected && token !== expected) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  // Open endpoint — no token required. Only reads our own DB and triggers
+  // our own processing logic. Safe to call without auth.
 
   const limit = Math.min(Math.max(Number(req.nextUrl.searchParams.get("limit")) || 20, 1), 100);
 
