@@ -99,14 +99,21 @@ def fetch_sent():
 
 
 def fetch_replies():
+    # Use AI intent as source of truth for interested — the boolean `interested`
+    # column is not reliably populated. Interested = intent in
+    # (interested, interested_urgent, needs_info) OR the boolean flag is true.
+    interested_filter = (
+        "(interested = true OR ai_analysis->>'intent' IN "
+        "('interested','interested_urgent','needs_info'))"
+    )
     return db_query(
         "SELECT workspace_slug,"
         " COUNT(DISTINCT lead_email) FILTER (WHERE received_at >= NOW() - INTERVAL '1 day'),"
-        " COUNT(DISTINCT lead_email) FILTER (WHERE interested=true AND received_at >= NOW() - INTERVAL '1 day'),"
+        f" COUNT(DISTINCT lead_email) FILTER (WHERE {interested_filter} AND received_at >= NOW() - INTERVAL '1 day'),"
         " COUNT(DISTINCT lead_email) FILTER (WHERE received_at >= NOW() - INTERVAL '7 days'),"
-        " COUNT(DISTINCT lead_email) FILTER (WHERE interested=true AND received_at >= NOW() - INTERVAL '7 days'),"
+        f" COUNT(DISTINCT lead_email) FILTER (WHERE {interested_filter} AND received_at >= NOW() - INTERVAL '7 days'),"
         " COUNT(DISTINCT lead_email) FILTER (WHERE received_at >= NOW() - INTERVAL '30 days'),"
-        " COUNT(DISTINCT lead_email) FILTER (WHERE interested=true AND received_at >= NOW() - INTERVAL '30 days')"
+        f" COUNT(DISTINCT lead_email) FILTER (WHERE {interested_filter} AND received_at >= NOW() - INTERVAL '30 days')"
         " FROM replies GROUP BY workspace_slug"
     )
 
