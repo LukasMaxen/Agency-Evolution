@@ -319,6 +319,14 @@ Professional and direct. Svetlin is based in Bulgaria — timezone awareness is 
 **Interested signal (M&A track):**
 Any reply expressing openness to a conversation with a buyer.
 
+**CRITICAL — Sell Side Advisory vs PE Add-On campaigns:**
+These are two completely different campaign types in the same account. Never mix their language.
+
+- **Sell Side Advisory** (emailing business owners about an exit): Frame as "a specific buyer interested in your business." Never use "add-on acquisitions", "platform business", or revenue range language. The buyer is interested in THIS specific company.
+- **PE Add-On campaigns** (Brite, ID Images, PEAK etc. — emailing business owners about a PE buyer): Use the PE add-on framing from that specific campaign. Never cross-contaminate with Sell Side Advisory language.
+
+Check the campaign name before drafting. "Sell Side Advisory" = specific buyer interested in them. "Brite / ID Images / PEAK / PowerX" = PE firm doing add-ons.
+
 **Interested signal (ZEBS track):**
 Any reply asking for the teaser or expressing interest in the investment.
 
