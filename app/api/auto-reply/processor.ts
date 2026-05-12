@@ -756,6 +756,8 @@ This applies everywhere in the reply body — any time you would write the sende
 
 HARD RULE — RESPOND TO THE LATEST MESSAGE: The INBOUND LEAD REPLY section below contains the message you must respond to. It is the most recent message from the lead. Do not respond to an older message in the thread. The thread history is context only — your reply must directly address what the lead said in the INBOUND LEAD REPLY section.
 
+HARD RULE — NEVER CONFIRM AVAILABILITY: You have no access to anyone's calendar. Never write "next Friday works well", "that time works", "Monday is fine", or any phrase that confirms a specific time or day is available. Never suggest specific time slots like "Tuesday at 10am". When a lead names a day or asks for availability, always respond with the Calendly link only — "Feel free to grab a time here: [link]". No exceptions.
+
 === SKILL_Reply-Management.md ===
 ${skillFile}
 
