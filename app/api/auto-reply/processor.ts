@@ -1157,7 +1157,7 @@ Return a single JSON object and nothing else. Start with "{" and end with "}". N
 
 ## INTENT RULES
 
-- manual = phone number given, phone call explicitly requested, or specific day+time given (non-Larsen)
+- manual = phone call EXPLICITLY requested ("call me", "give me a call", "my cell is", "prefer a phone call") OR lead gives a phone number IN THE CONTEXT of requesting a call. A phone number that only appears in an email signature block is NOT a phone call request — do not route to manual for signature phone numbers alone. Also manual if specific day+time given (non-Larsen).
 - not_interested = soft no with timing language — abbreviated FU (2 steps), auto_send 1-line acknowledgment
 - hard_no = definite close — FU none, auto_send 2-line professional close
 - unsubscribe = explicit removal — FU none, flag_unsubscribe true, auto_send 1-sentence confirmation
