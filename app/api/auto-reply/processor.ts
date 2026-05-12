@@ -811,6 +811,17 @@ ${reply.message}`;
     result.manual_reason = sanitizeDashes(result.manual_reason);
   }
 
+  // Guard: if reply_body is suspiciously short after removing the signature placeholder,
+  // route to manual instead of sending an incomplete reply to the lead.
+  if (result.action === "auto_send" && result.reply_body) {
+    const bodyWithoutSignature = result.reply_body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
+    if (bodyWithoutSignature.length < 80) {
+      console.warn(`[auto-reply] reply_body too short (${bodyWithoutSignature.length} chars) for ${replyId} — routing to manual`);
+      result.action = "manual";
+      result.manual_reason = "Generated reply body was too short (possible LLM output issue). Needs manual review before sending.";
+    }
+  }
+
   if (result.flag_unsubscribe) {
     await pool.query(`UPDATE replies SET interested = FALSE WHERE id = $1`, [replyId]);
     await pool.query(
