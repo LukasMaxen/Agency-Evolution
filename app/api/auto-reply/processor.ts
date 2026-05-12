@@ -186,6 +186,11 @@ async function postReplyApprovalCard(opts: ReplyApprovalCardOpts): Promise<strin
     .join("\n");
   const draftQuoted = quoteForSlack(result.reply_body ?? "", 2500);
 
+  const recipientOverride = result.recipient_email && result.recipient_email !== reply.lead_email;
+  const sendingToLine = recipientOverride
+    ? `*Sending to:* :warning: ${result.recipient_name ?? ""} <${result.recipient_email}> _(differs from lead on record: ${reply.lead_email})_`
+    : `*Sending to:* ${leadLine}`;
+
   const blocks: object[] = [
     {
       type: "header",
@@ -202,7 +207,7 @@ async function postReplyApprovalCard(opts: ReplyApprovalCardOpts): Promise<strin
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `*Lead:* ${leadLine}\n*Intent:* ${result.intent}  ·  *FU sequence:* ${result.fu_sequence_type}`,
+        text: `${sendingToLine}\n*Intent:* ${result.intent}  ·  *FU sequence:* ${result.fu_sequence_type}`,
       },
     },
     {
@@ -860,6 +865,8 @@ ${fuContextFile}`;
       }).join("\n\n")
     : "No prior messages on record for this lead.";
 
+  const alternateSenderWarning = detectAlternateSender(reply.message, reply.lead_email);
+
   const userMessage = `CLIENT WORKSPACE: ${workspaceSlug}
 
 CLIENT FILE:
@@ -874,7 +881,8 @@ Lead company: ${reply.lead_company ?? "unknown"}
 Lead title: ${reply.lead_title ?? "unknown"}
 Campaign: ${reply.campaign}
 Subject: ${reply.subject}
-
+Lead email on record: ${reply.lead_email}
+${alternateSenderWarning ? `\n${alternateSenderWarning}\n` : ""}
 Their message:
 ${reply.message}`;
 
