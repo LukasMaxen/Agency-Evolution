@@ -52,6 +52,216 @@ interface Mandate {
 }
 
 /**
+ * Extracts structured lead intelligence from their message and email signature.
+ * Pulls title, company description, website, phone, and any self-description
+ * the lead included. This gives Claude real context without any external API —
+ * leads typically describe themselves in detail in their signatures and messages.
+ */
+function extractLeadIntelligence(
+  message: string,
+  leadName: string,
+  leadEmail: string,
+  leadCompany: string | null,
+  leadTitle: string | null
+): string {
+  if (!message) return "";
+
+  const lines = message.split("\n").map(l => l.trim()).filter(Boolean);
+  const intel: string[] = [];
+
+  // Email domain as a company signal
+  const domain = leadEmail.split("@")[1] ?? "";
+  if (domain && !domain.includes("gmail") && !domain.includes("yahoo") && !domain.includes("hotmail") && !domain.includes("outlook")) {
+    intel.push(`Company domain: ${domain}`);
+  }
+
+  // Extract website URLs from the message (often in signatures)
+  const urls = message.match(/https?:\/\/(?!calendly|linkedin|twitter|facebook|instagram|tiktok|youtube|google|aka\.ms)[^\s\]>)]+/g) ?? [];
+  const companyUrls = urls.filter(u => !u.includes("emailagencyevolution") && !u.includes("actcapital") && !u.includes("ventureexits") && !u.includes("stateracap"));
+  if (companyUrls.length > 0) {
+    intel.push(`Company website(s): ${[...new Set(companyUrls)].slice(0, 3).join(", ")}`);
+  }
+
+  // Extract phone numbers
+  const phones = message.match(/(?:\+?\d[\d\s\-().]{7,}\d)/g) ?? [];
+  if (phones.length > 0) {
+    intel.push(`Phone number(s) in message: ${phones.slice(0, 2).join(", ")}`);
+  }
+
+  // Extract title from signature lines (lines containing common title keywords)
+  const titleLine = lines.find(l =>
+    /\b(CEO|CFO|COO|CTO|CMO|founder|owner|president|director|partner|managing|principal|manager|head of|VP|vice|associate|analyst|advisor|consultant|chairman|board)\b/i.test(l) &&
+    l.length < 120 &&
+    !l.startsWith("From:") &&
+    !l.startsWith("To:") &&
+    !l.startsWith("Subject:")
+  );
+  if (titleLine && titleLine !== leadTitle) {
+    intel.push(`Title/role from signature: ${titleLine}`);
+  }
+
+  // Extract any sentence where the lead describes their company or role
+  // Look for self-description patterns: "We are", "Our company", "I work", "We work", "We help", "We focus"
+  const selfDescriptions = lines.filter(l =>
+    /^(we (are|work|help|focus|specialize|operate|run|manage|invest|provide|build)|our (company|firm|fund|team|business|focus|mandate)|i (am|work|help|run|manage|represent|focus))/i.test(l) &&
+    l.length > 20 &&
+    l.length < 300
+  );
+  if (selfDescriptions.length > 0) {
+    intel.push(`Lead's self-description: ${selfDescriptions.slice(0, 3).join(" | ")}`);
+  }
+
+  // Extract any specific numbers, metrics, or named entities they mentioned
+  // (revenue figures, fund sizes, locations, partner names, accreditations)
+  const namedEntities = lines.filter(l =>
+    /\$[\d,.]+[MBK]?|\d+[MBK]\s*(AUM|revenue|fund|raise)|\b(IFC|PE|VC|LP|GP|NDA|LOI|LOC|EBITDA|EPC|M&A)\b/i.test(l) &&
+    l.length < 200
+  );
+  if (namedEntities.length > 0) {
+    intel.push(`Key metrics/entities mentioned: ${namedEntities.slice(0, 3).join(" | ")}`);
+  }
+
+  if (intel.length === 0) return "";
+
+  return `LEAD INTELLIGENCE (extracted from their message and signature — use this to write a reply that proves you read carefully):
+${intel.join("\n")}`;
+}
+
+/**
+ * Haiku-powered draft critic. Reads the drafted reply against a short quality
+ * checklist and returns issues found, or null if the draft passes.
+ * Costs ~$0.001 per call — runs on every auto_send draft.
+ */
+async function critiqueDraft(
+  draft: string,
+  leadMessage: string,
+  leadName: string,
+  senderContext: string
+): Promise<string | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 300,
+        system: `You are a quality checker for cold email replies. You check a drafted reply against a strict checklist and report ONLY genuine issues. Be concise. If the draft is good, say "PASS". If there are issues, list them briefly.
+
+Checklist:
+1. Is the reply written in first person? (never "Nicklas works with", always "I work with")
+2. Does it directly address what the lead asked — not what we want them to do?
+3. Does it reference at least one specific detail from the lead's message or company?
+4. Is the tone appropriate for the lead's register (formal/casual/direct)?
+5. Is it free of AI-sounding filler phrases? ("That's fantastic!", "I'd love to", "Excited to show you")
+6. Is it concise — not padded out unnecessarily?
+7. Does it NOT confirm a specific time or availability?
+
+Output format: either the single word "PASS" or a short list of issues found (2-3 words each, max 5 issues). Nothing else.`,
+        messages: [{
+          role: "user",
+          content: `Lead's message:
+${leadMessage.slice(0, 800)}
+
+Sender context: ${senderContext}
+
+Drafted reply:
+${draft}
+
+Check the draft now.`,
+        }],
+      }),
+      signal: controller.signal,
+    });
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  const result = (data.content?.[0]?.text ?? "").trim();
+  if (result.toUpperCase().startsWith("PASS")) return null;
+  return result || null;
+}
+
+/**
+ * Sonnet revision pass. Takes the original draft + Haiku's critique and
+ * produces a revised reply that addresses the issues found.
+ */
+async function reviseDraft(
+  originalDraft: string,
+  critique: string,
+  systemPrompt: string,
+  userMessage: string
+): Promise<string | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90_000);
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2500,
+        system: systemPrompt,
+        messages: [
+          { role: "user", content: userMessage },
+          { role: "assistant", content: `{"action":"auto_send","intent":"interested","fu_sequence_type":"full","reply_body":"${originalDraft.replace(/"/g, '\\"').replace(/\n/g, "\\n")}","flag_unsubscribe":false,"flag_meeting_booked":false}` },
+          { role: "user", content: `A quality check found the following issues with the reply_body you drafted:\n${critique}\n\nRevise ONLY the reply_body to fix these issues. Return the complete JSON object again with the revised reply_body. All other fields stay the same.` },
+        ],
+      }),
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error("[auto-reply] revision timed out");
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  const raw = (data.content?.[0]?.text ?? "").replace(/```json|```/g, "").trim();
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed.reply_body ?? null;
+  } catch {
+    const firstBrace = raw.indexOf("{");
+    const lastBrace = raw.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      try {
+        const parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));
+        return parsed.reply_body ?? null;
+      } catch { /* fall through */ }
+    }
+    return null;
+  }
+}
+
+/**
  * Extracts mandate definitions from a client file and matches the best one
  * against the campaign name and lead message. Returns the matched mandate or
  * null if no match found (non-mandate campaign or no keyword overlap).
@@ -1015,6 +1225,16 @@ ${fuContextFile}`;
     ? `MANDATE MATCH: Based on the campaign and lead message, the correct mandate for this reply is "${matchedMandate.name}". Teaser: ${matchedMandate.teaser}${matchedMandate.calendly ? `. Calendly: ${matchedMandate.calendly}` : ""}. Always use this teaser and Calendly link when replying to this lead — do not use a different mandate's links.`
     : "";
 
+  // Lead intelligence: extract structured context from their message and signature
+  // so Claude has real information about who this person is without any external API.
+  const leadIntelligence = extractLeadIntelligence(
+    reply.message ?? "",
+    reply.lead_name ?? "",
+    reply.lead_email ?? "",
+    reply.lead_company ?? null,
+    reply.lead_title ?? null
+  );
+
   const userMessage = `CLIENT WORKSPACE: ${workspaceSlug}
 
 CLIENT FILE:
@@ -1030,7 +1250,7 @@ Lead title: ${reply.lead_title ?? "unknown"}
 Campaign: ${reply.campaign}
 Subject: ${reply.subject}
 Lead email on record: ${reply.lead_email}
-${mandateNote ? `\n${mandateNote}\n` : ""}${alternateSenderWarning ? `\n${alternateSenderWarning}\n` : ""}
+${leadIntelligence ? `\n${leadIntelligence}\n` : ""}${mandateNote ? `\n${mandateNote}\n` : ""}${alternateSenderWarning ? `\n${alternateSenderWarning}\n` : ""}
 Their message:
 ${reply.message}`;
 
