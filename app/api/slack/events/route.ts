@@ -763,7 +763,7 @@ LEAD:
 Name: ${reply.lead_name}
 Company: ${reply.lead_company ?? "unknown"}
 Title: ${reply.lead_title ?? "unknown"}
-
+${leadIntelNote ? `\nLEAD INTELLIGENCE:\n${leadIntelNote}\n` : ""}
 ORIGINAL LEAD REPLY:
 ${reply.message}
 
