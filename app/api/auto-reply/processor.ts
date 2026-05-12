@@ -895,6 +895,13 @@ ${fuContextFile}`;
 
   const alternateSenderWarning = detectAlternateSender(reply.message, reply.lead_email);
 
+  // Mandate pre-match: identify the correct teaser before calling Claude so it
+  // never picks the wrong mandate or forgets to include the teaser link.
+  const matchedMandate = matchMandate(clientFile, reply.campaign ?? "", reply.message ?? "");
+  const mandateNote = matchedMandate
+    ? `MANDATE MATCH: Based on the campaign and lead message, the correct mandate for this reply is "${matchedMandate.name}". Teaser: ${matchedMandate.teaser}${matchedMandate.calendly ? `. Calendly: ${matchedMandate.calendly}` : ""}. Always use this teaser and Calendly link when replying to this lead — do not use a different mandate's links.`
+    : "";
+
   const userMessage = `CLIENT WORKSPACE: ${workspaceSlug}
 
 CLIENT FILE:
@@ -910,7 +917,7 @@ Lead title: ${reply.lead_title ?? "unknown"}
 Campaign: ${reply.campaign}
 Subject: ${reply.subject}
 Lead email on record: ${reply.lead_email}
-${alternateSenderWarning ? `\n${alternateSenderWarning}\n` : ""}
+${mandateNote ? `\n${mandateNote}\n` : ""}${alternateSenderWarning ? `\n${alternateSenderWarning}\n` : ""}
 Their message:
 ${reply.message}`;
 
