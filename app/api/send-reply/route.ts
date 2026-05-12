@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     // Build to_emails — use override if provided (e.g. redirected contact)
     const toEmails = [{
       name: toNameOverride ?? reply.lead_name ?? null,
-      email_address: toEmailOverride ?? reply.to_email ?? reply.lead_email,
+      email_address: toEmailOverride ?? reply.lead_email,
     }];
 
     // Send via EmailBison API
