@@ -44,6 +44,70 @@ function readFile(filePath: string): string {
   }
 }
 
+interface Mandate {
+  name: string;
+  teaser: string;
+  calendly: string;
+  keywords: string[];
+}
+
+/**
+ * Extracts mandate definitions from a client file and matches the best one
+ * against the campaign name and lead message. Returns the matched mandate or
+ * null if no match found (non-mandate campaign or no keyword overlap).
+ *
+ * Reads structured mandate blocks from client files using the pattern:
+ *   ### Mandate N — [Name]
+ *   **Teaser:** [url]
+ *   **Trigger keywords:** [kw1, kw2, ...]
+ */
+function matchMandate(clientFileContent: string, campaignName: string, leadMessage: string): Mandate | null {
+  if (!clientFileContent) return null;
+
+  const mandateBlocks = clientFileContent.split(/###\s+Mandate\s+\d+/i).slice(1);
+  if (mandateBlocks.length === 0) return null;
+
+  const mandates: Mandate[] = [];
+  for (const block of mandateBlocks) {
+    const nameMatch = block.match(/^[^\n]*—\s*(.+)/);
+    const teaserMatch = block.match(/\*\*Teaser:\*\*\s*(https?:\/\/\S+)/);
+    const calendlyMatch = block.match(/\*\*Calendly:\*\*\s*(https?:\/\/\S+)/);
+    const keywordsMatch = block.match(/\*\*Trigger keywords:\*\*\s*(.+)/);
+
+    if (!teaserMatch) continue;
+
+    const keywords = keywordsMatch
+      ? keywordsMatch[1].split(",").map(k => k.trim().toLowerCase()).filter(Boolean)
+      : [];
+
+    mandates.push({
+      name: nameMatch?.[1]?.trim() ?? "Unknown",
+      teaser: teaserMatch[1].trim(),
+      calendly: calendlyMatch?.[1]?.trim() ?? "",
+      keywords,
+    });
+  }
+
+  if (mandates.length === 0) return null;
+
+  const searchText = `${campaignName} ${leadMessage}`.toLowerCase();
+
+  // Score each mandate by keyword matches
+  let bestMandate: Mandate | null = null;
+  let bestScore = 0;
+
+  for (const mandate of mandates) {
+    const score = mandate.keywords.filter(kw => searchText.includes(kw)).length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestMandate = mandate;
+    }
+  }
+
+  // Only return a match if at least one keyword matched
+  return bestScore > 0 ? bestMandate : null;
+}
+
 /**
  * Scans the inbound reply message for email addresses and names that differ
  * from the original lead. Returns a plain-text warning string if a different
@@ -597,6 +661,26 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     return;
   }
 
+  // Superseded reply check: if a newer reply from the same lead in this workspace
+  // is already queued (status = 'new'), this one is outdated. Mark it read and exit
+  // so only the latest message gets processed. Prevents replying to an old message
+  // when the lead has already sent follow-ups.
+  const newerReply = await pool.query(
+    `SELECT id FROM replies
+     WHERE workspace_slug = $1
+       AND lead_email = $2
+       AND id != $3
+       AND status = 'new'
+       AND received_at > $4
+     LIMIT 1`,
+    [workspaceSlug, reply.lead_email, replyId, reply.received_at]
+  );
+  if (newerReply.rows.length > 0) {
+    await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
+    console.log(`[auto-reply] ${replyId} superseded by newer reply from same lead — skipping`);
+    return;
+  }
+
   // Fetch workspace credentials + approval mode flag + forwarding email
   const wsResult = await pool.query(
     `SELECT email_bison_api_key, email_bison_instance_url, auto_reply_approval_mode, forward_replies_to_email, forward_cc_emails FROM workspaces WHERE slug = $1`,
@@ -908,6 +992,20 @@ ${reply.message}`;
       replyWithCreds.preferred_recipient_name = result.recipient_name ?? null;
     }
 
+    // Complex thread gate: if the lead has had 3+ prior exchanges with us, force
+    // approval regardless of quota. Multi-turn threads require human judgment —
+    // the situation has evolved and a templated or quota-bypassed auto-reply risks
+    // being contextually wrong (as seen with Nic).
+    const priorExchangeCount = allMessages.length;
+    const isComplexThread = priorExchangeCount >= 6; // 3 exchanges = ~6 messages (sent + received each)
+    const forceApprovalForComplexity = isComplexThread
+      && !ALWAYS_AUTO_SEND.has(result.intent)
+      && workspace.auto_reply_approval_mode;
+
+    if (forceApprovalForComplexity) {
+      console.log(`[auto-reply] Complex thread (${priorExchangeCount} prior messages) — forcing approval for ${replyId}`);
+    }
+
     // Approval gate: route to #reply-approval only while today's quota (50% of
     // 7-day rolling average) is not yet filled. Once filled, auto-send directly.
     // Unsubscribes, hard nos, hostile, wrong-target, and soft-no closes never go
@@ -915,7 +1013,7 @@ ${reply.message}`;
     const withinQuota = !ALWAYS_AUTO_SEND.has(result.intent)
       && workspace.auto_reply_approval_mode
       && await shouldRouteToApproval();
-    if (withinQuota) {
+    if (withinQuota || forceApprovalForComplexity) {
       const draftId = `rd-${replyId}-${Date.now()}`;
       const slackTs = await postReplyApprovalCard({
         workspaceSlug,
