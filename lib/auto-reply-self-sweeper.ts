@@ -6,6 +6,10 @@ import {
 
 let running = false;
 
+// Track which reply IDs we've already sent an awaiting_approval alert for this session.
+// Resets on container restart, which is acceptable — one re-alert on restart is fine.
+const approvalAlertedIds = new Set<string>();
+
 export async function runAutoReplySweep(): Promise<void> {
   if (running) return;
   running = true;
@@ -79,35 +83,28 @@ export async function runAutoReplySweep(): Promise<void> {
 
     // ── 4. Alert on 'awaiting_approval' replies stuck > 48 hours ─────────────
     // If nobody approves in Slack, the lead gets no reply and no FU sequence.
-    // Post a one-time reminder. Check once per sweep but only alert if not already alerted.
+    // Post a one-time alert per reply (tracked in-process to avoid Slack spam).
     const oldApproval = await pool.query(
-      `SELECT r.id, r.workspace_slug, r.lead_name, r.lead_email, r.received_at, rd.slack_ts
+      `SELECT r.id, r.workspace_slug, r.lead_name, r.lead_email
        FROM replies r
        JOIN reply_drafts rd ON rd.reply_id = r.id
        WHERE r.status = 'awaiting_approval'
          AND r.received_at <= NOW() - INTERVAL '48 hours'
          AND rd.status = 'pending'
-         AND (rd.body::text NOT LIKE '%awaiting_approval_alerted%')
        LIMIT 10`
     );
-    if (oldApproval.rows.length > 0) {
-      const list = oldApproval.rows.map(r => `• ${r.workspace_slug} / ${r.lead_name}`).join("\n");
+    const unalerted = oldApproval.rows.filter(r => !approvalAlertedIds.has(r.id));
+    if (unalerted.length > 0) {
+      const list = unalerted.map(r => `• ${r.workspace_slug} / ${r.lead_name}`).join("\n");
       await postToSlackShared({
         channel: MANUAL_REPLIES_CHANNEL,
-        text: `${oldApproval.rows.length} reply draft(s) have been waiting for approval in #reply-approval for 48+ hours. These leads have not received a reply.`,
+        text: `${unalerted.length} reply draft(s) waiting 48h+ for approval. These leads have received nothing.`,
         blocks: [
           { type: "header", text: { type: "plain_text", text: "Approval backlog — action needed", emoji: true } },
-          { type: "section", text: { type: "mrkdwn", text: `*${oldApproval.rows.length} lead(s) waiting 48h+ for reply approval.*\nCheck #reply-approval and approve or reject these drafts. Leads are receiving nothing until approved.\n\n${list}` } },
+          { type: "section", text: { type: "mrkdwn", text: `*${unalerted.length} lead(s) waiting 48h+ for reply approval.*\nCheck #reply-approval and approve or reject. Leads are receiving nothing until approved.\n\n${list}` } },
         ],
       }).catch(() => {});
-
-      // Mark alerted so we don't spam every 60s.
-      const ids = oldApproval.rows.map(r => r.id);
-      await pool.query(
-        `UPDATE reply_drafts SET body = body || ' <!-- awaiting_approval_alerted -->'
-         WHERE reply_id = ANY($1::uuid[]) AND status = 'pending'`,
-        [ids]
-      );
+      unalerted.forEach(r => approvalAlertedIds.add(r.id));
     }
 
     // ── 5. Main sweep: process 'new' replies ──────────────────────────────────

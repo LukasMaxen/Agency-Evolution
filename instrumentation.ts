@@ -18,10 +18,6 @@ export async function register() {
   if (process.env.NEXT_PHASE === "phase-production-build") return;
 
   // ── 1. Auto-reply self-sweeper ────────────────────────────────────────────
-  // Two paths for resilience:
-  // A) In-process: calls runAutoReplySweep() directly inside the Node process
-  // B) HTTP self-ping: hits the open sweep endpoint every 90s as a fallback
-  //    in case the in-process function has issues or the running flag is stuck.
   const { runAutoReplySweep } = await import("@/lib/auto-reply-self-sweeper");
 
   setTimeout(() => {
