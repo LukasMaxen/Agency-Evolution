@@ -32,7 +32,7 @@ Always read `CONTEXT_FollowUps.md` first. It defines what an FU is, when it trig
    - The angle is genuinely new
    - The tone matches the lead's intent
    - Length matches the step purpose
-   - For full FU1: exactly two time slots + Calendly link
+   - For full FU Sonnet steps (FU2, FU4, FU6): Calendly link only. Never suggest specific time slots — no calendar access.
    - For abbreviated FU1: no time slots, no Calendly link, no clarification
 
 ## Common mistakes to avoid
