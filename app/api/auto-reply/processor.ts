@@ -158,7 +158,7 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 1000,
+        max_tokens: 1500,
         system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: userMessage }],
       }),
@@ -232,7 +232,6 @@ async function sendToEmailBison(reply: Record<string, any>, body: string): Promi
 
 // ─── Approval quota ────────────────────────────────────────────────────────────
 
-const ALWAYS_AUTO_SEND = new Set(["unsubscribe", "hard_no", "wrong_target", "hostile", "not_interested"]);
 
 async function shouldRouteToApproval(): Promise<boolean> {
   const avgResult = await pool.query<{ avg_per_day: string }>(`
@@ -404,14 +403,17 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     return;
   }
 
-  // Superseded check: if a newer reply from same lead is queued, skip this one
-  const newer = await pool.query(
-    `SELECT id FROM replies WHERE workspace_slug=$1 AND lead_email=$2 AND id!=$3 AND status='new' AND received_at>$4 LIMIT 1`,
-    [workspaceSlug, reply.lead_email, replyId, reply.received_at]
-  );
-  if (newer.rows.length > 0) {
-    await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
-    return;
+  // Superseded check: if a newer reply from same lead is queued, skip this one.
+  // Guard on non-empty lead_email — a null/empty email would match all empty-email replies.
+  if (reply.lead_email) {
+    const newer = await pool.query(
+      `SELECT id FROM replies WHERE workspace_slug=$1 AND lead_email=$2 AND id!=$3 AND status='new' AND received_at>$4 LIMIT 1`,
+      [workspaceSlug, reply.lead_email, replyId, reply.received_at]
+    );
+    if (newer.rows.length > 0) {
+      await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
+      return;
+    }
   }
 
   // Workspace + credentials
@@ -604,12 +606,12 @@ ${messageText.slice(0, 3000)}`;
     }
   }
 
-  // Body length guard (Sonnet only, not pre-filter templates)
+  // Body length guard — 80 chars matches the threshold established after the May 12 truncation incident
   if (result.action === "auto_send" && result.reply_body) {
     const stripped = result.reply_body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
-    if (stripped.length < 30) {
+    if (stripped.length < 80) {
       result.action = "manual";
-      result.manual_reason = "Generated reply too short — needs manual review.";
+      result.manual_reason = `Generated reply too short (${stripped.length} chars) — likely truncation. Needs manual review.`;
     }
   }
 
@@ -641,7 +643,8 @@ ${messageText.slice(0, 3000)}`;
   if (result.action === "auto_send" && result.reply_body) {
     const alwaysAutoSend = new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested"]);
     const isComplexThread = allMessages.length >= 6;
-    const forceApproval = isComplexThread && !alwaysAutoSend.has(result.intent) && workspace.auto_reply_approval_mode;
+    // Complex threads always go to approval regardless of approval_mode — too much context to auto-send blind.
+    const forceApproval = isComplexThread && !alwaysAutoSend.has(result.intent);
     const withinQuota = !alwaysAutoSend.has(result.intent) && workspace.auto_reply_approval_mode && await shouldRouteToApproval();
 
     if (withinQuota || forceApproval) {
