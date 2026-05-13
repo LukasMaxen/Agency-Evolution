@@ -34,42 +34,6 @@ function extractLeadIntelligence(message: string, leadEmail: string): string {
   return `LEAD INTELLIGENCE:\n${intel.join("\n")}`;
 }
 
-// Haiku critic for FU drafts — same quality gate as the auto-reply processor.
-async function critiqueFuDraft(draft: string, originalReply: string, workspace: string): Promise<string | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
-  let response: Response;
-  try {
-    response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 200,
-        system: `You are a quality checker for follow-up cold emails. Check the draft and output "PASS" if it is good, or a short list of issues (2-3 words each) if not.
-
-Checklist:
-1. Is it written in first person? (never "Nicklas works with", always "I work with")
-2. Does it bring a new angle not visible in the original reply context?
-3. Is it free of AI filler? ("Sounds great", "I'd love to", "Excited to show you")
-4. Is it appropriately concise — not padded?
-5. Does it NOT confirm availability or suggest specific time slots?
-6. Does it end with {SENDER_EMAIL_SIGNATURE}?
-
-Output only "PASS" or a short issues list. Nothing else.`,
-        messages: [{ role: "user", content: `Original lead reply:\n${originalReply.slice(0,400)}\n\nFU draft:\n${draft}\n\nCheck now.` }],
-      }),
-      signal: controller.signal,
-    });
-  } catch { return null; } finally { clearTimeout(timeout); }
-  if (!response.ok) return null;
-  const data = await response.json();
-  const result = (data.content?.[0]?.text ?? "").trim();
-  return result.toUpperCase().startsWith("PASS") ? null : (result || null);
-}
-
 interface FollowUpRow {
   id: string;
   reply_id: string;
@@ -114,7 +78,7 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Dr
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 2500,
+        max_tokens: 1500,
         system: systemPrompt,
         messages: [{ role: "user", content: userMessage }],
       }),
@@ -213,7 +177,14 @@ async function sendReplyToEmailBison(
   return true;
 }
 
+const SKIP_WORKSPACES = new Set(["itg-group", "sonaro-ai", "sro-consulting"]);
+
 async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: string }> {
+  if (SKIP_WORKSPACES.has(fu.workspace_slug)) {
+    await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed' WHERE id = $1`, [fu.id]);
+    return { status: "skipped", reason: "excluded workspace" };
+  }
+
   const nextStep = fu.fu_step + 1;
 
   // Sequence exhausted — mark and stop
