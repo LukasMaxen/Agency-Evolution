@@ -59,6 +59,23 @@ function readFile(filePath: string): string {
   }
 }
 
+/**
+ * Extracts only the ## REPLY QUICK REFERENCE section from a client file.
+ * Full client files are 8–40KB; the QR section is 1–3KB. Loading the full file
+ * was the #1 input token cost driver in the FU processor — each call paid for the
+ * entire file even though Claude only needs the offer summary, Calendly link, and
+ * campaign-type rules to draft a contextual follow-up.
+ */
+function extractFuQuickReference(content: string): string {
+  const marker = "## REPLY QUICK REFERENCE";
+  const start = content.indexOf(marker);
+  if (start === -1) return content.slice(0, 2000); // fallback: first 2000 chars
+  const rest = content.slice(start + marker.length);
+  const nextHeading = rest.search(/\n## /);
+  const section = nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+  return marker + section.trim();
+}
+
 
 async function callClaude(systemPrompt: string, userMessage: string): Promise<DraftResult | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -346,9 +363,6 @@ BLANK LINES between every paragraph.
 
 MATCH TONE: short reply from lead = short FU. Formal lead = formal FU.
 
-SEQUENCE: ${fu.fu_sequence_type} — step ${nextStep} of ${fu.total_emails}
-Apply the step purpose from CONTEXT_FollowUps.md for this step.
-
 ## OUTPUT
 
 Return only a JSON object — no preamble, no fences.
@@ -362,9 +376,12 @@ ${followUpContext}`;
 
   const leadIntelligence = extractLeadIntelligence(reply.message ?? "", reply.lead_email ?? "");
 
-  const userMessage = `CLIENT WORKSPACE: ${fu.workspace_slug}
+  const userMessage = `SEQUENCE: ${fu.fu_sequence_type} — step ${nextStep} of ${fu.total_emails}
+Apply the step purpose from CONTEXT_FollowUps.md for this step.
 
-CLIENT FILE:
+CLIENT WORKSPACE: ${fu.workspace_slug}
+
+CLIENT FILE (REPLY QUICK REFERENCE):
 ${clientFile}
 
 LEAD:
@@ -506,6 +523,14 @@ Draft FU step ${nextStep} now.`;
   const sent = await sendReplyToEmailBison(reply, draft.body);
 
   if (!sent) {
+    // Push next_fu_due forward 2 hours on EB send failure instead of leaving it at
+    // the 10-minute atomic-claim value. The 10-minute window was causing a tight loop:
+    // processor picks up → calls Claude → EB fails → 10 min → repeat. 2 hours prevents
+    // burn while still retrying automatically.
+    await pool.query(
+      `UPDATE follow_ups SET next_fu_due = NOW() + INTERVAL '2 hours' WHERE id = $1`,
+      [fu.id]
+    );
     return { status: "failed", reason: "emailbison error" };
   }
 
@@ -552,7 +577,7 @@ export async function runFollowUpProcessorOnce(): Promise<{
        AND meeting_booked = FALSE
        AND (outcome IS NULL OR outcome NOT IN ('booked','re_engaged','exhausted','unsubscribed','manually_closed','closed','closed_on_intent'))
      ORDER BY next_fu_due ASC
-     LIMIT 10`
+     LIMIT 5`
   );
 
   const results: { id: string; status: string; reason?: string }[] = [];

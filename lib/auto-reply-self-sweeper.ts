@@ -134,13 +134,19 @@ export async function runAutoReplySweep(): Promise<void> {
 
     let ok = 0;
     let fail = 0;
-    for (const row of r.rows) {
+    for (let i = 0; i < r.rows.length; i++) {
+      const row = r.rows[i];
       try {
         await withDeadline(row.id, row.workspace_slug);
         ok++;
       } catch (err: any) {
         fail++;
         console.error(`[self-sweep] FAIL ${row.workspace_slug} ${row.id}: ${err?.message ?? err}`);
+      }
+      // 3-second pacing between Claude calls to prevent 20 back-to-back Sonnet calls
+      // firing simultaneously on a burst. 20 replies × 3s = 60s, fits the 60s cycle.
+      if (i < r.rows.length - 1) {
+        await new Promise(res => setTimeout(res, 3000));
       }
     }
 
