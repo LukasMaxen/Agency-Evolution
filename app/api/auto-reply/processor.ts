@@ -581,6 +581,41 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
 }
 
 /**
+ * Opt-out / not-interested pre-filter. Returns the intent if the message is
+ * clearly a rejection that should never reach Claude and never go to manual.
+ * Catches "no thanks", "not interested", "stop", "remove me" patterns before
+ * spending a Sonnet call and before any risk of manual routing.
+ */
+function detectOptOut(message: string): { intent: string; reply: string } | null {
+  if (!message) return null;
+  // Strip quoted reply thread — only look at the lead's own words
+  const body = message.split(/\n[-]{3,}|\nOn .+ wrote:|\n_{3,}/)[0]?.toLowerCase() ?? "";
+
+  const unsubscribePatterns = [
+    /\bstop\b/, /\bremove\b.*\blist\b/, /\bunsubscribe\b/, /\bopt.?out\b/,
+    /please (remove|delete|take) (me|us|our)/,
+    /don.?t (contact|email|follow up|reach out)/,
+    /no (further|more) (contact|emails|follow.?ups)/,
+  ];
+  if (unsubscribePatterns.some(p => p.test(body))) {
+    return { intent: "unsubscribe", reply: "Removed — you won't hear from us again." };
+  }
+
+  const notInterestedPatterns = [
+    /^no[.,!]?\s*$/m, /^no thanks[.,!]?\s*$/m, /^not interested[.,!]?\s*$/m,
+    /\bnot interested\b/, /\bno thanks\b/, /\bno thank you\b/,
+    /\bnot relevant\b/, /\bnot for (me|us)\b/, /\bpass on this\b/,
+    /\bwe('re| are) not interested\b/, /\bnot the right (fit|time|opportunity)\b/,
+    /\bno interest\b/, /\bwon'?t be interested\b/,
+  ];
+  if (notInterestedPatterns.some(p => p.test(body))) {
+    return { intent: "not_interested", reply: "Understood. Won't follow up further." };
+  }
+
+  return null;
+}
+
+/**
  * OOO / bounce / spam pre-filter. Returns true if the message is clearly
  * a no-action reply that should never reach Claude. Catches the most common
  * patterns before spending a Sonnet call on them.
