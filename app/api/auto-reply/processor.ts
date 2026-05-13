@@ -1235,13 +1235,7 @@ Set flag_unsubscribe true, fu_sequence_type: "none".
 ${skillFile}
 
 === CONTEXT_Replies.md ===
-${contextFile}
-
-=== SKILL_FollowUps.md ===
-${fuSkillFile}
-
-=== CONTEXT_FollowUps.md ===
-${fuContextFile}`;
+${contextFile}`;
 
   // OOO / bounce / spam pre-filter: skip Claude entirely for obvious no-action replies.
   if (isNoActionReply(reply.message ?? "")) {
