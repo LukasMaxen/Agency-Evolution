@@ -128,10 +128,13 @@ function detectAlternateSender(message: string, leadEmail: string): string | nul
     !e.includes("postmaster")
   );
   if (others.length === 0) return null;
-  const bodyBeforeQuote = message.split(/\n[-]{3,}|\nOn .+ wrote:/)[0] ?? message;
+  // Only check the new reply body (before the quote trail). Emails that appear
+  // only in the quoted section are from previous exchanges — flagging those would
+  // produce false positives pointing to our own sender address or forwarded context.
+  const bodyBeforeQuote = message.split(/\n[-]{3,}|\nOn .+ wrote:/)[0] ?? "";
   const inBody = others.filter(e => bodyBeforeQuote.toLowerCase().includes(e));
-  const candidates = inBody.length > 0 ? inBody : others;
-  return `RECIPIENT DETECTION: The reply contains email address(es) differing from the lead on record (${leadEmail}). Possible alternate sender(s): ${candidates.join(", ")}. Check whether to set recipient_email.`;
+  if (inBody.length === 0) return null; // no alternate email in the new reply — skip
+  return `RECIPIENT DETECTION: The reply contains email address(es) differing from the lead on record (${leadEmail}). Possible alternate sender(s): ${inBody.join(", ")}. Check whether to set recipient_email.`;
 }
 
 /**
@@ -501,7 +504,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   }
 
   // ── Pre-filter 2: Opt-outs / not-interested ──────────────────────────────────
-  const firstName = reply.lead_name?.split(" ")[0] ?? "there";
+  const firstName = reply.lead_name?.split(" ").filter(Boolean)[0] || "there";
   const optOut = detectOptOut(messageText, firstName);
   if (optOut) {
     if (optOut.body) {
