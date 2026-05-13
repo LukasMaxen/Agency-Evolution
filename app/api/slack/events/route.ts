@@ -179,16 +179,23 @@ async function approveReplyDraft(draft: ReplyDraftRow, slackUserId: string, chan
     [slackUserId, draft.id]
   );
 
-  // Now create the FU record (only after approved + sent)
+  // Now create the FU record (only after approved + sent).
+  // Wrapped in try-catch so a DB failure here does not silently eat the FU sequence
+  // without any trace — the reply is already sent at this point.
   if (draft.fu_sequence_type && draft.fu_sequence_type !== "none" && !draft.flag_meeting_booked && !draft.flag_unsubscribe) {
-    const totalEmails = draft.fu_sequence_type === "abbreviated" ? 2 : 6;
-    const fuId = `fu-${draft.reply_id}-${Date.now()}`;
-    await pool.query(
-      `INSERT INTO follow_ups (id, reply_id, workspace_slug, lead_name, lead_email, first_replied_at, fu_step, total_emails, fu_sequence_type, meeting_booked, next_fu_due)
-       SELECT $1, $2, $3, $4, $5, NOW(), 0, $6, $7, FALSE, NOW() + INTERVAL '2 days'
-       WHERE NOT EXISTS (SELECT 1 FROM follow_ups WHERE reply_id = $2)`,
-      [fuId, draft.reply_id, draft.workspace_slug, draft.lead_name, draft.lead_email, totalEmails, draft.fu_sequence_type]
-    );
+    try {
+      const totalEmails = draft.fu_sequence_type === "abbreviated" ? 2 : 6;
+      const fuId = `fu-${draft.reply_id}-${Date.now()}`;
+      await pool.query(
+        `INSERT INTO follow_ups (id, reply_id, workspace_slug, lead_name, lead_email, first_replied_at, fu_step, total_emails, fu_sequence_type, meeting_booked, next_fu_due)
+         SELECT $1, $2, $3, $4, $5, NOW(), 0, $6, $7, FALSE, NOW() + INTERVAL '2 days'
+         WHERE NOT EXISTS (SELECT 1 FROM follow_ups WHERE reply_id = $2)`,
+        [fuId, draft.reply_id, draft.workspace_slug, draft.lead_name, draft.lead_email, totalEmails, draft.fu_sequence_type]
+      );
+    } catch (err: any) {
+      console.error(`[slack-events] FU record creation failed after approving draft ${draft.id}:`, err?.message ?? err);
+      await postToSlack({ channel, threadTs: ts, text: `Warning: reply sent but FU sequence could not be created. Check logs. Reply ID: ${draft.reply_id}` });
+    }
   }
 
   await addReaction(channel, ts, "outbox_tray");

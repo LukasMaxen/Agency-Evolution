@@ -251,10 +251,12 @@ async function shouldRouteToApproval(): Promise<boolean> {
   const rawAvg = parseFloat(avgResult.rows[0]?.avg_per_day ?? "0");
   const dailyQuota = Math.ceil(Math.max(20, rawAvg) * 0.50);
 
+  // Count ALL drafts sent to approval today (not just still-pending ones).
+  // Counting only 'pending' resets the quota each time the team reviews drafts,
+  // allowing more than the intended daily limit to go to approval.
   const todayResult = await pool.query<{ cnt: string }>(`
     SELECT COUNT(*) AS cnt FROM reply_drafts
-    WHERE status = 'pending'
-      AND (created_at AT TIME ZONE 'America/New_York')::date = (NOW() AT TIME ZONE 'America/New_York')::date
+    WHERE (created_at AT TIME ZONE 'America/New_York')::date = (NOW() AT TIME ZONE 'America/New_York')::date
   `);
   return parseInt(todayResult.rows[0]?.cnt ?? "0", 10) < dailyQuota;
 }
@@ -783,6 +785,10 @@ ${messageText.slice(0, 3000)}`;
     // do_nothing
     const clearClose = (result.intent === "not_interested" || result.intent === "unsubscribe") && result.fu_sequence_type === "none";
     await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
+    if (result.intent === "unsubscribe") {
+      // Kill any active FU sequence — lead has opted out.
+      await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`, [replyId]);
+    }
     if (!clearClose) {
       await postManual({ text: `Reply needs review, ${workspaceSlug} / ${reply.lead_name}`,
         blocks: buildCard("Reply needs manual review", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", { reason: result.manual_reason ?? "Auto-reply set do_nothing — please review." }) });
