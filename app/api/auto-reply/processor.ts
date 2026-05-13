@@ -493,7 +493,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   const quickRef = extractQuickReference(clientFileRaw);
 
   // ── Build thread history (outbound + inbound, chronological) ─────────────────
-  const outbound = await pool.query(`SELECT 'outbound' AS dir, email_type, subject, body, sent_at FROM sent_emails WHERE workspace_slug=$1 AND lead_email=$2`, [workspaceSlug, reply.lead_email]);
+  const outbound = await pool.query(`SELECT 'outbound' AS dir, email_type, subject, body, sent_at FROM sent_emails WHERE workspace_slug=$1 AND lead_email=$2 AND email_type NOT IN ('forward_to_client')`, [workspaceSlug, reply.lead_email]);
   const inbound = await pool.query(`SELECT 'inbound' AS dir, 'lead_reply' AS email_type, subject, message AS body, received_at AS sent_at FROM replies WHERE workspace_slug=$1 AND lead_email=$2 AND id!=$3`, [workspaceSlug, reply.lead_email, replyId]);
   const allMessages = [...outbound.rows, ...inbound.rows].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
   const threadHistory = allMessages.length > 0
@@ -513,16 +513,17 @@ RULES:
 4. Write in first person as the sender. Never refer to the sender by name as subject ("Nicklas works with" = wrong, "I work with" = right).
 5. Never confirm specific times or availability. Always use the Calendly link from the quick reference.
 6. Match reply length to the lead's message. Short message = short reply.
-7. No em dashes, no en dashes. No AI filler phrases ("Sounds great!", "I'd love to", "Excited to show you").
+7. No em dashes, no en dashes. No AI filler phrases ("Sounds great!", "I'd love to", "Excited to show you", "Hope this finds you well", "Hope all is well", "I appreciate you reaching out").
 8. End every reply with {SENDER_EMAIL_SIGNATURE} on its own line. Nothing before it — no "Best," or name.
+12. Do not open with pleasantries. Start with the substance of the reply.
 9. Always put a blank line between each paragraph. Never run text into one block.
 10. If the teaser link was already sent to this lead in the thread history, do not send it again. Acknowledge it and push to the call instead.
 11. If the lead is confirming a meeting already booked: reply in 2 lines max. No re-pitch, no "if anything shifts", no rescheduling offers. Acknowledge and close. Set flag_meeting_booked = true.
 
 ROUTING:
-- auto_send: you can draft a correct, complete reply
-- manual: lead gave a phone number asking to be called, or gave a specific day+time (non-Larsen), or situation is genuinely unclear
-- do_nothing: nothing to respond to
+- auto_send: you can draft a correct, complete reply. Use this for the vast majority of replies.
+- manual: ONLY for these exact cases: (1) lead explicitly says "call me" / "give me a call" AND provides a phone number — a phone number in their email signature alone is NOT enough, they must be asking you to call; (2) lead gives a specific day AND time window AND the REPLY QUICK REFERENCE does not say always_send_calendly:true.
+- do_nothing: nothing to respond to (e.g. already replied, lead just confirmed receipt with no question)
 
 OUTPUT: single JSON object only. No preamble. No markdown.
 {
