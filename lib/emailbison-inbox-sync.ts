@@ -46,6 +46,9 @@ let running = false;
 // years of historical untracked replies on a fresh deploy.
 const MAX_AGE_HOURS = 24;
 
+// Workspaces that don't need inbox sync — they skip auto-reply entirely.
+const SKIP_SYNC_WORKSPACES = new Set(["itg-group", "sonaro-ai", "sro-consulting"]);
+
 export async function runEmailBisonInboxSync(): Promise<void> {
   if (running) return;
   running = true;
@@ -56,6 +59,7 @@ export async function runEmailBisonInboxSync(): Promise<void> {
       FROM workspaces
       WHERE email_bison_api_key IS NOT NULL
         AND email_bison_instance_url IS NOT NULL
+        AND slug NOT IN ('itg-group', 'sonaro-ai', 'sro-consulting')
     `);
 
     const cutoff = Date.now() - MAX_AGE_HOURS * 60 * 60 * 1000;
@@ -125,6 +129,8 @@ export async function runEmailBisonInboxSync(): Promise<void> {
 
           try {
             await processAutoReply(item.uuid, ws.slug);
+            // Pace between calls to avoid hitting Anthropic rate limits.
+            await new Promise(r => setTimeout(r, 3000));
           } catch (err: any) {
             console.error(
               `[inbox-sync] processAutoReply failed for ${item.uuid}:`,
