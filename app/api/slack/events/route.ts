@@ -579,20 +579,33 @@ ${patternsBlock}
 
 ${threadComments ? `HUMAN INSTRUCTIONS FROM THE REVIEW THREAD (apply these as filters or refinements):\n${threadComments}\n\n` : ""}Output the full revised file content now.`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 16000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-    }),
-  });
+  const applyController = new AbortController();
+  const applyTimeout = setTimeout(() => applyController.abort(), 120_000);
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 16000,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }],
+      }),
+      signal: applyController.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error("[apply-patterns] Claude timed out after 120s");
+    else console.error("[apply-patterns] Claude fetch error:", err?.message);
+    return null;
+  } finally {
+    clearTimeout(applyTimeout);
+  }
   if (!response.ok) {
     console.error("[apply-patterns] Claude error:", response.status, await response.text());
     return null;
@@ -643,20 +656,33 @@ async function regenerateViaClaude(systemPrompt: string, userMessage: string): P
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1500,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90_000);
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2500,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }],
+      }),
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error("[slack-events] Claude regenerate timed out after 90s");
+    else console.error("[slack-events] Claude regenerate fetch error:", err?.message);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     console.error("[slack-events] Claude regenerate error:", response.status, await response.text());
@@ -717,7 +743,9 @@ async function regenerateReplyDraft(draft: ReplyDraftRow, reviewerName: string, 
   if (replyResult.rows.length === 0) return;
   const reply = replyResult.rows[0];
 
-  const clientFile = readContextFile(`clients/${draft.workspace_slug}.md`);
+  const CLIENT_FILE_ALIASES: Record<string, string> = { "internal-campaigns": "agency-evolution" };
+  const fileSlug = CLIENT_FILE_ALIASES[draft.workspace_slug] ?? draft.workspace_slug;
+  const clientFile = readContextFile(`clients/${fileSlug}.md`);
   const replyContext = readContextFile(`1. Departments/reply-management/CONTEXT_Replies.md`);
   const skillFile = readContextFile(`1. Departments/reply-management/SKILL_Reply-Management.md`);
 
@@ -829,13 +857,35 @@ async function regenerateFollowUpDraft(draft: FollowUpDraftRow, reviewerName: st
   if (replyResult.rows.length === 0) return;
   const reply = replyResult.rows[0];
 
-  const prevSent = await pool.query(
-    `SELECT body FROM sent_emails WHERE reply_id = $1 AND email_type IN ('follow_up','auto_reply') ORDER BY sent_at ASC`,
-    [draft.reply_id]
+  // Mirror the same query as the main FU processor: outbound (follow_up + auto_reply + reply)
+  // plus inbound replies from the lead. Regen must see the same thread Claude originally saw.
+  const [sentResult, inboundResult] = await Promise.all([
+    pool.query(
+      `SELECT 'outbound' AS direction, email_type, body, sent_at
+       FROM sent_emails
+       WHERE reply_id = $1 AND email_type IN ('follow_up', 'auto_reply', 'reply')
+       ORDER BY sent_at ASC`,
+      [draft.reply_id]
+    ),
+    pool.query(
+      `SELECT 'inbound' AS direction, 'lead_reply' AS email_type, message AS body, received_at AS sent_at
+       FROM replies
+       WHERE workspace_slug = $1 AND lead_email = $2 AND id != $3
+       ORDER BY received_at ASC`,
+      [draft.workspace_slug, draft.lead_email, draft.reply_id]
+    ),
+  ]);
+  const allMessages = [...sentResult.rows, ...inboundResult.rows].sort(
+    (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
   );
-  const prevBodies = prevSent.rows.map(r => r.body).filter(Boolean);
+  const prevBodies = allMessages.map(r => {
+    const label = r.direction === "inbound" ? "[LEAD REPLIED]" : `[US — ${r.email_type}]`;
+    return `${label}\n${r.body}`;
+  }).filter(Boolean);
 
-  const clientFile = readContextFile(`clients/${draft.workspace_slug}.md`);
+  const FU_CLIENT_FILE_ALIASES: Record<string, string> = { "internal-campaigns": "agency-evolution" };
+  const fuFileSlug = FU_CLIENT_FILE_ALIASES[draft.workspace_slug] ?? draft.workspace_slug;
+  const clientFile = readContextFile(`clients/${fuFileSlug}.md`);
   const fuContext = readContextFile(`1. Departments/follow-up-management/CONTEXT_FollowUps.md`);
   const replyContext = readContextFile(`1. Departments/reply-management/CONTEXT_Replies.md`);
 
