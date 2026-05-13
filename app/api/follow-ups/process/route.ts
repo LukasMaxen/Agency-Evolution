@@ -414,15 +414,7 @@ Draft FU step ${nextStep} now.`;
   const fuApprovalToday = parseInt(todayFuApprovalCount.rows[0]?.cnt ?? "0", 10);
   let routeToFuApproval = reply.fu_approval_mode || fuApprovalToday < 2;
 
-  // Single Haiku quality check on Sonnet-drafted steps only.
-  // If issues found, route to approval — no second Sonnet revision.
-  if (!templateName) {
-    const critique = await critiqueFuDraft(draft.body, reply.message ?? "", fu.workspace_slug);
-    if (critique) {
-      console.log(`[fu-process] Haiku critique for ${fu.id} step ${nextStep}: ${critique} — routing to approval`);
-      routeToFuApproval = true;
-    }
-  }
+  // Haiku critique removed — too expensive at scale.
 
   // Approval mode → stage in follow_up_drafts + post to Slack
   if (routeToFuApproval) {
