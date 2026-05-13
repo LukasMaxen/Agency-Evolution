@@ -74,9 +74,9 @@ export async function register() {
   };
 
   setTimeout(() => void runFu("initial"), 30_000);
-  setInterval(() => void runFu("periodic"), 15 * 60_000);
+  setInterval(() => void runFu("periodic"), 5 * 60_000);
 
-  console.log("[instrumentation] follow-up processor started, 15min interval");
+  console.log("[instrumentation] follow-up processor started, 5min interval");
 
   // ── 4. Weekly feedback review ─────────────────────────────────────────────
   let wrRunning = false;

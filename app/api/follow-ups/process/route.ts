@@ -179,6 +179,10 @@ async function sendReplyToEmailBison(
 
 const SKIP_WORKSPACES = new Set(["itg-group", "sonaro-ai", "sro-consulting"]);
 
+// Minimum 2000 — FU drafts load full thread history + client file + both skill files.
+// Below 2000, Claude truncates mid-draft and the 80-char body guard kills the FU.
+const CLAUDE_MAX_TOKENS = 2500;
+
 async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: string }> {
   if (SKIP_WORKSPACES.has(fu.workspace_slug)) {
     await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed' WHERE id = $1`, [fu.id]);

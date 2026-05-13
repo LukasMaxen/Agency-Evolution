@@ -34,6 +34,10 @@ const CLIENT_FILE_ALIASES: Record<string, string> = {
 // Workspaces that skip auto-reply entirely (handled externally, churned, or excluded).
 const SKIP_WORKSPACES = new Set(["itg-group", "sonaro-ai", "sro-consulting"]);
 
+// Minimum 2000 — replies load up to 8 thread messages + system prompt + client file.
+// Below 2000, Claude truncates mid-reply and the 80-char body guard routes everything to manual.
+const CLAUDE_MAX_TOKENS = 2500;
+
 // ─── File helpers ──────────────────────────────────────────────────────────────
 
 function readFile(filePath: string): string {
@@ -158,7 +162,7 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 1000,
+        max_tokens: CLAUDE_MAX_TOKENS,
         system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: userMessage }],
       }),
@@ -679,11 +683,11 @@ ${messageText.slice(0, 3000)}`;
     }
   }
 
-  // Body length guard: 50 chars catches bare greetings with no body ("Hi John,") while
-  // allowing valid short replies like meeting confirmations through.
+  // Body length guard: 80 chars catches truncated replies ("Hi John,", "Hi John,\n\nSounds great!")
+  // while allowing valid short replies through. 80 was set after the 2026-05-11 batch incident.
   if (result.action === "auto_send" && result.reply_body) {
     const stripped = result.reply_body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
-    if (stripped.length < 50) {
+    if (stripped.length < 80) {
       result.action = "manual";
       result.manual_reason = `Generated reply too short (${stripped.length} chars) — likely truncation. Needs manual review.`;
     }
@@ -704,8 +708,9 @@ ${messageText.slice(0, 3000)}`;
     await pool.query(`UPDATE follow_ups SET meeting_booked = TRUE, next_fu_due = NULL, outcome = 'booked' WHERE reply_id = $1`, [replyId]);
   }
 
-  // Persist recipient override
-  if (result.recipient_email && result.action === "auto_send") {
+  // Persist recipient override BEFORE routing — approval path reads it from DB later.
+  // Previously this was inside the auto_send branch, so approved drafts sent to wrong address.
+  if (result.recipient_email) {
     await pool.query(`UPDATE replies SET preferred_recipient_email=$1, preferred_recipient_name=$2 WHERE id=$3`,
       [result.recipient_email, result.recipient_name ?? null, replyId]);
     replyWithCreds.preferred_recipient_email = result.recipient_email;
