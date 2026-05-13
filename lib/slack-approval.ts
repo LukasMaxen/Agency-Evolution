@@ -132,14 +132,26 @@ export async function postToSlack(opts: SlackPostOptions): Promise<string | null
   if (opts.blocks) body.blocks = opts.blocks;
   if (opts.threadTs) body.thread_ts = opts.threadTs;
 
-  const response = await fetch("https://slack.com/api/chat.postMessage", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 10_000);
+  let response: Response;
+  try {
+    response = await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error("[slack] postMessage timed out after 10s, channel:", opts.channel);
+    else console.error("[slack] postMessage fetch error:", err?.message);
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
   const data = (await response.json().catch(() => ({}))) as {
     ok?: boolean;
     ts?: string;
@@ -162,14 +174,26 @@ export async function addReaction(
 ): Promise<boolean> {
   const token = process.env.SLACK_BOT_TOKEN;
   if (!token) return false;
-  const response = await fetch("https://slack.com/api/reactions.add", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ channel, timestamp: ts, name }),
-  });
+  const rCtrl = new AbortController();
+  const rTimer = setTimeout(() => rCtrl.abort(), 10_000);
+  let response: Response;
+  try {
+    response = await fetch("https://slack.com/api/reactions.add", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ channel, timestamp: ts, name }),
+      signal: rCtrl.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error(`[slack] reactions.add timed out after 10s for :${name}:`);
+    else console.error(`[slack] reactions.add fetch error:`, err?.message);
+    return false;
+  } finally {
+    clearTimeout(rTimer);
+  }
   const data = (await response.json().catch(() => ({}))) as {
     ok?: boolean;
     error?: string;
@@ -189,10 +213,12 @@ export async function addReaction(
 export async function getSlackUserName(userId: string): Promise<string> {
   const token = process.env.SLACK_BOT_TOKEN;
   if (!token) return userId;
+  const uCtrl = new AbortController();
+  const uTimer = setTimeout(() => uCtrl.abort(), 10_000);
   try {
     const response = await fetch(
       `https://slack.com/api/users.info?user=${encodeURIComponent(userId)}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${token}` }, signal: uCtrl.signal }
     );
     const data = (await response.json().catch(() => ({}))) as {
       ok?: boolean;
@@ -201,6 +227,8 @@ export async function getSlackUserName(userId: string): Promise<string> {
     return data.user?.real_name ?? data.user?.name ?? userId;
   } catch {
     return userId;
+  } finally {
+    clearTimeout(uTimer);
   }
 }
 

@@ -373,7 +373,6 @@ Draft FU step ${nextStep} now.`;
   // (eg fu-nudge firing after a lead said "No thank you"). Full context is
   // non-negotiable: client file, skill files, full thread, original reply.
   const draft = await callClaude(systemPrompt, userMessage);
-  const templateName: string | null = null; // kept for quality-check guard below
 
   if (!draft) {
     return { status: "failed", reason: "claude error" };
@@ -383,8 +382,8 @@ Draft FU step ${nextStep} now.`;
   draft.body = sanitizeDashes(draft.body);
   draft.subject = sanitizeDashes(draft.subject);
 
-  // Guard: reject a body that is too short (truncation risk). Templates exempt.
-  if (!templateName) {
+  // Guard: reject a body that is too short (truncation risk).
+  {
     const bodyWithoutSignature = draft.body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
     if (bodyWithoutSignature.length < 80) {
       console.warn(`[fu-process] FU body too short (${bodyWithoutSignature.length} chars) for ${fu.workspace_slug} / ${fu.lead_name} step ${nextStep} — skipping`);
@@ -394,11 +393,13 @@ Draft FU step ${nextStep} now.`;
 
   // Daily QA sample: send 2 FU drafts per day to #follow-up-approval regardless
   // of fu_approval_mode, so quality can be monitored without reviewing every email.
+  // Count ALL FU drafts sent to approval today (not just still-pending ones).
+  // Counting only 'pending' meant the daily QA quota reset as the team approved drafts,
+  // causing more than 2 per day to go to approval.
   const todayFuApprovalCount = await pool.query<{ cnt: string }>(`
     SELECT COUNT(*) AS cnt
     FROM follow_up_drafts
-    WHERE status = 'pending'
-      AND (created_at AT TIME ZONE 'America/New_York')::date
+    WHERE (created_at AT TIME ZONE 'America/New_York')::date
           = (NOW() AT TIME ZONE 'America/New_York')::date
   `);
   const fuApprovalToday = parseInt(todayFuApprovalCount.rows[0]?.cnt ?? "0", 10);

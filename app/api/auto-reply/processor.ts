@@ -215,17 +215,29 @@ async function sendToEmailBison(reply: Record<string, any>, body: string): Promi
     .map(p => `<p style="margin:0 0 16px 0;">${linkify(p.replace(/\n/g, "<br>"))}</p>`)
     .join("");
 
-  const res = await fetch(`${url}/api/replies/${ebId}/reply`, {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json", "Accept": "application/json" },
-    body: JSON.stringify({
-      message: htmlBody,
-      sender_email_id: senderId,
-      to_emails: [{ name: recipientName, email_address: recipientEmail }],
-      inject_previous_email_body: true,
-      content_type: "html",
-    }),
-  });
+  const ebCtrl = new AbortController();
+  const ebTimer = setTimeout(() => ebCtrl.abort(), 30_000);
+  let res: Response;
+  try {
+    res = await fetch(`${url}/api/replies/${ebId}/reply`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({
+        message: htmlBody,
+        sender_email_id: senderId,
+        to_emails: [{ name: recipientName, email_address: recipientEmail }],
+        inject_previous_email_body: true,
+        content_type: "html",
+      }),
+      signal: ebCtrl.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error("[auto-reply] EmailBison send timed out after 30s for reply", reply.id);
+    else console.error("[auto-reply] EmailBison send error:", err?.message);
+    return false;
+  } finally {
+    clearTimeout(ebTimer);
+  }
 
   if (!res.ok) {
     console.error("[auto-reply] EmailBison error:", res.status, await res.text());
@@ -281,12 +293,23 @@ async function forwardToClient(reply: Record<string, any>, forwardTo: string, cc
   };
   if (ccList.length > 0) payload.bcc_emails = ccList;
 
-  const res = await fetch(`${url}/api/replies/${ebId}/reply`, {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json", "Accept": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  return res.ok;
+  const fwdCtrl = new AbortController();
+  const fwdTimer = setTimeout(() => fwdCtrl.abort(), 30_000);
+  try {
+    const res = await fetch(`${url}/api/replies/${ebId}/reply`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(payload),
+      signal: fwdCtrl.signal,
+    });
+    return res.ok;
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error("[auto-reply] EmailBison forward timed out after 30s");
+    else console.error("[auto-reply] EmailBison forward error:", err?.message);
+    return false;
+  } finally {
+    clearTimeout(fwdTimer);
+  }
 }
 
 // ─── Slack helpers ─────────────────────────────────────────────────────────────
