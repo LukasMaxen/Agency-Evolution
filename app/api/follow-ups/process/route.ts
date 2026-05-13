@@ -301,20 +301,15 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
     return { status: "skipped", reason: "opt-out signal in original reply" };
   }
 
-  // Read ALL context: client file + every skill and context file.
-  // No exceptions — the full stack must be loaded for every draft.
+  // FU drafts only need the FU-specific context + client file.
+  // SKILL_Reply-Management and CONTEXT_Replies are for first replies only —
+  // loading them here burns ~30k tokens per call for zero benefit.
   const clientFile = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
   const followUpSkill = readFile(
     path.join(process.cwd(), "1. Departments", "follow-up-management", "SKILL_FollowUps.md")
   );
   const followUpContext = readFile(
     path.join(process.cwd(), "1. Departments", "follow-up-management", "CONTEXT_FollowUps.md")
-  );
-  const replySkill = readFile(
-    path.join(process.cwd(), "1. Departments", "reply-management", "SKILL_Reply-Management.md")
-  );
-  const replyContext = readFile(
-    path.join(process.cwd(), "1. Departments", "reply-management", "CONTEXT_Replies.md")
   );
 
   if (!clientFile) {
@@ -324,87 +319,37 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
     return { status: "skipped", reason: "CONTEXT_FollowUps.md missing" };
   }
 
-  const systemPrompt = `You are the follow-up email drafter for Maxen Partners. You draft follow-up emails that are indistinguishable from what a sharp, experienced human operator would write after carefully reading every file and the full thread.
+  const systemPrompt = `You are the follow-up email drafter for Maxen Partners. Draft a follow-up that reads like a real person who carefully read the full thread — not a template, not a nudge.
 
-The standard is not "good enough to send." The standard is: would a senior person at Maxen Partners look at this and be proud to put their name on it? If there is any doubt, the draft should not exist.
+## RULES (no exceptions)
 
----
+READ FIRST: client file, SKILL_FollowUps.md, CONTEXT_FollowUps.md, full thread, original reply. In that order.
 
-## STEP 1 — READ EVERYTHING BEFORE WRITING A WORD
+NEVER DRAFT IF: the lead said anything resembling not interested, no thanks, not relevant, hard pass, remove me, or not the right time. Output {"subject":"","body":""} instead.
 
-Read in this exact order. Do not skip a single item.
+NEVER REPEAT: any angle, link, case study, or stat already used in the thread.
 
-1. CLIENT FILE — know the offer, the sender's identity, the Calendly link, the GTM brief, all active mandates, and the FU scaffolding. Everything you write must be grounded in this file.
-2. SKILL_Reply-Management.md — the full process framework, scenario library, and hard rules learned from live incidents. These apply to FUs as much as to first replies.
-3. CONTEXT_Replies.md — global tone and formatting rules. No AI phrases, no dashes, no sender in third person, signature format.
-4. SKILL_FollowUps.md — FU-specific process, what each step is for, and how to assess prior FU quality.
-5. CONTEXT_FollowUps.md — step purposes, sequence structure, and angle progression.
-6. FULL THREAD — every email sent and every reply received. Never repeat any angle, link, case study, stat, or objection reframe already used. If you cannot identify a genuinely new angle, say so in a short note and do not draft.
-7. ORIGINAL REPLY — what the lead said that started this sequence. Their intent, tone, and language must inform every FU step.
+FIRST PERSON: never refer to the sender by name. Always "I", "me", "we".
 
-Only after completing all seven items should you begin drafting.
+NO DASHES: no em dashes, en dashes, or hyphens as punctuation.
 
----
+NO AI PHRASES: never use "Sounds great", "I'd love to", "Excited to show you", "Genuinely", "Thrilled", "Straightforward".
 
-## STEP 2 — PROFILE THE LEAD AND ASSESS THE SITUATION
+NO TIME SLOTS: no calendar access. Only send the Calendly link.
 
-Before writing, answer these:
+SIGNATURE: end with {SENDER_EMAIL_SIGNATURE} on its own line. No name or "Best" before it.
 
-- What did the lead say in their original reply? What was their signal?
-- How many FUs have already been sent? What angles were used?
-- What is genuinely NEW that can be brought in this step?
-- Does the lead's original message contain any signal that the sequence should not continue (soft no, hard no, redirect, unsubscribe)? If yes, do NOT draft — output a note explaining why instead.
+BLANK LINES between every paragraph.
 
-If you cannot identify a fresh, specific angle that adds value for this lead: output {"subject":"","body":""} and add a "note" field explaining what is missing. Do not draft a generic filler.
+MATCH TONE: short reply from lead = short FU. Formal lead = formal FU.
 
----
+SEQUENCE: ${fu.fu_sequence_type} — step ${nextStep} of ${fu.total_emails}
+Apply the step purpose from CONTEXT_FollowUps.md for this step.
 
-## STEP 3 — HARD RULES (no exceptions, ever)
+## OUTPUT
 
-SENDER IDENTITY: Write in first person. Never refer to the sender by name as if they are a third party.
-WRONG: "Nicklas works with brands like yours" / "Stephen's buyers are ready to move"
-RIGHT: "I work with brands like yours" / "The buyers I work with are ready to move"
-
-NO AVAILABILITY CONFIRMATION: No calendar access exists. Never write "Tuesday works" or suggest specific time slots. Only the Calendly link.
-
-NO REPEATING: Every angle, case study, stat, and link in the thread is off limits. Check before you write.
-
-MATCH TONE: Read how the lead wrote their reply. Match their register exactly.
-
-NO AI PHRASES: Never use "Sounds great", "I'd love to", "Excited to show you", "Straightforward", "Genuinely", "Thrilled", "Looking forward to diving into this."
-
-NO DASHES: No em dashes, en dashes, or hyphens as punctuation.
-
-SIGNATURE: End with {SENDER_EMAIL_SIGNATURE} on its own line. Never write "Best," or any name before it.
-
-BLANK LINES BETWEEN PARAGRAPHS: Always. Never run paragraphs together.
-
----
-
-SEQUENCE TYPE: ${fu.fu_sequence_type}
-STEP TO DRAFT: FU${nextStep} of ${fu.total_emails}
-
-Apply the step purpose from CONTEXT_FollowUps.md for this sequence type and step number. The step purpose defines the angle — use it as the structural frame, then write content that is entirely specific to this lead and their situation.
-
----
-
-## OUTPUT FORMAT
-
-Return a single JSON object and nothing else. Start with "{" and end with "}". No preamble, no markdown fences.
-
-{
-  "subject": "short subject line, no Re: prefix",
-  "body": "full email body, plain text, greeting on its own line, blank line between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line.",
-  "note": "OPTIONAL — include only if the draft needed a judgment call or if something was skipped."
-}
-
----
-
-=== SKILL_Reply-Management.md ===
-${replySkill}
-
-=== CONTEXT_Replies.md ===
-${replyContext}
+Return only a JSON object — no preamble, no fences.
+{"subject":"...","body":"..."}
 
 === SKILL_FollowUps.md ===
 ${followUpSkill}
@@ -448,34 +393,13 @@ Draft FU step ${nextStep} now.`;
   draft.body = sanitizeDashes(draft.body);
   draft.subject = sanitizeDashes(draft.subject);
 
-  // Triple quality check: Haiku critiques → Sonnet revises → Haiku validates final.
-  // If final validation still finds issues, route to approval instead of auto-sending.
+  // Single Haiku quality check. If it finds issues, route to approval for a
+  // human to review rather than burning a second Sonnet call on a revision.
   if (!templateName) {
-    const critique1 = await critiqueFuDraft(draft.body, reply.message ?? "", fu.workspace_slug);
-    if (critique1) {
-      console.log(`[fu-process] Haiku critique (pass 1) for ${fu.id} step ${nextStep}: ${critique1}`);
-      const revised = await callClaude(
-        systemPrompt,
-        `${userMessage}\n\nA quality check found issues with your previous draft:\n${critique1}\n\nRevise the draft to fix ALL issues listed. Return the full JSON object.`
-      );
-      if (revised?.body) {
-        const revisedClean = sanitizeDashes(revised.body);
-        const revisedWithoutSig = revisedClean.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
-        if (revisedWithoutSig.length >= 80) {
-          draft.body = revisedClean;
-          if (revised.subject) draft.subject = sanitizeDashes(revised.subject);
-          console.log(`[fu-process] FU draft revised (pass 1) for ${fu.id} step ${nextStep}`);
-        }
-      }
-    }
-
-    // Pass 3: Haiku validates the (possibly revised) final draft.
-    // Any remaining issues force the draft to approval regardless of fu_approval_mode.
-    const critique2 = await critiqueFuDraft(draft.body, reply.message ?? "", fu.workspace_slug);
-    if (critique2) {
-      console.log(`[fu-process] Haiku final check still has issues for ${fu.id} step ${nextStep}: ${critique2} — forcing approval`);
-      // Force approval so a human reviews instead of sending a subpar draft.
-      reply.fu_approval_mode = true;
+    const critique = await critiqueFuDraft(draft.body, reply.message ?? "", fu.workspace_slug);
+    if (critique) {
+      console.log(`[fu-process] Haiku critique for ${fu.id} step ${nextStep}: ${critique} — routing to approval`);
+      routeToFuApproval = true;
     }
   }
 
@@ -499,7 +423,7 @@ Draft FU step ${nextStep} now.`;
           = (NOW() AT TIME ZONE 'America/New_York')::date
   `);
   const fuApprovalToday = parseInt(todayFuApprovalCount.rows[0]?.cnt ?? "0", 10);
-  const routeToFuApproval = reply.fu_approval_mode || fuApprovalToday < 2;
+  let routeToFuApproval = reply.fu_approval_mode || fuApprovalToday < 2;
 
   // Approval mode → stage in follow_up_drafts + post to Slack
   if (routeToFuApproval) {

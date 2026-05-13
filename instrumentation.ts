@@ -81,9 +81,9 @@ export async function register() {
     runEmailBisonInboxSync().catch(err =>
       console.error("[instrumentation] periodic inbox sync failed:", err)
     );
-  }, 2 * 60_000);
+  }, 10 * 60_000);
 
-  console.log("[instrumentation] EmailBison inbox sync started, 2min interval");
+  console.log("[instrumentation] EmailBison inbox sync started, 10min interval");
 
   // ── 3. Follow-up processor ────────────────────────────────────────────────
   let fuRunning = false;
