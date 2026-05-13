@@ -419,11 +419,15 @@ Draft FU step ${nextStep} now.`;
     }
   }
 
-  // Guard: reject a body that is too short — same truncation risk as the auto-reply processor.
-  const bodyWithoutSignature = draft.body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
-  if (bodyWithoutSignature.length < 80) {
-    console.warn(`[fu-process] FU body too short (${bodyWithoutSignature.length} chars) for ${fu.workspace_slug} / ${fu.lead_name} step ${nextStep} — skipping`);
-    return { status: "failed", reason: "generated body too short, possible truncation" };
+  // Guard: reject a Sonnet-drafted body that is too short (truncation risk).
+  // Templates are pre-approved content and exempt from this check — they can
+  // legitimately be short (e.g. fu-nudge is a single sentence).
+  if (!templateName) {
+    const bodyWithoutSignature = draft.body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
+    if (bodyWithoutSignature.length < 80) {
+      console.warn(`[fu-process] FU body too short (${bodyWithoutSignature.length} chars) for ${fu.workspace_slug} / ${fu.lead_name} step ${nextStep} — skipping`);
+      return { status: "failed", reason: "generated body too short, possible truncation" };
+    }
   }
 
   // Approval mode → stage in follow_up_drafts + post to Slack
