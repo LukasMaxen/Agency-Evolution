@@ -152,24 +152,36 @@ async function sendReplyToEmailBison(
     .map(para => `<p style="margin:0 0 16px 0;">${linkify(para.replace(/\n/g, "<br>"))}</p>`)
     .join("");
 
-  const ebResponse = await fetch(
-    `${instanceUrl}/api/replies/${emailBisonReplyId}/reply`,
-    {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: JSON.stringify({
-        message: htmlBody,
-        sender_email_id: senderEmailId,
-        to_emails: toEmails,
-        inject_previous_email_body: true,
-        content_type: "html",
-      }),
-    }
-  );
+  const ebCtrl = new AbortController();
+  const ebTimer = setTimeout(() => ebCtrl.abort(), 30_000);
+  let ebResponse: Response;
+  try {
+    ebResponse = await fetch(
+      `${instanceUrl}/api/replies/${emailBisonReplyId}/reply`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({
+          message: htmlBody,
+          sender_email_id: senderEmailId,
+          to_emails: toEmails,
+          inject_previous_email_body: true,
+          content_type: "html",
+        }),
+        signal: ebCtrl.signal,
+      }
+    );
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error("[fu-process] EmailBison send timed out after 30s");
+    else console.error("[fu-process] EmailBison send error:", err?.message);
+    return false;
+  } finally {
+    clearTimeout(ebTimer);
+  }
 
   if (!ebResponse.ok) {
     console.error("[fu-process] EmailBison error:", ebResponse.status, await ebResponse.text());
