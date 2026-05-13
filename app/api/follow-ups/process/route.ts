@@ -11,8 +11,6 @@ import {
   sanitizeDashes,
 } from "@/lib/slack-approval";
 import {
-  renderTemplate as renderReplyTemplate,
-  varsFromReply,
   daysUntilNextStep,
 } from "@/lib/template-replies";
 
@@ -357,37 +355,12 @@ ${prevBodies.length > 0 ? prevBodies.map((b, i) => `=== Message ${i + 1} ===\n${
 
 Draft FU step ${nextStep} now.`;
 
-  // ── Template vs Sonnet routing ──────────────────────────────────────────────
-  // Full sequence (6 steps): odd steps (1, 3, 5) are templates, even steps (2, 4, 6) are Sonnet.
-  // Abbreviated sequence (2 steps): step 1 is Sonnet (reframe), step 2 is the fu-breakup template.
-  // Template names live in the templates folder. Renaming or editing them does
-  // not require a code change.
-  let templateName: string | null = null;
-  if (fu.fu_sequence_type === "full") {
-    if (nextStep === 1) templateName = "fu-nudge";
-    else if (nextStep === 3) templateName = "fu-move-forward";
-    else if (nextStep === 5) templateName = "fu-check-in";
-  } else if (fu.fu_sequence_type === "abbreviated" && nextStep === fu.total_emails) {
-    templateName = "fu-breakup";
-  }
-
-  let draft: DraftResult | null;
-  if (templateName) {
-    const vars = varsFromReply(reply, fu.workspace_slug);
-    const body = renderReplyTemplate(templateName, vars);
-    if (!body) {
-      console.error(`[fu-process] template ${templateName} missing, falling back to Sonnet for step ${nextStep}`);
-      draft = await callClaude(systemPrompt, userMessage);
-    } else {
-      draft = {
-        subject: reply.subject ?? "",
-        body,
-      };
-      console.log(`[fu-process] using template ${templateName} for ${fu.workspace_slug} step ${nextStep}`);
-    }
-  } else {
-    draft = await callClaude(systemPrompt, userMessage);
-  }
+  // Every FU step goes through Sonnet with full context — no templates.
+  // Templates produced generic, context-blind drafts that regularly misfired
+  // (eg fu-nudge firing after a lead said "No thank you"). Full context is
+  // non-negotiable: client file, skill files, full thread, original reply.
+  const draft = await callClaude(systemPrompt, userMessage);
+  const templateName: string | null = null; // kept for quality-check guard below
 
   if (!draft) {
     return { status: "failed", reason: "claude error" };
@@ -397,8 +370,7 @@ Draft FU step ${nextStep} now.`;
   draft.body = sanitizeDashes(draft.body);
   draft.subject = sanitizeDashes(draft.subject);
 
-  // Two-pass quality check: Haiku critiques, if issues found discard and re-draft with Sonnet.
-  // Only runs on Sonnet-drafted steps — templates are pre-approved text.
+  // Two-pass quality check: Haiku critiques, Sonnet revises if issues found.
   if (!templateName) {
     const critique = await critiqueFuDraft(draft.body, reply.message ?? "", fu.workspace_slug);
     if (critique) {
@@ -419,9 +391,7 @@ Draft FU step ${nextStep} now.`;
     }
   }
 
-  // Guard: reject a Sonnet-drafted body that is too short (truncation risk).
-  // Templates are pre-approved content and exempt from this check — they can
-  // legitimately be short (e.g. fu-nudge is a single sentence).
+  // Guard: reject a body that is too short (truncation risk).
   if (!templateName) {
     const bodyWithoutSignature = draft.body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
     if (bodyWithoutSignature.length < 80) {
