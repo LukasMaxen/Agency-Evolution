@@ -427,7 +427,18 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     `SELECT email_bison_api_key, email_bison_instance_url, auto_reply_approval_mode, forward_replies_to_email, forward_cc_emails FROM workspaces WHERE slug = $1`,
     [workspaceSlug]
   );
-  if (wsResult.rows.length === 0) { console.error("[auto-reply] Workspace not found:", workspaceSlug); return; }
+  if (wsResult.rows.length === 0) {
+    console.error("[auto-reply] Workspace not found in DB:", workspaceSlug);
+    await pool.query(`UPDATE replies SET status = 'errored', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+      [JSON.stringify({ skipped_reason: "workspace_not_found", workspace_slug: workspaceSlug }), replyId]);
+    await postManual({
+      text: `Auto-reply failed — workspace "${workspaceSlug}" not found in DB`,
+      blocks: buildCard("Workspace not found in DB", workspaceSlug, { id: replyId, workspace_slug: workspaceSlug }, "", {
+        reason: `No workspaces row found for slug "${workspaceSlug}". Check DB or onboard this workspace. Reset to 'new' once fixed.`,
+      }),
+    });
+    return;
+  }
   const workspace = wsResult.rows[0];
   const replyWithCreds = { ...reply, ...workspace };
 
