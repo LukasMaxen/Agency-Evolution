@@ -1,39 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-const SYSTEM_PROMPT = `You are an AI assistant for a B2B cold email agency managing outreach for private equity and investment banking firms.
+const SYSTEM_PROMPT = `You are a cold email reply classifier for a B2B M&A/PE outreach agency.
 
-Your job is to analyze a lead's reply to a cold email and return a JSON object with:
-- intent: one of "interested_urgent" | "interested" | "needs_info" | "neutral" | "not_interested" | "unsubscribe"
-- urgency: one of "high" | "medium" | "low"
-- summary: a single short sentence (max 12 words) describing what the lead said
-- suggestedTemplateId: the best matching template ID from the list, or null
-- suggestedReply: a personalized, ready-to-send reply (2-4 short paragraphs, plain text, no placeholders)
+Return ONLY valid JSON — no markdown, no explanation:
+{
+  "intent": "interested_urgent"|"interested"|"needs_info"|"neutral"|"not_interested"|"unsubscribe",
+  "urgency": "high"|"medium"|"low",
+  "summary": "12 words max",
+  "suggestedTemplateId": "t1"|"t2"|"t3"|"t4"|"t5"|"t6"|null,
+  "suggestedReply": "plain text, 3-6 sentences, no placeholders"
+}
 
-Intent definitions:
-- interested_urgent: lead confirmed a meeting, gave a specific time/date, or is clearly ready to move immediately
-- interested: lead expressed clear interest but no concrete next step yet
-- needs_info: lead asked a specific question about the deal, valuation, structure, or documents
-- neutral: reply is ambiguous, polite but non-committal
-- not_interested: soft no, passing, wrong timing
-- unsubscribe: asks to be removed, hard no
+INTENTS
+interested_urgent: confirmed meeting, gave specific time, ready to move now
+interested: clear interest, no concrete next step
+needs_info: asked about deal, valuation, structure, or docs
+neutral: ambiguous or non-committal
+not_interested: soft no or wrong timing
+unsubscribe: hard no, asks to be removed
 
-Urgency:
-- high: action required immediately (time/date given, hot lead, explicit request)
-- medium: interested but no deadline
-- low: info request, neutral, or declining
+URGENCY: high=action needed now | medium=interested, no deadline | low=info/neutral/declining
 
-Templates available:
-t1 = Schedule a call
-t2 = Send deck / materials
-t3 = Request more info (when they asked a question)
-t4 = Not a fit — polite decline
-t5 = Follow up — no response
-t6 = Confirm meeting (when they confirmed a specific time)
+TEMPLATES: t1=Schedule call | t2=Send materials | t3=Answer their question | t4=Polite decline | t5=Follow up | t6=Confirm meeting
 
-For suggestedReply: write a real, warm, professional reply. Use the lead's first name. Reference what they said specifically. Keep it short (3-6 sentences). Do NOT include subject line. Do NOT use placeholders like [NAME] or [LINK].
-
-Respond ONLY with a valid JSON object. No markdown, no explanation, no code fences.`;
+REPLY: Use lead's first name. Reference what they said specifically. 3-6 sentences. No subject line. No [PLACEHOLDERS].`;
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -83,11 +74,12 @@ Their reply: "${message}"`;
       "Content-Type": "application/json",
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
+      "anthropic-beta": "prompt-caching-2024-07-31",
     },
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 1000,
-      system: SYSTEM_PROMPT,
+      max_tokens: 700,
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: userMessage }],
     }),
   });

@@ -158,7 +158,7 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 1500,
+        max_tokens: 1000,
         system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: userMessage }],
       }),
@@ -498,8 +498,10 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   const outbound = await pool.query(`SELECT 'outbound' AS dir, email_type, subject, body, sent_at FROM sent_emails WHERE workspace_slug=$1 AND lead_email=$2 AND email_type NOT IN ('forward_to_client')`, [workspaceSlug, reply.lead_email]);
   const inbound = await pool.query(`SELECT 'inbound' AS dir, 'lead_reply' AS email_type, subject, message AS body, received_at AS sent_at FROM replies WHERE workspace_slug=$1 AND lead_email=$2 AND id!=$3`, [workspaceSlug, reply.lead_email, replyId]);
   const allMessages = [...outbound.rows, ...inbound.rows].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
-  const threadHistory = allMessages.length > 0
-    ? allMessages.map((m, i) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body?.slice(0, 600)}`).join("\n\n")
+  // Cap at last 8 messages, 350 chars each — enough context without ballooning tokens
+  const recentMessages = allMessages.slice(-8);
+  const threadHistory = recentMessages.length > 0
+    ? recentMessages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body?.slice(0, 350)}`).join("\n\n")
     : "No prior messages.";
 
   // ── Context injections ────────────────────────────────────────────────────────
