@@ -102,7 +102,7 @@ function detectOptOut(message: string, leadFirstName: string): { intent: string;
     /^no[.,!]?\s*$/m, /^no thanks[.,!]?\s*$/m, /^not interested[.,!]?\s*$/m,
     /\bnot interested\b/, /\bno thanks\b/, /\bno thank you\b/,
     /\bnot for (me|us)\b/, /\bno interest\b/,
-    /\bwe('re| are) not interested\b/, /\bpass on this\b/,
+    /\bwe('re| are) not interested\b/,
   ];
   if (niPatterns.some(p => p.test(body))) {
     // Never reply to not-interested leads. Close silently.
