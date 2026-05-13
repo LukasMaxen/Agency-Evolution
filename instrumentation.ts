@@ -36,37 +36,7 @@ export async function register() {
     );
   }, 60_000);
 
-  // HTTP self-ping fallback for reply sweep — runs every 90s.
-  // Uses localhost first, falls back to external URL.
-  const port = process.env.PORT || "3000";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://inbox.agencyevolution.eu";
-
-  setInterval(() => {
-    fetch(`http://localhost:${port}/api/auto-reply/sweep?limit=20`)
-      .then(r => r.json())
-      .then(d => { if (d.processed_ok > 0) console.log(`[instrumentation] HTTP sweep: ${d.processed_ok} processed`); })
-      .catch(() => {
-        fetch(`${appUrl}/api/auto-reply/sweep?limit=20`)
-          .then(r => r.json())
-          .then(d => { if (d.processed_ok > 0) console.log(`[instrumentation] HTTP sweep (ext): ${d.processed_ok} processed`); })
-          .catch(err => console.error("[instrumentation] HTTP sweep ping failed:", err));
-      });
-  }, 90_000);
-
-  // HTTP self-ping fallback for follow-up processor — runs every 120s.
-  setInterval(() => {
-    fetch(`http://localhost:${port}/api/follow-ups/process`, { method: "POST" })
-      .then(r => r.json())
-      .then(d => { if (d.processed > 0) console.log(`[instrumentation] HTTP FU: ${d.processed} processed`); })
-      .catch(() => {
-        fetch(`${appUrl}/api/follow-ups/process`, { method: "POST" })
-          .then(r => r.json())
-          .then(d => { if (d.processed > 0) console.log(`[instrumentation] HTTP FU (ext): ${d.processed} processed`); })
-          .catch(err => console.error("[instrumentation] HTTP FU ping failed:", err));
-      });
-  }, 120_000);
-
-  console.log("[instrumentation] auto-reply self-sweeper started (60s in-process + 90s HTTP fallback)");
+  console.log("[instrumentation] auto-reply self-sweeper started, 60s interval");
 
   // ── 2. EmailBison inbox sync ──────────────────────────────────────────────
   const { runEmailBisonInboxSync } = await import("@/lib/emailbison-inbox-sync");
