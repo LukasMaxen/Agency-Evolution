@@ -282,9 +282,15 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
   // Also do a quick regex check on the original reply text for clear opt-outs
   // that might have been misclassified at time of first reply.
   const replyText = (reply.message ?? "").toLowerCase();
+  // ABSOLUTE RULE (2026-05-13): Never send a FU to any not-interested lead.
+  // No exceptions. No soft reframes. No step-back emails. Nothing. Stop and close.
   const optOutSignals = [
     /\bno thank(s| you)\b/, /\bnot interested\b/, /\bremove me\b/, /\bunsubscribe\b/,
-    /\bdo not contact\b/, /\bstop emailing\b/, /\bhard pass\b/,
+    /\bdo not contact\b/, /\bstop emailing\b/, /\bhard pass\b/, /\bpass\b/,
+    /\bnot relevant\b/, /\bnot in our charter\b/, /\bnot in our mandate\b/,
+    /\bnot something we (are|need)\b/, /\bwe are all set\b/, /\ball set\b/,
+    /\bnot for (us|me|now)\b/, /\bno interest\b/, /\bnot the right fit\b/,
+    /\bnot looking (to sell|at selling|for)\b/, /\btake a pass\b/,
   ];
   if (optOutSignals.some(p => p.test(replyText))) {
     await pool.query(

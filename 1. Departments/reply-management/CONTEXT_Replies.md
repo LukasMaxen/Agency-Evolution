@@ -65,6 +65,19 @@ Every inbound reply is classified into one of three actions by the auto-reply pr
 | `manual` | ONLY when: (1) the lead has given a specific day or time window requiring manual calendar booking, (2) the lead says "call me", asks for a phone call, or gives a phone number. Do NOT use for general interest, objections, or ambiguity. | A Slack notification is posted to `#manual-replies`. Kasper books manually. For phone call requests, the client is notified to call the lead. |
 | `do_nothing` | Out-of-office auto-replies, delivery failure notices, or replies that are already fully handled with nothing left to address. | Reply marked as read, no email sent, no sequence created. |
 
+**ABSOLUTE RULE — Never respond to not-interested leads (added 2026-05-13, non-negotiable):**
+
+When a lead says they are not interested in any form, STOP. Do not reply. Do not send a follow-up. Do not acknowledge. Close the sequence immediately.
+
+This covers all forms of not-interested, including:
+- "No thank you" / "No thanks" / "Not interested" / "Not for us" / "Pass"
+- "Not relevant" / "Not in our charter" / "Not in our mandate"
+- "Not the right time" (for the first response only — a soft-no acknowledgment reply may be sent, but no FU sequence of any kind follows)
+- "We are all set" / "Not something we are in need of"
+- Any reply where the lead clearly does not want further contact
+
+Send the one-line confirmation if they explicitly asked to be removed ("Removed, you won't hear from us again."). For all other forms of not-interested, send nothing at all. Close the sequence. Move on.
+
 The intent classification (`interested_urgent`, `interested`, `needs_info`, `neutral`, `not_interested`, `unsubscribe`) is independent of the action and drives the FU sequence type per the table in "Follow-Up Sequence Assignment" below.
 
 ---

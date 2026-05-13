@@ -601,15 +601,21 @@ function detectOptOut(message: string): { intent: string; reply: string } | null
     return { intent: "unsubscribe", reply: "Removed — you won't hear from us again." };
   }
 
+  // ABSOLUTE RULE (2026-05-13): Any form of not-interested = do nothing.
+  // No acknowledgment. No FU. Close and move on. Only exception: explicit
+  // unsubscribe / remove-me requests get the one-line removal confirmation above.
   const notInterestedPatterns = [
     /^no[.,!]?\s*$/m, /^no thanks[.,!]?\s*$/m, /^not interested[.,!]?\s*$/m,
     /\bnot interested\b/, /\bno thanks\b/, /\bno thank you\b/,
-    /\bnot relevant\b/, /\bnot for (me|us)\b/, /\bpass on this\b/,
+    /\bnot relevant\b/, /\bnot for (me|us)\b/, /\bpass on this\b/, /\bhard pass\b/,
     /\bwe('re| are) not interested\b/, /\bnot the right (fit|time|opportunity)\b/,
-    /\bno interest\b/, /\bwon'?t be interested\b/,
+    /\bno interest\b/, /\bwon'?t be interested\b/, /\btake a pass\b/,
+    /\bnot in our (charter|mandate|agenda)\b/, /\bnot something we\b/,
+    /\bwe are all set\b/, /\ball set[,.]?\s*thanks\b/,
+    /\bnot looking (to sell|at selling)\b/, /\bwe('re| are) not looking\b/,
   ];
   if (notInterestedPatterns.some(p => p.test(body))) {
-    return { intent: "not_interested", reply: "Understood. Won't follow up further." };
+    return { intent: "not_interested", reply: "" };  // empty reply = send nothing
   }
 
   return null;
@@ -1247,20 +1253,24 @@ ${fuContextFile}`;
   }
 
   // Opt-out pre-filter: catch clear "no thanks" / "not interested" / "stop" replies
-  // before calling Claude. These must NEVER go to manual regardless of what Claude
-  // would classify them as. Send a 1-line confirmation and close.
+  // before calling Claude.
+  // ABSOLUTE RULE (2026-05-13): not_interested = send nothing at all. No reply.
+  // Only unsubscribe / remove-me gets a one-line confirmation. Everything else closes silently.
   const optOut = detectOptOut(reply.message ?? "");
   if (optOut) {
-    const firstName = reply.lead_name?.split(" ")[0] ?? "there";
-    const body = `Hi ${firstName},\n\n${optOut.reply}\n\n{SENDER_EMAIL_SIGNATURE}`;
-    const sent = await sendReplyToEmailBison(replyWithCreds, body);
-    if (sent) {
-      const sentId = `auto-${replyId}-${Date.now()}`;
-      await pool.query(
-        `INSERT INTO sent_emails (id, reply_id, workspace_slug, lead_email, lead_name, email_type, subject, body, sent_at)
-         VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
-        [sentId, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", body]
-      );
+    const shouldSend = optOut.intent === "unsubscribe" && optOut.reply.length > 0;
+    if (shouldSend) {
+      const firstName = reply.lead_name?.split(" ")[0] ?? "there";
+      const body = `Hi ${firstName},\n\n${optOut.reply}\n\n{SENDER_EMAIL_SIGNATURE}`;
+      const sent = await sendReplyToEmailBison(replyWithCreds, body);
+      if (sent) {
+        const sentId = `auto-${replyId}-${Date.now()}`;
+        await pool.query(
+          `INSERT INTO sent_emails (id, reply_id, workspace_slug, lead_email, lead_name, email_type, subject, body, sent_at)
+           VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
+          [sentId, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", body]
+        );
+      }
     }
     if (optOut.intent === "unsubscribe") {
       await pool.query(`UPDATE replies SET interested = FALSE WHERE id = $1`, [replyId]);
@@ -1269,10 +1279,14 @@ ${fuContextFile}`;
       await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed' WHERE reply_id = $1`, [replyId]);
     }
     await pool.query(
-      `UPDATE replies SET status = 'replied', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
-      [JSON.stringify({ intent: optOut.intent, auto_replied: true, skipped_reason: "pre-filter: opt-out detected" }), replyId]
+      `UPDATE replies SET status = $1, interested = FALSE, ai_analysis = $2, ai_analyzed_at = NOW() WHERE id = $3`,
+      [
+        shouldSend ? "replied" : "read",
+        JSON.stringify({ intent: optOut.intent, auto_replied: shouldSend, skipped_reason: "pre-filter: opt-out detected" }),
+        replyId,
+      ]
     );
-    console.log(`[auto-reply] ${replyId} handled by opt-out pre-filter (${optOut.intent})`);
+    console.log(`[auto-reply] ${replyId} closed by opt-out pre-filter (${optOut.intent}, sent=${shouldSend})`);
     return;
   }
 
