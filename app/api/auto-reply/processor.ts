@@ -224,7 +224,7 @@ async function reviseDraft(
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 2500,
+        max_tokens: 1000,
         system: systemPrompt,
         messages: [
           { role: "user", content: userMessage },
@@ -539,7 +539,7 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 2500,
+        max_tokens: 1000,
         system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: userMessage }],
       }),
@@ -963,13 +963,6 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   const skillFile = readFile(
     path.join(process.cwd(), "1. Departments", "reply-management", "SKILL_Reply-Management.md")
   );
-  const fuSkillFile = readFile(
-    path.join(process.cwd(), "1. Departments", "follow-up-management", "SKILL_FollowUps.md")
-  );
-  const fuContextFile = readFile(
-    path.join(process.cwd(), "1. Departments", "follow-up-management", "CONTEXT_FollowUps.md")
-  );
-
   if (!clientFile) {
     console.error("[auto-reply] Client file not found for:", workspaceSlug);
     await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
@@ -1375,33 +1368,8 @@ ${reply.message}`;
     result.manual_reason = sanitizeDashes(result.manual_reason);
   }
 
-  // Two-pass quality check: Haiku critiques the draft, Sonnet revises if issues found.
-  // Only runs on auto_send drafts — no point critiquing manual or do_nothing decisions.
-  // Haiku call costs ~$0.001. Sonnet revision only fires when Haiku finds real issues.
-  if (result.action === "auto_send" && result.reply_body) {
-    const senderContext = `Sender is writing as themselves in first person (workspace: ${workspaceSlug})`;
-    const critique = await critiqueDraft(
-      result.reply_body,
-      reply.message ?? "",
-      reply.lead_name ?? "",
-      senderContext
-    );
-    if (critique) {
-      console.log(`[auto-reply] Haiku critique for ${replyId}: ${critique}`);
-      const revised = await reviseDraft(result.reply_body, critique, systemPrompt, userMessage);
-      if (revised) {
-        const revisedClean = sanitizeDashes(revised);
-        // Only use revision if it is at least as long as the original — never downgrade
-        const revisedWithoutSig = revisedClean.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
-        if (revisedWithoutSig.length >= 80) {
-          result.reply_body = revisedClean;
-          console.log(`[auto-reply] Reply revised based on critique for ${replyId}`);
-        } else {
-          console.warn(`[auto-reply] Revised body too short (${revisedWithoutSig.length} chars) — keeping original for ${replyId}`);
-        }
-      }
-    }
-  }
+  // Haiku critique and Sonnet revision removed — too expensive at scale.
+  // Quality is enforced by the system prompt and approval gate instead.
 
   // Override: if Claude returned manual but the intent is always-auto-send,
   // force auto_send with a standard 1-line reply. These intents (unsubscribe,
