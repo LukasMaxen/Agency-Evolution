@@ -81,6 +81,12 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Dr
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
+  const { checkRateLimit } = await import("@/lib/rate-limiter");
+  if (!checkRateLimit("claude-sonnet", 30)) {
+    console.warn("[fu-process] Rate limit reached (30 calls/min) — skipping Claude call this cycle");
+    return null;
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 90_000);
 

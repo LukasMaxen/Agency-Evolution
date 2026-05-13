@@ -147,6 +147,14 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
+  // Safety valve: cap at 30 Sonnet calls per 60-second window across both processors.
+  // Should never trigger under normal volume. If it does, a backlog spike or loop is burning tokens.
+  const { checkRateLimit } = await import("@/lib/rate-limiter");
+  if (!checkRateLimit("claude-sonnet", 30)) {
+    console.warn("[auto-reply] Rate limit reached (30 calls/min) — skipping Claude call this cycle");
+    return null;
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 90_000);
 
