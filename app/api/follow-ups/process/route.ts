@@ -393,17 +393,7 @@ Draft FU step ${nextStep} now.`;
   draft.body = sanitizeDashes(draft.body);
   draft.subject = sanitizeDashes(draft.subject);
 
-  // Single Haiku quality check. If it finds issues, route to approval for a
-  // human to review rather than burning a second Sonnet call on a revision.
-  if (!templateName) {
-    const critique = await critiqueFuDraft(draft.body, reply.message ?? "", fu.workspace_slug);
-    if (critique) {
-      console.log(`[fu-process] Haiku critique for ${fu.id} step ${nextStep}: ${critique} — routing to approval`);
-      routeToFuApproval = true;
-    }
-  }
-
-  // Guard: reject a body that is too short (truncation risk).
+  // Guard: reject a body that is too short (truncation risk). Templates exempt.
   if (!templateName) {
     const bodyWithoutSignature = draft.body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
     if (bodyWithoutSignature.length < 80) {
@@ -414,7 +404,6 @@ Draft FU step ${nextStep} now.`;
 
   // Daily QA sample: send 2 FU drafts per day to #follow-up-approval regardless
   // of fu_approval_mode, so quality can be monitored without reviewing every email.
-  // Resets at midnight Eastern to match EmailBison timezone.
   const todayFuApprovalCount = await pool.query<{ cnt: string }>(`
     SELECT COUNT(*) AS cnt
     FROM follow_up_drafts
@@ -424,6 +413,16 @@ Draft FU step ${nextStep} now.`;
   `);
   const fuApprovalToday = parseInt(todayFuApprovalCount.rows[0]?.cnt ?? "0", 10);
   let routeToFuApproval = reply.fu_approval_mode || fuApprovalToday < 2;
+
+  // Single Haiku quality check on Sonnet-drafted steps only.
+  // If issues found, route to approval — no second Sonnet revision.
+  if (!templateName) {
+    const critique = await critiqueFuDraft(draft.body, reply.message ?? "", fu.workspace_slug);
+    if (critique) {
+      console.log(`[fu-process] Haiku critique for ${fu.id} step ${nextStep}: ${critique} — routing to approval`);
+      routeToFuApproval = true;
+    }
+  }
 
   // Approval mode → stage in follow_up_drafts + post to Slack
   if (routeToFuApproval) {
