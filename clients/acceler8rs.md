@@ -15,7 +15,7 @@ reply_rules:
 - Lead asks about cost/fee: "Performance-based only, no upfront fee. We earn when you grow."
 - Lead interested in a call: send Calendly
 - Lead asks for case studies: send https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
-- Lead gives specific time: send Calendly anyway, find natural reason ("easiest to lock something in here")
+- Lead gives specific day/time: post to #manual-replies
 
 never:
 - Never guarantee specific revenue outcomes

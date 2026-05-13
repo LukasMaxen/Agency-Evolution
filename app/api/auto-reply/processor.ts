@@ -31,8 +31,8 @@ const CLIENT_FILE_ALIASES: Record<string, string> = {
   "internal-campaigns": "agency-evolution",
 };
 
-// Workspaces that skip auto-reply entirely (handled externally or excluded).
-const SKIP_WORKSPACES = new Set(["itg-group", "sonaro-ai"]);
+// Workspaces that skip auto-reply entirely (handled externally, churned, or excluded).
+const SKIP_WORKSPACES = new Set(["itg-group", "sonaro-ai", "sro-consulting"]);
 
 // ─── File helpers ──────────────────────────────────────────────────────────────
 
