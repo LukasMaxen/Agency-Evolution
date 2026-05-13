@@ -581,11 +581,7 @@ export async function runFollowUpProcessorOnce(): Promise<{
 }
 
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization") ?? "";
-  const expected = process.env.CRON_SECRET;
-  if (expected && auth !== `Bearer ${expected}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  // Open endpoint — no token required. Only processes our own DB rows.
 
   try {
     const result = await runFollowUpProcessorOnce();
