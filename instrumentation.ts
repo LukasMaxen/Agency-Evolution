@@ -36,14 +36,21 @@ export async function register() {
     );
   }, 60_000);
 
-  // HTTP self-ping fallback — runs every 90s on a staggered interval so it
-  // picks up anything the in-process sweeper missed (e.g. running=true stuck).
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://inbox.agencyevolution.eu";
+  // HTTP self-ping fallback — runs every 90s on a staggered interval.
+  // Uses localhost so it works regardless of external domain routing.
+  const port = process.env.PORT || "3000";
   setInterval(() => {
-    fetch(`${appUrl}/api/auto-reply/sweep?limit=20`)
+    fetch(`http://localhost:${port}/api/auto-reply/sweep?limit=20`)
       .then(r => r.json())
       .then(d => { if (d.processed_ok > 0) console.log(`[instrumentation] HTTP sweep: ${d.processed_ok} processed`); })
-      .catch(err => console.error("[instrumentation] HTTP sweep ping failed:", err));
+      .catch(() => {
+        // localhost failed, try external URL as second fallback
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://inbox.agencyevolution.eu";
+        fetch(`${appUrl}/api/auto-reply/sweep?limit=20`)
+          .then(r => r.json())
+          .then(d => { if (d.processed_ok > 0) console.log(`[instrumentation] HTTP sweep (ext): ${d.processed_ok} processed`); })
+          .catch(err => console.error("[instrumentation] HTTP sweep ping failed:", err));
+      });
   }, 90_000);
 
   console.log("[instrumentation] auto-reply self-sweeper started (60s in-process + 90s HTTP fallback)");
