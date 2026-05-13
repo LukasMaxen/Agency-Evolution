@@ -100,7 +100,6 @@ Then a one-line summary: "X sent, Y replies, Z interested, N meetings"
 
 ## Known issues / flags
 
-- **Statera Capital Airtable**: automation stopped updating at 2026-05-08. Meetings for Statera may show 0 even when real meetings exist. Flag this when reporting Statera meetings.
 - **DB `meeting_booked` flag**: never use — unreliable. Airtable only.
 - **DB `interested` boolean**: unreliable — always use AI intent classification instead.
 - **Internal Campaigns**: emails sent ARE tracked in DB (sequence_step = 1). Include the actual sent count. Previous note saying N/A was outdated.
