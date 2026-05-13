@@ -159,10 +159,20 @@ export async function POST(
     // ── CONTACT_UNSUBSCRIBED ──────────────────────────────────────────────────
     if (eventType === "CONTACT_UNSUBSCRIBED") {
       const replyId = body.data?.reply?.uuid;
+      const leadEmail = body.data?.lead?.email;
       if (replyId) {
         await pool.query(
           "UPDATE replies SET interested = FALSE, status = 'read' WHERE id = $1",
           [replyId]
+        );
+      }
+      // Kill any active FU sequence for this lead — they have unsubscribed.
+      if (leadEmail) {
+        await pool.query(
+          `UPDATE follow_ups SET next_fu_due = NULL, outcome = 'unsubscribed'
+           WHERE workspace_slug = $1 AND lead_email = $2
+             AND (outcome IS NULL OR outcome NOT IN ('booked','exhausted','unsubscribed','manually_closed'))`,
+          [slug, leadEmail]
         );
       }
       return NextResponse.json({ ok: true, event: "CONTACT_UNSUBSCRIBED" });

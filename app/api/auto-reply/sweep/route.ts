@@ -13,10 +13,17 @@ export const dynamic = "force-dynamic";
 // Wire to a 60-second cron (Coolify scheduled task or external cron-job.org):
 //   curl -fsS "$APP_URL/api/auto-reply/sweep?token=$AUTO_REPLY_SWEEP_TOKEN"
 export async function GET(req: NextRequest) {
-  // Open endpoint — no token required. Only reads our own DB and triggers
-  // our own processing logic. Safe to call without auth.
+  // Require sweep token when set — prevents external callers from triggering
+  // unlimited Claude calls via the limit param.
+  const sweepToken = process.env.AUTO_REPLY_SWEEP_TOKEN;
+  if (sweepToken) {
+    const provided = req.nextUrl.searchParams.get("token") ?? req.headers.get("x-sweep-token");
+    if (provided !== sweepToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
 
-  const limit = Math.min(Math.max(Number(req.nextUrl.searchParams.get("limit")) || 20, 1), 100);
+  const limit = Math.min(Math.max(Number(req.nextUrl.searchParams.get("limit")) || 20, 1), 20);
 
   const r = await pool.query(
     `SELECT id, workspace_slug, lead_email

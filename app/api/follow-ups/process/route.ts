@@ -196,6 +196,20 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
     return { status: "exhausted" };
   }
 
+  // Atomic claim: temporarily push next_fu_due forward so a concurrent run cannot
+  // pick up the same row. If processing fails, the row becomes claimable again
+  // after 10 minutes via the next run. This prevents duplicate FU drafts being
+  // posted to Slack when the HTTP route and the instrumentation timer fire concurrently.
+  const claimed = await pool.query(
+    `UPDATE follow_ups SET next_fu_due = NOW() + INTERVAL '10 minutes'
+     WHERE id = $1 AND next_fu_due IS NOT NULL AND next_fu_due <= NOW()
+     RETURNING id`,
+    [fu.id]
+  );
+  if (claimed.rows.length === 0) {
+    return { status: "skipped", reason: "claimed by concurrent run" };
+  }
+
   // Fetch the original reply + workspace credentials
   const replyResult = await pool.query(
     `SELECT r.*, w.email_bison_api_key, w.email_bison_instance_url, w.fu_approval_mode

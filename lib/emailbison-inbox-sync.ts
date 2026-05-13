@@ -46,9 +46,6 @@ let running = false;
 // years of historical untracked replies on a fresh deploy.
 const MAX_AGE_HOURS = 24;
 
-// Workspaces that don't need inbox sync — they skip auto-reply entirely.
-const SKIP_SYNC_WORKSPACES = new Set(["itg-group", "sonaro-ai", "sro-consulting"]);
-
 export async function runEmailBisonInboxSync(): Promise<void> {
   if (running) return;
   running = true;
