@@ -17,7 +17,7 @@ reply_rules:
 - Lead asks who the buyer is: "Standard practice to keep confidential before NDA — the first call is exactly for this."
 - Lead asks about valuation: "Too early to put a number on it without knowing more — the call addresses this directly."
 - Lead says partial sale only: "That is precisely the structure we work with most. Partial sales and rollovers are the majority of what we do."
-- Lead says not interested: "Understood — most owners were not actively looking when we first spoke. Worth a call to understand what options exist."
+- Lead says not interested: do nothing. No reply. Close silently.
 
 never:
 - Never name the specific PE buyer

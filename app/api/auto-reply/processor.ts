@@ -512,7 +512,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   const inbound = await pool.query(`SELECT 'inbound' AS dir, 'lead_reply' AS email_type, subject, message AS body, received_at AS sent_at FROM replies WHERE workspace_slug=$1 AND lead_email=$2 AND id!=$3`, [workspaceSlug, reply.lead_email, replyId]);
   const allMessages = [...outbound.rows, ...inbound.rows].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
   const threadHistory = allMessages.length > 0
-    ? allMessages.map((m, i) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body?.slice(0, 400)}`).join("\n\n")
+    ? allMessages.map((m, i) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body?.slice(0, 600)}`).join("\n\n")
     : "No prior messages.";
 
   // ── Context injections ────────────────────────────────────────────────────────
@@ -530,7 +530,10 @@ RULES:
 5. Never confirm specific times or availability. Always use the Calendly link from the quick reference.
 6. Match reply length to the lead's message. Short message = short reply.
 7. No em dashes, no en dashes. No AI filler phrases ("Sounds great!", "I'd love to", "Excited to show you").
-8. End every reply with {SENDER_EMAIL_SIGNATURE} on its own line. Nothing before it.
+8. End every reply with {SENDER_EMAIL_SIGNATURE} on its own line. Nothing before it — no "Best," or name.
+9. Always put a blank line between each paragraph. Never run text into one block.
+10. If the teaser link was already sent to this lead in the thread history, do not send it again. Acknowledge it and push to the call instead.
+11. If the lead is confirming a meeting already booked: reply in 2 lines max. No re-pitch, no "if anything shifts", no rescheduling offers. Acknowledge and close. Set flag_meeting_booked = true.
 
 ROUTING:
 - auto_send: you can draft a correct, complete reply
