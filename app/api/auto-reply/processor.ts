@@ -581,13 +581,25 @@ ${reply.message}`;
   if (result.reply_body) result.reply_body = sanitizeDashes(result.reply_body);
   if (result.manual_reason) result.manual_reason = sanitizeDashes(result.manual_reason);
 
+  // Hard gate: not_interested and hard_no are NEVER replied to, regardless of Claude's action.
+  // The pre-filter catches most of these for free; this catches any that slip through to Claude.
+  if (result.intent === "not_interested" || result.intent === "hard_no") {
+    await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed' WHERE reply_id = $1`, [replyId]);
+    await pool.query(`UPDATE replies SET status = 'read', interested = FALSE, ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+      [JSON.stringify({ intent: result.intent, auto_replied: false, skipped_reason: "not_interested_no_reply" }), replyId]);
+    return;
+  }
+
+  // Enforce fu_sequence_type = none for hard-close intents
+  if (["unsubscribe", "wrong_target", "hostile"].includes(result.intent)) {
+    result.fu_sequence_type = "none";
+  }
+
   // Override: force auto_send for always-auto intents even if Claude returned manual
-  if (result.action === "manual" && new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested"]).has(result.intent)) {
+  if (result.action === "manual" && new Set(["unsubscribe","wrong_target","hostile"]).has(result.intent)) {
     result.action = "auto_send";
     if (!result.reply_body) {
-      const body1line = result.intent === "not_interested"
-        ? `Hi ${firstName},\n\nUnderstood. Won't follow up further.\n\n{SENDER_EMAIL_SIGNATURE}`
-        : `Hi ${firstName},\n\nRemoved — you won't hear from us again.\n\n{SENDER_EMAIL_SIGNATURE}`;
+      const body1line = `Hi ${firstName},\n\nRemoved — you won't hear from us again.\n\n{SENDER_EMAIL_SIGNATURE}`;
       result.reply_body = body1line;
     }
   }
