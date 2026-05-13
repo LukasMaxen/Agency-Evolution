@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
      FROM replies
      WHERE status = 'new'
        AND received_at > NOW() - INTERVAL '24 hours'
-       AND workspace_slug NOT IN ('itg-group', 'sonaro-ai')
+       AND workspace_slug NOT IN ('itg-group', 'sonaro-ai', 'sro-consulting')
      ORDER BY received_at ASC
      LIMIT $1`,
     [limit]

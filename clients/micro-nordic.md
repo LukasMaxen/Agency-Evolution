@@ -3,6 +3,14 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+status: on_hold
+sender: [unknown — do not draft auto-replies]
+action: All replies route to #manual-replies. No auto-reply. No Calendly. Campaigns are paused — a human must handle any inbound.
+
+reply_rules:
+- Any reply: post to #manual-replies. Do not draft or send anything.
+
 ---
 
 ## Quick Reference

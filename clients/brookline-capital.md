@@ -2,6 +2,14 @@
 
 **Status:** Paused
 
+## REPLY QUICK REFERENCE
+status: paused
+sender: [unknown — do not draft auto-replies]
+action: All replies route to #manual-replies. No auto-reply. All campaigns are paused — a human must handle any inbound.
+
+reply_rules:
+- Any reply: post to #manual-replies. Do not draft or send anything.
+
 **Contact:** Not confirmed
 **Timezone:** EST UTC-5
 **Calendar:** Not confirmed
