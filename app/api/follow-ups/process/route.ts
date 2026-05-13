@@ -303,10 +303,11 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
     return { status: "skipped", reason: "opt-out signal in original reply" };
   }
 
-  // FU drafts only need the FU-specific context + client file.
-  // SKILL_Reply-Management and CONTEXT_Replies are for first replies only —
-  // loading them here burns ~30k tokens per call for zero benefit.
-  const clientFile = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
+  // FU drafts only need the FU-specific context + client file quick reference.
+  // Loading the full client file (up to 40KB) is the #1 token cost driver.
+  // Extract only the ## REPLY QUICK REFERENCE section — same approach as the reply processor.
+  const clientFileRaw = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
+  const clientFile = extractFuQuickReference(clientFileRaw);
   const followUpSkill = readFile(
     path.join(process.cwd(), "1. Departments", "follow-up-management", "SKILL_FollowUps.md")
   );
