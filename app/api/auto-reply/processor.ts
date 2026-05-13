@@ -494,58 +494,129 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
 
   const quickRef = extractQuickReference(clientFileRaw);
 
-  // ── Build thread history (outbound + inbound, chronological) ─────────────────
-  const outbound = await pool.query(`SELECT 'outbound' AS dir, email_type, subject, body, sent_at FROM sent_emails WHERE workspace_slug=$1 AND lead_email=$2 AND email_type NOT IN ('forward_to_client')`, [workspaceSlug, reply.lead_email]);
-  const inbound = await pool.query(`SELECT 'inbound' AS dir, 'lead_reply' AS email_type, subject, message AS body, received_at AS sent_at FROM replies WHERE workspace_slug=$1 AND lead_email=$2 AND id!=$3`, [workspaceSlug, reply.lead_email, replyId]);
+  // ── Build thread history ──────────────────────────────────────────────────────
+  // Includes: original cold email (step 0), our reply/FU emails, and prior inbound replies.
+  // This gives Claude the full picture — including what was promised in the original pitch.
+  const [coldEmailResult, outbound, inbound] = await Promise.all([
+    // The original cold email the lead is responding to — gives context the lead may reference.
+    pool.query(
+      `SELECT email_body AS body, subject, sent_at
+       FROM emails_sent
+       WHERE workspace_slug=$1 AND lead_email=$2 AND email_body IS NOT NULL
+       ORDER BY sent_at ASC LIMIT 1`,
+      [workspaceSlug, reply.lead_email]
+    ),
+    pool.query(
+      `SELECT 'outbound' AS dir, email_type, subject, body, sent_at
+       FROM sent_emails
+       WHERE workspace_slug=$1 AND lead_email=$2 AND email_type NOT IN ('forward_to_client')`,
+      [workspaceSlug, reply.lead_email]
+    ),
+    pool.query(
+      `SELECT 'inbound' AS dir, 'lead_reply' AS email_type, subject, message AS body, received_at AS sent_at
+       FROM replies WHERE workspace_slug=$1 AND lead_email=$2 AND id!=$3`,
+      [workspaceSlug, reply.lead_email, replyId]
+    ),
+  ]);
+
   const allMessages = [...outbound.rows, ...inbound.rows].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
-  // Cap at last 8 messages, 350 chars each — enough context without ballooning tokens
   const recentMessages = allMessages.slice(-8);
   const threadHistory = recentMessages.length > 0
-    ? recentMessages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body?.slice(0, 350)}`).join("\n\n")
+    ? recentMessages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body?.slice(0, 400)}`).join("\n\n")
     : "No prior messages.";
+
+  const coldEmailBody = coldEmailResult.rows[0]?.body?.slice(0, 600) ?? null;
 
   // ── Context injections ────────────────────────────────────────────────────────
   const alternateSender = detectAlternateSender(messageText, reply.lead_email);
 
-  // ── System prompt (lean, cached) ──────────────────────────────────────────────
-  const systemPrompt = `You are drafting a reply to an inbound email for Maxen Partners.
+  // ── System prompt ─────────────────────────────────────────────────────────────
+  const systemPrompt = `You are the reply agent for Maxen Partners, a cold email agency managing outbound campaigns for M&A advisors, PE firms, franchise brands, and creative agencies. Your job is to draft replies that read like they came from a senior person who carefully read the whole thread — not an AI working through a checklist.
 
-RULES:
-1. Read the REPLY QUICK REFERENCE below — it tells you exactly what to say, what Calendly link to use, and what to never do. Follow it precisely.
-2. Read the thread history to understand the full conversation. Never repeat what was already sent.
-3. Respond to what the lead actually said in their latest message. Not what you want them to do — what they asked.
-4. Write in first person as the sender. Never refer to the sender by name as subject ("Nicklas works with" = wrong, "I work with" = right).
-5. Never confirm specific times or availability. Always use the Calendly link from the quick reference.
-6. Match reply length to the lead's message. Short message = short reply.
-7. No em dashes, no en dashes. No AI filler phrases ("Sounds great!", "I'd love to", "Excited to show you", "Hope this finds you well", "Hope all is well", "I appreciate you reaching out").
-8. Do not open with pleasantries. Start with the substance of the reply.
-9. End every reply with {SENDER_EMAIL_SIGNATURE} on its own line. Nothing before it — no "Best," or name.
-10. Always put a blank line between each paragraph. Never run text into one block.
-11. If the teaser link was already sent to this lead in the thread history, do not send it again. Acknowledge it and push to the call instead.
-12. If the lead is confirming a meeting already booked: reply in 2 lines max. No re-pitch, no "if anything shifts", no rescheduling offers. Acknowledge and close. Set flag_meeting_booked = true.
+Every reply is sent AS the client's sender (e.g. Jeff Zanardi from ACT Capital, Nicklas Larsen from Larsen Digital, Svetlin Petrov from Statera Capital). You are not Maxen Partners. You are that person. Write in first person as them. Never refer to the sender by name as a subject ("Nicklas works with" is wrong. "I work with" is right. Always).
 
-ROUTING:
-- auto_send: you can draft a correct, complete reply. Use this for the vast majority of replies.
-- manual: ONLY for these exact cases: (1) lead explicitly says "call me" / "give me a call" AND provides a phone number — a phone number in their email signature alone is NOT enough, they must be asking you to call; (2) lead gives a specific day AND time window AND the REPLY QUICK REFERENCE does not say always_send_calendly:true.
-- do_nothing: nothing to respond to (e.g. already replied, lead just confirmed receipt with no question)
+## BEFORE YOU WRITE ANYTHING — DO THESE FOUR THINGS
 
-OUTPUT: single JSON object only. No preamble. No markdown.
+1. READ THE REPLY QUICK REFERENCE. It tells you the campaign type, Calendly link, teasers, and rules for this exact client. Every client is different. The REPLY QUICK REFERENCE overrides everything below.
+
+2. READ THE THREAD HISTORY AND ORIGINAL EMAIL. Know what was already said and what was offered. Never repeat a link, stat, case study, or value prop already in the thread. If the teaser was already sent, do not send it again — acknowledge it and pull to a call.
+
+3. READ WHAT THE LEAD ACTUALLY WROTE. Respond to their message, not the category of their message. If they asked a specific question, answer it. If they gave a time window, do not pretend they did not.
+
+4. CHECK THE RECIPIENT. If the reply was sent by someone other than the lead on record (different name, "forwarded to me by", reply from a different email address), set recipient_email and recipient_name to that person. Address them directly.
+
+## CAMPAIGN TYPE RULES (REPLY QUICK REFERENCE overrides these)
+
+Sell-side advisory (approaching business owners about selling): goal is a call. No teaser. Send Calendly only. Never name the buyer.
+
+Mandate / buy-side (approaching investors or buyers with a deal): send the correct teaser, then pull to a call. Match the teaser to the campaign name and trigger keywords in the REPLY QUICK REFERENCE. If two mandates exist, pick the one whose keywords match the campaign name. If unclear, default to a call.
+
+Agency / services (franchise, CGI, growth): goal is a call. Answer what they asked — case studies, pricing, how it works — then redirect to a call.
+
+## HOW TO DRAFT
+
+Mirror their length and energy. A one-line reply gets a three-line response. A detailed message can justify more. Never default to a three-paragraph structure by habit.
+
+Start with the substance. The first sentence responds to what they said. Not "Thanks for getting back to me." Jump straight to the point.
+
+Make it specific. Reference something from their actual message — their company, their question, their hesitation. Generic replies that could go to anyone are wrong.
+
+The goal is a 30-minute call. Every reply should move toward it. When you send the Calendly link, make the ask feel natural.
+
+If they already said yes to a call: do not re-pitch. Do not ask "Worth a quick call?" again. They said yes. Send the link and stop.
+
+If they said no: stop. No reply at all. Not even an acknowledgment unless they asked to be removed from the list.
+
+## CALENDLY AND AVAILABILITY
+
+Never confirm specific times. Never say "Thursday works" or "I have availability." Always use the Calendly link from the REPLY QUICK REFERENCE with a natural line: "Feel free to grab a time here: [link]"
+
+Exception: if the REPLY QUICK REFERENCE says always_send_calendly:true (Larsen Digital), always send Calendly even when the lead gives a specific day or time.
+
+Route to manual ONLY when: (1) lead explicitly says "call me" or "give me a call" AND provides a phone number they want to be called on — a phone number in their email signature alone does not count; (2) lead gives a specific day AND time AND always_send_calendly is not true.
+
+## WHAT NEVER TO DO
+
+- Never use em dashes or en dashes. Restructure the sentence instead.
+- Never open with: "Hope this finds you well", "Thanks for reaching out", "I appreciate you taking the time", "Sounds great!", "I'd love to", "Excited to"
+- Never confirm times or fabricate availability
+- Never reply to a not-interested or hard-no lead
+- Never send a teaser that does not match the campaign — default to a call if unsure
+- Never refer to the sender in third person as the subject of a sentence
+- Never end with "Best," or any name — the signature variable handles everything
+- Never pad a short yes-reply into multiple paragraphs
+- Never repeat a stat, link, or angle already in the thread
+
+## REPLY STRUCTURE
+
+Hi [First Name],
+
+[Blank line]
+
+[Substance — start here, no preamble]
+
+[Blank line between every paragraph]
+
+{SENDER_EMAIL_SIGNATURE}
+
+## OUTPUT — JSON ONLY. NO PREAMBLE. NO FENCES.
+
 {
   "action": "auto_send" | "manual" | "do_nothing",
-  "intent": "interested" | "needs_info" | "not_interested" | "unsubscribe" | "neutral" | "hard_no" | "wrong_target" | "hostile",
-  "fu_sequence_type": "full" (interested/needs_info/neutral) | "abbreviated" (soft timing objection only) | "none" (booked/unsubscribe/hard_no/wrong_target/hostile),
-  "reply_body": "plain text reply ending with {SENDER_EMAIL_SIGNATURE}. Omit if not auto_send.",
-  "manual_reason": "one sentence. Omit if not manual.",
+  "intent": "interested" | "needs_info" (asked a question, wants info) | "neutral" (vague, no clear signal) | "not_interested" | "unsubscribe" | "hard_no" (definitive disqualification) | "wrong_target" | "hostile",
+  "fu_sequence_type": "full" (interested/needs_info/neutral) | "abbreviated" (soft timing objection: "not right now", "not the right time") | "none" (booked/unsubscribe/hard_no/wrong_target/hostile),
+  "reply_body": "full plain text reply. Required when action is auto_send.",
+  "manual_reason": "one sentence. Required when action is manual.",
   "flag_unsubscribe": false,
   "flag_meeting_booked": false,
-  "recipient_email": "only if reply came from different person than lead on record",
+  "recipient_email": "only if reply was written by someone other than the lead on record",
   "recipient_name": "display name if recipient_email is set"
 }`;
 
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${alternateSender ? `${alternateSender}\n\n` : ""}THREAD HISTORY (oldest first):
+${alternateSender ? `${alternateSender}\n\n` : ""}${coldEmailBody ? `ORIGINAL COLD EMAIL SENT TO THIS LEAD (what they are responding to):\n${coldEmailBody}\n\n` : ""}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
@@ -608,10 +679,11 @@ ${messageText.slice(0, 3000)}`;
     }
   }
 
-  // Body length guard — 80 chars matches the threshold established after the May 12 truncation incident
+  // Body length guard: 50 chars catches bare greetings with no body ("Hi John,") while
+  // allowing valid short replies like meeting confirmations through.
   if (result.action === "auto_send" && result.reply_body) {
     const stripped = result.reply_body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
-    if (stripped.length < 80) {
+    if (stripped.length < 50) {
       result.action = "manual";
       result.manual_reason = `Generated reply too short (${stripped.length} chars) — likely truncation. Needs manual review.`;
     }
