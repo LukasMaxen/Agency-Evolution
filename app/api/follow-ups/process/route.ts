@@ -612,7 +612,7 @@ export async function runFollowUpProcessorOnce(): Promise<{
      WHERE next_fu_due IS NOT NULL
        AND next_fu_due <= NOW()
        AND meeting_booked = FALSE
-       AND (outcome IS NULL OR outcome NOT IN ('booked','re_engaged','exhausted','unsubscribed'))
+       AND (outcome IS NULL OR outcome NOT IN ('booked','re_engaged','exhausted','unsubscribed','manually_closed','closed','closed_on_intent'))
      ORDER BY next_fu_due ASC
      LIMIT 10`
   );
