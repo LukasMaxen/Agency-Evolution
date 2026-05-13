@@ -3,6 +3,28 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+campaign_type: agency_services
+sender: Nicklas Larsen, Founder, Larsen Digital
+offer: DTC brand growth and exit planning. M&A partners closed $1B+ in CPG transactions. Goal: 8-figure exit. 100% performance-based, no upfront fee. 250M+ in Shopify revenue managed.
+calendly: https://calendly.com/larsen-digital-marketing/intro
+always_send_calendly: true (LARSEN DIGITAL EXCEPTION: always send Calendly even when lead gives specific day/time. Find natural reason: "easiest to lock something in here", "calendar fills up fast")
+
+reply_rules:
+- Lead shows any interest: send Calendly. Always. No exceptions.
+- Lead gives specific day/time ("next week", "Monday"): STILL send Calendly. Do not route to manual. Find natural reason to send link.
+- Lead asks about fees: "Fully performance-based, no upfront fee or retainer. We earn when you grow."
+- Lead asks for case studies: mention Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days)
+- Lead already booked: confirm in 2 lines max. Flag meeting_booked = true. Stop FU sequence.
+- Lead asks what we do: explain the M&A angle — growth built toward a clean 8-figure exit, not just ads
+
+never:
+- Never guarantee exit valuations
+- Never use {COMPANY} — always "your brand"
+- Never mention pricing/fee unless asked
+- No P.S. opt-out lines
+- Never confirm specific time slots ("next Friday works" = wrong)
+
 ---
 
 ## Quick Reference

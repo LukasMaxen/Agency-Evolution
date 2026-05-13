@@ -3,6 +3,26 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+campaign_type: agency_services
+sender: Lukas Maxen, Co-founder, Acceler8rs
+offer: 3-phase DTC brand growth system — grow profitably, scale with operating partnership, exit at 8 figures. Performance-based, no upfront fee.
+calendly: https://calendly.com/lukasm-acceler8rs/intro-meeting
+always_send_calendly: false
+
+reply_rules:
+- Always say "your brand" never the company name variable
+- Lead asks about cost/fee: "Performance-based only, no upfront fee. We earn when you grow."
+- Lead interested in a call: send Calendly
+- Lead asks for case studies: send https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
+- Lead gives specific time: send Calendly anyway, find natural reason ("easiest to lock something in here")
+
+never:
+- Never guarantee specific revenue outcomes
+- Never use {COMPANY} — always "your brand"
+- Never mention pricing before they ask
+- No P.S. opt-out lines
+
 ---
 
 ## Quick Reference

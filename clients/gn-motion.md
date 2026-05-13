@@ -3,6 +3,38 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+campaign_type: cgi
+sender: Romain Guillon, Owner, GN Motion
+offer: Premium CGI/3D video production for product brands. Complimentary sample matched to their specific product — zero commitment. Reference clients: L'Oreal (Revitalift), Audemars Piguet, Bang & Olufsen, Samsung.
+calendly: https://app.iclosed.io/e/GNMOTION/30min
+portfolio: https://www.canva.com/design/DAHCb_CiXzA/UA6aPIn-u-MAXQiuuanQAQ/view?utm_content=DAHCb_CiXzA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h6402713df7
+always_send_calendly: false
+french_market: true (match language exactly if they reply in French)
+
+reply_rules:
+- Lead asks to see portfolio/examples: send portfolio link + invite to call for complimentary sample
+- Lead asks about pricing: redirect to call. "Best to cover after a quick call so I can understand your specific product."
+- Lead interested in sample: send the sample request template (see below)
+- Lead gives phone number asking to be called: post to #manual-replies (Romain must call)
+- Lead writes in French: respond entirely in French. Close with "Bien cordialement."
+- Lead redirected us to a colleague (via email): email that colleague directly using referral as opener
+
+never:
+- Never say "free" — always "complimentary"
+- Never say "efficacy" for cosmetics
+- Never overpromise on turnaround without checking
+- No P.S. opt-out lines
+
+sample_request_template: |
+  Hi {FIRST_NAME},
+
+  That is great to hear. To make sure the sample really hits the mark, let us chat for a few minutes about your creative goals and which product would be best to showcase.
+
+  Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/30min
+
+  {SENDER_EMAIL_SIGNATURE}
+
 ---
 
 ## Quick Reference
