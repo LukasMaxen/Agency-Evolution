@@ -488,8 +488,21 @@ Draft FU step ${nextStep} now.`;
     }
   }
 
+  // Daily QA sample: send 2 FU drafts per day to #follow-up-approval regardless
+  // of fu_approval_mode, so quality can be monitored without reviewing every email.
+  // Resets at midnight Eastern to match EmailBison timezone.
+  const todayFuApprovalCount = await pool.query<{ cnt: string }>(`
+    SELECT COUNT(*) AS cnt
+    FROM follow_up_drafts
+    WHERE status = 'pending'
+      AND (created_at AT TIME ZONE 'America/New_York')::date
+          = (NOW() AT TIME ZONE 'America/New_York')::date
+  `);
+  const fuApprovalToday = parseInt(todayFuApprovalCount.rows[0]?.cnt ?? "0", 10);
+  const routeToFuApproval = reply.fu_approval_mode || fuApprovalToday < 2;
+
   // Approval mode → stage in follow_up_drafts + post to Slack
-  if (reply.fu_approval_mode) {
+  if (routeToFuApproval) {
     const draftId = `fud-${fu.id}-${nextStep}-${Date.now()}`;
 
     const quotedBody = quoteForSlack(draft.body, 2500);
