@@ -81,8 +81,14 @@ function detectOptOut(message: string, leadFirstName: string): { intent: string;
   const body = message.split(/\n[-]{3,}|\nOn .+ wrote:|\n_{3,}/)[0]?.toLowerCase() ?? "";
 
   const unsubPatterns = [
-    /\bstop\b/, /remove.*list/, /\bunsubscribe\b/, /\bopt.?out\b/,
-    /please (remove|delete|take) (me|us)/, /don.?t (contact|email|follow up)/,
+    /\bstop (emailing|contacting|sending|following up)\b/,
+    /\bdo not (contact|email|follow up|reach out)\b/,
+    /\bdon.?t (contact|email|follow up|reach out)\b/,
+    /remove.*(?:from|off).*list/,
+    /\bunsubscribe\b/,
+    /\bopt.?out\b/,
+    /please (remove|delete|take) (me|us)/,
+    /take me off/,
   ];
   if (unsubPatterns.some(p => p.test(body))) {
     return {
@@ -450,16 +456,52 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   const workspace = wsResult.rows[0];
   const replyWithCreds = { ...reply, ...workspace };
 
+  // ── Pre-filter 0: Empty message ──────────────────────────────────────────────
+  const messageText = (reply.message ?? "").trim();
+  if (!messageText) {
+    await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+      [JSON.stringify({ intent: "no_action", skipped_reason: "empty_message" }), replyId]);
+    return;
+  }
+
   // ── Pre-filter 1: OOO / bounce / spam ────────────────────────────────────────
-  if (isNoActionReply(reply.message ?? "")) {
+  // Run BEFORE forwarding so we don't forward bounces/OOO to clients.
+  if (isNoActionReply(messageText)) {
     await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ intent: "no_action", skipped_reason: "OOO/bounce/spam" }), replyId]);
     return;
   }
 
+  // ── Forwarding path ───────────────────────────────────────────────────────────
+  // Check BEFORE opt-out pre-filter: forwarding workspaces (e.g. Hahnbeck) want
+  // ALL replies forwarded to the client — including not-interested, unsubscribes,
+  // soft nos, everything. Only OOO/bounces are excluded above.
+  const fileSlug = CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
+  const clientFileRaw = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
+  if (!clientFileRaw) {
+    console.error("[auto-reply] Client file not found:", workspaceSlug);
+    await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
+    return;
+  }
+
+  if (workspace.forward_replies_to_email) {
+    const forwarded = await forwardToClient(replyWithCreds, workspace.forward_replies_to_email, workspace.forward_cc_emails ?? null);
+    if (forwarded) {
+      await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'forward_to_client',$6,$7,NOW())`,
+        [`fwd-${replyId}-${Date.now()}`, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", `[Forwarded to ${workspace.forward_replies_to_email}]`]);
+    }
+    await pool.query(`UPDATE replies SET status=$1, ai_analysis=$2, ai_analyzed_at=NOW() WHERE id=$3`,
+      [forwarded ? "forwarded" : "new", JSON.stringify({ forwarded_to: workspace.forward_replies_to_email, status: forwarded ? "sent" : "failed" }), replyId]);
+    if (!forwarded) {
+      await postManual({ text: `Forward failed, ${workspaceSlug} / ${reply.lead_name}`,
+        blocks: buildCard("Forward failed", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", { reason: `Forward to ${workspace.forward_replies_to_email} failed.` }) });
+    }
+    return;
+  }
+
   // ── Pre-filter 2: Opt-outs / not-interested ──────────────────────────────────
   const firstName = reply.lead_name?.split(" ")[0] ?? "there";
-  const optOut = detectOptOut(reply.message ?? "", firstName);
+  const optOut = detectOptOut(messageText, firstName);
   if (optOut) {
     if (optOut.body) {
       // Unsubscribe: send confirmation reply
@@ -481,31 +523,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     return;
   }
 
-  // ── Load client quick reference (lean — only the REPLY QUICK REFERENCE section) ──
-  const fileSlug = CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
-  const clientFileRaw = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
-  if (!clientFileRaw) {
-    console.error("[auto-reply] Client file not found:", workspaceSlug);
-    await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
-    return;
-  }
   const quickRef = extractQuickReference(clientFileRaw);
-
-  // ── Forwarding path ───────────────────────────────────────────────────────────
-  if (workspace.forward_replies_to_email) {
-    const forwarded = await forwardToClient(replyWithCreds, workspace.forward_replies_to_email, workspace.forward_cc_emails ?? null);
-    if (forwarded) {
-      await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'forward_to_client',$6,$7,NOW())`,
-        [`fwd-${replyId}-${Date.now()}`, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", `[Forwarded to ${workspace.forward_replies_to_email}]`]);
-    }
-    await pool.query(`UPDATE replies SET status=$1, ai_analysis=$2, ai_analyzed_at=NOW() WHERE id=$3`,
-      [forwarded ? "forwarded" : "new", JSON.stringify({ forwarded_to: workspace.forward_replies_to_email, status: forwarded ? "sent" : "failed" }), replyId]);
-    if (!forwarded) {
-      await postManual({ text: `Forward failed, ${workspaceSlug} / ${reply.lead_name}`,
-        blocks: buildCard("Forward failed", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", { reason: `Forward to ${workspace.forward_replies_to_email} failed.` }) });
-    }
-    return;
-  }
 
   // ── Build thread history (outbound + inbound, chronological) ─────────────────
   const outbound = await pool.query(`SELECT 'outbound' AS dir, email_type, subject, body, sent_at FROM sent_emails WHERE workspace_slug=$1 AND lead_email=$2`, [workspaceSlug, reply.lead_email]);
