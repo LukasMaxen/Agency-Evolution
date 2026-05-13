@@ -534,8 +534,8 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     : "No prior messages.";
 
   // ── Context injections ────────────────────────────────────────────────────────
-  const alternateSender = detectAlternateSender(reply.message ?? "", reply.lead_email);
-  const mandateNote = matchMandate(quickRef, reply.campaign ?? "", reply.message ?? "");
+  const alternateSender = detectAlternateSender(messageText, reply.lead_email);
+  const mandateNote = matchMandate(quickRef, reply.campaign ?? "", messageText);
 
   // ── System prompt (lean, cached) ──────────────────────────────────────────────
   const systemPrompt = `You are drafting a reply to an inbound email for Maxen Partners.
@@ -583,7 +583,7 @@ Company: ${reply.lead_company ?? "unknown"} | Title: ${reply.lead_title ?? "unkn
 Campaign: ${reply.campaign ?? "unknown"}
 Subject: ${reply.subject ?? ""}
 
-${reply.message}`;
+${messageText.slice(0, 3000)}`;
 
   // ── Call Claude ───────────────────────────────────────────────────────────────
   const result = await callClaude(systemPrompt, userMessage);
