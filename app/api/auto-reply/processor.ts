@@ -1237,14 +1237,42 @@ ${fuSkillFile}
 ${fuContextFile}`;
 
   // OOO / bounce / spam pre-filter: skip Claude entirely for obvious no-action replies.
-  // This catches out-of-office, delivery failures, and auto-replies before spending
-  // a Sonnet call on them.
   if (isNoActionReply(reply.message ?? "")) {
     await pool.query(
       `UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ intent: "out_of_office_or_bounce", auto_replied: false, skipped_reason: "pre-filter: OOO/bounce/spam detected" }), replyId]
     );
     console.log(`[auto-reply] ${replyId} skipped by OOO/bounce pre-filter`);
+    return;
+  }
+
+  // Opt-out pre-filter: catch clear "no thanks" / "not interested" / "stop" replies
+  // before calling Claude. These must NEVER go to manual regardless of what Claude
+  // would classify them as. Send a 1-line confirmation and close.
+  const optOut = detectOptOut(reply.message ?? "");
+  if (optOut) {
+    const firstName = reply.lead_name?.split(" ")[0] ?? "there";
+    const body = `Hi ${firstName},\n\n${optOut.reply}\n\n{SENDER_EMAIL_SIGNATURE}`;
+    const sent = await sendReplyToEmailBison(replyWithCreds, body);
+    if (sent) {
+      const sentId = `auto-${replyId}-${Date.now()}`;
+      await pool.query(
+        `INSERT INTO sent_emails (id, reply_id, workspace_slug, lead_email, lead_name, email_type, subject, body, sent_at)
+         VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
+        [sentId, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", body]
+      );
+    }
+    if (optOut.intent === "unsubscribe") {
+      await pool.query(`UPDATE replies SET interested = FALSE WHERE id = $1`, [replyId]);
+      await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`, [replyId]);
+    } else {
+      await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed' WHERE reply_id = $1`, [replyId]);
+    }
+    await pool.query(
+      `UPDATE replies SET status = 'replied', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+      [JSON.stringify({ intent: optOut.intent, auto_replied: true, skipped_reason: "pre-filter: opt-out detected" }), replyId]
+    );
+    console.log(`[auto-reply] ${replyId} handled by opt-out pre-filter (${optOut.intent})`);
     return;
   }
 
