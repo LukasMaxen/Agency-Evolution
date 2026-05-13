@@ -72,7 +72,10 @@ function isNoActionReply(message: string): boolean {
   );
 }
 
-/** Clear opt-out / not-interested patterns. Returns standard reply body or null. */
+/** Clear opt-out / not-interested patterns.
+ * unsubscribe: returns body to send (confirmation reply).
+ * not_interested: returns body = "" (close silently, no reply).
+ */
 function detectOptOut(message: string, leadFirstName: string): { intent: string; body: string } | null {
   if (!message) return null;
   const body = message.split(/\n[-]{3,}|\nOn .+ wrote:|\n_{3,}/)[0]?.toLowerCase() ?? "";
@@ -91,14 +94,12 @@ function detectOptOut(message: string, leadFirstName: string): { intent: string;
   const niPatterns = [
     /^no[.,!]?\s*$/m, /^no thanks[.,!]?\s*$/m, /^not interested[.,!]?\s*$/m,
     /\bnot interested\b/, /\bno thanks\b/, /\bno thank you\b/,
-    /\bnot relevant\b/, /\bnot for (me|us)\b/, /\bno interest\b/,
+    /\bnot for (me|us)\b/, /\bno interest\b/,
     /\bwe('re| are) not interested\b/, /\bpass on this\b/,
   ];
   if (niPatterns.some(p => p.test(body))) {
-    return {
-      intent: "not_interested",
-      body: `Hi ${leadFirstName},\n\nUnderstood. Won't follow up further.\n\n{SENDER_EMAIL_SIGNATURE}`,
-    };
+    // Never reply to not-interested leads. Close silently.
+    return { intent: "not_interested", body: "" };
   }
 
   return null;
@@ -460,19 +461,23 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   const firstName = reply.lead_name?.split(" ")[0] ?? "there";
   const optOut = detectOptOut(reply.message ?? "", firstName);
   if (optOut) {
-    const sent = await sendToEmailBison(replyWithCreds, optOut.body);
-    if (sent) {
-      await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
-        [`auto-${replyId}-${Date.now()}`, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", optOut.body]);
-    }
-    if (optOut.intent === "unsubscribe") {
+    if (optOut.body) {
+      // Unsubscribe: send confirmation reply
+      const sent = await sendToEmailBison(replyWithCreds, optOut.body);
+      if (sent) {
+        await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
+          [`auto-${replyId}-${Date.now()}`, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", optOut.body]);
+      }
       await pool.query(`UPDATE replies SET interested = FALSE WHERE id = $1`, [replyId]);
       await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`, [replyId]);
+      await pool.query(`UPDATE replies SET status = 'replied', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ intent: optOut.intent, auto_replied: true }), replyId]);
     } else {
+      // Not-interested: close silently, no reply sent
       await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed' WHERE reply_id = $1`, [replyId]);
+      await pool.query(`UPDATE replies SET status = 'read', interested = FALSE, ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ intent: optOut.intent, auto_replied: false, skipped_reason: "not_interested_no_reply" }), replyId]);
     }
-    await pool.query(`UPDATE replies SET status = 'replied', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
-      [JSON.stringify({ intent: optOut.intent, auto_replied: true }), replyId]);
     return;
   }
 
