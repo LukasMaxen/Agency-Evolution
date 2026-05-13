@@ -35,10 +35,10 @@ Existing leads that replied before this system was deployed are paused (`next_fu
 
 | Lead intent (from auto-reply classification) | FU sequence type | Steps |
 |---|---|---|
-| `interested_urgent` | `full` | 5 |
-| `interested` | `full` | 5 |
-| `needs_info` | `full` | 5 |
-| `neutral` | `full` | 5 |
+| `interested_urgent` | `full` | 6 |
+| `interested` | `full` | 6 |
+| `needs_info` | `full` | 6 |
+| `neutral` | `full` | 6 |
 | `not_interested` (with timing language: "not right now", "happy as is") | `abbreviated` | 2 |
 | `unsubscribe` | `none` | 0 (no FU sequence) |
 | Hard no (disqualified: "sold last year", "we never do this") | `none` | 0 |
@@ -145,7 +145,7 @@ These read like a re-engagement after no response. DO write things like these:
 >
 > Quick follow-up. We recently closed a sell-side mandate for a SaaS business in the same revenue range as yours. The structure surprised the founder in a good way.
 >
-> Worth 15 minutes to walk through what that looked like? Tuesday at 10am ET or Wednesday at 2pm ET both work, or grab a slot here: {CALENDLY_LINK}
+> Worth 15 minutes to walk through what that looked like? Feel free to grab a time here: {CALENDLY_LINK}
 >
 > {SENDER_EMAIL_SIGNATURE}"
 
@@ -160,7 +160,7 @@ These are identical to Reply Management's rules and apply to every FU email:
 - Match length to context. Shorter is better.
 - Closings: "Looking forward to speaking with you." or "Looking forward to it." For break-ups: "Happy to revisit later."
 - Never volunteer pricing or valuation numbers unless explicitly asked.
-- For interested re-opens (full sequence FU1), include the client's Calendly link with exactly two suggested time slots.
+- For interested re-opens (full sequence FU2/FU4/FU6 Sonnet steps), include the client's Calendly link. Never suggest specific time slots — there is no calendar access. Use: "Feel free to grab a time here: [link]"
 
 ## Critical Drafting Rules
 
