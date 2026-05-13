@@ -529,7 +529,7 @@ OUTPUT: single JSON object only. No preamble. No markdown.
 {
   "action": "auto_send" | "manual" | "do_nothing",
   "intent": "interested" | "needs_info" | "not_interested" | "unsubscribe" | "neutral" | "hard_no" | "wrong_target" | "hostile",
-  "fu_sequence_type": "full" | "abbreviated" | "none",
+  "fu_sequence_type": "full" (interested/needs_info/neutral) | "abbreviated" (soft timing objection only) | "none" (booked/unsubscribe/hard_no/wrong_target/hostile),
   "reply_body": "plain text reply ending with {SENDER_EMAIL_SIGNATURE}. Omit if not auto_send.",
   "manual_reason": "one sentence. Omit if not manual.",
   "flag_unsubscribe": false,
