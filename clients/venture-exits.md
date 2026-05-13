@@ -3,6 +3,33 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+campaign_type: mixed — check campaign name
+sender: Tim Enger, Venture Exits
+always_send_calendly: false
+calendly: https://calendly.com/tim-ventureexits/30min
+
+TYPE 1 — Yoga Acquisition (campaign contains "Yoga"):
+  offer: Black Swan Yoga brand — $7.2M revenue, 15% adj. EBITDA, 21 locations across TX/AZ/CO. Lead is a PE firm or investor.
+  goal: Send teaser + Calendly.
+  teaser: https://drive.google.com/file/d/1W16xGuzI26WwBNsHRL52C7O7GWTPBL1h/view?usp=sharing
+  reply: "Here is the teaser: [teaser]. Happy to walk through the details on a quick call. [calendly]"
+
+TYPE 2 — Texas Sell Side (campaign contains "Texas" or "Sell Side"):
+  offer: Tim represents a buyer interested in Texas-based businesses. Lead is a business owner.
+  goal: Get them on a call. NO teaser.
+  reply: "Feel free to grab a time here: [calendly]"
+
+reply_rules:
+- Buyer asks about valuation: stay vague, redirect to teaser and call
+- Buyer asks who the seller is: NDA framing — cannot share before NDA
+- Buyer not a fit: polite 2-3 line exit
+
+never:
+- Never name the buyer
+- Never give valuation in writing
+- Never agree to commission-only
+
 ---
 
 ## Quick Reference

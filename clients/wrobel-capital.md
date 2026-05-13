@@ -3,6 +3,30 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+campaign_type: mandate_buyer
+sender: Stephen Wrobel, Managing Partner, Wrobel Capital LLC
+offer: PE-backed direct acquisition of middle-market US businesses ($25M-$250M revenue, $5M-$25M EBITDA). Committed capital, flexible structures including partial sales and rollovers. No broker fee on seller's side.
+calendly: https://calendly.com/swrobel-wrobelcap/30min
+always_send_calendly: false
+
+reply_rules:
+- Lead interested or asking questions: send Calendly. "Feel free to grab a time here: [calendly]"
+- Lead gives specific day/time: post to #manual-replies (Stephen must book)
+- Lead gives phone number asking to be called: post to #manual-replies
+- Lead asks who the buyer is: "Standard practice to keep confidential before NDA — the first call is exactly for this."
+- Lead asks about valuation: "Too early to put a number on it without knowing more — the call addresses this directly."
+- Lead says partial sale only: "That is precisely the structure we work with most. Partial sales and rollovers are the majority of what we do."
+- Lead says not interested: "Understood — most owners were not actively looking when we first spoke. Worth a call to understand what options exist."
+
+never:
+- Never name the specific PE buyer
+- Never give a valuation estimate in writing
+- Never use dollar signs on revenue/EBITDA
+- Never use pressure language ("limited window", "acting quickly")
+- Never use em dashes or en dashes — use commas or periods instead
+- Never reference commission or fee owed by the seller
+
 ---
 
 ## Quick Reference

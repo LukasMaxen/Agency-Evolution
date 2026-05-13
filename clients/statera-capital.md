@@ -3,6 +3,45 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+campaign_type: mixed — read campaign name carefully, each campaign type is completely different
+sender: Svetlin Petrov, Managing Partner, Statera Capital (based in Bulgaria, UTC+2)
+always_send_calendly: false
+
+CRITICAL — THREE COMPLETELY SEPARATE CAMPAIGN TYPES IN THIS ACCOUNT:
+
+TYPE 1 — Sell Side Advisory (campaign names contain "Sell Side Advisory"):
+  offer: Svetlin represents a buyer looking to acquire businesses. Lead is a business owner.
+  goal: Get them on a call. NO teaser. NO buyer name. Just Calendly.
+  calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate
+  reply: Interested lead = "Feel free to grab a time here: [calendly]". If they give timezone context, acknowledge and send Calendly.
+
+TYPE 2 — TelcoLab (campaign names contain "TelcoLab"):
+  offer: Exclusive sell-side mandate for telecom software platform. Svetlin represents the company for sale. Lead is a PE firm or strategic acquirer.
+  goal: Send teaser + Calendly.
+  teaser: https://drive.google.com/file/d/1xehkwXNsLErIqOvvA-l9bY2FZGRQ4E0z/view?usp=sharing
+  calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate
+  reply: Send teaser + "Happy to walk through the details on a quick call. [calendly]"
+
+TYPE 3 — ZEBS (campaign names contain "Zebs" or "ZEBS"):
+  offer: EdTech Seed Round investment. 300k+ pilot revenue, EU accreditation, 25 countries. Use zebs-ibs.md for full details.
+  teaser: https://docs.google.com/presentation/d/11j96USFphexZ8Bmk543bjIHjHWD0HnBd04bw2_tyKcs/edit?usp=sharing
+  calendly: https://calendly.com/d/ct3h-sbj-xmb/zebs-s-seed-round-intro
+  reply: Send teaser + ZEBS Calendly link
+
+TYPE 4 — PE Add-On campaigns (Brite, ID Images, PEAK, PowerX, Graymar, Lee Fish, Dallas Plastics):
+  offer: PE firm looking to acquire businesses in [sector]. Never name the PE firm or portfolio company.
+  goal: Get them on a call.
+  calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate
+  always say: "a private equity firm that recently acquired a platform business in the [sector] space"
+  never say: SSC, Brite, ID Images, or any portfolio company name
+
+never (all types):
+- Never name SSC or any portfolio company
+- Never promise valuations or returns
+- Never send Sell Side Advisory leads a teaser (there is no teaser for that campaign)
+- Never mix campaign type language across campaigns
+
 ---
 
 ## Quick Reference
