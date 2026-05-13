@@ -85,9 +85,10 @@ function detectOptOut(message: string, leadFirstName: string): { intent: string;
     /\bdo not (contact|email|follow up|reach out)\b/,
     /\bdon.?t (contact|email|follow up|reach out)\b/,
     /remove.*(?:from|off).*list/,
-    /\bunsubscribe\b/,
+    /please (unsubscribe|remove|delete|take) (me|us)/,
+    /i.?d like to unsubscribe/,
+    /^unsubscribe\.?\s*$/im,  // "Unsubscribe" alone on a line (explicit request, not footer link text)
     /\bopt.?out\b/,
-    /please (remove|delete|take) (me|us)/,
     /take me off/,
   ];
   if (unsubPatterns.some(p => p.test(body))) {
