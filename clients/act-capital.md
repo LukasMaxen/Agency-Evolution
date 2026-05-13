@@ -3,6 +3,34 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+campaign_type: mixed — check campaign name carefully
+sender: Jeff Zanardi, Managing Director, ACT Capital Advisors
+calendly: https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting
+always_send_calendly: false
+
+campaign_types_in_this_account:
+- "Sell Side Advisory" / "Northern Cali" / "Contractor Acquisition (Strategic buyer outreach from owners)" = sell_side_advisory. Jeff represents a buyer. Lead is a business owner. Goal: get them on a call. NO teaser. Send Calendly only.
+- "Tequila Acquisition" / "Excavation" / "Contractor Acquisition" (emailing PE firms/buyers) = mandate_buyer. Jeff represents a company for sale. Lead is a PE firm or investor. Send correct teaser + Calendly.
+
+mandate_teasers:
+- Tequila: https://www.actcapitaladvisors.com/open-deals/high-growth-premium-tequila-company/ (triggers: tequila, spirits, beverage, alcohol)
+- Excavation: https://www.actcapitaladvisors.com/open-deals/highly-profitable-excavation-civil-construction-company-in-the-southern-atlantic-region/ (triggers: excavation, civil construction, earthwork, grading)
+- General Contractor: https://www.actcapitaladvisors.com/open-deals/highly-profitable-general-contractor-and-construction/ (triggers: general contractor, construction, design-build)
+- NDA is embedded within each teaser page. Always send teaser link and note NDA is accessible through it.
+
+reply_rules:
+- sell_side_advisory leads: interested = send Calendly, no teaser. "Feel free to grab a time here: [calendly]"
+- mandate_buyer leads: interested = send correct teaser + Calendly. Match teaser to campaign using trigger keywords above.
+- Buyer asks about valuation: redirect to teaser and call. "Best discussed on a call."
+- Buyer asks who the seller is: NDA framing. "Standard practice to keep confidential before NDA."
+- Buyer asks about price: send teaser + NDA link + pull to call.
+
+never:
+- Never name the buyer before a call
+- Never give valuation estimate in writing
+- Never name specific company being sold until NDA signed
+
 ---
 
 ## Quick Reference

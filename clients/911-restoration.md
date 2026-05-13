@@ -3,6 +3,42 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+campaign_type: franchise
+sender: Idan Shpizear, Founder, 911 Restoration
+offer: Insurance-backed restoration franchise alongside existing trade business. No cold outreach — work comes through insurance claim pipelines. Top 25% average 2M+ gross revenue. SBA financing available.
+calendly: https://calendly.com/dre-c-911restoration/quick-introduction-call-clone
+always_send_calendly: false
+teaser: none
+
+reply_rules:
+- Lead asks a specific question (territory, franchisor-owned vs new, how it works): answer it directly in 1-2 sentences, then offer Calendly. Do NOT dump the full info template.
+- Lead says yes to more info or asks for details: send the Chris from Reno story + two video links + FDD stat + Calendly. See info template below.
+- Lead gives a specific day/time: post to #manual-replies. Do not send Calendly.
+- Lead gives phone number asking to be called: post to #manual-replies.
+- Match reply length to the lead's message. Short question = short answer.
+
+never:
+- Never guarantee specific revenue as guaranteed outcome
+- Never confirm territory availability without checking
+- Never use "Your background in the trades is why I reached out"
+- Never use territory scarcity angle
+
+info_template: |
+  Hi {FIRST_NAME},
+
+  Sending everything over now.
+
+  One of our operators, Chris, ran a window cleaning business in Reno. He layered a 911 Restoration franchise alongside it and scaled into plumbing and reconstruction through the 911 network. Work came through insurance-backed claim pipelines so he was not out chasing customers.
+
+  Two short videos: Watch Chris's Story (3:00) https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be and The Power of the Network (1:30) https://www.youtube.com/watch?v=JoPThufW1uc.
+
+  Per our 2024 FDD, top 25% of franchisees average 2M+ in gross revenue. SBA financing is available.
+
+  Our Franchise Developer will follow up within 48 hours. If you would prefer to book a time directly: https://calendly.com/dre-c-911restoration/quick-introduction-call-clone
+
+  {SENDER_EMAIL_SIGNATURE}
+
 ---
 
 ## Quick Reference
