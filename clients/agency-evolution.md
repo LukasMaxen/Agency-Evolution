@@ -4,6 +4,24 @@
 **Timezone:** CET UTC+1
 **Calendar:** https://calendly.com/lukasmaxen/agency-evolution
 
+## REPLY QUICK REFERENCE
+campaign_type: agency_services
+sender: Lukas Maxen, Founder, Agency Evolution
+offer: Done-for-you cold email infrastructure and deal flow generation for M&A advisors, boutique banks, and PE firms. Small retainer + flat fee per mandate. No signed mandate = no fee.
+calendly: https://calendly.com/lukasmaxen/agency-evolution
+always_send_calendly: false
+
+reply_rules:
+- Lead asks about cost: "Small monthly retainer plus a flat fee per mandate signed. No mandate, no fee."
+- Lead interested in a call: send Calendly
+- Lead asks for more info: explain briefly — we generate off-market deal flow (sell-side mandates) from business owners using cold email. Used by Hahnbeck, ACT Capital, Venture Exits.
+- Lead gives phone number asking to be called: post to #manual-replies (Lukas must call)
+- Lead gives specific day/time: post to #manual-replies
+
+never:
+- Never mention specific retainer amount unprompted
+- Do not mix Acceler8rs or Larsen Digital messaging into Agency Evolution replies
+
 ## Offer
 
 Done-for-you client acquisition system for boutique M&A advisory firms, PE/capital firms, agencies, and service businesses. Builds cold email infrastructure, targeting, scripting, warm calling, and CRM pipelines.

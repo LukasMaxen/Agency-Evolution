@@ -3,6 +3,26 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+campaign_type: mandate_buyer (investment fundraising)
+sender: Svetlin Petrov, Managing Partner, Statera Capital (acting for ZEBS)
+offer: ZEBS International Seed Round — EdTech company with EU accreditation, 300k+ pilot revenue, 25 countries, strong founding team (former Deputy Minister of Foreign Affairs + 20yr EdTech operator).
+teaser: https://docs.google.com/presentation/d/11j96USFphexZ8Bmk543bjIHjHWD0HnBd04bw2_tyKcs/edit?usp=sharing
+calendly: https://calendly.com/d/ct3h-sbj-xmb/zebs-s-seed-round-intro
+always_send_calendly: false
+
+reply_rules:
+- Lead interested or asks to see teaser: send teaser + Calendly immediately
+- Lead is a matchmaker/introducer (not an investor): send teaser, note this could be relevant for their network, offer call
+- Lead asks about valuation: redirect to teaser and call
+- Lead outside mandate: "Outside our mandate" = polite 2-line exit
+
+never:
+- Never guarantee investment returns
+- Never overstate metrics beyond: 300k+, around 35% margins, 25 countries
+- Never use € or ~ symbols (spam triggers) — write "300k+" not "€300k+", write "around 35%" not "~35%"
+- Never say "checks a lot of boxes"
+
 ---
 
 ## Quick Reference
