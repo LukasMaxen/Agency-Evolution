@@ -137,43 +137,6 @@ function detectAlternateSender(message: string, leadEmail: string): string | nul
   return `RECIPIENT DETECTION: The reply contains email address(es) differing from the lead on record (${leadEmail}). Possible alternate sender(s): ${inBody.join(", ")}. Check whether to set recipient_email.`;
 }
 
-/**
- * Pre-matches mandate/teaser from client file against campaign name + message.
- * Injects the correct teaser so Claude never picks the wrong one.
- */
-function matchMandate(quickRef: string, campaignName: string, leadMessage: string): string | null {
-  const mandateBlocks = quickRef.split(/###\s+Mandate\s+\d+/i).slice(1);
-  if (mandateBlocks.length === 0) return null;
-
-  interface MandateCandidate { name: string; teaser: string; calendly: string; keywords: string[] }
-  const mandates: MandateCandidate[] = [];
-
-  for (const block of mandateBlocks) {
-    const nameMatch = block.match(/^[^\n]*—\s*(.+)/);
-    const teaserMatch = block.match(/\*\*Teaser:\*\*\s*(https?:\/\/\S+)/);
-    const calendlyMatch = block.match(/\*\*Calendly:\*\*\s*(https?:\/\/\S+)/);
-    const keywordsMatch = block.match(/\*\*Trigger keywords:\*\*\s*(.+)/);
-    if (!teaserMatch) continue;
-    mandates.push({
-      name: nameMatch?.[1]?.trim() ?? "Unknown",
-      teaser: teaserMatch[1].trim(),
-      calendly: calendlyMatch?.[1]?.trim() ?? "",
-      keywords: keywordsMatch ? keywordsMatch[1].split(",").map(k => k.trim().toLowerCase()) : [],
-    });
-  }
-
-  if (mandates.length === 0) return null;
-  const searchText = `${campaignName} ${leadMessage}`.toLowerCase();
-  let best: MandateCandidate | null = null;
-  let bestScore = 0;
-  for (const m of mandates) {
-    const score = m.keywords.filter(kw => searchText.includes(kw)).length;
-    if (score > bestScore) { bestScore = score; best = m; }
-  }
-  if (!best || bestScore === 0) return null;
-  return `MANDATE MATCH: Use this teaser — "${best.name}": ${best.teaser}${best.calendly ? `. Calendly: ${best.calendly}` : ""}. Do not use any other mandate link.`;
-}
-
 // ─── Claude API call (with prompt caching) ────────────────────────────────────
 
 async function callClaude(systemPrompt: string, userMessage: string): Promise<AutoReplyResult | null> {
@@ -539,7 +502,6 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
 
   // ── Context injections ────────────────────────────────────────────────────────
   const alternateSender = detectAlternateSender(messageText, reply.lead_email);
-  const mandateNote = matchMandate(quickRef, reply.campaign ?? "", messageText);
 
   // ── System prompt (lean, cached) ──────────────────────────────────────────────
   const systemPrompt = `You are drafting a reply to an inbound email for Maxen Partners.
@@ -578,7 +540,7 @@ OUTPUT: single JSON object only. No preamble. No markdown.
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${mandateNote ? `${mandateNote}\n\n` : ""}${alternateSender ? `${alternateSender}\n\n` : ""}THREAD HISTORY (oldest first):
+${alternateSender ? `${alternateSender}\n\n` : ""}THREAD HISTORY (oldest first):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
