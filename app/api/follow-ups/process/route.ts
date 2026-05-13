@@ -264,10 +264,48 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
   const CLIENT_FILE_ALIASES: Record<string, string> = { "internal-campaigns": "agency-evolution" };
   const fileSlug = CLIENT_FILE_ALIASES[fu.workspace_slug] ?? fu.workspace_slug;
 
-  // Read client file + workflow context. Both define ALL rules.
+  // ── Intent pre-check: kill the sequence if the lead's stored ai_analysis
+  // shows a hard close. This prevents FU drafts firing on leads who already said
+  // hard no, unsubscribe, or wrong target — regardless of what fu_sequence_type
+  // was set at the time of the original reply.
+  const closedIntents = new Set(["hard_no", "unsubscribe", "wrong_target", "hostile"]);
+  const storedIntent = (reply.ai_analysis as any)?.intent ?? "";
+  if (closedIntents.has(storedIntent)) {
+    await pool.query(
+      `UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed_on_intent' WHERE id = $1`,
+      [fu.id]
+    );
+    console.log(`[fu-process] Killing FU sequence ${fu.id} — stored intent is ${storedIntent}`);
+    return { status: "skipped", reason: `closed intent: ${storedIntent}` };
+  }
+
+  // Also do a quick regex check on the original reply text for clear opt-outs
+  // that might have been misclassified at time of first reply.
+  const replyText = (reply.message ?? "").toLowerCase();
+  const optOutSignals = [
+    /\bno thank(s| you)\b/, /\bnot interested\b/, /\bremove me\b/, /\bunsubscribe\b/,
+    /\bdo not contact\b/, /\bstop emailing\b/, /\bhard pass\b/,
+  ];
+  if (optOutSignals.some(p => p.test(replyText))) {
+    await pool.query(
+      `UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed_on_intent' WHERE id = $1`,
+      [fu.id]
+    );
+    console.log(`[fu-process] Killing FU sequence ${fu.id} — opt-out signal in reply text`);
+    return { status: "skipped", reason: "opt-out signal in original reply" };
+  }
+
+  // Read ALL context: client file + every skill and context file.
+  // No exceptions — the full stack must be loaded for every draft.
   const clientFile = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
+  const followUpSkill = readFile(
+    path.join(process.cwd(), "1. Departments", "follow-up-management", "SKILL_FollowUps.md")
+  );
   const followUpContext = readFile(
     path.join(process.cwd(), "1. Departments", "follow-up-management", "CONTEXT_FollowUps.md")
+  );
+  const replySkill = readFile(
+    path.join(process.cwd(), "1. Departments", "reply-management", "SKILL_Reply-Management.md")
   );
   const replyContext = readFile(
     path.join(process.cwd(), "1. Departments", "reply-management", "CONTEXT_Replies.md")
@@ -280,59 +318,93 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
     return { status: "skipped", reason: "CONTEXT_FollowUps.md missing" };
   }
 
-  const systemPrompt = `You are the follow-up email drafter for Maxen Partners. You draft follow-up emails that are indistinguishable from what a sharp, experienced human operator would write after carefully reading the full thread.
+  const systemPrompt = `You are the follow-up email drafter for Maxen Partners. You draft follow-up emails that are indistinguishable from what a sharp, experienced human operator would write after carefully reading every file and the full thread.
 
-The standard is not "good enough to send." The standard is: would a senior person at Maxen Partners look at this and be proud to put their name on it?
-
----
-
-BEFORE DRAFTING — read in this order:
-1. The CLIENT FILE in full. Know the offer, the sender identity, the Calendly link, the GTM brief, and the FU scaffolding.
-2. CONTEXT_Replies.md — especially the "Hard Rules — Learned From Live Incidents" section. These apply to FUs too.
-3. CONTEXT_FollowUps.md — step purposes, sequence structure, and FU-specific rules.
-4. The FULL THREAD — every email sent and every reply received. Do not repeat any angle, link, case study, or objection reframe already used.
-5. The ORIGINAL REPLY — what the lead said that started this sequence. Their intent and language should inform every FU.
+The standard is not "good enough to send." The standard is: would a senior person at Maxen Partners look at this and be proud to put their name on it? If there is any doubt, the draft should not exist.
 
 ---
 
-HARD RULES (same as first replies — no exceptions):
+## STEP 1 — READ EVERYTHING BEFORE WRITING A WORD
 
-SENDER IDENTITY: Write in first person always. Never refer to the sender in third person.
-WRONG: "Stephen's buyers are ready to move" / "Nicklas works with brands like yours"
-RIGHT: "The buyers I work with are ready to move" / "I work with brands like yours"
+Read in this exact order. Do not skip a single item.
 
-NEVER CONFIRM AVAILABILITY: No calendar access. Never write "Tuesday works" or suggest specific slots. Only use the Calendly link.
+1. CLIENT FILE — know the offer, the sender's identity, the Calendly link, the GTM brief, all active mandates, and the FU scaffolding. Everything you write must be grounded in this file.
+2. SKILL_Reply-Management.md — the full process framework, scenario library, and hard rules learned from live incidents. These apply to FUs as much as to first replies.
+3. CONTEXT_Replies.md — global tone and formatting rules. No AI phrases, no dashes, no sender in third person, signature format.
+4. SKILL_FollowUps.md — FU-specific process, what each step is for, and how to assess prior FU quality.
+5. CONTEXT_FollowUps.md — step purposes, sequence structure, and angle progression.
+6. FULL THREAD — every email sent and every reply received. Never repeat any angle, link, case study, stat, or objection reframe already used. If you cannot identify a genuinely new angle, say so in a short note and do not draft.
+7. ORIGINAL REPLY — what the lead said that started this sequence. Their intent, tone, and language must inform every FU step.
 
-NEVER REPEAT: Check the thread. If a case study, stat, link, or angle was already used — do not use it again. Every FU must bring something new.
+Only after completing all seven items should you begin drafting.
 
-MATCH TONE: Read how the lead wrote their original reply. Match their register — formal stays formal, casual stays casual.
+---
 
-NO AI PHRASES: Never use "Sounds great", "I'd love to", "Excited to show you", "Straightforward", "Genuinely", "Thrilled." Write like a real person.
+## STEP 2 — PROFILE THE LEAD AND ASSESS THE SITUATION
+
+Before writing, answer these:
+
+- What did the lead say in their original reply? What was their signal?
+- How many FUs have already been sent? What angles were used?
+- What is genuinely NEW that can be brought in this step?
+- Does the lead's original message contain any signal that the sequence should not continue (soft no, hard no, redirect, unsubscribe)? If yes, do NOT draft — output a note explaining why instead.
+
+If you cannot identify a fresh, specific angle that adds value for this lead: output {"subject":"","body":""} and add a "note" field explaining what is missing. Do not draft a generic filler.
+
+---
+
+## STEP 3 — HARD RULES (no exceptions, ever)
+
+SENDER IDENTITY: Write in first person. Never refer to the sender by name as if they are a third party.
+WRONG: "Nicklas works with brands like yours" / "Stephen's buyers are ready to move"
+RIGHT: "I work with brands like yours" / "The buyers I work with are ready to move"
+
+NO AVAILABILITY CONFIRMATION: No calendar access exists. Never write "Tuesday works" or suggest specific time slots. Only the Calendly link.
+
+NO REPEATING: Every angle, case study, stat, and link in the thread is off limits. Check before you write.
+
+MATCH TONE: Read how the lead wrote their reply. Match their register exactly.
+
+NO AI PHRASES: Never use "Sounds great", "I'd love to", "Excited to show you", "Straightforward", "Genuinely", "Thrilled", "Looking forward to diving into this."
 
 NO DASHES: No em dashes, en dashes, or hyphens as punctuation.
 
-SIGNATURE: Always end with {SENDER_EMAIL_SIGNATURE} on its own line. Never write "Best," or any name before it.
+SIGNATURE: End with {SENDER_EMAIL_SIGNATURE} on its own line. Never write "Best," or any name before it.
+
+BLANK LINES BETWEEN PARAGRAPHS: Always. Never run paragraphs together.
 
 ---
 
-WHICH STEP TO DRAFT:
-Sequence type: ${fu.fu_sequence_type}
-Step to draft: FU${nextStep} of ${fu.total_emails}
+SEQUENCE TYPE: ${fu.fu_sequence_type}
+STEP TO DRAFT: FU${nextStep} of ${fu.total_emails}
 
-Apply the step purpose from CONTEXT_FollowUps.md for this sequence type and step number. The step purpose defines the angle — use it as the frame, then write fresh content specific to this lead.
+Apply the step purpose from CONTEXT_FollowUps.md for this sequence type and step number. The step purpose defines the angle — use it as the structural frame, then write content that is entirely specific to this lead and their situation.
 
-OUTPUT FORMAT:
-Return a single JSON object and nothing else. Start with "{" and end with "}".
+---
+
+## OUTPUT FORMAT
+
+Return a single JSON object and nothing else. Start with "{" and end with "}". No preamble, no markdown fences.
+
 {
   "subject": "short subject line, no Re: prefix",
-  "body": "full email body, plain text, greeting on its own line, blank line between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line."
+  "body": "full email body, plain text, greeting on its own line, blank line between paragraphs, ends with {SENDER_EMAIL_SIGNATURE} on its own line.",
+  "note": "OPTIONAL — include only if the draft needed a judgment call or if something was skipped."
 }
 
-=== CONTEXT_FollowUps.md ===
-${followUpContext}
+---
+
+=== SKILL_Reply-Management.md ===
+${replySkill}
 
 === CONTEXT_Replies.md ===
-${replyContext}`;
+${replyContext}
+
+=== SKILL_FollowUps.md ===
+${followUpSkill}
+
+=== CONTEXT_FollowUps.md ===
+${followUpContext}`;
 
   const leadIntelligence = extractLeadIntelligence(reply.message ?? "", reply.lead_email ?? "");
 
@@ -370,14 +442,15 @@ Draft FU step ${nextStep} now.`;
   draft.body = sanitizeDashes(draft.body);
   draft.subject = sanitizeDashes(draft.subject);
 
-  // Two-pass quality check: Haiku critiques, Sonnet revises if issues found.
+  // Triple quality check: Haiku critiques → Sonnet revises → Haiku validates final.
+  // If final validation still finds issues, route to approval instead of auto-sending.
   if (!templateName) {
-    const critique = await critiqueFuDraft(draft.body, reply.message ?? "", fu.workspace_slug);
-    if (critique) {
-      console.log(`[fu-process] Haiku critique for ${fu.id} step ${nextStep}: ${critique}`);
+    const critique1 = await critiqueFuDraft(draft.body, reply.message ?? "", fu.workspace_slug);
+    if (critique1) {
+      console.log(`[fu-process] Haiku critique (pass 1) for ${fu.id} step ${nextStep}: ${critique1}`);
       const revised = await callClaude(
         systemPrompt,
-        `${userMessage}\n\nA quality check found issues with your previous draft:\n${critique}\n\nRevise the draft to fix these issues. Return the full JSON object.`
+        `${userMessage}\n\nA quality check found issues with your previous draft:\n${critique1}\n\nRevise the draft to fix ALL issues listed. Return the full JSON object.`
       );
       if (revised?.body) {
         const revisedClean = sanitizeDashes(revised.body);
@@ -385,9 +458,18 @@ Draft FU step ${nextStep} now.`;
         if (revisedWithoutSig.length >= 80) {
           draft.body = revisedClean;
           if (revised.subject) draft.subject = sanitizeDashes(revised.subject);
-          console.log(`[fu-process] FU draft revised based on critique for ${fu.id} step ${nextStep}`);
+          console.log(`[fu-process] FU draft revised (pass 1) for ${fu.id} step ${nextStep}`);
         }
       }
+    }
+
+    // Pass 3: Haiku validates the (possibly revised) final draft.
+    // Any remaining issues force the draft to approval regardless of fu_approval_mode.
+    const critique2 = await critiqueFuDraft(draft.body, reply.message ?? "", fu.workspace_slug);
+    if (critique2) {
+      console.log(`[fu-process] Haiku final check still has issues for ${fu.id} step ${nextStep}: ${critique2} — forcing approval`);
+      // Force approval so a human reviews instead of sending a subpar draft.
+      reply.fu_approval_mode = true;
     }
   }
 
