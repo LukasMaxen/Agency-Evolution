@@ -244,10 +244,12 @@ export async function getChannelName(channelId: string): Promise<string> {
   if (channelNameCache.has(channelId)) return channelNameCache.get(channelId)!;
   const token = process.env.SLACK_BOT_TOKEN;
   if (!token) return channelId;
+  const cCtrl = new AbortController();
+  const cTimer = setTimeout(() => cCtrl.abort(), 10_000);
   try {
     const response = await fetch(
       `https://slack.com/api/conversations.info?channel=${encodeURIComponent(channelId)}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${token}` }, signal: cCtrl.signal }
     );
     const data = (await response.json().catch(() => ({}))) as {
       ok?: boolean;
@@ -258,6 +260,8 @@ export async function getChannelName(channelId: string): Promise<string> {
     return name;
   } catch {
     return channelId;
+  } finally {
+    clearTimeout(cTimer);
   }
 }
 

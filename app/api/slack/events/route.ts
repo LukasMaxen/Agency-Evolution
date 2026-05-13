@@ -94,24 +94,36 @@ async function sendViaEmailBison(
       email_address: recipientEmail,
     },
   ];
-  const response = await fetch(
-    `${instanceUrl}/api/replies/${reply.email_bison_reply_id}/reply`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        message: bodyToHtml(body),
-        sender_email_id: reply.sender_email_id,
-        to_emails: toEmails,
-        inject_previous_email_body: true,
-        content_type: "html",
-      }),
-    }
-  );
+  const ebCtrl = new AbortController();
+  const ebTimer = setTimeout(() => ebCtrl.abort(), 30_000);
+  let response: Response;
+  try {
+    response = await fetch(
+      `${instanceUrl}/api/replies/${reply.email_bison_reply_id}/reply`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          message: bodyToHtml(body),
+          sender_email_id: reply.sender_email_id,
+          to_emails: toEmails,
+          inject_previous_email_body: true,
+          content_type: "html",
+        }),
+        signal: ebCtrl.signal,
+      }
+    );
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error("[slack-events] EmailBison send timed out after 30s");
+    else console.error("[slack-events] EmailBison send error:", err?.message);
+    return false;
+  } finally {
+    clearTimeout(ebTimer);
+  }
   if (!response.ok) {
     console.error("[slack-events] EmailBison error:", response.status, await response.text());
     return false;

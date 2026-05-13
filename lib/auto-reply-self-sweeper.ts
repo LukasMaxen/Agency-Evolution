@@ -120,11 +120,23 @@ export async function runAutoReplySweep(): Promise<void> {
 
     if (r.rows.length === 0) return;
 
+    // Safety net: 3 minutes per reply. Normal replies take 5-30s. If one hangs
+    // (zombie TCP connection that bypasses AbortController), it gets dropped here
+    // so the rest of the batch can continue. The reply stays at 'processing' and
+    // is reset to 'new' by the stuck-processing check on the next sweep cycle.
+    const withDeadline = (id: string, slug: string): Promise<void> =>
+      Promise.race([
+        processAutoReply(id, slug),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error(`deadline exceeded (3min) for ${id}`)), 3 * 60_000)
+        ),
+      ]);
+
     let ok = 0;
     let fail = 0;
     for (const row of r.rows) {
       try {
-        await processAutoReply(row.id, row.workspace_slug);
+        await withDeadline(row.id, row.workspace_slug);
         ok++;
       } catch (err: any) {
         fail++;
