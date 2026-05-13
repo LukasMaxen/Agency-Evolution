@@ -556,9 +556,24 @@ ${messageText.slice(0, 3000)}`;
   const result = await callClaude(systemPrompt, userMessage);
 
   if (!result) {
-    await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
-    await postManual({ text: `Auto-reply failed (Claude error), ${workspaceSlug} / ${reply.lead_name}`,
-      blocks: buildCard("Auto-reply failed (Claude error)", workspaceSlug, reply, workspace.email_bison_instance_url ?? "", { reason: "Claude API error — reply reset to new for retry." }) });
+    // Track consecutive Claude failures. After 3 failures, mark errored instead of
+    // resetting to 'new' — prevents infinite retry loops when the API key is out of
+    // credits or the model is down for an extended period.
+    const prevAnalysis = reply.ai_analysis as Record<string, any> ?? {};
+    const failCount = (prevAnalysis.claude_fail_count ?? 0) + 1;
+
+    if (failCount >= 3) {
+      await pool.query(`UPDATE replies SET status = 'errored', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ ...prevAnalysis, claude_fail_count: failCount, skipped_reason: "claude_repeated_failure" }), replyId]);
+      await postManual({ text: `Auto-reply failed 3x (Claude error), ${workspaceSlug} / ${reply.lead_name} — marked errored`,
+        blocks: buildCard("Auto-reply failed repeatedly (Claude error)", workspaceSlug, reply, workspace.email_bison_instance_url ?? "", {
+          reason: `Claude API returned null ${failCount} times. Possible cause: API key out of credits, rate limited, or model down. Manual reply needed. Reset status to 'new' once resolved.`,
+        }) });
+    } else {
+      await pool.query(`UPDATE replies SET status = 'new', ai_analysis = $1 WHERE id = $2`,
+        [JSON.stringify({ ...prevAnalysis, claude_fail_count: failCount }), replyId]);
+      console.warn(`[auto-reply] Claude returned null for ${replyId} (fail ${failCount}/3) — will retry`);
+    }
     return;
   }
 
@@ -655,9 +670,18 @@ ${messageText.slice(0, 3000)}`;
       await createFuRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
       console.log(`[auto-reply] Sent ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
     } else {
-      await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
-      await postManual({ text: `Auto-reply failed (EmailBison error), ${workspaceSlug} / ${reply.lead_name}`,
-        blocks: buildCard("Auto-reply send failed", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", { reason: "EmailBison send error — reply reset for retry." }) });
+      const prevAnalysis2 = reply.ai_analysis as Record<string, any> ?? {};
+      const ebFails = (prevAnalysis2.eb_fail_count ?? 0) + 1;
+      if (ebFails >= 3) {
+        await pool.query(`UPDATE replies SET status = 'errored', ai_analysis = $1 WHERE id = $2`,
+          [JSON.stringify({ ...prevAnalysis2, eb_fail_count: ebFails }), replyId]);
+        await postManual({ text: `Auto-reply send failed 3x (EmailBison error), ${workspaceSlug} / ${reply.lead_name} — marked errored`,
+          blocks: buildCard("EmailBison send failed repeatedly", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", { reason: `EmailBison returned error ${ebFails} times. Check EmailBison API status. Manual reply needed.` }) });
+      } else {
+        await pool.query(`UPDATE replies SET status = 'new', ai_analysis = $1 WHERE id = $2`,
+          [JSON.stringify({ ...prevAnalysis2, eb_fail_count: ebFails }), replyId]);
+        console.warn(`[auto-reply] EmailBison send failed for ${replyId} (fail ${ebFails}/3) — will retry`);
+      }
     }
 
   } else if (result.action === "manual") {
