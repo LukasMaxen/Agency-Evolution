@@ -77,51 +77,6 @@ function isNoActionReply(message: string): boolean {
   );
 }
 
-/** Clear opt-out / not-interested patterns.
- * unsubscribe: returns body to send (confirmation reply).
- * not_interested: returns body = "" (close silently, no reply).
- */
-function detectOptOut(message: string, leadFirstName: string): { intent: string; body: string } | null {
-  if (!message) return null;
-  const body = message.split(/\n[-]{3,}|\nOn .+ wrote:|\n_{3,}/)[0]?.toLowerCase() ?? "";
-
-  const unsubPatterns = [
-    /\bstop (emailing|contacting|sending|following up)\b/,
-    /\bdo not (contact|email|follow up|reach out)\b/,
-    /\bdon.?t (contact|email|follow up|reach out)\b/,
-    /remove.*(?:from|off).*list/,
-    /please (unsubscribe|remove|delete|take) (me|us)/,
-    /i.?d like to unsubscribe/,
-    /^unsubscribe\.?\s*$/im,  // "Unsubscribe" alone on a line (explicit request, not footer link text)
-    /\bopt.?out\b/,
-    /take me off/,
-  ];
-  if (unsubPatterns.some(p => p.test(body))) {
-    return { intent: "unsubscribe", body: "" };
-  }
-
-  const niPatterns = [
-    /^no[.,!]?\s*$/m, /^no thanks[.,!]?\s*$/m, /^not interested[.,!]?\s*$/m,
-    /\bnot interested\b/, /\bno thanks\b/, /\bno thank you\b/,
-    /\bnot for (me|us)\b/, /\bno interest\b/,
-    /\bwe('re| are) not interested\b/,
-    // M&A-specific not-interested
-    /\bnot (for sale|looking to sell|selling|looking to exit|looking at (a )?sale)\b/,
-    /\bhappy (with|as) (current|the current|is|things)\b/,
-    /\bnot the right time\b/, /\bbad timing\b/, /\bnot at this (time|stage|point)\b/,
-    /\bnot (in|within) our (mandate|charter|focus|criteria|thesis|strategy)\b/,
-    /\boutside (of )?our (mandate|charter|focus|criteria|thesis|strategy)\b/,
-    /\bnot (a fit|the right fit|a good fit|aligned)\b/,
-    /\bdoesn.?t (fit|align|match)\b/, /\bnot relevant\b/,
-  ];
-  if (niPatterns.some(p => p.test(body))) {
-    // Never reply to not-interested leads. Close silently.
-    return { intent: "not_interested", body: "" };
-  }
-
-  return null;
-}
-
 /**
  * Scans the message for email addresses that differ from the lead on record.
  * Returns a warning string if a different sender is detected.
@@ -473,23 +428,9 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   if (workspace.forward_replies_to_email) {
     // Hard rule: only forward genuinely interested replies.
     // Default is to NOT forward. If in doubt — drop it.
+    // Intent classification is delegated to Sonnet on the main path; for forwarding
+    // workspaces we use the positive-signal regex below as a cheap gate.
 
-    // Step 1: catch explicit opt-outs and not-interested
-    const fwdFirstName = reply.lead_name?.split(" ").filter(Boolean)[0] || "there";
-    const fwdOptOut = detectOptOut(messageText, fwdFirstName);
-    if (fwdOptOut) {
-      if (fwdOptOut.intent === "unsubscribe") {
-        await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`, [replyId]);
-      } else {
-        await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed' WHERE reply_id = $1`, [replyId]);
-      }
-      await pool.query(`UPDATE replies SET status = 'read', interested = FALSE, ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
-        [JSON.stringify({ intent: fwdOptOut.intent, auto_replied: false, skipped_reason: "opt_out_not_forwarded" }), replyId]);
-      return;
-    }
-
-    // Step 2: only forward if clearly interested — default is to drop.
-    // If the reply doesn't contain a recognisable positive signal, close silently.
     const body0 = messageText.split(/\n[-]{3,}|\nOn .+ wrote:|\n_{3,}/)[0]?.toLowerCase() ?? "";
     const interestedSignals = [
       /\byes\b/, /\bsure\b/, /\binterested\b/, /\bopen to\b/, /\bopen for\b/,
@@ -527,29 +468,10 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     return;
   }
 
-  // ── Pre-filter 2: Opt-outs / not-interested ──────────────────────────────────
-  const firstName = reply.lead_name?.split(" ").filter(Boolean)[0] || "there";
-  const optOut = detectOptOut(messageText, firstName);
-  if (optOut) {
-    if (optOut.body) {
-      // Unsubscribe: send confirmation reply
-      const sent = await sendToEmailBison(replyWithCreds, optOut.body);
-      if (sent) {
-        await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
-          [`auto-${replyId}-${Date.now()}`, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", optOut.body]);
-      }
-      await pool.query(`UPDATE replies SET interested = FALSE WHERE id = $1`, [replyId]);
-      await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`, [replyId]);
-      await pool.query(`UPDATE replies SET status = 'replied', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
-        [JSON.stringify({ intent: optOut.intent, auto_replied: true }), replyId]);
-    } else {
-      // Not-interested: close silently, no reply sent
-      await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed' WHERE reply_id = $1`, [replyId]);
-      await pool.query(`UPDATE replies SET status = 'read', interested = FALSE, ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
-        [JSON.stringify({ intent: optOut.intent, auto_replied: false, skipped_reason: "not_interested_no_reply" }), replyId]);
-    }
-    return;
-  }
+  // Intent classification (unsubscribe, not_interested, hard_no, referral, etc.)
+  // is handled by Sonnet below. Hard-close intents are silently closed by the
+  // post-Sonnet gate (see `Hard gate` further down). This lets us catch referrals
+  // and conditional rejections hidden inside literal "not interested" messages.
 
   const quickRef = extractQuickReference(clientFileRaw);
 
