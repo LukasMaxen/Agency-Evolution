@@ -794,11 +794,23 @@ ${messageText.slice(0, 3000)}`;
     await createFuRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
 
   } else {
-    // do_nothing — mark read silently, never post to manual
+    // do_nothing path
     await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
     if (result.intent === "unsubscribe") {
       await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`, [replyId]);
     }
-    console.log(`[auto-reply] do_nothing for ${replyId} (${workspaceSlug} / ${reply.lead_name}), intent=${result.intent}`);
+
+    // If it looks like an interested reply but the automation couldn't figure out what to do,
+    // send to #manual-replies so a human can handle it.
+    const hardCloses = new Set(["not_interested", "hard_no", "unsubscribe", "wrong_target", "hostile"]);
+    if (!hardCloses.has(result.intent)) {
+      await postManual({
+        text: `Interested reply needs human review, ${workspaceSlug} / ${reply.lead_name}`,
+        blocks: buildCard("Couldn't draft a reply — needs human", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", {
+          reason: result.manual_reason ?? "Automation returned do_nothing for an interested-looking reply.",
+          intent: result.intent,
+        }),
+      });
+    }
   }
 }
