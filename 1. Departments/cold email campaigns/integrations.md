@@ -28,6 +28,8 @@ Our primary cold email sending platform. All 15 client workspaces run on a singl
 - Endpoint: `POST /api/send-reply`
 - Proxies to EmailBison: `POST {instanceUrl}/api/replies/{emailBisonReplyId}/reply`
 - Credentials (per workspace): `email_bison_api_key` + `email_bison_instance_url` from DB
+
+**Known quirk (verified 2026-05-04):** the `/api/replies/{id}/reply` endpoint silently ignores `cc_emails` (returns 2xx, no delivery). It honors `bcc_emails` with shape `[{ name, email_address }]`. If addresses must be visible to the primary recipient, expand `to_emails` instead. Do not use `cc_emails`.
 - Merge tags resolved server-side before sending: `{FIRST_NAME}`, `{LAST_NAME}`, `{COMPANY}`, `{TITLE}`, `{{first_name}}`
 
 ### Templates
