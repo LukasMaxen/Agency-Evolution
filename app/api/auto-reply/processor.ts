@@ -462,12 +462,6 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     console.error("[auto-reply] Workspace not found in DB:", workspaceSlug);
     await pool.query(`UPDATE replies SET status = 'errored', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ skipped_reason: "workspace_not_found", workspace_slug: workspaceSlug }), replyId]);
-    await postManual({
-      text: `Auto-reply failed — workspace "${workspaceSlug}" not found in DB`,
-      blocks: buildCard("Workspace not found in DB", workspaceSlug, { id: replyId, workspace_slug: workspaceSlug }, "", {
-        reason: `No workspaces row found for slug "${workspaceSlug}". Check DB or onboard this workspace. Reset to 'new' once fixed.`,
-      }),
-    });
     return;
   }
   const workspace = wsResult.rows[0];
