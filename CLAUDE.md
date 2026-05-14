@@ -21,6 +21,22 @@ Every client has a single file in `clients/[slug].md` — the source of truth fo
 
 To onboard a new client: follow `1. Departments/operations/SKILL_OnboardClient.md`.
 
+---
+
+## Common Workflows (read the linked skill BEFORE answering)
+
+When a user asks for any of the following, open the linked skill file FIRST and follow it end to end. Do not improvise the data source, do not write your own SQL, do not guess the output format.
+
+| Request pattern | Skill to read first |
+|---|---|
+| "CSM update", "daily update", "customer success update", "numbers for yesterday/today/last week", any per-client send/reply/interested/meeting numbers request | `1. Departments/operations/SKILL_CSMUpdate.md` |
+| "Onboard a new client", new client setup | `1. Departments/operations/SKILL_OnboardClient.md` |
+| "Campaign QA", reviewing a campaign before launch | `1. Departments/cold email campaigns/SKILL_CampaignQA.md` |
+| "Write a script", drafting cold email copy | `1. Departments/cold email campaigns/SKILL_WriteScript.md` |
+| "Lead monitoring", checking sending health | `1. Departments/cold email campaigns/SKILL_LeadMonitoring.md` |
+
+The CSM update is especially load-bearing: the numbers go into Slack and to clients. Always pull from the sources the skill specifies (EmailBison `/api/workspaces/v1.1/stats` for sends/replies/interested, Airtable for meetings). Do not query the `emails_sent` or `replies` PostgreSQL tables for the daily/weekly counts — the DB had an undercounting bug and the skill was rewritten to avoid it.
+
 ## Business OS — Department Folders
 
 Departments contain reusable skills, context, and workflows — the HOW. Client-specific context lives in `clients/`.
@@ -61,9 +77,12 @@ DATABASE_URL               # PostgreSQL connection string (ssl: false)
 ANTHROPIC_API_KEY          # Used in /api/analyze — Claude Haiku for reply analysis
 CALENDLY_TOKEN             # OAuth token for Calendly slot fetching
 EMAILBISON_BASE_URL        # e.g. https://send.emailagencyevolution.com
+AIRTABLE_API_KEY           # Personal access token used for meetings lookups in the CSM update
 ```
 
 Workspace-level EmailBison credentials (`email_bison_api_key`, `email_bison_instance_url`) are stored **in the DB** (`workspaces` table), not in env vars.
+
+A template of the required vars lives at `.env.local.example`. New team members: copy it to `.env.local` and ask Lukas for the secret values.
 
 ---
 
