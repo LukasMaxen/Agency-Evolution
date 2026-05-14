@@ -1,5 +1,5 @@
-import { ReplyDashboard } from "@/components/ReplyDashboard";
+import { MasterInbox } from "@/components/MasterInbox";
 
 export default function Home() {
-  return <ReplyDashboard />;
+  return <MasterInbox />;
 }
