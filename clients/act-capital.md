@@ -31,6 +31,11 @@ never:
 - Never give valuation estimate in writing
 - Never name specific company being sold until NDA signed
 
+fu_context: |
+  Jeff Zanardi runs ACT Capital Advisors — a Sacramento-based sell-side M&A firm representing owners ready to exit in the $5M-$50M revenue range. For sell-side advisory leads (business owners), the angle is: a qualified buyer has expressed interest in their type of business, and a 45-minute call is the next step to explore fit. For mandate campaigns (PE/investor leads), the angle is: a profitable, well-run company in their target sector is available — teaser has the details.
+  Re-engagement angles: ACT has a strong track record closing deals in the $5M-$50M range. Jeff's follow-ups work best when they reference the specific sector (tequila, construction, excavation) rather than generic M&A language. The deal window is real — processes close on timelines. Reference that the process is actively moving and the opportunity to engage is time-limited without using pressure language.
+  Proof: Follow-up campaigns achieve 30.77% interested rate — significantly higher than cold outreach. Tequila mandate: 60% interested among PE/FO leads.
+
 ---
 
 ## Quick Reference

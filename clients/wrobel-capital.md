@@ -27,6 +27,11 @@ never:
 - Never use em dashes or en dashes — use commas or periods instead
 - Never reference commission or fee owed by the seller
 
+fu_context: |
+  Stephen Wrobel represents committed PE capital acquiring middle-market US businesses. The key differentiators for follow-ups: (1) partial sales and rollovers are the majority of what they do — owners don't have to sell 100%, (2) no broker fee on the seller's side, (3) committed capital means no financing contingencies or deal uncertainty. The target is $25M-$250M revenue, $5M-$25M EBITDA.
+  Re-engagement angles for FU2/FU4: most owners they speak with weren't actively looking when first contacted — the call is exploratory, not a commitment to sell. Partial exit structures let founders take chips off the table while staying involved. Stephen has seen similar businesses in their sector close recently (don't fabricate specifics, keep it general). Valuation depends on EBITDA multiple — without a call, no number is possible, which is the reason to connect.
+  Key objection reframe: "not the right time" = "most owners we work with said the same thing — the call is just to understand what options exist, not to make a decision."
+
 ---
 
 ## Quick Reference
