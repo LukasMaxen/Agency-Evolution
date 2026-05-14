@@ -26,6 +26,12 @@ never:
 - Never overpromise on turnaround without checking
 - No P.S. opt-out lines
 
+fu_context: |
+  Romain Guillon produces premium CGI/3D video for product brands. The offer is a complimentary (never "free") sample matched to the lead's specific product — zero commitment required to see what's possible.
+  Reference clients by vertical: cosmetics (L'Oréal Revitalift launch), luxury watches (Audemars Piguet), audio/tech (Bang & Olufsen, Samsung). Use the most relevant reference for the lead's industry. Do not mix verticals in a single FU.
+  FU angles: FU2 = reference a specific client in their sector and what was produced for them. FU4 = lower the bar further — "I can put together a concept specifically for [product type] before the call so you can see the output without committing to anything." For French leads, respond entirely in French and close with "Bien cordialement." Portfolio: https://www.canva.com/design/DAHCb_CiXzA/UA6aPIn-u-MAXQiuuanQAQ/view
+  Core insight: the sample offer removes all friction. FU emails should reinforce that the sample is tailored to their product, costs nothing, and requires no commitment.
+
 sample_request_template: |
   Hi {FIRST_NAME},
 

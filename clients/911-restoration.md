@@ -24,6 +24,12 @@ never:
 - Never use "Your background in the trades is why I reached out"
 - Never use territory scarcity angle
 
+fu_context: |
+  Core hook for every FU: insurance-backed lead flow. Work comes through claim pipelines, not cold outreach. Franchise operators do not have to chase customers — they receive work automatically through 911 Restoration's insurance network.
+  Case study: Chris ran a window cleaning business in Reno. He layered the 911 Restoration franchise alongside it, scaled into plumbing and reconstruction through the insurance network, and now does significant volume without any marketing spend. The key insight: it layers on top of an existing trade business, it doesn't replace it.
+  FDD proof point: top 25% of franchisees average 2M+ in gross revenue. SBA financing is available. These are FDD-disclosed numbers, not promises.
+  FU angle progression: FU1 = nudge, FU2 = reframe as adding a revenue stream (not replacing current business), FU3/FU4 = the insurance network differentiator in more depth + Chris story. Never use territory scarcity. Never guarantee revenue. Idan Shpizear is the sender — the Franchise Developer (Dre) follows up after the intro call.
+
 info_template: |
   Hi {FIRST_NAME},
 
