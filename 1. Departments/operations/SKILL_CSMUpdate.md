@@ -18,47 +18,57 @@ Produces a performance report for all active client workspaces covering emails s
 
 | Metric | Source | Why |
 |---|---|---|
-| Emails sent | PostgreSQL DB (`emails_sent` table) | Webhook-populated, real-time |
-| Replies | PostgreSQL DB (`replies` table) | Webhook-populated, real-time |
-| Interested | PostgreSQL DB — AI intent classification only | EmailBison's interested flag is unreliable. Airtable inherits the same bug. Always use `ai_analysis->>'intent' IN ('interested','interested_urgent','needs_info')` OR `interested = true` as a fallback |
-| Meetings | Airtable only (`Meeting Booked Date` field) | Source of truth. Never use `meeting_booked` from the DB — it is not reliably set |
+| Emails sent | EmailBison API (`/api/workspaces/v1.1/stats`) | Source of truth. Matches the EmailBison UI exactly. Counts initial sends AND follow-ups, no `sequence_step` filter. |
+| Replies | EmailBison API (`/api/workspaces/v1.1/stats`) — field `unique_replies_per_contact` | Same call as emails sent, returned in the same response. |
+| Interested | EmailBison API (`/api/workspaces/v1.1/stats`) — field `interested` | Same call. EmailBison runs its own AI categorization and is treated as authoritative. Our DB's AI intent classification feeds back into EmailBison via a sync (see "Back-sync" section) so EmailBison stays correct. |
+| Meetings | Airtable only (`Meeting Booked Date` field) | Source of truth. Never use `meeting_booked` from the DB — it is not reliably set. |
 
 ---
 
-## Queries
+## EmailBison stats endpoint
 
-### Emails sent
-```sql
-SELECT workspace_slug,
-  COUNT(*) FILTER (WHERE sent_at >= '{start}' AND sent_at < '{end}') AS sent
-FROM emails_sent
-WHERE sequence_step IS NOT NULL
-GROUP BY workspace_slug
-ORDER BY workspace_slug;
+For each workspace, make one API call:
+
+```
+GET {instance_url}/api/workspaces/v1.1/stats?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+Authorization: Bearer {email_bison_api_key}
 ```
 
-### Replies + Interested
+Pull `instance_url` and `email_bison_api_key` per workspace from the `workspaces` table:
+
 ```sql
-SELECT workspace_slug,
-  COUNT(DISTINCT lead_email) FILTER (WHERE received_at >= '{start}' AND received_at < '{end}') AS replies,
-  COUNT(DISTINCT lead_email) FILTER (
-    WHERE received_at >= '{start}' AND received_at < '{end}'
-    AND (interested = true OR ai_analysis->>'intent' IN ('interested','interested_urgent','needs_info'))
-  ) AS interested
-FROM replies
-GROUP BY workspace_slug
-ORDER BY workspace_slug;
+SELECT slug, name, email_bison_instance_url, email_bison_api_key FROM workspaces;
 ```
+
+The response shape:
+
+```json
+{
+  "data": {
+    "emails_sent": 1930,
+    "unique_replies_per_contact": 11,
+    "interested": 3,
+    "bounced": 32,
+    "unsubscribed": 0,
+    ...
+  }
+}
+```
+
+Map to the report fields:
+- `Emails Sent` → `data.emails_sent`
+- `Total Replies` → `data.unique_replies_per_contact`
+- `Interested Replies` → `data.interested`
 
 ### Date windows
-| Period | start | end |
+| Period | start_date | end_date |
 |---|---|---|
-| Yesterday (daily) | `YYYY-MM-11 00:00:00` | `YYYY-MM-12 00:00:00` |
-| Last 7 days | `NOW() - INTERVAL '7 days'` | `NOW()` |
-| Last 30 days | `NOW() - INTERVAL '30 days'` | `NOW()` |
-| Monday weekly report | Last Monday 00:00 | Today 00:00 |
+| Yesterday (daily) | `YYYY-MM-DD` (yesterday) | `YYYY-MM-DD` (yesterday) |
+| Last 7 days | yesterday minus 6 days | yesterday |
+| Last 30 days | yesterday minus 29 days | yesterday |
+| Monday weekly report | last Monday | last Friday |
 
-Use **UTC** for all DB date filters. The DB stores timestamps in UTC and EmailBison tracks in UTC, so raw UTC comparisons match the EmailBison numbers. Compute yesterday in UTC: `sent_at >= 'YYYY-MM-DD 00:00:00' AND sent_at < 'YYYY-MM-(DD+1) 00:00:00'`. Only count `sequence_step = 1` in `emails_sent` (initial outreach only, not follow-ups).
+EmailBison interprets `start_date` and `end_date` as inclusive day-bounded ranges (workspace local time). For "today so far" partial-day pulls, pass today's date as both start and end.
 
 ---
 
@@ -107,8 +117,7 @@ The internal workspace has three different names across systems. Always display 
 | Report label | "Agency Evolution CRM" |
 
 - Always include this client in every report, even if sends = 0.
-- Replies and interested ARE tracked in DB under `internal-campaigns`.
-- Email sends were missing from webhook until 2026-05-08 — historical sends before that date are not in the DB.
+- Pulled from the same EmailBison stats endpoint as every other workspace (no DB-specific handling needed).
 
 ---
 
@@ -152,64 +161,21 @@ Rules:
 - "Emails to get a Lead" and "Emails to get a Meeting" belong ONLY in the totals block, never in per-client blocks.
 - Positive Reply Rate = interested / replies. Meeting Conversion = meetings / interested.
 - Efficiency: Emails to get a Lead = sent / interested, Emails to get a Meeting = sent / meetings.
-- Micro Nordic: Emails Sent = N/A. Internal Campaigns: use actual sent count from DB.
-- Always do full manual review of all replies before reporting interested counts.
+- Micro Nordic: Emails Sent = N/A.
 
 ---
 
-## Interested reply review process (critical — do not skip)
+## Back-sync (DB AI intent → EmailBison interested flag)
 
-The DB query for interested is a starting point only. It misses replies that have NULL AI intent AND were not flagged by EmailBison. This causes significant undercounting. Always do a full manual review.
+EmailBison is the single source of truth for the `interested` count in the CSM update. To keep EmailBison accurate, our reply-management pipeline runs a back-sync: whenever our DB classifies a reply as interested (`ai_analysis->>'intent' IN ('interested','interested_urgent','needs_info')`) and the corresponding EmailBison reply is NOT already flagged interested, we mark it interested via the EmailBison API.
 
-### Step 1 — Pull ALL replies for the date window
-
-```sql
-SELECT workspace_slug, lead_name, lead_company,
-  ai_analysis->>'intent' AS intent, interested,
-  LEFT(message, 200) AS preview
-FROM replies
-WHERE received_at >= '{start}' AND received_at < '{end}'
-ORDER BY workspace_slug, received_at;
-```
-
-Read every reply and make your own judgment call on whether it is a real positive.
-
-### Step 2 — What counts as interested
-
-Count as interested if the lead:
-- Says yes to receiving more info, a teaser, or an NDA
-- Asks a genuine question about the opportunity (price, territory, buyers, timeline)
-- Agrees to or proposes a call/meeting
-- Forwards to a decision maker and explicitly engages
-- Expresses clear curiosity or openness ("open to hearing more", "possibly interested")
-
-### Step 3 — What to filter out (false positives)
-
-Do NOT count:
-- **Out-of-office auto-replies** ("I am out of the office until...")
-- **Inactive mailbox notices** ("this mailbox is not in use")
-- **Mailinblack / spam filter challenges** ("I am protected by Mailinblack...")
-- **Inbound cold emails TO the client** (people pitching the client their own services)
-- **Internal/own team replies** (e.g. the founder's email showing up as a lead)
-- **Explicit non-interest** ("not interested", "not right now", "not looking to sell") even if they add a polite follow-up question
-- **Wrong person** ("I am not the owner", "you contacted the wrong person")
-- **Already acquired/closed** ("this company was acquired in 2022")
-- **Non-profits or non-businesses** ("we are a non-profit, nothing to buy or sell")
-- **Frustrated replies** ("this is the 4th time I am saying no")
-- **Marketing newsletters or promotional emails** landing in reply threads
-- **Networking outreach** (someone introducing themselves professionally, not responding to the pitch)
-
-### Step 4 — Cross-check with EmailBison
-
-Where possible, compare your count against EmailBison's interested flag for the same workspace and date. EmailBison's count reflects a human reviewer's manual judgment. If your count differs significantly, re-examine the borderline replies. EmailBison tends to be more conservative (lower). Your manual review may legitimately find more, but large gaps usually mean overcounting on your end.
+This means the skill never has to do manual reply review. EmailBison's number is trusted as-is.
 
 ---
 
 ## Known issues / flags
 
 - **DB `meeting_booked` flag**: never use — unreliable. Airtable only.
-- **DB `interested` boolean**: unreliable — always use AI intent classification instead, plus manual review.
-- **Internal Campaigns**: emails sent ARE tracked in DB (sequence_step IS NOT NULL). Include the actual sent count.
 - **Wrobel Capital**: sometimes shows 0 sent but has replies — delayed replies from prior days' sends. Normal.
-- **Hahnbeck**: frequently receives inbound cold emails and marketing newsletters that get flagged as interested. Always filter these manually.
+- **Hahnbeck**: receives a lot of inbound cold emails and marketing newsletters. If EmailBison's `interested` count looks unusually high, spot-check the replies tab before reporting.
 
