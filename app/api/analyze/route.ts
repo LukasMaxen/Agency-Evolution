@@ -3,7 +3,7 @@ import pool from "@/lib/db";
 
 const INTERESTED_INTENTS = new Set(["interested", "interested_urgent", "needs_info"]);
 
-async function backsyncInterestedToEmailBison(replyId: number) {
+async function backsyncInterestedToEmailBison(replyId: string) {
   const meta = await pool.query(
     `SELECT r.email_bison_reply_id, r.interested, w.email_bison_api_key, w.email_bison_instance_url
      FROM replies r
