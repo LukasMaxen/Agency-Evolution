@@ -1,8 +1,4 @@
 import pool from "@/lib/db";
-import {
-  MANUAL_REPLIES_CHANNEL,
-  postToSlack as postToSlackShared,
-} from "@/lib/slack-approval";
 
 let running = false;
 
