@@ -52,31 +52,11 @@ export async function register() {
   console.log("[instrumentation] EmailBison inbox sync started, 10min interval");
 
   // ── 3. Follow-up processor ────────────────────────────────────────────────
-  let fuRunning = false;
-  const runFu = async (label: string) => {
-    if (fuRunning) return;
-    fuRunning = true;
-    try {
-      const { runFollowUpProcessorOnce } = await import(
-        "@/app/api/follow-ups/process/route"
-      );
-      const result = await runFollowUpProcessorOnce();
-      if (result.processed > 0) {
-        console.log(
-          `[instrumentation] ${label} FU processor processed ${result.processed} due follow-ups`
-        );
-      }
-    } catch (err: any) {
-      console.error(`[instrumentation] ${label} FU processor failed:`, err);
-    } finally {
-      fuRunning = false;
-    }
-  };
-
-  setTimeout(() => void runFu("initial"), 30_000);
-  setInterval(() => void runFu("periodic"), 5 * 60_000);
-
-  console.log("[instrumentation] follow-up processor started, 5min interval");
+  // PAUSED 2026-05-14: Lukas disabled the FU sequence after generic non-personalised
+  // bumps (and unresolved {SENDER_EMAIL_SIGNATURE} tokens) fired on replied leads.
+  // Re-enable only after the drafter is fixed to match feedback-followup-sequence.md
+  // and an approval queue is wired in (today the route auto-sends with no review).
+  console.log("[instrumentation] follow-up processor DISABLED (paused 2026-05-14)");
 
   // ── 4. Weekly feedback review ─────────────────────────────────────────────
   let wrRunning = false;

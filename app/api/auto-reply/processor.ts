@@ -321,9 +321,11 @@ async function createFuRecord(replyId: string, workspaceSlug: string, reply: Rec
   if (fuType === "none" || meetingBooked || unsubscribed) return;
   const totalEmails = fuType === "abbreviated" ? 2 : 6;
   const fuId = `fu-${replyId}-${Date.now()}`;
+  // FU sequence paused 2026-05-14. Row is still created for audit/re-enablement,
+  // but next_fu_due is NULL so the processor cannot pick it up.
   await pool.query(
     `INSERT INTO follow_ups (id, reply_id, workspace_slug, lead_name, lead_email, first_replied_at, fu_step, total_emails, fu_sequence_type, meeting_booked, next_fu_due)
-     SELECT $1,$2,$3,$4,$5,NOW(),0,$6,$7,FALSE,NOW() + INTERVAL '2 days'
+     SELECT $1,$2,$3,$4,$5,NOW(),0,$6,$7,FALSE,NULL
      WHERE NOT EXISTS (SELECT 1 FROM follow_ups WHERE reply_id = $2)`,
     [fuId, replyId, workspaceSlug, reply.lead_name, reply.lead_email, totalEmails, fuType]
   );
