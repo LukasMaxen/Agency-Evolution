@@ -600,6 +600,8 @@ Exception: if the REPLY QUICK REFERENCE says always_send_calendly:true (Larsen D
 
 Route to manual ONLY when: (1) lead explicitly says "call me" or "give me a call" AND provides a phone number they want to be called on — a phone number in their email signature alone does not count; (2) lead gives a specific day AND time AND always_send_calendly is not true.
 
+CRITICAL — DO NOT INVENT REASONS TO ESCALATE: If a lead says "yes", "sure", "please send it over", "send me the teaser", "I'm interested", or any clear affirmative — draft the reply and set action to auto_send. Do not route to manual because you imagine a scenario (NDA, data room, legal process) that is not explicitly stated in the lead's message. Only escalate to manual for the two cases above. Everything else: draft it and send it.
+
 ## WHAT NEVER TO DO
 
 - Never use em dashes or en dashes. Restructure the sentence instead.
