@@ -39,23 +39,30 @@ ORDER BY workspace_slug;
 
 ### Replies + Interested
 ```sql
-SELECT workspace_slug,
-  COUNT(DISTINCT lead_email) FILTER (WHERE received_at >= '{start}' AND received_at < '{end}') AS replies,
-  COUNT(DISTINCT lead_email) FILTER (
-    WHERE received_at >= '{start}' AND received_at < '{end}'
-    AND (interested = true OR ai_analysis->>'intent' IN ('interested','interested_urgent','needs_info'))
+SELECT r.workspace_slug,
+  COUNT(DISTINCT r.lead_email) FILTER (WHERE r.received_at >= '{start}' AND r.received_at < '{end}') AS replies,
+  COUNT(DISTINCT r.lead_email) FILTER (
+    WHERE r.received_at >= '{start}' AND r.received_at < '{end}'
+    AND (r.interested = true OR r.ai_analysis->>'intent' IN ('interested','interested_urgent','needs_info'))
   ) AS interested_auto
-FROM replies
-WHERE lead_email NOT LIKE '%@invitations.mailinblack.com'
-  AND lead_email NOT LIKE '%@mail.beehiiv.com'
-  AND lead_email NOT LIKE '%@maxen-digital.com'
-  AND lead_email NOT LIKE '%@sonaro.ai'
-  AND (ai_analysis->>'intent' IS NULL OR ai_analysis->>'intent' != 'no_action')
-GROUP BY workspace_slug
-ORDER BY workspace_slug;
+FROM replies r
+WHERE r.lead_email NOT LIKE '%@invitations.mailinblack.com'
+  AND r.lead_email NOT LIKE '%@mail.beehiiv.com'
+  AND r.lead_email NOT LIKE '%@maxen-digital.com'
+  AND r.lead_email NOT LIKE '%@sonaro.ai'
+  AND (r.ai_analysis->>'intent' IS NULL OR r.ai_analysis->>'intent' != 'no_action')
+  AND NOT EXISTS (
+    SELECT 1 FROM sent_emails se
+    WHERE se.lead_email = r.lead_email
+      AND se.workspace_slug = r.workspace_slug
+      AND se.email_type = 'reply'
+      AND se.sent_at < r.received_at
+  )
+GROUP BY r.workspace_slug
+ORDER BY r.workspace_slug;
 ```
 
-The `interested_auto` column is a starting point only — always follow the manual review process below to get the real number. The exclusion filters remove known spam domains and internal team emails that were inflating reply counts.
+The `NOT EXISTS` subquery excludes back-and-forth replies — leads we already sent a manual reply to before they replied again. The `interested_auto` column is a starting point only — always follow the manual review process below to get the real number.
 
 ### Date windows
 | Period | start | end |
