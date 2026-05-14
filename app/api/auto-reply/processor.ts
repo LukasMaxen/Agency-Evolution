@@ -425,53 +425,11 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     return;
   }
 
-  if (workspace.forward_replies_to_email) {
-    // Hard rule: only forward genuinely interested replies.
-    // Default is to NOT forward. If in doubt — drop it.
-    // Intent classification is delegated to Sonnet on the main path; for forwarding
-    // workspaces we use the positive-signal regex below as a cheap gate.
-
-    const body0 = messageText.split(/\n[-]{3,}|\nOn .+ wrote:|\n_{3,}/)[0]?.toLowerCase() ?? "";
-    const interestedSignals = [
-      /\byes\b/, /\bsure\b/, /\binterested\b/, /\bopen to\b/, /\bopen for\b/,
-      /\bsend (it|them|more|details|info|over|the)\b/,
-      /\btell me more\b/, /\bhear more\b/, /\blearn more\b/,
-      /\bsounds (interesting|good|great)\b/,
-      /\bhappy to (chat|talk|connect|discuss|explore|hear|speak)\b/,
-      /\bwould (like|love|be interested|be open) to\b/,
-      /\blet('s| us) (talk|chat|connect|speak)\b/,
-      /\bworth a (call|chat|conversation)\b/,
-      /\bplease (send|share|forward)\b/,
-      /\bcan you (send|share|tell|provide)\b/,
-      /\bcould you (send|share|tell|provide)\b/,
-      /\bi.?d (like|love) to\b/,
-      /\bwe.?re (interested|open|happy)\b/,
-      /\bcount me in\b/, /\bsign me up\b/,
-    ];
-    const isInterested = interestedSignals.some(p => p.test(body0));
-    if (!isInterested) {
-      await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
-        [JSON.stringify({ skipped_reason: "forward_workspace_no_positive_signal" }), replyId]);
-      return;
-    }
-
-    const forwarded = await forwardToClient(replyWithCreds, workspace.forward_replies_to_email, workspace.forward_cc_emails ?? null);
-    if (forwarded) {
-      await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'forward_to_client',$6,$7,NOW())`,
-        [`fwd-${replyId}-${Date.now()}`, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", `[Forwarded to ${workspace.forward_replies_to_email}]`]);
-    }
-    await pool.query(`UPDATE replies SET status=$1, ai_analysis=$2, ai_analyzed_at=NOW() WHERE id=$3`,
-      [forwarded ? "forwarded" : "new", JSON.stringify({ forwarded_to: workspace.forward_replies_to_email, status: forwarded ? "sent" : "failed" }), replyId]);
-    if (!forwarded) {
-      console.error(`[auto-reply] Forward failed for ${workspaceSlug} / ${reply.lead_name} → ${workspace.forward_replies_to_email}`);
-    }
-    return;
-  }
-
-  // Intent classification (unsubscribe, not_interested, hard_no, referral, etc.)
-  // is handled by Sonnet below. Hard-close intents are silently closed by the
-  // post-Sonnet gate (see `Hard gate` further down). This lets us catch referrals
-  // and conditional rejections hidden inside literal "not interested" messages.
+  // Forward workspaces (e.g. Hahnbeck) used to have a regex positive-signal gate
+  // here, which let marketing emails through (Chillhouse, 1st Phorm) when no positive
+  // signal regex matched. The fix: run the same Claude classification as every other
+  // workspace, then decide to forward based on Claude's intent. See the forward
+  // branch after the "Hard gate" further down.
 
   const quickRef = extractQuickReference(clientFileRaw);
 
@@ -642,6 +600,30 @@ ${messageText.slice(0, 3000)}`;
     await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed' WHERE reply_id = $1`, [replyId]);
     await pool.query(`UPDATE replies SET status = 'read', interested = FALSE, ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ intent: result.intent, auto_replied: false, skipped_reason: "not_interested_no_reply" }), replyId]);
+    return;
+  }
+
+  // ── Forward-workspace branch ────────────────────────────────────────────────
+  // Forwarding workspaces (e.g. Hahnbeck) don't auto-reply — the client handles
+  // replies from their own inbox. We only forward when Claude classifies the
+  // reply as clearly worth the client's time: `interested` or `needs_info`.
+  // Everything else (neutral, unsubscribe, wrong_target, hostile) is closed silently.
+  if (workspace.forward_replies_to_email) {
+    const forwardableIntents = new Set(["interested", "needs_info"]);
+    if (!forwardableIntents.has(result.intent)) {
+      await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ intent: result.intent, skipped_reason: "forward_workspace_intent_not_forwardable" }), replyId]);
+      return;
+    }
+    const forwarded = await forwardToClient(replyWithCreds, workspace.forward_replies_to_email, workspace.forward_cc_emails ?? null);
+    if (forwarded) {
+      await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'forward_to_client',$6,$7,NOW())`,
+        [`fwd-${replyId}-${Date.now()}`, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", `[Forwarded to ${workspace.forward_replies_to_email}]`]);
+    } else {
+      console.error(`[auto-reply] Forward failed for ${workspaceSlug} / ${reply.lead_name} → ${workspace.forward_replies_to_email}`);
+    }
+    await pool.query(`UPDATE replies SET status = $1, ai_analysis = $2, ai_analyzed_at = NOW() WHERE id = $3`,
+      [forwarded ? "forwarded" : "new", JSON.stringify({ intent: result.intent, forwarded_to: workspace.forward_replies_to_email, status: forwarded ? "sent" : "failed" }), replyId]);
     return;
   }
 
