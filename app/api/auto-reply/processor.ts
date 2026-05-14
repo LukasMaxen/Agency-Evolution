@@ -254,33 +254,6 @@ async function sendToEmailBison(reply: Record<string, any>, body: string): Promi
   return true;
 }
 
-// ─── Approval quota ────────────────────────────────────────────────────────────
-
-
-async function shouldRouteToApproval(): Promise<boolean> {
-  const avgResult = await pool.query<{ avg_per_day: string }>(`
-    WITH daily AS (
-      SELECT DATE(received_at AT TIME ZONE 'America/New_York') AS day, COUNT(*) AS cnt
-      FROM replies
-      WHERE interested = TRUE AND received_at >= NOW() - INTERVAL '21 days'
-      GROUP BY 1 HAVING COUNT(*) >= 5
-      ORDER BY 1 DESC LIMIT 7
-    )
-    SELECT AVG(cnt) AS avg_per_day FROM daily
-  `);
-  const rawAvg = parseFloat(avgResult.rows[0]?.avg_per_day ?? "0");
-  const dailyQuota = Math.ceil(Math.max(20, rawAvg) * 0.50);
-
-  // Count ALL drafts sent to approval today (not just still-pending ones).
-  // Counting only 'pending' resets the quota each time the team reviews drafts,
-  // allowing more than the intended daily limit to go to approval.
-  const todayResult = await pool.query<{ cnt: string }>(`
-    SELECT COUNT(*) AS cnt FROM reply_drafts
-    WHERE (created_at AT TIME ZONE 'America/New_York')::date = (NOW() AT TIME ZONE 'America/New_York')::date
-  `);
-  return parseInt(todayResult.rows[0]?.cnt ?? "0", 10) < dailyQuota;
-}
-
 // ─── Forward to client ─────────────────────────────────────────────────────────
 
 async function forwardToClient(reply: Record<string, any>, forwardTo: string, ccEmails: string | null): Promise<boolean> {
