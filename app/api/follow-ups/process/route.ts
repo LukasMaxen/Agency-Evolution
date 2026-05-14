@@ -592,12 +592,28 @@ Draft FU step ${nextStep} now.`;
   return { status: "sent" };
 }
 
+// Module-level lock shared between the instrumentation timer and HTTP handlers.
+// Without this, a manual HTTP call to /api/follow-ups/process runs in parallel
+// with the instrumentation timer, doubling (or more) the effective throughput
+// and burning tokens far faster than the intended 5-per-batch rate.
+// The instrumentation.ts fuRunning flag only blocks concurrent timer fires —
+// it does not protect against HTTP requests hitting the route directly.
+let fuProcessorRunning = false;
+
 // Exported so the in-process scheduler (instrumentation.ts) can call this
 // directly without going through HTTP. Keep it pure: no auth, no Response.
 export async function runFollowUpProcessorOnce(): Promise<{
   processed: number;
+  skipped?: string;
   results: { id: string; status: string; reason?: string }[];
 }> {
+  if (fuProcessorRunning) {
+    console.log("[fu-process] Already running — skipping concurrent invocation");
+    return { processed: 0, skipped: "concurrent_lock", results: [] };
+  }
+  fuProcessorRunning = true;
+
+  try {
   const due = await pool.query<FollowUpRow>(
     `SELECT id, reply_id, workspace_slug, lead_name, lead_email, fu_step, total_emails, fu_sequence_type, next_fu_due
      FROM follow_ups
@@ -626,6 +642,9 @@ export async function runFollowUpProcessorOnce(): Promise<{
   }
 
   return { processed: results.length, results };
+  } finally {
+    fuProcessorRunning = false;
+  }
 }
 
 export async function GET(req: NextRequest) {
