@@ -19,15 +19,15 @@ Produces a performance report for all active client workspaces covering emails s
 | Metric | Source | Why |
 |---|---|---|
 | Emails sent | PostgreSQL DB (`emails_sent` table) | Webhook-populated, real-time |
-| Replies | PostgreSQL DB (`replies` table) | Webhook-populated, real-time |
-| Interested | PostgreSQL DB — AI intent classification only | EmailBison's interested flag is unreliable. Airtable inherits the same bug. Always use `ai_analysis->>'intent' IN ('interested','interested_urgent','needs_info')` OR `interested = true` as a fallback |
-| Meetings | Airtable only (`Meeting Booked Date` field) | Source of truth. Never use `meeting_booked` from the DB — it is not reliably set |
+| Replies | EmailBison API | DB overcounts — includes back-and-forth threads, outgoing emails, and spam. EmailBison API with `type=Tracked Reply, folder=Inbox, automated_reply=false` matches dashboard exactly |
+| Interested | EmailBison API (`interested=true` flag on replies) | Same reason as above. AI intent in DB misses positives with NULL intent |
+| Meetings | Airtable only (`Meeting Booked Date` field) | Source of truth. Never use `meeting_booked` from the DB |
 
 ---
 
 ## Queries
 
-### Emails sent
+### Emails sent (DB)
 ```sql
 SELECT workspace_slug,
   COUNT(*) FILTER (WHERE sent_at >= '{start}' AND sent_at < '{end}') AS sent
@@ -37,42 +37,35 @@ GROUP BY workspace_slug
 ORDER BY workspace_slug;
 ```
 
-### Replies + Interested
-```sql
-SELECT r.workspace_slug,
-  COUNT(DISTINCT r.lead_email) FILTER (WHERE r.received_at >= '{start}' AND r.received_at < '{end}') AS replies,
-  COUNT(DISTINCT r.lead_email) FILTER (
-    WHERE r.received_at >= '{start}' AND r.received_at < '{end}'
-    AND (r.interested = true OR r.ai_analysis->>'intent' IN ('interested','interested_urgent','needs_info'))
-  ) AS interested_auto
-FROM replies r
-WHERE r.lead_email NOT LIKE '%@invitations.mailinblack.com'
-  AND r.lead_email NOT LIKE '%@mail.beehiiv.com'
-  AND r.lead_email NOT LIKE '%@maxen-digital.com'
-  AND r.lead_email NOT LIKE '%@sonaro.ai'
-  AND (r.ai_analysis->>'intent' IS NULL OR r.ai_analysis->>'intent' != 'no_action')
-  AND NOT EXISTS (
-    SELECT 1 FROM sent_emails se
-    WHERE se.lead_email = r.lead_email
-      AND se.workspace_slug = r.workspace_slug
-      AND se.email_type = 'reply'
-      AND se.sent_at < r.received_at
-  )
-GROUP BY r.workspace_slug
-ORDER BY r.workspace_slug;
+Date window: UTC. Yesterday = `'YYYY-MM-DD 00:00:00'` to `'YYYY-MM-(DD+1) 00:00:00'`.
+
+### Replies + Interested (EmailBison API)
+
+For each workspace, look up `email_bison_api_key` and `email_bison_instance_url` from the `workspaces` table, then:
+
+```python
+# For each campaign in the workspace:
+GET {instance_url}/api/campaigns  # get all campaign IDs
+
+# For each campaign, get today's real inbound replies:
+GET {instance_url}/api/campaigns/{id}/replies?per_page=100&page=1
+
+# Filter for:
+#   type == "Tracked Reply"
+#   folder == "Inbox"
+#   automated_reply == False
+#   created_at starts with YYYY-MM-DD
+
+# Count unique lead_ids (not emails — same lead may reply to multiple campaigns)
+# Count interested = True among those same replies
 ```
 
-The `NOT EXISTS` subquery excludes back-and-forth replies — leads we already sent a manual reply to before they replied again. The `interested_auto` column is a starting point only — always follow the manual review process below to get the real number.
+This matches exactly what the EmailBison dashboard shows. Always do a manual review of interested replies on top of the API flag — the API flag is set by whoever manages replies in EmailBison and may miss some positives.
 
-### Date windows
-| Period | start | end |
-|---|---|---|
-| Yesterday (daily) | `YYYY-MM-11 00:00:00` | `YYYY-MM-12 00:00:00` |
-| Last 7 days | `NOW() - INTERVAL '7 days'` | `NOW()` |
-| Last 30 days | `NOW() - INTERVAL '30 days'` | `NOW()` |
-| Monday weekly report | Last Monday 00:00 | Today 00:00 |
-
-Use **UTC** for all DB date filters. The DB stores timestamps in UTC and EmailBison tracks in UTC, so raw UTC comparisons match the EmailBison numbers. Compute yesterday in UTC: `sent_at >= 'YYYY-MM-DD 00:00:00' AND sent_at < 'YYYY-MM-(DD+1) 00:00:00'`. Only count `sequence_step = 1` in `emails_sent` (initial outreach only, not follow-ups).
+### Workspace credentials
+```sql
+SELECT slug, email_bison_api_key, email_bison_instance_url FROM workspaces ORDER BY slug;
+```
 
 ---
 
