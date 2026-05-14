@@ -42,6 +42,12 @@ never (all types):
 - Never send Sell Side Advisory leads a teaser (there is no teaser for that campaign)
 - Never mix campaign type language across campaigns
 
+fu_context: |
+  TYPE 1 (Sell Side Advisory) FU angles: the buyer Svetlin represents has committed capital and a clear brief — most owners they approach weren't actively looking but took the call out of curiosity. A follow-up call is low commitment and confidential. Re-engagement: "the buyer is still actively looking in your sector."
+  TYPE 2 (TelcoLab) FU angles: exclusive mandate with a specific telecom software platform. The process is live. PE firms and strategics who missed the teaser are missing an active deal — the window for engagement is real.
+  TYPE 3 (ZEBS) FU angles: EdTech Seed Round, 300k+ pilot revenue, EU accreditation, 25 countries. Founding team includes a former Deputy Minister of Foreign Affairs plus a 20-year EdTech operator. Real traction, not pre-revenue. Strong margins (~35%). Investors with EdTech or impact mandates are the right fit.
+  TYPE 4 (PE Add-On) FU angles: the PE firm (never name) recently acquired a platform and is actively adding acquisitions in the sector. They have committed capital and a clear thesis. Most add-on conversations are exploratory — the call is to see if the business fits the thesis.
+
 ---
 
 ## Quick Reference

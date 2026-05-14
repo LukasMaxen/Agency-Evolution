@@ -30,6 +30,10 @@ never:
 - Never give valuation in writing
 - Never agree to commission-only
 
+fu_context: |
+  TYPE 1 (Yoga Acquisition) FU angles: Black Swan Yoga is a live deal — $7.2M revenue, 15% adj. EBITDA, 21 locations in TX/AZ/CO. PE and FO leads who haven't responded are missing an active process. The teaser has the financial details. Tim's follow-ups should reference the specific metrics (7.2M revenue, 21 locations) and note that the process is moving. Yoga campaigns achieved 40.91% interested rate — this is a strong mandate.
+  TYPE 2 (Texas Sell Side) FU angles: Tim represents a buyer with committed capital actively looking at Texas-based businesses. Most owners weren't planning to sell when first contacted — a 30-minute call is exploratory, not a commitment. The buyer is still actively looking. Partial sale structures are possible. FU angle: timing and market conditions — buyers are active in Texas right now.
+
 ---
 
 ## Quick Reference
