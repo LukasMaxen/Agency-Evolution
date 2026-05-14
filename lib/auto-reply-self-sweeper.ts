@@ -66,19 +66,9 @@ export async function runAutoReplySweep(): Promise<void> {
        LIMIT 20`
     );
     if (stuck4h.rows.length > 0) {
-      const list = stuck4h.rows.map(r => `• ${r.workspace_slug} / ${r.lead_name}`).join("\n");
-      console.error(`[self-sweep] ${stuck4h.rows.length} replies stuck at 'new' for 4+ hours:\n${list}`);
-      // Only alert Slack if there are 3+ stuck replies (to avoid noise from single edge cases)
-      if (stuck4h.rows.length >= 3) {
-        await postToSlackShared({
-          channel: MANUAL_REPLIES_CHANNEL,
-          text: `Auto-reply sweeper warning: ${stuck4h.rows.length} replies stuck at 'new' for 4+ hours. The sweeper may have stopped. Check server logs.`,
-          blocks: [
-            { type: "header", text: { type: "plain_text", text: "Sweeper health warning", emoji: true } },
-            { type: "section", text: { type: "mrkdwn", text: `*${stuck4h.rows.length} replies stuck at 'new' for 4+ hours.*\nThe auto-reply sweeper may have stopped or crashed. Check Coolify server logs immediately.\n\n${list}` } },
-          ],
-        }).catch(() => {});
-      }
+      const list = stuck4h.rows.map(r => `${r.workspace_slug} / ${r.lead_name}`).join(", ");
+      console.error(`[self-sweep] ${stuck4h.rows.length} replies stuck at 'new' for 4+ hours: ${list}`);
+      // Log only — no Slack noise
     }
 
     // ── 4. Alert on 'awaiting_approval' replies stuck > 48 hours ─────────────
@@ -95,15 +85,8 @@ export async function runAutoReplySweep(): Promise<void> {
     );
     const unalerted = oldApproval.rows.filter(r => !approvalAlertedIds.has(r.id));
     if (unalerted.length > 0) {
-      const list = unalerted.map(r => `• ${r.workspace_slug} / ${r.lead_name}`).join("\n");
-      await postToSlackShared({
-        channel: MANUAL_REPLIES_CHANNEL,
-        text: `${unalerted.length} reply draft(s) waiting 48h+ for approval. These leads have received nothing.`,
-        blocks: [
-          { type: "header", text: { type: "plain_text", text: "Approval backlog — action needed", emoji: true } },
-          { type: "section", text: { type: "mrkdwn", text: `*${unalerted.length} lead(s) waiting 48h+ for reply approval.*\nCheck #reply-approval and approve or reject. Leads are receiving nothing until approved.\n\n${list}` } },
-        ],
-      }).catch(() => {});
+      // Log only — approval channel is no longer used
+      console.log(`[self-sweep] ${unalerted.length} reply draft(s) waiting 48h+ (approval flow deprecated)`);
       unalerted.forEach(r => approvalAlertedIds.add(r.id));
     }
 

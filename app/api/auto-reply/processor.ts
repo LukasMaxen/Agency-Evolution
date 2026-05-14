@@ -518,8 +518,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     await pool.query(`UPDATE replies SET status=$1, ai_analysis=$2, ai_analyzed_at=NOW() WHERE id=$3`,
       [forwarded ? "forwarded" : "new", JSON.stringify({ forwarded_to: workspace.forward_replies_to_email, status: forwarded ? "sent" : "failed" }), replyId]);
     if (!forwarded) {
-      await postManual({ text: `Forward failed, ${workspaceSlug} / ${reply.lead_name}`,
-        blocks: buildCard("Forward failed", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", { reason: `Forward to ${workspace.forward_replies_to_email} failed.` }) });
+      console.error(`[auto-reply] Forward failed for ${workspaceSlug} / ${reply.lead_name} → ${workspace.forward_replies_to_email}`);
     }
     return;
   }
@@ -696,10 +695,7 @@ ${messageText.slice(0, 3000)}`;
     if (failCount >= 3) {
       await pool.query(`UPDATE replies SET status = 'errored', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
         [JSON.stringify({ ...prevAnalysis, claude_fail_count: failCount, skipped_reason: "claude_repeated_failure" }), replyId]);
-      await postManual({ text: `Auto-reply failed 3x (Claude error), ${workspaceSlug} / ${reply.lead_name} — marked errored`,
-        blocks: buildCard("Auto-reply failed repeatedly (Claude error)", workspaceSlug, reply, workspace.email_bison_instance_url ?? "", {
-          reason: `Claude API returned null ${failCount} times. Possible cause: API key out of credits, rate limited, or model down. Manual reply needed. Reset status to 'new' once resolved.`,
-        }) });
+      console.error(`[auto-reply] Claude failed 3x for ${workspaceSlug} / ${reply.lead_name} — marked errored`);
     } else {
       await pool.query(`UPDATE replies SET status = 'new', ai_analysis = $1 WHERE id = $2`,
         [JSON.stringify({ ...prevAnalysis, claude_fail_count: failCount }), replyId]);
@@ -816,8 +812,7 @@ ${messageText.slice(0, 3000)}`;
       if (ebFails >= 3) {
         await pool.query(`UPDATE replies SET status = 'errored', ai_analysis = $1 WHERE id = $2`,
           [JSON.stringify({ ...prevAnalysis2, eb_fail_count: ebFails }), replyId]);
-        await postManual({ text: `Auto-reply send failed 3x (EmailBison error), ${workspaceSlug} / ${reply.lead_name} — marked errored`,
-          blocks: buildCard("EmailBison send failed repeatedly", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", { reason: `EmailBison returned error ${ebFails} times. Check EmailBison API status. Manual reply needed.` }) });
+        console.error(`[auto-reply] EmailBison send failed 3x for ${workspaceSlug} / ${reply.lead_name} — marked errored`);
       } else {
         await pool.query(`UPDATE replies SET status = 'new', ai_analysis = $1 WHERE id = $2`,
           [JSON.stringify({ ...prevAnalysis2, eb_fail_count: ebFails }), replyId]);
@@ -832,16 +827,11 @@ ${messageText.slice(0, 3000)}`;
     await createFuRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
 
   } else {
-    // do_nothing
-    const clearClose = (result.intent === "not_interested" || result.intent === "unsubscribe") && result.fu_sequence_type === "none";
+    // do_nothing — mark read silently, never post to manual
     await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
     if (result.intent === "unsubscribe") {
-      // Kill any active FU sequence — lead has opted out.
       await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`, [replyId]);
     }
-    if (!clearClose) {
-      await postManual({ text: `Reply needs review, ${workspaceSlug} / ${reply.lead_name}`,
-        blocks: buildCard("Reply needs manual review", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", { reason: result.manual_reason ?? "Auto-reply set do_nothing — please review." }) });
-    }
+    console.log(`[auto-reply] do_nothing for ${replyId} (${workspaceSlug} / ${reply.lead_name}), intent=${result.intent}`);
   }
 }
