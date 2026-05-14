@@ -293,7 +293,7 @@ async function processOne(fu: FollowUpRow): Promise<{ status: string; reason?: s
   // shows a hard close. This prevents FU drafts firing on leads who already said
   // hard no, unsubscribe, or wrong target — regardless of what fu_sequence_type
   // was set at the time of the original reply.
-  const closedIntents = new Set(["hard_no", "unsubscribe", "wrong_target", "hostile"]);
+  const closedIntents = new Set(["hard_no", "unsubscribe", "wrong_target", "hostile", "not_interested"]);
   const storedIntent = (reply.ai_analysis as any)?.intent ?? "";
   if (closedIntents.has(storedIntent)) {
     await pool.query(
@@ -411,6 +411,13 @@ Draft FU step ${nextStep} now.`;
   const draft = await callClaude(systemPrompt, userMessage);
 
   if (!draft) {
+    // Push next_fu_due forward 2 hours so the row is not immediately re-queued.
+    // The atomic claim left it at +10 min; without this the processor would retry
+    // every 10 minutes indefinitely, burning a Claude call each time.
+    await pool.query(
+      `UPDATE follow_ups SET next_fu_due = NOW() + INTERVAL '2 hours' WHERE id = $1`,
+      [fu.id]
+    );
     return { status: "failed", reason: "claude error" };
   }
 
@@ -418,11 +425,27 @@ Draft FU step ${nextStep} now.`;
   draft.body = sanitizeDashes(draft.body);
   draft.subject = sanitizeDashes(draft.subject);
 
-  // Guard: reject a body that is too short (truncation risk).
+  // Guard: reject a body that is too short (truncation risk) or empty
+  // (Claude returned {"subject":"","body":""} for a not-interested lead it detected).
   {
     const bodyWithoutSignature = draft.body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
+    if (bodyWithoutSignature.length === 0) {
+      // Empty body = Claude detected not-interested in the thread even if stored intent missed it.
+      // Close the sequence entirely rather than retrying.
+      await pool.query(
+        `UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed_on_intent' WHERE id = $1`,
+        [fu.id]
+      );
+      console.log(`[fu-process] Empty body from Claude for ${fu.workspace_slug} / ${fu.lead_name} step ${nextStep} — closing sequence`);
+      return { status: "skipped", reason: "claude returned empty body, sequence closed" };
+    }
     if (bodyWithoutSignature.length < 80) {
-      console.warn(`[fu-process] FU body too short (${bodyWithoutSignature.length} chars) for ${fu.workspace_slug} / ${fu.lead_name} step ${nextStep} — skipping`);
+      // Short but not empty: likely truncation. Push forward 2h to prevent tight retry loop.
+      await pool.query(
+        `UPDATE follow_ups SET next_fu_due = NOW() + INTERVAL '2 hours' WHERE id = $1`,
+        [fu.id]
+      );
+      console.warn(`[fu-process] FU body too short (${bodyWithoutSignature.length} chars) for ${fu.workspace_slug} / ${fu.lead_name} step ${nextStep} — rescheduled 2h`);
       return { status: "failed", reason: "generated body too short, possible truncation" };
     }
   }
