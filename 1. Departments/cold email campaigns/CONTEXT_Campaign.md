@@ -291,3 +291,28 @@ Do not keep a frozen "control" variant running untouched. At scale, identical co
 - The control is the old campaign's interested rate — already on record, already real volume.
 - All variants in the running campaign should be refreshed on the sends-based schedule.
 - Compare new campaign performance against old campaign baseline after sufficient volume (1,000+ emails sent).
+
+---
+
+## EmailBison Change Approval (non-negotiable)
+
+Before pushing any script change to a live EmailBison campaign, always present a review to the user and wait for explicit approval. Never call PUT/POST endpoints on EmailBison without confirmation.
+
+**The review must include:**
+- Exact campaign name(s) as they appear in EmailBison
+- Which step(s) and which variants are being changed
+- Only the exact lines or sentences being modified, in before/after form. Do not repeat full emails, unchanged CTAs, or unchanged surrounding copy. Strip the diff down to just the modified sentence(s) per step, labelled by campaign and step ID.
+- A simple confirmation ask at the end
+
+Only push after explicit user confirmation. This rule exists because changes have gone live unexpectedly mid-session; the user wants the chance to review every diff before it ships.
+
+---
+
+## Communication Style (applies to all email copy)
+
+These rules cover every campaign script, reply draft, and follow-up across every client. No exceptions.
+
+- **No dashes of any kind.** No em dashes (—), en dashes (–), hyphens used as punctuation, or double dashes (--). Restructure the sentence using commas, periods, parentheses, or line breaks.
+- **No colons (:) anywhere in email copy.** Subject lines and bodies. Use a period or comma and restructure.
+
+Apply these before finalising any output. If a dash or colon appears, rewrite the sentence.

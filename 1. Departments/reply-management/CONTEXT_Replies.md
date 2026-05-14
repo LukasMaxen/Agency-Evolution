@@ -47,6 +47,10 @@ Every inbound reply runs through two tiers:
 
 **Tier 2: Either Sonnet or template.** The Sonnet path uses the full draft logic in this file (intent, fu_sequence_type, reply_body, etc). The template path loads a markdown file from `1. Departments/reply-management/templates/`, substitutes variables (`{{lead_first_name}}`, `{{lead_company}}`, etc), and routes through the same approval / send pipeline.
 
+**Template vs bespoke (non-negotiable routing):** For `not_interested`, `hard_no`, `unsubscribe`, `wrong_target`, and `hostile` intents, always send the deterministic template — never a bespoke AI draft. Bespoke Sonnet drafts are reserved for `interested_urgent`, `interested`, `needs_info`, `neutral`, `forwarded`, and `advisor_engaged`. Drafting bespoke "no" replies wastes spend and introduces tone variance for scenarios the team has already curated wording for.
+
+**Template feedback loop:** When a template-path Slack approval card receives a pencil reaction with thread comments, the comments must update the template `.md` file in `1. Departments/reply-management/templates/` — not regenerate the single draft. Templates are deterministic and shared, so fixing wording once at the source improves every future reply of that intent across all 15 workspaces. (Interested-family cards stay on the current per-draft regenerate behaviour.) Non-English replies are hand-translated case by case. Do not create language-variant template files (e.g. `soft-no-acknowledgment-fr.md`) until volume justifies it.
+
 **Template check (non-negotiable):** Before sending any template, assess whether the lead's specific message, company, tone, or thread context allows for a better reply. If yes, draft a fresh reply using the template as a structural guide only. The template is the floor, not the ceiling. Only use the template as-is when the lead's message gives no additional context to work with (e.g. a single-line "remove me").
 
 This saves about 80% of API cost at scale because most replies (unsubscribes, soft nos, OOO, bounces) never touch Sonnet. See the templates folder README for the full variable list and how to edit templates.
@@ -179,7 +183,8 @@ Looking forward to speaking.
 - Human, natural, conversational — not corporate or AI-sounding
 - Short and direct — no fluff, no padding
 - No over-eager or sycophantic phrases
-- No dashes of any kind — no em dashes (—), en dashes (–), hyphens used as punctuation, or double dashes (--). Avoid dashes in general. Restructure the sentence instead.
+- No dashes of any kind. No em dashes (—), en dashes (–), hyphens used as punctuation, or double dashes (--). Avoid dashes in general. Restructure the sentence instead.
+- No colons (:) anywhere in email body copy. Use a period or comma and restructure. Applies to subject lines and body. (Confirmed rule, applies to all campaigns, replies, and follow-ups.)
 - No bullet points or numbered lists unless structuring a multi-part answer to a direct question
 - No "Sounds great!" or overly casual openers
 - Avoid: "genuinely", "straightforward", "excited to", "thrilled", "delighted"
@@ -1049,6 +1054,14 @@ If a lead:
 → Route to #manual-replies. Do not draft an auto-reply. A human needs to place the call or manually book the time.
 
 Exception: Larsen Digital leads always get the Calendly link even when they give a specific day/time.
+
+---
+
+## Training & Testing Scope (multi-workspace, not single-workspace)
+
+When training, testing, or drafting batches of replies, work across multiple client workspaces in the same session, not one workspace at a time. Each workspace has a distinct offer, ICP, voice, and language. Training on one teaches the AI that client's patterns but leaves it unprepared for the 14 others.
+
+**How to apply:** Process the queue in its natural order (e.g. most recent first across all workspaces). For each lead, read `clients/[workspace-slug].md` first to load that workspace's voice/offer/ICP, then draft. Do not propose "pilot with one workspace and expand later" unless the user explicitly asks for it. Mixing also surfaces edge cases (different languages, sectors, deal sizes) faster.
 
 ---
 
