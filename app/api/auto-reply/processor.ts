@@ -97,10 +97,7 @@ function detectOptOut(message: string, leadFirstName: string): { intent: string;
     /take me off/,
   ];
   if (unsubPatterns.some(p => p.test(body))) {
-    return {
-      intent: "unsubscribe",
-      body: `Hi ${leadFirstName},\n\nRemoved — you won't hear from us again.\n\n{SENDER_EMAIL_SIGNATURE}`,
-    };
+    return { intent: "unsubscribe", body: "" };
   }
 
   const niPatterns = [
@@ -695,13 +692,9 @@ ${messageText.slice(0, 3000)}`;
     result.fu_sequence_type = "none";
   }
 
-  // Override: force auto_send for always-auto intents even if Claude returned manual
-  if (result.action === "manual" && new Set(["unsubscribe","wrong_target","hostile"]).has(result.intent)) {
-    result.action = "auto_send";
-    if (!result.reply_body) {
-      const body1line = `Hi ${firstName},\n\nRemoved — you won't hear from us again.\n\n{SENDER_EMAIL_SIGNATURE}`;
-      result.reply_body = body1line;
-    }
+  // If Claude returns manual for a hard-close intent, just close silently instead.
+  if (result.action === "manual" && new Set(["unsubscribe","wrong_target","hostile","not_interested","hard_no"]).has(result.intent)) {
+    result.action = "do_nothing";
   }
 
   // Body length guard: 80 chars catches truncated replies ("Hi John,", "Hi John,\n\nSounds great!")
