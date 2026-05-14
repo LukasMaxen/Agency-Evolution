@@ -157,9 +157,59 @@ Rules:
 
 ---
 
+## Interested reply review process (critical — do not skip)
+
+The DB query for interested is a starting point only. It misses replies that have NULL AI intent AND were not flagged by EmailBison. This causes significant undercounting. Always do a full manual review.
+
+### Step 1 — Pull ALL replies for the date window
+
+```sql
+SELECT workspace_slug, lead_name, lead_company,
+  ai_analysis->>'intent' AS intent, interested,
+  LEFT(message, 200) AS preview
+FROM replies
+WHERE received_at >= '{start}' AND received_at < '{end}'
+ORDER BY workspace_slug, received_at;
+```
+
+Read every reply and make your own judgment call on whether it is a real positive.
+
+### Step 2 — What counts as interested
+
+Count as interested if the lead:
+- Says yes to receiving more info, a teaser, or an NDA
+- Asks a genuine question about the opportunity (price, territory, buyers, timeline)
+- Agrees to or proposes a call/meeting
+- Forwards to a decision maker and explicitly engages
+- Expresses clear curiosity or openness ("open to hearing more", "possibly interested")
+
+### Step 3 — What to filter out (false positives)
+
+Do NOT count:
+- **Out-of-office auto-replies** ("I am out of the office until...")
+- **Inactive mailbox notices** ("this mailbox is not in use")
+- **Mailinblack / spam filter challenges** ("I am protected by Mailinblack...")
+- **Inbound cold emails TO the client** (people pitching the client their own services)
+- **Internal/own team replies** (e.g. the founder's email showing up as a lead)
+- **Explicit non-interest** ("not interested", "not right now", "not looking to sell") even if they add a polite follow-up question
+- **Wrong person** ("I am not the owner", "you contacted the wrong person")
+- **Already acquired/closed** ("this company was acquired in 2022")
+- **Non-profits or non-businesses** ("we are a non-profit, nothing to buy or sell")
+- **Frustrated replies** ("this is the 4th time I am saying no")
+- **Marketing newsletters or promotional emails** landing in reply threads
+- **Networking outreach** (someone introducing themselves professionally, not responding to the pitch)
+
+### Step 4 — Cross-check with EmailBison
+
+Where possible, compare your count against EmailBison's interested flag for the same workspace and date. EmailBison's count reflects a human reviewer's manual judgment. If your count differs significantly, re-examine the borderline replies. EmailBison tends to be more conservative (lower). Your manual review may legitimately find more, but large gaps usually mean overcounting on your end.
+
+---
+
 ## Known issues / flags
 
 - **DB `meeting_booked` flag**: never use — unreliable. Airtable only.
-- **DB `interested` boolean**: unreliable — always use AI intent classification instead.
-- **Internal Campaigns**: emails sent ARE tracked in DB (sequence_step = 1). Include the actual sent count. Previous note saying N/A was outdated.
+- **DB `interested` boolean**: unreliable — always use AI intent classification instead, plus manual review.
+- **Internal Campaigns**: emails sent ARE tracked in DB (sequence_step IS NOT NULL). Include the actual sent count.
+- **Wrobel Capital**: sometimes shows 0 sent but has replies — delayed replies from prior days' sends. Normal.
+- **Hahnbeck**: frequently receives inbound cold emails and marketing newsletters that get flagged as interested. Always filter these manually.
 

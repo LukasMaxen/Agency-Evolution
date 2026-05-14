@@ -471,10 +471,10 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   }
 
   if (workspace.forward_replies_to_email) {
-    // Filter out opt-outs and not-interested before forwarding — the client should
-    // only see replies worth acting on. OOO/bounces are already filtered above.
-    // For forwarding workspaces we never send an auto-reply (client handles from
-    // their own inbox), so both unsubscribe and not-interested are closed silently.
+    // Hard rule: only forward genuinely interested replies.
+    // Default is to NOT forward. If in doubt — drop it.
+
+    // Step 1: catch explicit opt-outs and not-interested
     const fwdFirstName = reply.lead_name?.split(" ").filter(Boolean)[0] || "there";
     const fwdOptOut = detectOptOut(messageText, fwdFirstName);
     if (fwdOptOut) {
@@ -485,6 +485,32 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
       }
       await pool.query(`UPDATE replies SET status = 'read', interested = FALSE, ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
         [JSON.stringify({ intent: fwdOptOut.intent, auto_replied: false, skipped_reason: "opt_out_not_forwarded" }), replyId]);
+      return;
+    }
+
+    // Step 2: only forward if clearly interested — default is to drop.
+    // If the reply doesn't contain a recognisable positive signal, close silently.
+    const body0 = messageText.split(/\n[-]{3,}|\nOn .+ wrote:|\n_{3,}/)[0]?.toLowerCase() ?? "";
+    const interestedSignals = [
+      /\byes\b/, /\bsure\b/, /\binterested\b/, /\bopen to\b/, /\bopen for\b/,
+      /\bsend (it|them|more|details|info|over|the)\b/,
+      /\btell me more\b/, /\bhear more\b/, /\blearn more\b/,
+      /\bsounds (interesting|good|great)\b/,
+      /\bhappy to (chat|talk|connect|discuss|explore|hear|speak)\b/,
+      /\bwould (like|love|be interested|be open) to\b/,
+      /\blet('s| us) (talk|chat|connect|speak)\b/,
+      /\bworth a (call|chat|conversation)\b/,
+      /\bplease (send|share|forward)\b/,
+      /\bcan you (send|share|tell|provide)\b/,
+      /\bcould you (send|share|tell|provide)\b/,
+      /\bi.?d (like|love) to\b/,
+      /\bwe.?re (interested|open|happy)\b/,
+      /\bcount me in\b/, /\bsign me up\b/,
+    ];
+    const isInterested = interestedSignals.some(p => p.test(body0));
+    if (!isInterested) {
+      await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ skipped_reason: "forward_workspace_no_positive_signal" }), replyId]);
       return;
     }
 
