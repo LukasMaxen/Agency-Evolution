@@ -50,31 +50,68 @@ For each active campaign (skip Follow Ups, skip anything with "spam" in the name
 
 ## Output
 
-Post ONE message to Slack channel `C0B268H8Z2S`.
+Post ONE message to Slack channel `C0B268H8Z2S`. Routine ID: `trig_01M7HXMBPheK77Hrwe95S5Jv`.
 
 - Only flagged campaigns (needs leads within 3 days)
 - Group by client, sort by most urgent first (fewest days left)
-- Show in-sequence count and days left
-- Skip Follow Up campaigns entirely
-- Skip any campaign with "spam" in the name
+- Status icons: 🔴 exhausted (in_seq = 0 or days_left = 0), 🟡 1-3 days remaining
+- Skip Follow Up campaigns and any campaign with "spam" in the name
+- No 3-week runway check ever
 
-### Format
+### Approved format (2026-05-08, confirmed by Kasper)
 
 ```
-🔴 *Campaigns needing leads within 3 days* — May 8, 2026
-7 of 28 campaigns flagged
+📉 *Lead Supply: Action Required*
+_N campaigns running out of leads within 3 days_
 
-*ACT CAPITAL*
-• Tequila (Shared List) — `151` in sequence (~1d left)
-• Northern Cali - Sell Side — `352` in sequence (~1d left)
+---
 
-_28 campaigns checked across 15 workspaces_
+*Client Name*
+🔴 Campaign name — _`X` leads in sequence, exhausted today_
+🟡 Campaign name — _`X` leads in sequence, ~Nd remaining_
+
+---
+
+➡ _N campaigns checked across N workspaces_
 ```
 
-If nothing flagged: post 🟢 all clear message.
+### All-clear format
+
+```
+📭 *Lead Supply: All Clear*
+_All N active campaigns have 3+ days of runway_
+
+---
+
+➡ _No lead uploads needed today_
+```
+
+**Formatting rules:** bold header with emoji, italic one-line summary, `---` divider after header and before footer, campaign name plain, leads in backticks, timing in italic. No em dashes, no sentence over 15 words, no filler.
+
+---
+
+## Workspace display names
+
+| Slug | Display name |
+|---|---|
+| 911-restoration | 911 Restoration |
+| acceler8rs | Acceler8rs |
+| act-capital | ACT Capital |
+| gn-motion | GN Motion |
+| hahnbeck | Hahnbeck |
+| internal-campaigns | Agency Evolution CRM |
+| itg-group | ITG Group |
+| larsen-digital | Larsen Digital |
+| micro-nordic | Micro Nordic |
+| sonaro-ai | Sonaro AI |
+| statera-capital | Statera Capital |
+| venture-exits | Venture Exits |
+| wrobel-capital | Wrobel Capital |
+| zebs-ibs | Zebs IBS |
+| zenith-global | Zenith Global |
 
 ---
 
 ## Schedule
 
-Run every day at **9:00 AM CET/CEST** Mon-Fri.
+Run every day at **9:00 AM CET/CEST** Mon-Fri. If the routine auto-disables, check the GitHub app scope (must be "All repositories" in github.com/settings/installations).
