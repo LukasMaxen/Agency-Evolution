@@ -10,6 +10,7 @@ import {
   slugToName as slugToNameShared,
   sanitizeDashes,
 } from "@/lib/slack-approval";
+import { checkRateLimit } from "@/lib/rate-limiter";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,7 +150,6 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
 
   // Safety valve: cap at 30 Sonnet calls per 60-second window across both processors.
   // Should never trigger under normal volume. If it does, a backlog spike or loop is burning tokens.
-  const { checkRateLimit } = await import("@/lib/rate-limiter");
   if (!checkRateLimit("claude-sonnet", 30)) {
     console.warn("[auto-reply] Rate limit reached (30 calls/min) — skipping Claude call this cycle");
     return null;

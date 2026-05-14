@@ -10,6 +10,7 @@ import {
   slugToName,
   sanitizeDashes,
 } from "@/lib/slack-approval";
+import { checkRateLimit } from "@/lib/rate-limiter";
 import {
   daysUntilNextStep,
 } from "@/lib/template-replies";
@@ -81,7 +82,6 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Dr
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
-  const { checkRateLimit } = await import("@/lib/rate-limiter");
   if (!checkRateLimit("claude-sonnet", 30)) {
     console.warn("[fu-process] Rate limit reached (30 calls/min) — skipping Claude call this cycle");
     return null;

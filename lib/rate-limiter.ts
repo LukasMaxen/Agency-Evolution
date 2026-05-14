@@ -1,10 +1,12 @@
 /**
  * Simple in-process rate limiter for Anthropic API calls.
- * Uses a rolling 60-second window. Shared across the auto-reply processor and
- * the FU processor via module-level state (single Node process, instrumentation.ts).
+ * Uses a fixed 60-second window (not rolling): counter resets when the current
+ * window expires. At a window boundary, up to 2x the limit could fire in rapid
+ * succession — acceptable for a safety valve, not suitable for strict enforcement.
+ * Shared across both processors via module-level state (single Node process).
  *
  * This is a safety valve only — it should never trigger under normal volume.
- * If it fires, it means a backlog spike or loop bug is burning tokens.
+ * If it fires, a backlog spike or retry loop is burning tokens.
  */
 
 interface RateWindow {
