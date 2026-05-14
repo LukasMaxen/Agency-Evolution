@@ -44,11 +44,18 @@ SELECT workspace_slug,
   COUNT(DISTINCT lead_email) FILTER (
     WHERE received_at >= '{start}' AND received_at < '{end}'
     AND (interested = true OR ai_analysis->>'intent' IN ('interested','interested_urgent','needs_info'))
-  ) AS interested
+  ) AS interested_auto
 FROM replies
+WHERE lead_email NOT LIKE '%@invitations.mailinblack.com'
+  AND lead_email NOT LIKE '%@mail.beehiiv.com'
+  AND lead_email NOT LIKE '%@maxen-digital.com'
+  AND lead_email NOT LIKE '%@sonaro.ai'
+  AND (ai_analysis->>'intent' IS NULL OR ai_analysis->>'intent' != 'no_action')
 GROUP BY workspace_slug
 ORDER BY workspace_slug;
 ```
+
+The `interested_auto` column is a starting point only — always follow the manual review process below to get the real number. The exclusion filters remove known spam domains and internal team emails that were inflating reply counts.
 
 ### Date windows
 | Period | start | end |
