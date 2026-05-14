@@ -163,11 +163,3 @@ Rules:
 - **DB `interested` boolean**: unreliable — always use AI intent classification instead.
 - **Internal Campaigns**: emails sent ARE tracked in DB (sequence_step = 1). Include the actual sent count. Previous note saying N/A was outdated.
 
----
-
-## Script
-The full automated version lives at `scripts/csm_update.py`. Run with:
-```bash
-python3 scripts/csm_update.py
-```
-Requires Google Sheets OAuth credentials at `~/.config/gspread/credentials.json` to write to the sheet.
