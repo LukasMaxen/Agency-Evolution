@@ -87,14 +87,46 @@ For each client, query the Meetings table with `IS_SAME({Meeting Booked Date}, '
 
 ## Output format
 
-Present as a table with totals row at the bottom:
+Use this exact per-client block (confirmed 2026-05-14):
 
-| Client | Sent | Replies | Interested | Meetings |
-|---|---|---|---|---|
-| ... | | | | |
-| **Total** | | | | |
+```
+[Client Name]:
+Emails Sent: X,XXX
+Total Replies: XX
+Reply Rate: X,XX%
+Interested Replies: X - XX,XX%
+Meetings Booked: X - XX,XX%
 
-Then a one-line summary: "X sent, Y replies, Z interested, N meetings"
+Observation:
+________________________________________
+```
+
+Totals block:
+
+```
+Total Numbers Yesterday:
+
+Emails Sent: XX,XXX
+Total Replies: XXX
+Reply Rate %: X,XX%
+Positive Replies: XX
+Positive Reply Rate %: XX,XX%
+Meetings: X
+Meeting Conversion %: XX,XX%
+
+Efficiency
+Emails to get a Lead: X,XXX
+Emails to get a Meeting: X,XXX
+```
+
+Rules:
+- Thousands separator: comma (3,000). Decimal separator: comma (1,03%).
+- Meetings % = meetings / interested. TBD% when interested = 0. 0,00% when interested > 0 but meetings = 0.
+- "Emails to get a Lead" and "Emails to get a Meeting" belong ONLY in the totals block, never in per-client blocks.
+- Positive Reply Rate = interested / replies. Meeting Conversion = meetings / interested.
+- Efficiency: Emails to get a Lead = sent / interested, Emails to get a Meeting = sent / meetings.
+- Micro Nordic: Emails Sent = N/A. Internal Campaigns: use actual sent count from DB.
+- Always do full manual review of all replies before reporting interested counts.
 
 ---
 
