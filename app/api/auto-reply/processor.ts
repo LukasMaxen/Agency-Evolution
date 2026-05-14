@@ -105,6 +105,14 @@ function detectOptOut(message: string, leadFirstName: string): { intent: string;
     /\bnot interested\b/, /\bno thanks\b/, /\bno thank you\b/,
     /\bnot for (me|us)\b/, /\bno interest\b/,
     /\bwe('re| are) not interested\b/,
+    // M&A-specific not-interested
+    /\bnot (for sale|looking to sell|selling|looking to exit|looking at (a )?sale)\b/,
+    /\bhappy (with|as) (current|the current|is|things)\b/,
+    /\bnot the right time\b/, /\bbad timing\b/, /\bnot at this (time|stage|point)\b/,
+    /\bnot (in|within) our (mandate|charter|focus|criteria|thesis|strategy)\b/,
+    /\boutside (of )?our (mandate|charter|focus|criteria|thesis|strategy)\b/,
+    /\bnot (a fit|the right fit|a good fit|aligned)\b/,
+    /\bdoesn.?t (fit|align|match)\b/, /\bnot relevant\b/,
   ];
   if (niPatterns.some(p => p.test(body))) {
     // Never reply to not-interested leads. Close silently.
