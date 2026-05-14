@@ -742,21 +742,15 @@ ${messageText.slice(0, 3000)}`;
 
   if (result.action === "auto_send" && result.reply_body) {
     const alwaysAutoSend = new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested"]);
-    const isComplexThread = allMessages.length >= 6;
-    // Complex threads always go to approval regardless of approval_mode — too much context to auto-send blind.
-    const forceApproval = isComplexThread && !alwaysAutoSend.has(result.intent);
-    const withinQuota = !alwaysAutoSend.has(result.intent) && workspace.auto_reply_approval_mode && await shouldRouteToApproval();
 
-    if (withinQuota || forceApproval) {
-      if (forceApproval && !withinQuota) {
-        result.manual_reason = `Complex thread (${allMessages.length} prior messages) — forced to approval for review.`;
-      }
+    // Every interested reply goes to #reply-approval for human review before sending.
+    // Hard closes (unsubscribe, not_interested, etc.) auto-send/close without review.
+    if (!alwaysAutoSend.has(result.intent)) {
       const draftId = `rd-${replyId}-${Date.now()}`;
       const slackTs = await postApprovalCard({ workspaceSlug, reply: replyWithCreds, instanceUrl: workspace.email_bison_instance_url ?? "", result });
 
       if (!slackTs) {
-        // Slack post failed — fall through to direct send rather than leaving the
-        // reply stuck at 'awaiting_approval' with no way to approve it.
+        // Slack post failed — fall through to direct send so the reply isn't stuck forever.
         console.warn(`[auto-reply] Approval card post failed for ${replyId} — falling through to direct send`);
       } else {
         await pool.query(
@@ -769,7 +763,7 @@ ${messageText.slice(0, 3000)}`;
       }
     }
 
-    // Direct send
+    // Direct send (only for hard closes — unsubscribe confirmations etc.)
     const sent = await sendToEmailBison(replyWithCreds, result.reply_body);
     if (sent) {
       await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,

@@ -3,11 +3,6 @@ import pool from "@/lib/db";
 import fs from "fs";
 import path from "path";
 import {
-  FU_APPROVAL_CHANNEL,
-  postToSlack as postToSlackShared,
-  approvalFooterBlock,
-  quoteForSlack,
-  slugToName,
   sanitizeDashes,
 } from "@/lib/slack-approval";
 import { checkRateLimit } from "@/lib/rate-limiter";
@@ -450,105 +445,7 @@ Draft FU step ${nextStep} now.`;
     }
   }
 
-  // Daily QA sample: send 2 FU drafts per day to #follow-up-approval regardless
-  // of fu_approval_mode, so quality can be monitored without reviewing every email.
-  // Count ALL FU drafts sent to approval today (not just still-pending ones).
-  // Counting only 'pending' meant the daily QA quota reset as the team approved drafts,
-  // causing more than 2 per day to go to approval.
-  const todayFuApprovalCount = await pool.query<{ cnt: string }>(`
-    SELECT COUNT(*) AS cnt
-    FROM follow_up_drafts
-    WHERE (created_at AT TIME ZONE 'America/New_York')::date
-          = (NOW() AT TIME ZONE 'America/New_York')::date
-  `);
-  const fuApprovalToday = parseInt(todayFuApprovalCount.rows[0]?.cnt ?? "0", 10);
-  let routeToFuApproval = reply.fu_approval_mode || fuApprovalToday < 2;
-
-  // Haiku critique removed — too expensive at scale.
-
-  // Approval mode → stage in follow_up_drafts + post to Slack
-  if (routeToFuApproval) {
-    const draftId = `fud-${fu.id}-${nextStep}-${Date.now()}`;
-
-    const quotedBody = quoteForSlack(draft.body, 2500);
-
-    const inboundPreview = (reply.message ?? "")
-      .slice(0, 600)
-      .split("\n")
-      .map((l: string) => `> ${l}`)
-      .join("\n");
-
-    // EmailBison's inbox URL uses the reply UUID (replies.id), not the integer reply ID.
-    const ebLink = reply.id && reply.email_bison_instance_url
-      ? `${reply.email_bison_instance_url}/inbox/replies/${reply.id}`
-      : null;
-
-    const fuBlocks: object[] = [
-      {
-        type: "header",
-        text: { type: "plain_text", text: `FU step ${nextStep} draft, needs review`, emoji: true },
-      },
-      {
-        type: "section",
-        fields: [
-          { type: "mrkdwn", text: `*Client:*\n${slugToName(fu.workspace_slug)}` },
-          { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign ?? "unknown"}` },
-        ],
-      },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*Lead:* ${reply.lead_name}, ${reply.lead_email}\n*Sequence:* ${fu.fu_sequence_type}  ·  *Step:* ${nextStep}/${fu.total_emails}`,
-        },
-      },
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: `*Subject:* ${draft.subject}` },
-      },
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: `*Lead's original reply:*\n${inboundPreview}` },
-      },
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: `*Drafted follow-up:*\n${quotedBody}` },
-      },
-    ];
-
-    if (ebLink) {
-      fuBlocks.push({
-        type: "section",
-        text: { type: "mrkdwn", text: `<${ebLink}|Open reply in EmailBison>` },
-      });
-    }
-    fuBlocks.push(approvalFooterBlock());
-
-    const slackTs = await postToSlackShared({
-      channel: FU_APPROVAL_CHANNEL,
-      text: `FU step ${nextStep} draft, ${fu.workspace_slug}, ${reply.lead_name}`,
-      blocks: fuBlocks,
-    });
-
-    await pool.query(
-      `INSERT INTO follow_up_drafts
-        (id, follow_up_id, reply_id, workspace_slug, lead_name, lead_email, fu_step, subject, body, status, slack_ts, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10,NOW())`,
-      [draftId, fu.id, fu.reply_id, fu.workspace_slug, reply.lead_name, reply.lead_email, nextStep, draft.subject, draft.body, slackTs]
-    );
-
-    // Pause the row until the draft is approved or rejected via Slack reactions.
-    // Approval will advance fu_step + reschedule next_fu_due.
-    // Rejection will skip this step + reschedule next_fu_due.
-    await pool.query(
-      `UPDATE follow_ups SET next_fu_due = NULL WHERE id = $1`,
-      [fu.id]
-    );
-
-    return { status: "drafted_for_review" };
-  }
-
-  // Auto-send mode → send via EmailBison directly
+  // FU emails auto-send directly — no approval queue.
   const sent = await sendReplyToEmailBison(reply, draft.body);
 
   if (!sent) {
