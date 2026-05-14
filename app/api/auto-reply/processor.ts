@@ -289,7 +289,7 @@ async function forwardToClient(reply: Record<string, any>, forwardTo: string, cc
 
   const ebLink = `${url}/inbox/replies/${reply.id}`;
   const leadLine = [reply.lead_name, reply.lead_company].filter(Boolean).join(" at ") || reply.lead_email;
-  const body = `FYI, new interested reply from ${leadLine}.\n\nOpen in EmailBison to read the full thread and respond.\n\n${ebLink}`;
+  const body = `FYI, new inbound reply from ${leadLine}.\n\nOpen in EmailBison to read the full thread and respond.\n\n${ebLink}`;
   const linkify = (t: string) => t.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
   const htmlBody = body.split("\n\n").map(p => `<p style="margin:0 0 16px 0;">${linkify(p.replace(/\n/g, "<br>"))}</p>`).join("");
 
@@ -490,9 +490,6 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   }
 
   // ── Forwarding path ───────────────────────────────────────────────────────────
-  // Check BEFORE opt-out pre-filter: forwarding workspaces (e.g. Hahnbeck) want
-  // ALL replies forwarded to the client — including not-interested, unsubscribes,
-  // soft nos, everything. Only OOO/bounces are excluded above.
   const fileSlug = CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
   const clientFileRaw = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
   if (!clientFileRaw) {
@@ -502,6 +499,23 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   }
 
   if (workspace.forward_replies_to_email) {
+    // Filter out opt-outs and not-interested before forwarding — the client should
+    // only see replies worth acting on. OOO/bounces are already filtered above.
+    // For forwarding workspaces we never send an auto-reply (client handles from
+    // their own inbox), so both unsubscribe and not-interested are closed silently.
+    const fwdFirstName = reply.lead_name?.split(" ").filter(Boolean)[0] || "there";
+    const fwdOptOut = detectOptOut(messageText, fwdFirstName);
+    if (fwdOptOut) {
+      if (fwdOptOut.intent === "unsubscribe") {
+        await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`, [replyId]);
+      } else {
+        await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed' WHERE reply_id = $1`, [replyId]);
+      }
+      await pool.query(`UPDATE replies SET status = 'read', interested = FALSE, ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ intent: fwdOptOut.intent, auto_replied: false, skipped_reason: "opt_out_not_forwarded" }), replyId]);
+      return;
+    }
+
     const forwarded = await forwardToClient(replyWithCreds, workspace.forward_replies_to_email, workspace.forward_cc_emails ?? null);
     if (forwarded) {
       await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'forward_to_client',$6,$7,NOW())`,
