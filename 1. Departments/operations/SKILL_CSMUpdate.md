@@ -25,6 +25,23 @@ Produces a performance report for all active client workspaces covering emails s
 
 ---
 
+## Credentials and where they live
+
+| What | Where | How to get it |
+|---|---|---|
+| Postgres connection | `DATABASE_URL` in `.env.local` | Already set for the project. If missing, see `.env.local.example` and ask Lukas. |
+| Airtable token | `AIRTABLE_API_KEY` in `.env.local` | Required for the meetings query. Read-only PAT, shared across the team. |
+| EmailBison API key per workspace | DB table `workspaces.email_bison_api_key` | Each client workspace has its own key. Pull at query time. |
+| EmailBison instance URL per workspace | DB table `workspaces.email_bison_instance_url` | All current workspaces share `https://send.emailagencyevolution.com`, but read from DB to stay correct if that changes. |
+
+Fetch all workspace creds at the start of the run:
+
+```sql
+SELECT slug, name, email_bison_instance_url, email_bison_api_key FROM workspaces ORDER BY slug;
+```
+
+---
+
 ## EmailBison stats endpoint
 
 For each workspace, make one API call:
@@ -34,10 +51,13 @@ GET {instance_url}/api/workspaces/v1.1/stats?start_date=YYYY-MM-DD&end_date=YYYY
 Authorization: Bearer {email_bison_api_key}
 ```
 
-Pull `instance_url` and `email_bison_api_key` per workspace from the `workspaces` table:
+Working curl example (replace token + dates):
 
-```sql
-SELECT slug, name, email_bison_instance_url, email_bison_api_key FROM workspaces;
+```bash
+curl -s -G "https://send.emailagencyevolution.com/api/workspaces/v1.1/stats" \
+  -H "Authorization: Bearer $EMAIL_BISON_API_KEY" \
+  --data-urlencode "start_date=2026-05-13" \
+  --data-urlencode "end_date=2026-05-13"
 ```
 
 The response shape:
@@ -74,7 +94,19 @@ EmailBison interprets `start_date` and `end_date` as inclusive day-bounded range
 
 ## Airtable meetings config
 
-For each client, query the Meetings table with `IS_SAME({Meeting Booked Date}, 'YYYY-MM-DD', 'day')` for daily, or a date range for 7d/30d.
+For each client, query their Meetings table with `IS_SAME({Meeting Booked Date}, 'YYYY-MM-DD', 'day')` for daily, or a date range for 7d/30d.
+
+Working curl example (replace base + table + date):
+
+```bash
+curl -s -G "https://api.airtable.com/v0/{BASE_ID}/{TABLE_ID}" \
+  -H "Authorization: Bearer $AIRTABLE_API_KEY" \
+  --data-urlencode "filterByFormula=IS_SAME({Meeting Booked Date}, '2026-05-13', 'day')" \
+  --data-urlencode "fields[]=Meeting Booked Date"
+```
+
+The count of meetings is `len(response.data.records)`. Note the field name varies by base — see the table below for the exact casing.
+
 
 | Client | Base ID | Table ID | Field name |
 |---|---|---|---|
@@ -162,6 +194,20 @@ Rules:
 - Positive Reply Rate = interested / replies. Meeting Conversion = meetings / interested.
 - Efficiency: Emails to get a Lead = sent / interested, Emails to get a Meeting = sent / meetings.
 - Micro Nordic: Emails Sent = N/A.
+
+---
+
+## Step-by-step recipe (run this end to end)
+
+When asked for a CSM update, do this in order:
+
+1. **Resolve the date window.** Default for a daily request is yesterday. If the user says "today", "last 7 days", or "last 30 days", use that. Use UTC dates as `YYYY-MM-DD` strings.
+2. **Load workspace creds.** Run the SQL above against the `workspaces` table to get every client's `slug`, `email_bison_instance_url`, and `email_bison_api_key`.
+3. **For each workspace, fetch the stats.** Call `/api/workspaces/v1.1/stats` with the date window. Extract `emails_sent`, `unique_replies_per_contact`, `interested`.
+4. **For each workspace, fetch meetings.** Call Airtable with that client's base ID, table ID, and field name (from the Airtable meetings config table). Count the records.
+5. **Format each per-client block** using the exact template under "Output format". Use comma as decimal separator. TBD% when interested = 0.
+6. **Compute the totals block** by summing across all clients. Skip Micro Nordic's emails sent (N/A) from the totals.
+7. **Output everything in chat.** Do NOT post to Slack automatically.
 
 ---
 
