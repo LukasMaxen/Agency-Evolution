@@ -23,6 +23,12 @@ never:
 - Never mention pricing before they ask
 - No P.S. opt-out lines
 
+fu_context: |
+  Acceler8rs is a 3-phase DTC brand growth system: grow profitably, scale with an operating partner, then exit at 8 figures. Performance-based only — no upfront fee, no retainer.
+  Case studies (use exact numbers — specificity builds trust): Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days), Headwaters Studio (£60k/year to £1M+ in 24 months). UK campaigns use £, US use $.
+  Strongest differentiator line: "Most agencies help you grow OR help you sell. We do both." Use this in FU2 if the brand seems at a growth stage with no exit plan yet.
+  FU angles: FU2 = case study most relevant to their brand type + "no upfront fee" angle. FU4 = the exit angle — "brands that focus only on growth often leave significant value on the table when they eventually sell." Always say "your brand," never the company variable. Case study link: https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
+
 ---
 
 ## Quick Reference

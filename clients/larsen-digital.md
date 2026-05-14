@@ -25,6 +25,12 @@ never:
 - No P.S. opt-out lines
 - Never confirm specific time slots ("next Friday works" = wrong)
 
+fu_context: |
+  Nicklas Larsen runs Larsen Digital — DTC brand growth with a built-in exit strategy. 250M+ in Shopify revenue managed. M&A partners have closed $1B+ in CPG transactions. 100% performance-based, no upfront fee.
+  Case studies (use exact numbers): Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days), Headwaters Studio (£60k/year to £1M+ in 24 months). $0 to $850k/month in 4 months is available for US brands.
+  Key differentiator: "We only take on 15 brands at a time" — use this in FU2 to create genuine scarcity without pressure language. Always say "your brand," never {COMPANY}.
+  FU angle progression: FU2 = case study matched to their brand size/stage + performance-only framing. FU4 = the exit angle — brands that grow without an exit strategy often undervalue themselves when they eventually sell. Nicklas helps build toward a clean 8-figure exit from day one. Every FU must include the Calendly link: https://calendly.com/larsen-digital-marketing/intro
+
 ---
 
 ## Quick Reference
