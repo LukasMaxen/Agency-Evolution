@@ -118,7 +118,6 @@ The count of meetings is `len(response.data.records)`. Note the field name varie
 | Internal Campaigns | app9rWZ2iE4eWECEN | tblCATnaPTV9fb2Ab | Meeting booked date |
 | ITG Group | appajhv22WuCEw7Aa | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Larsen Digital | appmixoDAnp7FicCS | tblB3gNeQNs29SMgO | Meeting booked date |
-| Micro Nordic | appBH1m8XsGoRmSPZ | tblVEhq27whUNk4KY | Meeting booked date |
 | Sonaro AI | appNMGCTwXVOLLzmA | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Statera Capital | app0EI3nqT3ScUJOf | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Venture Exits | appA3W783M4v9IShx | tblTnxArHDVMNOxSI | Meeting Booked Date |
@@ -137,19 +136,29 @@ Slack channel used by Lukas: `C092ZPT3T2P`. Schedule: 8am CET/CEST Mon-Fri.
 
 ---
 
-## Agency Evolution CRM — three names, never get this wrong
+## Internal Campaigns — three names, never get this wrong
 
-The internal workspace has three different names across systems. Always display as "Agency Evolution CRM" in the report.
+The internal workspace has three different names across systems. Always display as "Internal Campaigns" in the report.
 
 | System | Name |
 |---|---|
 | DB slug | `internal-campaigns` |
 | EmailBison workspace | "Internal campaigns" |
 | Airtable base | "Agency Evolution CRM" |
-| Report label | "Agency Evolution CRM" |
+| Report label | "Internal Campaigns" |
 
 - Always include this client in every report, even if sends = 0.
 - Pulled from the same EmailBison stats endpoint as every other workspace (no DB-specific handling needed).
+
+---
+
+## Excluded clients (never include in reports)
+
+The following workspaces exist in the DB but are excluded from every CSM update:
+
+- **Micro Nordic** (slug: `micro-nordic`)
+- **SRO Consulting** (slug: `sro-consulting`)
+- **Zenith Global** (slug: `zenith-global`)
 
 ---
 
@@ -193,7 +202,7 @@ Rules:
 - "Emails to get a Lead" and "Emails to get a Meeting" belong ONLY in the totals block, never in per-client blocks.
 - Positive Reply Rate = interested / replies. Meeting Conversion = meetings / interested.
 - Efficiency: Emails to get a Lead = sent / interested, Emails to get a Meeting = sent / meetings.
-- Micro Nordic: Emails Sent = N/A.
+- Micro Nordic is excluded from all reports. Do not include it.
 
 ---
 
