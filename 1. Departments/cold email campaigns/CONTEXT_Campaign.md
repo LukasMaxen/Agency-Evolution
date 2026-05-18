@@ -22,6 +22,20 @@
 
 ---
 
+## Writing Principles
+
+**Write like a peer, not a vendor.** The email should read like it came from someone who understands their world. Use contractions. Read it aloud. If it sounds like marketing copy, rewrite it.
+
+**Every sentence must earn its place.** Cold email is ruthlessly short. If a sentence does not move the reader toward replying, cut it. The best cold emails feel like they could have been shorter, not longer.
+
+**Personalization must connect to the problem.** If you remove the personalized opening and the email still makes sense, the personalization is not working. The observation should naturally lead into why you are reaching out.
+
+**Lead with their world, not yours.** The reader should see their own situation reflected back. "You/your" should dominate over "I/we." Do not open with who you are or what you do.
+
+**One ask, low friction.** Interest-based CTAs ("Worth exploring?" / "Would this be useful?") beat meeting requests. One CTA per email. Make it easy to say yes with a one-line reply.
+
+---
+
 ## Tone
 
 - Direct, professional, no fluff
@@ -29,6 +43,11 @@
 - Confident without being arrogant
 - Short over long — always err toward fewer words
 - Never apologetic or defensive in framing
+
+**Calibrate to the audience:**
+- C-suite: ultra-brief, peer-level, understated. One proof point maximum.
+- Mid-level operators: more specific value, slightly more detail on the mechanism.
+- Technical audience: precise, no fluff, respect their intelligence. Never oversimplify.
 
 ---
 
@@ -39,6 +58,20 @@
 - For **all other campaigns**: {FIRST_NAME} and {COMPANY} as normal
 - For **M&A campaigns**: {COMPANY}, {CITY}, {STATE} — don't over-personalize; use only what feels natural
 - For **UK campaigns**: no {STATE} variable — UK has countries and counties, not states
+
+---
+
+## Copywriting Frameworks
+
+There is no single right structure. Choose whichever fits the situation, or write freeform if the email flows naturally without one.
+
+**Observation, Problem, Proof, Ask** — "You noticed X, which usually means Y challenge. We helped Z with that. Interested?"
+
+**Question, Value, Ask** — "Struggling with X? We do Y. Company Z saw [result]. Worth a look?"
+
+**Trigger, Insight, Ask** — "Congrats on X. That usually creates Y challenge. We have helped similar companies with that. Curious?"
+
+**Story, Bridge, Ask** — "[Similar company] had [problem]. They solved it this way. Relevant to you?"
 
 ---
 
@@ -176,6 +209,12 @@ Always attach department to seniority — "Investment Principal" not "Principal"
 8. Padding a short effective step 2 with features — the question alone is enough
 9. "Principal" alone as a title — always qualify: "Investment Principal"
 10. Dollar signs or % symbols when spam is flagged
+11. "I hope this email finds you well" — instant delete
+12. Opening with "My name is X and I work at Y" — nobody cares yet
+13. Fake "Re:" or "Fwd:" subject lines — erodes trust
+14. Asking for a 30-minute call in the first touch — too much friction
+15. Multiple links or images in cold email — hurts deliverability and looks like marketing
+16. Jargon: "synergy," "leverage," "circle back," "best-in-class," "leading provider"
 
 ---
 

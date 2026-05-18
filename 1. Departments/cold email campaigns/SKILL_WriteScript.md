@@ -5,6 +5,20 @@ Writes a cold email sequence (steps 1–3) for any client campaign. Outputs subj
 
 ---
 
+## Before Writing
+
+Gather or confirm these before drafting:
+
+1. **Who are you writing to?** Role, company type, why them specifically
+2. **What do you want?** The outcome (meeting, teaser send, reply, intro)
+3. **What is the value?** The specific problem you solve for people like them
+4. **What is the proof?** A result, case study, or credibility signal
+5. **Any research signals?** Funding, hiring, LinkedIn posts, company news, industry timing
+
+Work with whatever is available. If the client file has a strong hook and clear value prop, that is enough to draft. Note what is missing but do not block on it.
+
+---
+
 ## When to run this
 - Starting a new campaign from scratch
 - Rotating existing scripts to avoid spam flagging
@@ -67,3 +81,15 @@ P.S. [opt-out line if applicable]
 - For ITG: always open "Dear Sir", never {FIRST_NAME}
 - Spintax subject lines: at least 5 variations, no shared first word across variants
 - Flag any spam trigger words found in the draft before outputting
+
+---
+
+## Quality Check (before presenting any draft)
+
+- Does it sound like a human wrote it? Read it aloud.
+- Would you reply to this if you received it?
+- Does every sentence serve the reader, not the sender?
+- Is the personalization connected to the problem, or is it decorative?
+- Is there one clear, low-friction ask?
+
+If any answer is no, fix it before outputting.
