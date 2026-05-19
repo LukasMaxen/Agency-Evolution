@@ -159,6 +159,9 @@ The following workspaces exist in the DB but are excluded from every CSM update:
 - **Micro Nordic** (slug: `micro-nordic`)
 - **SRO Consulting** (slug: `sro-consulting`)
 - **Zenith Global** (slug: `zenith-global`)
+- **Venture Exits** (slug: `venture-exits`)
+- **Zebs IBS** (slug: `zebs-ibs`)
+- **Wrobel Capital** (slug: `wrobel-capital`)
 
 ---
 
