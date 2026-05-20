@@ -8,7 +8,17 @@
 campaign_type: agency_services
 sender: Lukas Maxen, Founder, Agency Evolution
 offer: Done-for-you cold email infrastructure and deal flow generation for M&A advisors, boutique banks, and PE firms. Small retainer + flat fee per mandate. No signed mandate = no fee.
-calendly: https://calendly.com/lukasmaxen/agency-evolution
+
+calendly_links:
+  agency_services: https://calendly.com/lukasmaxen/agency-evolution
+  buy_side: https://calendly.com/lukasmaxen/buy-side-mandate-conversation
+  sell_side: https://calendly.com/lukasmaxen/m-a-consultation
+
+Use the correct Calendly link based on campaign context:
+- Agency Evolution service campaigns (pitching cold email to M&A firms): use agency_services link
+- Buy-side mandate / deal origination campaigns (Lukas acting as intermediary sourcing sellers for a buyer): use buy_side link
+- Sell-side M&A consultation campaigns (Lukas acting as advisor to business owners exploring a sale): use sell_side link
+
 always_send_calendly: false
 
 reply_rules:
