@@ -556,10 +556,16 @@ Hi [First Name],
   "recipient_name": "display name if recipient_email is set"
 }`;
 
+  const threadContextBlock = reply.thread_context
+    ? `PRIOR EMAIL CHAIN (quoted in lead's reply — what they are responding to):\n${(reply.thread_context as string).slice(0, 1500)}\n\n`
+    : coldEmailBody
+      ? `ORIGINAL COLD EMAIL SENT TO THIS LEAD (what they are responding to):\n${coldEmailBody}\n\n`
+      : "";
+
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${alternateSender ? `${alternateSender}\n\n` : ""}${coldEmailBody ? `ORIGINAL COLD EMAIL SENT TO THIS LEAD (what they are responding to):\n${coldEmailBody}\n\n` : ""}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${alternateSender ? `${alternateSender}\n\n` : ""}${threadContextBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:

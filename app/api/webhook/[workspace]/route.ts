@@ -15,6 +15,16 @@ function extractCleanBody(textBody: string): string {
   return clean.join("\n").trim();
 }
 
+function extractQuotedThread(textBody: string): string {
+  if (!textBody) return "";
+  const lines = textBody.split("\n");
+  const quoteStart = lines.findIndex(line =>
+    /^On .+ wrote:/.test(line.trim()) || line.trimStart().startsWith(">")
+  );
+  if (quoteStart === -1) return "";
+  return lines.slice(quoteStart).join("\n").trim();
+}
+
 export async function POST(
   req: NextRequest,
   context: { params: Promise<Record<string, string>> }
@@ -51,6 +61,7 @@ export async function POST(
       const leadEmail       = lead.email;
       const leadName        = `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim() || leadEmail;
       const message         = extractCleanBody(reply.text_body ?? "");
+      const threadContext   = extractQuotedThread(reply.text_body ?? "") || null;
       const receivedAt      = reply.date_received ? new Date(reply.date_received) : new Date();
 
       await pool.query(
@@ -60,9 +71,9 @@ export async function POST(
     lead_email, lead_name, lead_company, lead_title,
     sender_email, sender_email_id,
     to_email, to_name,
-    campaign, subject, message,
+    campaign, subject, message, thread_context,
     received_at, status, interested
-  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'new',NULL)
+  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'new',NULL)
   ON CONFLICT (id) DO NOTHING`,
   [
     replyUuid, workspace.id, slug, replyUuid,
@@ -74,7 +85,7 @@ export async function POST(
     leadName,
     campaign?.name ?? "",
     reply.email_subject ?? "",
-    message, receivedAt,
+    message, threadContext, receivedAt,
   ]
 );
 
