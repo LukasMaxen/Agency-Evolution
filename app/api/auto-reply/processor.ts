@@ -556,16 +556,14 @@ Hi [First Name],
   "recipient_name": "display name if recipient_email is set"
 }`;
 
-  const threadContextBlock = reply.thread_context
-    ? `PRIOR EMAIL CHAIN (quoted in lead's reply — what they are responding to):\n${(reply.thread_context as string).slice(0, 1500)}\n\n`
-    : coldEmailBody
-      ? `ORIGINAL COLD EMAIL SENT TO THIS LEAD (what they are responding to):\n${coldEmailBody}\n\n`
-      : "";
+  const coldEmailBlock = coldEmailBody
+    ? `ORIGINAL COLD EMAIL SENT TO THIS LEAD (what they are responding to):\n${coldEmailBody}\n\n`
+    : "";
 
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${alternateSender ? `${alternateSender}\n\n` : ""}${threadContextBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${alternateSender ? `${alternateSender}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
@@ -577,7 +575,25 @@ Subject: ${reply.subject ?? ""}
 ${messageText.slice(0, 3000)}`;
 
   // ── Call Claude ───────────────────────────────────────────────────────────────
-  const result = await callClaude(systemPrompt, userMessage);
+  let result = await callClaude(systemPrompt, userMessage);
+
+  // Second pass: if interested and we have the quoted chain, re-draft with full context.
+  // This only fires for ~10-20% of replies so the extra credit cost stays minimal.
+  // The first pass already classified intent; the second pass improves the draft quality
+  // by letting Claude see what was originally promised/asked in the cold email.
+  if (
+    result &&
+    (result.intent === "interested" || result.intent === "needs_info") &&
+    reply.thread_context
+  ) {
+    const threadContextBlock = `PRIOR EMAIL CHAIN (quoted in lead's reply — what they are responding to):\n${(reply.thread_context as string).slice(0, 1500)}\n\n`;
+    const enrichedMessage = userMessage.replace(
+      "THREAD HISTORY — WHAT HAS BEEN SAID",
+      `${threadContextBlock}THREAD HISTORY — WHAT HAS BEEN SAID`
+    );
+    const refined = await callClaude(systemPrompt, enrichedMessage);
+    if (refined) result = refined;
+  }
 
   if (!result) {
     // Track consecutive Claude failures. After 3 failures, mark errored instead of
