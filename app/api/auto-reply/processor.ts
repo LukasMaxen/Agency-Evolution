@@ -363,8 +363,8 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     return;
   }
 
-  // Atomic claim
-  const claim = await pool.query(`UPDATE replies SET status = 'processing' WHERE id = $1 AND status = 'new' RETURNING *`, [replyId]);
+  // Atomic claim — also re-processes 'read' replies that were never analyzed.
+  const claim = await pool.query(`UPDATE replies SET status = 'processing' WHERE id = $1 AND status IN ('new','read') AND ai_analysis IS NULL RETURNING *`, [replyId]);
   if (claim.rows.length === 0) return;
   const reply = claim.rows[0];
 

@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
   const r = await pool.query(
     `SELECT id, workspace_slug, lead_email
      FROM replies
-     WHERE status = 'new'
+     WHERE ai_analysis IS NULL
+       AND status NOT IN ('processing', 'awaiting_approval', 'replied', 'forwarded')
        AND received_at > NOW() - INTERVAL '48 hours'
        AND workspace_slug NOT IN ('itg-group', 'sonaro-ai', 'sro-consulting')
      ORDER BY received_at ASC
