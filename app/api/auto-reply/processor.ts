@@ -73,7 +73,8 @@ function isNoActionReply(message: string): boolean {
     /auto.?reply|automated (response|reply)|this is an automated/.test(m) ||
     /undeliverable|delivery has failed|delivery failure|bounce|mailer.daemon|postmaster/.test(m) ||
     /do not reply to this (email|message)|please do not reply/.test(m) ||
-    /message could not be delivered/.test(m)
+    /message could not be delivered/.test(m) ||
+    /mailinblack|one click to deliver your email|confirm they are human|protected by protect/.test(m)
   );
 }
 
