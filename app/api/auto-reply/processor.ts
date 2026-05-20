@@ -752,7 +752,8 @@ ${messageText.slice(0, 3000)}`;
 
   } else {
     // do_nothing path
-    await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
+    await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+      [JSON.stringify({ intent: result.intent, action: "do_nothing", auto_replied: false }), replyId]);
     if (result.intent === "unsubscribe") {
       await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`, [replyId]);
     }
