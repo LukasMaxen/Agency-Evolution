@@ -9,11 +9,12 @@ sender: Romain Guillon, Owner, GN Motion
 offer: Premium CGI/3D video production for product brands. Complimentary sample matched to their specific product — zero commitment. Reference clients: L'Oreal (Revitalift), Audemars Piguet, Bang & Olufsen, Samsung.
 calendly: https://app.iclosed.io/e/GNMOTION/30min
 portfolio: https://www.canva.com/design/DAHCb_CiXzA/UA6aPIn-u-MAXQiuuanQAQ/view?utm_content=DAHCb_CiXzA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h6402713df7
+jewelry_portfolio: https://canva.link/hs3uwg2520jllvs
 always_send_calendly: false
 french_market: true (match language exactly if they reply in French)
 
 reply_rules:
-- Lead asks to see portfolio/examples: send portfolio link + invite to call for complimentary sample
+- Lead asks to see portfolio/examples: if the campaign is jewelry, send jewelry_portfolio. For all other campaigns, send portfolio. Always pair with an invite to call for the complimentary sample.
 - Lead asks about pricing: redirect to call. "Best to cover after a quick call so I can understand your specific product."
 - Lead interested in sample: send the sample request template (see below)
 - Lead gives phone number asking to be called: post to #manual-replies (Romain must call)
