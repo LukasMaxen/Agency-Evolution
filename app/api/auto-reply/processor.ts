@@ -369,9 +369,12 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   if (claim.rows.length === 0) return;
   const reply = claim.rows[0];
 
-  // 6-minute hold
+  // 2-minute hold: gives time for a superseding reply from the same lead to arrive
+  // before we burn Claude tokens drafting against a stale message. The /run endpoint
+  // sleeps until this window passes before calling processAutoReply, so under normal
+  // operation this check passes on the first try.
   const ageMs = Date.now() - new Date(reply.received_at).getTime();
-  if (ageMs < 6 * 60 * 1000) {
+  if (ageMs < 2 * 60 * 1000) {
     await pool.query(`UPDATE replies SET status = 'new' WHERE id = $1`, [replyId]);
     return;
   }

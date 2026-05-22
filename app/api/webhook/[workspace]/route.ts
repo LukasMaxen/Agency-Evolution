@@ -110,22 +110,20 @@ export async function POST(
         );
       }
 
-      // Schedule the heavy work to run AFTER the webhook response is sent.
-      // EmailBison's webhook delivery has a hard timeout, and naked
-      // fire-and-forget promises get killed by the Coolify/Next runtime once
-      // the response closes. Next 16's `after()` is the supported API for
-      // "run this after we've replied to the client" and is guaranteed to
-      // complete before the worker shuts down.
-      //
-      // The follow_ups row for new leads is created inside processAutoReply
-      // once intent has been classified.
-      after(async () => {
-        try {
-          await processAutoReply(replyUuid, slug);
-        } catch (err: any) {
-          console.error(`[webhook] processAutoReply (after) failure for ${replyUuid} (${slug}):`, err);
-        }
-      });
+      // Trigger processAutoReply via a self-fetch to /api/auto-reply/run so it
+      // executes as its own real HTTP request with full request lifetime, instead
+      // of an in-process callback. Prior attempts:
+      //   - inline await: EmailBison webhook timed out before Sonnet finished
+      //   - fire-and-forget Promise: killed by Coolify when the response closed
+      //   - Next 16 after(): worked for ~2 weeks, then started getting silently
+      //     dropped (replies stalled at status='new' with no #reply-approval card)
+      // The follow_ups row for new leads is still created inside processAutoReply.
+      const origin = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+      const runUrl = `${origin}/api/auto-reply/run?id=${encodeURIComponent(replyUuid)}&workspace=${encodeURIComponent(slug)}`;
+      fetch(runUrl, {
+        method: "POST",
+        headers: { "x-internal-token": process.env.AUTO_REPLY_RUN_TOKEN ?? "" },
+      }).catch(err => console.error(`[webhook] /run dispatch failed for ${replyUuid} (${slug}):`, err?.message));
 
       // Slack notification to the client's [client]-replies channel.
       // Replaces the Make.com "Email Reply Notifications" scenario for this workspace.
