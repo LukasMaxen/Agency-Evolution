@@ -1,20 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Reply, Notification, AIAnalysis } from "@/lib/mock-data";
+import { Reply, AIAnalysis } from "@/lib/mock-data";
 import { WorkspacesContext, buildWorkspaceFromRow, findWorkspace } from "@/lib/workspaces-context";
 import { analyzeReply } from "@/lib/ai-analysis";
 import { ReplyList } from "@/components/ReplyList";
 import { ReplyDetail } from "@/components/ReplyDetail";
 import { EmptyState } from "@/components/EmptyState";
-import { NotificationFeed } from "@/components/NotificationFeed";
 import { ReplyDashboard } from "@/components/ReplyDashboard";
 import { LeadMonitoring } from "@/components/LeadMonitoring";
 import { AccountMonitor } from "@/components/AccountMonitor";
 import { VariantRefresh } from "@/components/VariantRefresh";
-import { Inbox, Bell, BarChart2, RefreshCw, ShieldAlert, RotateCcw, Users } from "lucide-react";
+import { Inbox, BarChart2, RefreshCw, ShieldAlert, RotateCcw, Users } from "lucide-react";
 
-type View = "inbox" | "notifications" | "dashboard" | "lead-monitoring" | "account-monitor" | "variant-refresh";
+type View = "inbox" | "dashboard" | "lead-monitoring" | "account-monitor" | "variant-refresh";
 
 function dbRowToReply(r: any, workspaces: ReturnType<typeof buildWorkspaceFromRow>[]): Reply {
   const workspace = findWorkspace(workspaces, r.workspaceSlug ?? r.workspaceId ?? "");
@@ -34,28 +33,10 @@ function dbRowToReply(r: any, workspaces: ReturnType<typeof buildWorkspaceFromRo
   };
 }
 
-function replyToNotification(reply: Reply, aiAnalysis?: AIAnalysis): Notification {
-  return {
-    id:          `notif-${reply.id}`,
-    replyId:     reply.id,
-    workspaceId: reply.workspaceId,
-    event:       "reply_received",
-    leadName:    reply.leadName,
-    leadEmail:   reply.leadEmail,
-    campaign:    reply.campaign,
-    snippet:     reply.message.slice(0, 100),
-    message:     reply.message,
-    receivedAt:  reply.receivedAt,
-    read:        reply.status !== "new",
-    aiAnalysis,
-  };
-}
-
 export function MasterInbox() {
   const [workspaces, setWorkspaces]         = useState<ReturnType<typeof buildWorkspaceFromRow>[]>([]);
-  const [view, setView]                     = useState<View>("notifications");
+  const [view, setView]                     = useState<View>("inbox");
   const [replies, setReplies]               = useState<Reply[]>([]);
-  const [notifications, setNotifications]   = useState<Notification[]>([]);
   const [selectedId, setSelectedId]         = useState<string | null>(null);
   const [search, setSearch]                 = useState("");
   const [filterStatus, setFilterStatus]     = useState("all");
@@ -67,7 +48,6 @@ export function MasterInbox() {
   const analyzedIds = useRef<Set<string>>(new Set());
 
   const selectedReply   = selectedId ? replies.find(r => r.id === selectedId) ?? null : null;
-  const unreadCount     = notifications.filter(n => !n.read).length;
   const newRepliesCount = replies.filter(r => r.status === "new").length;
 
   // ── Fetch workspaces from DB once on mount ────────────────────────────────
@@ -121,14 +101,6 @@ export function MasterInbox() {
               };
             }
             return r;
-          })
-        );
-
-        setNotifications(prev =>
-          mapped.map((r: Reply) => {
-            const existing = prev.find(p => p.replyId === r.id);
-            const aiAnalysis = dbCache[r.id] ?? existing?.aiAnalysis;
-            return replyToNotification(r, aiAnalysis);
           })
         );
 
@@ -223,9 +195,6 @@ export function MasterInbox() {
   function handleMarkUnread(id: string) {
     analyzedIds.current.delete(id);
     setReplies(prev => prev.map(r => r.id === id ? { ...r, status: "new" } : r));
-    setNotifications(prev =>
-      prev.map(n => n.replyId === id ? { ...n, read: false, aiAnalysis: undefined } : n)
-    );
     setAiCache(prev => {
       const next = { ...prev };
       delete next[id];
@@ -238,24 +207,8 @@ export function MasterInbox() {
     }).catch(console.error);
   }
 
-  function handleMarkRead(id: string) {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  }
-
-  function handleMarkAllRead() {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  }
-
-  function handleOpenReply(replyId: string) {
-    setView("inbox");
-    setSelectedId(replyId);
-  }
-
   function handleAIAnalyzed(replyId: string, analysis: AIAnalysis) {
     setAiCache(prev => ({ ...prev, [replyId]: analysis }));
-    setNotifications(prev =>
-      prev.map(n => n.replyId === replyId ? { ...n, aiAnalysis: analysis } : n)
-    );
     if (analysis.intent === "interested_urgent" || analysis.intent === "interested") {
       setReplies(prev =>
         prev.map(r => r.id === replyId && r.interested === null ? { ...r, interested: true } : r)
@@ -268,16 +221,7 @@ export function MasterInbox() {
     }
   }
 
-  function handleUpdateNotification(id: string, updates: Partial<Notification>) {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
-    if (updates.aiAnalysis) {
-      const n = notifications.find(x => x.id === id);
-      if (n) handleAIAnalyzed(n.replyId, updates.aiAnalysis);
-    }
-  }
-
   const NAV: { id: View; label: string; icon: React.ElementType; badge: number }[] = [
-    { id: "notifications",   label: "Notifications",  icon: Bell,        badge: unreadCount },
     { id: "inbox",           label: "Inbox",           icon: Inbox,       badge: newRepliesCount },
     { id: "dashboard",       label: "Dashboard",       icon: BarChart2,   badge: 0 },
     { id: "lead-monitoring", label: "Lead Monitoring", icon: Users,       badge: 0 },
@@ -343,16 +287,6 @@ export function MasterInbox() {
 
         {/* Main content */}
         <div className="flex-1 flex overflow-hidden">
-          {view === "notifications" && (
-            <NotificationFeed
-              notifications={notifications}
-              onMarkRead={handleMarkRead}
-              onMarkAllRead={handleMarkAllRead}
-              onOpenReply={handleOpenReply}
-              onUpdateNotification={handleUpdateNotification}
-            />
-          )}
-
           {view === "inbox" && (
             <>
               <ReplyList
