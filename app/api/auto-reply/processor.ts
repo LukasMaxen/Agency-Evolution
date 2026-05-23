@@ -11,6 +11,7 @@ import {
   sanitizeDashes,
 } from "@/lib/slack-approval";
 import { checkRateLimit } from "@/lib/rate-limiter";
+import { backsyncInterestedToEmailBison } from "@/lib/emailbison-backsync";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -629,6 +630,23 @@ ${messageText.slice(0, 3000)}`;
     await pool.query(`UPDATE replies SET status = 'read', interested = FALSE, ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ intent: result.intent, auto_replied: false, skipped_reason: "not_interested_no_reply" }), replyId]);
     return;
+  }
+
+  // ── Back-sync interested classification to EmailBison ─────────────────────────
+  // Bumps EmailBison's interested count for this reply so /api/workspaces/v1.1/stats
+  // (the source the CSM update reads) matches what we see in our own DB. Fires for
+  // every interested/needs_info reply regardless of which route handles it next
+  // (forward, auto_send, manual, do_nothing). Idempotent — no-ops if already
+  // interested or missing EmailBison metadata. Errors are logged, never thrown.
+  if (["interested", "interested_urgent", "needs_info"].includes(result.intent)) {
+    try {
+      const bs = await backsyncInterestedToEmailBison(replyId);
+      if (bs.skipped && bs.skipped !== "already_interested") {
+        console.log(`[auto-reply] back-sync skipped for ${replyId}: ${bs.skipped}`);
+      }
+    } catch (err: any) {
+      console.error(`[auto-reply] back-sync failed for ${replyId}:`, err?.message);
+    }
   }
 
   // ── Forward-workspace branch ────────────────────────────────────────────────
