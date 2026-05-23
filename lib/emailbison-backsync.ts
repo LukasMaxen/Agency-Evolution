@@ -38,9 +38,25 @@ export async function backsyncInterestedToEmailBison(
     body: JSON.stringify({ skip_webhooks: false }),
   });
 
+  // EmailBison returns HTTP 200 even for application-level failures. Lead-less
+  // replies (inbounds to a tracked sender from an email that was never a
+  // campaign contact) come back as { data: { success: "false", message: "..." }}.
+  // Check the body, not just res.status — otherwise we'd flip our local
+  // interested flag for replies EmailBison never actually marked.
+  const text = await res.text();
+  let parsed: any = null;
+  try { parsed = JSON.parse(text); } catch { /* keep null */ }
+  const apiSuccess = parsed?.data?.success === true || parsed?.data?.success === "true";
+
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`EmailBison mark-as-interested failed (${res.status}): ${body}`);
+    throw new Error(`EmailBison mark-as-interested HTTP ${res.status}: ${text.slice(0, 300)}`);
+  }
+  if (!apiSuccess) {
+    const msg = parsed?.data?.message ?? text.slice(0, 200);
+    // Lead-less replies are common for test/off-campaign inbounds — not a hard
+    // error worth alerting on. Surface the reason in the skipped channel so
+    // callers (and logs) can see exactly why.
+    return { skipped: `emailbison_refused: ${msg}` };
   }
 
   await pool.query("UPDATE replies SET interested = TRUE WHERE id = $1", [replyId]);
