@@ -638,11 +638,40 @@ ${messageText.slice(0, 3000)}`;
   // every interested/needs_info reply regardless of which route handles it next
   // (forward, auto_send, manual, do_nothing). Idempotent — no-ops if already
   // interested or missing EmailBison metadata. Errors are logged, never thrown.
+  //
+  // Special case: if EmailBison refuses because no contact is attached (off-campaign
+  // inbound, deleted lead, etc.), post to #manual-replies so a teammate can attach
+  // the lead in EmailBison or mark interested manually in EmailBison's UI.
   if (["interested", "interested_urgent", "needs_info"].includes(result.intent)) {
     try {
       const bs = await backsyncInterestedToEmailBison(replyId);
       if (bs.skipped && bs.skipped !== "already_interested") {
         console.log(`[auto-reply] back-sync skipped for ${replyId}: ${bs.skipped}`);
+        if (bs.skipped.startsWith("emailbison_refused:")) {
+          const reason = bs.skipped.replace(/^emailbison_refused:\s*/, "");
+          await postManual({
+            text: `EmailBison refused mark-as-interested, ${workspaceSlug} / ${reply.lead_name}`,
+            blocks: buildCard(
+              "EmailBison can't mark this reply as interested",
+              workspaceSlug,
+              replyWithCreds,
+              workspace.email_bison_instance_url ?? "",
+              {
+                intent: result.intent,
+                reason:
+                  `${reason}\n\n` +
+                  `Our DB has this reply marked as ${result.intent}, but EmailBison ` +
+                  `won't accept the mark because there's no contact attached to the ` +
+                  `reply (off-campaign inbound, deleted lead, or wrong sender). ` +
+                  `Two options:\n` +
+                  `  1. Attach the lead in EmailBison's UI, then mark as interested there.\n` +
+                  `  2. Mark as interested directly in EmailBison's reply view.\n` +
+                  `Until this is fixed, the reply won't count in /api/workspaces/v1.1/stats ` +
+                  `and so won't show up in the CSM update.`,
+              }
+            ),
+          });
+        }
       }
     } catch (err: any) {
       console.error(`[auto-reply] back-sync failed for ${replyId}:`, err?.message);
