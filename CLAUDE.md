@@ -90,12 +90,16 @@ A template of the required vars lives at `.env.local.example`. New team members:
 
 ```
 departments/                          # Business OS — all workflows and client context
+instrumentation.ts                    # Boots in-process timers on server start: auto-reply self-sweeper (60s), inbox sync (10m), weekly review, sender sync (6h)
 app/
-  page.tsx                          # Entry — renders <ReplyDashboard />
+  page.tsx                          # Entry — renders <MasterInbox />
   layout.tsx                        # Root layout
   globals.css                       # Global styles
   api/
-    analyze/route.ts                # POST — Claude Haiku reply analysis (cached in DB)
+    analyze/route.ts                # POST — Claude Haiku reply analysis (on-demand, called from ReplyDetail panel)
+    auto-reply/
+      processor.ts                  # processAutoReply — pre-filters, Sonnet classify, draft, route to Slack #reply-approval / #manual-replies / EmailBison send / forward
+      run/route.ts                  # POST — webhook self-fetch target. Sleeps until 2-min hold passes, then calls processAutoReply. Gated by AUTO_REPLY_RUN_TOKEN.
     calls/route.ts                  # GET/POST/PATCH — call booking + status updates
     calendly/
       slots/route.ts                # GET — fetch available Calendly slots
@@ -112,17 +116,16 @@ app/
           sequence-steps/
             route.ts                # GET — read current sequence steps; PUT — push approved script updates
     webhook/
-      [workspace]/route.ts          # POST — EmailBison webhook receiver (per workspace slug)
+      [workspace]/route.ts          # POST — EmailBison webhook receiver (per workspace slug). INSERTs reply row, self-fetches /api/auto-reply/run.
       calendly/route.ts             # POST — Calendly webhook receiver
 
 components/
-  ReplyDashboard.tsx                # Main state orchestrator + tab layout (LARGEST FILE ~34KB)
+  MasterInbox.tsx                   # Main UI entry — sidebar + tab layout (Inbox, Dashboard, Lead Monitoring, etc.)
   ReplyDetail.tsx                   # Right panel — message view + AI analysis + reply composer
   ReplyList.tsx                     # Left panel — inbox list + filters
-  MasterInbox.tsx                   # Legacy inbox component (may be superseded by ReplyDashboard)
+  ReplyDashboard.tsx                # Legacy — superseded by MasterInbox, not rendered anywhere
   CalendlySlotPicker.tsx            # Slot picker with timezone support + demo mode fallback
   CallBookingModal.tsx              # Modal for manual call booking
-  NotificationFeed.tsx              # Notification/activity feed
   AIBadge.tsx                       # Intent/urgency badge for AI analysis results
   StatusBadge.tsx                   # new / interested / not_interested badge
   WorkspaceAvatar.tsx               # Colored avatar for workspace
@@ -131,6 +134,8 @@ components/
 lib/
   db.ts                             # pg Pool singleton (DATABASE_URL, ssl:false, max:10)
   ai-analysis.ts                    # Client-side helper — calls /api/analyze, returns AIAnalysis
+  auto-reply-self-sweeper.ts        # 60s in-process safety net. Picks up status='new' rows the webhook trigger missed and runs processAutoReply on them.
+  slack-approval.ts                 # Slack post helpers, approval card footer blocks, request signature verification
   calendly.ts                       # Calendly API wrapper (getCalendlyUser, getEventTypes, getAvailableSlots)
   dashboard-data.ts                 # TypeScript types + mock data for dashboard (DashboardReply, FollowUpLead, MeetingLead)
   mock-data.ts                      # Mock workspaces, replies, templates (used in dev/demo mode)
@@ -212,6 +217,21 @@ npm run lint     # ESLint
 
 - **No auth layer** — internal tool only, no login/session management.
 - **No Prisma** — migrations must be run manually as raw SQL against the PostgreSQL instance.
-- **`ReplyDashboard.tsx`** is the main orchestrator (~34KB). Edit carefully.
-- **`MasterInbox.tsx`** is the earlier version of the inbox. `ReplyDashboard` is the current one.
+- **`MasterInbox.tsx`** is the main UI orchestrator (rendered by `app/page.tsx`). `ReplyDashboard.tsx` is legacy and not wired into the active route.
 - Coolify → Hetzner PostgreSQL: ensure `DATABASE_URL` is set correctly in Coolify project settings and that the Hetzner firewall allows outbound connections on port 5432.
+
+## Auto-reply path (end-to-end)
+
+The full chain that turns an inbound reply into a Slack approval card:
+
+1. EmailBison `LEAD_REPLIED` → `POST /api/webhook/[workspace]` → INSERT into `replies` table as `status='new'`.
+2. Webhook self-fetches `POST /api/auto-reply/run?id=…&workspace=…` (gated by `AUTO_REPLY_RUN_TOKEN`) and returns 200 to EmailBison immediately.
+3. `/run` sleeps until the row is 2 minutes old (dedup window for superseding replies from the same lead), then calls `processAutoReply`.
+4. `processAutoReply` runs pre-filters (OOO/bounce/Mailinblack), classifies intent via Sonnet, drafts the reply, then either:
+   - posts an approval card to Slack `#reply-approval` → `status='awaiting_approval'` (interested/needs_info/neutral)
+   - posts to `#manual-replies` → `status='awaiting_manual'`
+   - auto-sends or forwards directly → `status='replied'` or `'forwarded'` (hard closes, forward-workspaces like Hahnbeck)
+   - silently closes → `status='read'` (not_interested, unsubscribe, OOO, etc.)
+5. Safety net: `lib/auto-reply-self-sweeper.ts` runs every 60s in-process (started from `instrumentation.ts`) and picks up any `status='new'` row the webhook trigger missed.
+
+Required env var: `AUTO_REPLY_RUN_TOKEN` (any random string, shared between webhook and /run inside the same Node process). If missing or mismatched, /run returns 401 and replies stall at `status='new'` until the self-sweeper picks them up.
