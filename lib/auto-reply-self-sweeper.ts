@@ -86,14 +86,17 @@ export async function runAutoReplySweep(): Promise<void> {
       unalerted.forEach(r => approvalAlertedIds.add(r.id));
     }
 
-    // ── 5. Main sweep: process unanalyzed replies ─────────────────────────────
-    // Picks up 'new' and any reply that slipped through to 'read' without being
-    // analyzed (ai_analysis IS NULL = processor never ran on it).
+    // ── 5. Main sweep: process replies the processor hasn't finished ──────────
+    // Trigger is status='new'. Every other status means the processor either
+    // completed (awaiting_approval/awaiting_manual/replied/forwarded/read) or
+    // is mid-flight (processing) or already errored out — none of those need
+    // sweeping. Do NOT filter on ai_analysis: the dashboard's /api/analyze
+    // also writes that column when a human opens a reply, which would hide
+    // the row from the sweeper even though the processor never ran.
     const r = await pool.query(
       `SELECT id, workspace_slug
        FROM replies
-       WHERE ai_analysis IS NULL
-         AND status NOT IN ('processing', 'awaiting_approval', 'replied', 'forwarded')
+       WHERE status = 'new'
          AND received_at > NOW() - INTERVAL '48 hours'
          AND workspace_slug NOT IN ('itg-group', 'sonaro-ai', 'sro-consulting')
        ORDER BY received_at ASC
