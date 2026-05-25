@@ -18,10 +18,12 @@ TYPE 1 — Sell Side Advisory (campaign names contain "Sell Side Advisory"):
 
 TYPE 2 — TelcoLab (campaign names contain "TelcoLab"):
   offer: Exclusive sell-side mandate for telecom software platform. Svetlin represents the company for sale. Lead is a PE firm or strategic acquirer.
-  goal: Send teaser + Calendly.
+  goal: Send teaser + NDA + Calendly. Always include both links in the same reply.
   teaser: https://drive.google.com/file/d/1xehkwXNsLErIqOvvA-l9bY2FZGRQ4E0z/view?usp=sharing
+  nda: https://docsend.com/view/c6ctbjq7aru85f3y
   calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate
-  reply: Send teaser + "Happy to walk through the details on a quick call. [calendly]"
+  reply: Send teaser + NDA + Calendly in every first reply. Example: "Here is the teaser: [teaser]. And the NDA: [nda]. Happy to walk through the details on a quick call: [calendly]"
+  if teaser already sent: skip teaser, send NDA only + Calendly. Example: "Here is the NDA: [nda]. Once executed we will share the full CIM. Feel free to grab a time: [calendly]"
 
 TYPE 3 — ZEBS (campaign names contain "Zebs" or "ZEBS"):
   offer: EdTech Seed Round investment. 300k+ pilot revenue, EU accreditation, 25 countries. Use zebs-ibs.md for full details.
