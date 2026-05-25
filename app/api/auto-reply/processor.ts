@@ -671,6 +671,11 @@ ${messageText.slice(0, 3000)}`;
               }
             ),
           });
+          await pool.query(
+            `UPDATE replies SET status='awaiting_manual', ai_analysis=$1, ai_analyzed_at=NOW() WHERE id=$2`,
+            [JSON.stringify({ intent: result.intent, auto_replied: false, skipped_reason: "emailbison_refused_mark_interested" }), replyId]
+          );
+          return;
         }
       }
     } catch (err: any) {
