@@ -38,20 +38,27 @@ export async function backsyncInterestedToEmailBison(
     body: JSON.stringify({ skip_webhooks: false }),
   });
 
-  // EmailBison returns HTTP 200 even for application-level failures. Lead-less
-  // replies (inbounds to a tracked sender from an email that was never a
-  // campaign contact) come back as { data: { success: "false", message: "..." }}.
-  // Check the body, not just res.status — otherwise we'd flip our local
-  // interested flag for replies EmailBison never actually marked.
+  // EmailBison returns HTTP 200 for both success and application-level failures.
+  //
+  // Success shape: the updated reply object, e.g.
+  //   { data: { id, uuid, subject, interested: true, ... } }
+  //   (no `success` field)
+  //
+  // Failure shape (lead-less reply, etc.):
+  //   { data: { success: "false", message: "Replies without an attached contact ..." } }
+  //
+  // Only treat as refusal when we explicitly see success=false in the body.
+  // Anything else with HTTP 200 is success — the response may not include `success` at all.
   const text = await res.text();
   let parsed: any = null;
   try { parsed = JSON.parse(text); } catch { /* keep null */ }
-  const apiSuccess = parsed?.data?.success === true || parsed?.data?.success === "true";
 
   if (!res.ok) {
     throw new Error(`EmailBison mark-as-interested HTTP ${res.status}: ${text.slice(0, 300)}`);
   }
-  if (!apiSuccess) {
+
+  const explicitlyRefused = parsed?.data?.success === false || parsed?.data?.success === "false";
+  if (explicitlyRefused) {
     const msg = parsed?.data?.message ?? text.slice(0, 200);
     // Lead-less replies are common for test/off-campaign inbounds — not a hard
     // error worth alerting on. Surface the reason in the skipped channel so
