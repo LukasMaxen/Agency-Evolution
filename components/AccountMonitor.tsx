@@ -9,18 +9,35 @@ import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Status = "spam_risk" | "low_replies" | "healthy";
+type Status = "burned" | "list_issue" | "low_replies" | "healthy" | "insufficient_data";
 type ActionKey = "remove" | "reattach" | "remove_and_warmup";
+
+interface SignalFlags {
+  burn:    boolean;
+  bounce:  boolean;
+  replies: boolean;
+}
+
+interface StatusCounts {
+  burned:            number;
+  list_issue:        number;
+  low_replies:       number;
+  insufficient_data: number;
+  healthy:           number;
+}
 
 interface Account {
   sender_email: string;
   workspace_slug: string;
   emails_sent: number;
   bounces: number;
+  burns: number;
   replies: number;
   bounce_rate: number;
+  burn_rate: number;
   reply_rate: number;
   status: Status;
+  signals: SignalFlags;
 }
 
 interface DomainData {
@@ -29,9 +46,14 @@ interface DomainData {
   totalSent: number;
   totalReplies: number;
   totalBounces: number;
-  spamRiskCount: number;
+  totalBurns: number;
   avgReplyRate: number;
   bouncePct: number;
+  burnPct: number;
+  minSends: number;
+  status: Status;
+  signals: SignalFlags;
+  statusCounts: StatusCounts;
 }
 
 interface WorkspaceData {
@@ -42,16 +64,19 @@ interface WorkspaceData {
   totalSent: number;
   totalReplies: number;
   totalBounces: number;
-  spamRiskCount: number;
+  totalBurns: number;
   avgReplyRate: number;
   bouncePct: number;
+  burnPct: number;
+  statusCounts: StatusCounts;
 }
 
 interface Summary {
   totalAccounts: number;
-  totalSpamRisk: number;
   totalSent: number;
+  totalBurns: number;
   avgReplyRate: number;
+  domainStatusCounts: StatusCounts;
 }
 
 interface ActionResult {
@@ -85,37 +110,92 @@ function resolveWsColor(workspaces: ReturnType<typeof useWorkspaces>, slug: stri
 }
 
 const STATUS_CFG: Record<Status, { label: string; bg: string; color: string; border: string; icon: React.ElementType }> = {
-  spam_risk:   { label: "Spam risk",   bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: AlertTriangle },
-  low_replies: { label: "Low replies", bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: TrendingDown },
-  healthy:     { label: "Healthy",     bg: "#EAF3DE", color: "#3B6D11", border: "#C0DD97", icon: CheckCircle },
+  burned:            { label: "Burned",            bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: Flame },
+  list_issue:        { label: "List issue",        bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: AlertTriangle },
+  low_replies:       { label: "Low replies",       bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: TrendingDown },
+  insufficient_data: { label: "Insufficient data", bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB", icon: Loader2 },
+  healthy:           { label: "Healthy",           bg: "#EAF3DE", color: "#3B6D11", border: "#C0DD97", icon: CheckCircle },
 };
 
-function StatusBadge({ status }: { status: Status }) {
+// Action tooltip: derives the right sentence from which signals are firing,
+// not just the badge name. Same badge can map to different actions based on
+// the underlying signal combination.
+function actionTooltip(args: {
+  status: Status;
+  signals: SignalFlags;
+  sent: number;
+  minSends: number;
+}): string {
+  const { status, signals, sent, minSends } = args;
+
+  if (status === "insufficient_data") {
+    return `Not enough volume yet. ${sent}/${minSends} sends needed before flagging.`;
+  }
+  if (status === "healthy") {
+    return "All metrics within targets.";
+  }
+  if (status === "burned") {
+    if (signals.bounce && signals.replies)
+      return "Multiple issues. Pause and warm up first (2 to 4 weeks), then clean the list before re-introducing.";
+    if (signals.bounce)
+      return "Pause and warm up. Also clean the recipient list before bringing this back online.";
+    if (signals.replies)
+      return "Burn is suppressing deliverability. Pause to warm up; reply rate should recover as reputation rebuilds.";
+    return "Reputation hit. Pause this account, enable warmup, re-introduce in 2 to 4 weeks. Sanity-check DMARC/SPF/DKIM while paused.";
+  }
+  if (status === "list_issue") {
+    if (signals.replies)
+      return "List quality is hurting delivery and replies. Cleanse, then reassess targeting.";
+    return "Bad recipient data. Cleanse or re-enrich the list before sending more.";
+  }
+  // low_replies
+  return "Copy or targeting issue. Review subject lines, ICP fit, and sequence relevance.";
+}
+
+function StatusBadge({
+  status, signals, sent, minSends,
+}: {
+  status: Status;
+  signals?: SignalFlags;
+  sent?: number;
+  minSends?: number;
+}) {
   const cfg = STATUS_CFG[status];
   const Icon = cfg.icon;
+  const tooltip = signals !== undefined && sent !== undefined && minSends !== undefined
+    ? actionTooltip({ status, signals, sent, minSends })
+    : "";
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 500,
-      background: cfg.bg, color: cfg.color, border: `0.5px solid ${cfg.border}`,
-      whiteSpace: "nowrap",
-    }}>
+    <span
+      title={tooltip}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 4,
+        fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 500,
+        background: cfg.bg, color: cfg.color, border: `0.5px solid ${cfg.border}`,
+        whiteSpace: "nowrap",
+        cursor: tooltip ? "help" : "default",
+      }}
+    >
       <Icon size={10} />
       {cfg.label}
     </span>
   );
 }
 
-function RateCell({ value, type }: { value: number; type: "reply" | "bounce" }) {
+function RateCell({ value, type }: { value: number; type: "reply" | "bounce" | "burn" }) {
   let color = "#6b7280";
   if (type === "reply") {
-    if (value === 0) color = "#A32D2D";
+    if (value < 1)      color = "#A32D2D";
     else if (value < 2) color = "#854F0B";
-    else color = "#3B6D11";
+    else                color = "#3B6D11";
+  } else if (type === "bounce") {
+    if (value >= 2)      color = "#A32D2D";
+    else if (value >= 1) color = "#854F0B";
+    else                 color = "#6b7280";
   } else {
-    if (value > 5) color = "#A32D2D";
-    else if (value > 2) color = "#854F0B";
-    else color = "#6b7280";
+    // burn: any non-zero is a red flag because a single burn event signals trouble
+    if (value > 0)       color = "#A32D2D";
+    else                 color = "#6b7280";
   }
   return <span style={{ fontSize: 12, color, fontWeight: value === 0 && type === "reply" ? 600 : 400 }}>{value}%</span>;
 }
@@ -518,14 +598,20 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
   const workspaces = useWorkspaces();
   const color = resolveWsColor(workspaces, ws.slug);
   const name  = resolveWsName(workspaces, ws.slug);
-  const hasRisk = ws.spamRiskCount > 0;
+  const burnedCount = ws.statusCounts.burned;
+  const listCount   = ws.statusCounts.list_issue;
+  const isBurned    = burnedCount > 0;
+  const hasIssue    = isBurned || listCount > 0;
+
+  const borderColor = isBurned ? "#E24B4A" : hasIssue ? "#FAC775" : "#ede9e3";
+  const leftColor   = isBurned ? "#E24B4A" : hasIssue ? "#854F0B" : color;
 
   return (
     <div onClick={onClick}
       style={{
         background: "#ffffff",
-        border: hasRisk ? `1.5px solid #E24B4A` : "0.5px solid #ede9e3",
-        borderLeft: hasRisk ? `3px solid #E24B4A` : `3px solid ${color}`,
+        border: hasIssue ? `1.5px solid ${borderColor}` : "0.5px solid #ede9e3",
+        borderLeft: `3px solid ${leftColor}`,
         borderRadius: "0 12px 12px 0",
         padding: "14px 16px", cursor: "pointer", position: "relative",
         transition: "box-shadow 0.15s",
@@ -533,18 +619,31 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
       onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.07)"}
       onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.boxShadow = "none"}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 6, flexWrap: "wrap" }}>
         <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{name}</p>
-        {hasRisk
-          ? <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595", fontWeight: 500 }}>{ws.spamRiskCount} at risk</span>
-          : <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", fontWeight: 500 }}>All healthy</span>
-        }
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {isBurned && (
+            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595", fontWeight: 500, whiteSpace: "nowrap" }}>
+              {burnedCount} burned
+            </span>
+          )}
+          {listCount > 0 && (
+            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FAEEDA", color: "#854F0B", border: "0.5px solid #FAC775", fontWeight: 500, whiteSpace: "nowrap" }}>
+              {listCount} list issue
+            </span>
+          )}
+          {!hasIssue && (
+            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", fontWeight: 500, whiteSpace: "nowrap" }}>
+              All healthy
+            </span>
+          )}
+        </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {[
-          { label: "Accounts",       value: ws.accounts.length },
+          { label: "Domains",        value: ws.domainCount },
           { label: "Emails sent",    value: ws.totalSent.toLocaleString() },
-          { label: "Bounce rate",    value: `${ws.bouncePct}%`,    color: ws.bouncePct > 5 ? "#A32D2D" : ws.bouncePct > 2 ? "#854F0B" : "#111827" },
+          { label: "Bounce rate",    value: `${ws.bouncePct}%`,    color: ws.bouncePct >= 2 ? "#A32D2D" : ws.bouncePct > 1 ? "#854F0B" : "#111827" },
           { label: "Avg reply rate", value: `${ws.avgReplyRate}%`, color: ws.avgReplyRate < 1 ? "#A32D2D" : ws.avgReplyRate < 2 ? "#854F0B" : "#3B6D11" },
         ].map(s => (
           <div key={s.label}>
@@ -604,9 +703,15 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
     }
   }
 
-  const ORDER: Record<Status, number> = { spam_risk: 0, low_replies: 1, healthy: 2 };
+  const ORDER: Record<Status, number> = {
+    burned:            0,
+    list_issue:        1,
+    low_replies:       2,
+    insufficient_data: 3,
+    healthy:           4,
+  };
   const sortedDomains = [...ws.domains].sort(
-    (a, b) => (b.spamRiskCount - a.spamRiskCount) || (b.totalSent - a.totalSent)
+    (a, b) => (ORDER[a.status] - ORDER[b.status]) || (b.totalSent - a.totalSent)
   );
 
   return (
@@ -628,14 +733,15 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
           </p>
           <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
             Last {days} days · {ws.domainCount} domains · {ws.accounts.length} accounts
-            {ws.spamRiskCount > 0 ? ` · ${ws.spamRiskCount} at spam risk` : ""}
+            {ws.statusCounts.burned > 0 ? ` · ${ws.statusCounts.burned} burned` : ""}
+            {ws.statusCounts.list_issue > 0 ? ` · ${ws.statusCounts.list_issue} list issue` : ""}
           </p>
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
-        <SummaryCard label="Domains"        value={ws.domainCount} color="#185FA5" />
-        <SummaryCard label="Spam risk"      value={ws.spamRiskCount} color={ws.spamRiskCount > 0 ? "#A32D2D" : "#111827"} />
+        <SummaryCard label="Burned domains" value={ws.statusCounts.burned}     color={ws.statusCounts.burned     > 0 ? "#A32D2D" : "#111827"} />
+        <SummaryCard label="List issues"    value={ws.statusCounts.list_issue} color={ws.statusCounts.list_issue > 0 ? "#854F0B" : "#111827"} />
         <SummaryCard label="Emails sent"    value={ws.totalSent.toLocaleString()} />
         <SummaryCard label="Avg reply rate" value={`${ws.avgReplyRate}%`} color={ws.avgReplyRate < 1 ? "#A32D2D" : ws.avgReplyRate < 2 ? "#854F0B" : "#3B6D11"} />
       </div>
@@ -650,14 +756,13 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
           <thead>
             <tr style={{ background: "#f8f7f5", borderBottom: "0.5px solid #ede9e3" }}>
               {[
-                { h: "Domain / account", w: "24%", align: "left" },
+                { h: "Domain / account", w: "22%", align: "left" },
                 { h: "Sent",      w: "7%",  align: "right" },
-                { h: "Bounces",   w: "7%",  align: "right" },
                 { h: "Bounce %",  w: "8%",  align: "right" },
-                { h: "Replies",   w: "7%",  align: "right" },
+                { h: "Burn %",    w: "8%",  align: "right" },
                 { h: "Reply %",   w: "8%",  align: "right" },
-                { h: "Status",    w: "12%", align: "center" },
-                { h: "Actions",   w: "27%", align: "center" },
+                { h: "Status",    w: "13%", align: "center" },
+                { h: "Actions",   w: "34%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -671,8 +776,9 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
             {sortedDomains.map((dom, dIdx) => {
               const isDomExpanded = expandedDomain === dom.domain;
               const isLastDomain  = dIdx === sortedDomains.length - 1;
-              const domHasRisk    = dom.spamRiskCount > 0;
-              const domBg         = domHasRisk ? "#FCEBEB" : "#fafafa";
+              const domBg         = dom.status === "burned" ? "#FCEBEB" :
+                                    dom.status === "list_issue" ? "#FFF7E6" :
+                                    "#fafafa";
               const sortedAccounts = [...dom.accounts].sort((a, b) => ORDER[a.status] - ORDER[b.status]);
 
               return (
@@ -706,15 +812,16 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                       </span>
                     </td>
                     <td style={{ padding: "10px 10px", textAlign: "right", color: "#111827", fontWeight: 500 }}>{dom.totalSent.toLocaleString()}</td>
-                    <td style={{ padding: "10px 10px", textAlign: "right", color: "#111827", fontWeight: 500 }}>{dom.totalBounces}</td>
                     <td style={{ padding: "10px 10px", textAlign: "right" }}><RateCell value={dom.bouncePct} type="bounce" /></td>
-                    <td style={{ padding: "10px 10px", textAlign: "right", color: "#111827", fontWeight: 500 }}>{dom.totalReplies}</td>
+                    <td style={{ padding: "10px 10px", textAlign: "right" }}><RateCell value={dom.burnPct}   type="burn" /></td>
                     <td style={{ padding: "10px 10px", textAlign: "right" }}><RateCell value={dom.avgReplyRate} type="reply" /></td>
                     <td style={{ padding: "10px 10px", textAlign: "center" }}>
-                      {domHasRisk
-                        ? <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595", fontWeight: 500, whiteSpace: "nowrap" }}>{dom.spamRiskCount} at risk</span>
-                        : <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", fontWeight: 500, whiteSpace: "nowrap" }}>All healthy</span>
-                      }
+                      <StatusBadge
+                        status={dom.status}
+                        signals={dom.signals}
+                        sent={dom.totalSent}
+                        minSends={dom.minSends}
+                      />
                     </td>
                     <td style={{ padding: "8px 10px", textAlign: "center", color: "#9ca3af", fontSize: 10 }}>
                       {isDomExpanded ? "" : "click to expand"}
@@ -727,7 +834,10 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                     const isExpanded    = expandedEmail === acc.sender_email;
                     const loadingAction = loadingMap[acc.sender_email] ?? null;
                     const isLoading     = loadingAction !== null;
-                    const rowBg         = isRemoved ? "#f0fdf4" : acc.status === "spam_risk" ? "#FCEBEB" : "#ffffff";
+                    const rowBg         = isRemoved ? "#f0fdf4" :
+                                          acc.status === "burned"     ? "#FCEBEB" :
+                                          acc.status === "list_issue" ? "#FFF7E6" :
+                                          "#ffffff";
                     const isLastAccount = aIdx === sortedAccounts.length - 1;
 
                     return (
@@ -766,16 +876,22 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                             )}
                           </td>
                           <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151" }}>{acc.emails_sent.toLocaleString()}</td>
-                          <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151" }}>{acc.bounces}</td>
                           <td style={{ padding: "8px 10px", textAlign: "right" }}><RateCell value={acc.bounce_rate} type="bounce" /></td>
-                          <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151" }}>{acc.replies}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right" }}><RateCell value={acc.burn_rate}   type="burn" /></td>
                           <td style={{ padding: "8px 10px", textAlign: "right" }}><RateCell value={acc.reply_rate} type="reply" /></td>
-                          <td style={{ padding: "8px 10px", textAlign: "center" }}><StatusBadge status={acc.status} /></td>
+                          <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                            <StatusBadge
+                              status={acc.status}
+                              signals={acc.signals}
+                              sent={acc.emails_sent}
+                              minSends={50}
+                            />
+                          </td>
                           <td style={{ padding: "6px 10px", textAlign: "center" }}>
                             <div style={{ display: "flex", gap: 5, justifyContent: "center", flexWrap: "wrap" }}>
                               {isRemoved ? (
                                 <ActionButton label="Re-attach" icon={Wifi} onClick={() => { setExpandedEmail(acc.sender_email); setRemovedSet(prev => { const s = new Set(prev); s.delete(acc.sender_email); return s; }); }} loading={false} variant="success" />
-                              ) : acc.status === "spam_risk" ? (
+                              ) : acc.status === "burned" ? (
                                 <>
                                   <ActionButton label="Remove all"      icon={WifiOff} onClick={() => runAction(acc.sender_email, "remove")}           loading={isLoading && loadingAction === "remove"}           variant="danger" disabled={isLoading} />
                                   <ActionButton label="Remove + warmup" icon={Flame}   onClick={() => runAction(acc.sender_email, "remove_and_warmup")} loading={isLoading && loadingAction === "remove_and_warmup"} variant="warmup" disabled={isLoading} />
@@ -788,7 +904,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                         </tr>
                         {isExpanded && (
                           <tr style={{ borderBottom: (isLastAccount && isLastDomain) ? "none" : "0.5px solid #f3f4f6", background: rowBg }}>
-                            <td colSpan={8} style={{ padding: 0 }}>
+                            <td colSpan={7} style={{ padding: 0 }}>
                               <div style={{ borderTop: "0.5px solid #e5e7eb", margin: "0 10px 0 32px" }}>
                                 <CampaignDropdown
                                   senderEmail={acc.sender_email}
@@ -846,13 +962,13 @@ export function AccountMonitor() {
   async function removeAllRisky() {
     if (!data) return;
     const riskyAccounts = data.workspaces.flatMap(ws =>
-      ws.accounts.filter(a => a.status === "spam_risk").map(a => ({
+      ws.accounts.filter(a => a.status === "burned").map(a => ({
         sender_email: a.sender_email, workspace_slug: a.workspace_slug,
       }))
     );
     if (riskyAccounts.length === 0) return;
     const confirmed = window.confirm(
-      `Remove ${riskyAccounts.length} spam-risk accounts from all campaigns across all workspaces? This cannot be undone.`
+      `Remove ${riskyAccounts.length} burned accounts from all campaigns across all workspaces? This cannot be undone.`
     );
     if (!confirmed) return;
     setNukingAll(true);
@@ -896,7 +1012,7 @@ export function AccountMonitor() {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <DayToggle value={days} onChange={setDays} />
-          {data && data.summary.totalSpamRisk > 0 && !selectedWs && (
+          {data && data.summary.domainStatusCounts.burned > 0 && !selectedWs && (
             <button onClick={removeAllRisky} disabled={nukingAll || loading}
               style={{
                 display: "flex", alignItems: "center", gap: 6, fontSize: 11, padding: "5px 10px",
@@ -904,7 +1020,7 @@ export function AccountMonitor() {
                 cursor: nukingAll ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500,
               }}>
               {nukingAll ? <Loader2 size={11} className="animate-spin" /> : <WifiOff size={11} />}
-              {nukingAll ? "Removing..." : `Remove all ${data.summary.totalSpamRisk} risky`}
+              {nukingAll ? "Removing..." : `Remove all burned`}
             </button>
           )}
           <button onClick={load} disabled={loading}
@@ -940,8 +1056,16 @@ export function AccountMonitor() {
       {!loading && !selectedWs && data && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
-            <SummaryCard label="Total accounts"  value={data.summary.totalAccounts} color="#185FA5" />
-            <SummaryCard label="Spam risk"        value={data.summary.totalSpamRisk} color={data.summary.totalSpamRisk > 0 ? "#A32D2D" : "#111827"} />
+            <SummaryCard
+              label="Burned domains"
+              value={data.summary.domainStatusCounts.burned}
+              color={data.summary.domainStatusCounts.burned > 0 ? "#A32D2D" : "#111827"}
+            />
+            <SummaryCard
+              label="List issues"
+              value={data.summary.domainStatusCounts.list_issue}
+              color={data.summary.domainStatusCounts.list_issue > 0 ? "#854F0B" : "#111827"}
+            />
             <SummaryCard label="Emails sent"      value={data.summary.totalSent.toLocaleString()} />
             <SummaryCard label="Avg reply rate"   value={`${data.summary.avgReplyRate}%`} color={data.summary.avgReplyRate < 1 ? "#A32D2D" : data.summary.avgReplyRate < 2 ? "#854F0B" : "#3B6D11"} />
           </div>
