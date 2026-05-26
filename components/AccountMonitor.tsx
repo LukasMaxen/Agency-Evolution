@@ -209,19 +209,14 @@ function StatusBadge({
 }
 
 function RateCell({ value, type }: { value: number; type: "reply" | "bounce" | "burn" }) {
-  let color = "#6b7280";
+  // Binary KPI coloring: green if meeting the target, red if not.
+  let color: string;
   if (type === "reply") {
-    if (value < 1)      color = "#A32D2D";
-    else if (value < 2) color = "#854F0B";
-    else                color = "#3B6D11";
+    color = value >= 1 ? "#3B6D11" : "#A32D2D";
   } else if (type === "bounce") {
-    if (value >= 2)      color = "#A32D2D";
-    else if (value >= 1) color = "#854F0B";
-    else                 color = "#6b7280";
+    color = value <  2 ? "#3B6D11" : "#A32D2D";
   } else {
-    // burn: any non-zero is a red flag because a single burn event signals trouble
-    if (value > 0)       color = "#A32D2D";
-    else                 color = "#6b7280";
+    color = value <  0.5 ? "#3B6D11" : "#A32D2D";
   }
   return <span style={{ fontSize: 12, color, fontWeight: value === 0 && type === "reply" ? 600 : 400 }}>{value}%</span>;
 }
@@ -351,26 +346,29 @@ function MetricsRow({
 }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
-      <SummaryCard label="Total domains"   value={totalDomains} color="#185FA5" />
-      <SummaryCard label="Healthy domains" value={healthy}      color={healthy   > 0 ? "#3B6D11" : "#111827"} />
-      <SummaryCard label="List issues"     value={listIssue}    color={listIssue > 0 ? "#854F0B" : "#111827"} />
-      <SummaryCard label="Burned domains"  value={burned}       color={burned    > 0 ? "#A32D2D" : "#111827"} />
-      <SummaryCard label="Emails sent"     value={totalSent.toLocaleString()} />
+      {/* Row 1: counts (no KPI = always black) */}
+      <SummaryCard label="Total domains"   value={totalDomains} />
+      <SummaryCard label="Healthy domains" value={healthy} />
+      <SummaryCard label="List issues"     value={listIssue} />
+      <SummaryCard label="Burned domains"  value={burned} />
+
+      {/* Row 2: rates (KPI-bound = binary green/red) */}
+      <SummaryCard label="Emails sent" value={totalSent.toLocaleString()} />
       <SummaryCard
         label="Avg reply rate"
         value={`${avgReplyRate}%`}
         sub={`(${totalReplies.toLocaleString()} replies)`}
-        color={avgReplyRate < 1 ? "#A32D2D" : avgReplyRate < 2 ? "#854F0B" : "#3B6D11"}
+        color={avgReplyRate >= 1 ? "#3B6D11" : "#A32D2D"}
       />
       <SummaryCard
         label="Avg bounce rate"
         value={`${bouncePct}%`}
-        color={bouncePct >= 2 ? "#A32D2D" : bouncePct >= 1 ? "#854F0B" : "#111827"}
+        color={bouncePct < 2 ? "#3B6D11" : "#A32D2D"}
       />
       <SummaryCard
         label="Avg burn rate"
         value={`${burnPct}%`}
-        color={burnPct > 0 ? "#A32D2D" : "#111827"}
+        color={burnPct < 0.5 ? "#3B6D11" : "#A32D2D"}
       />
     </div>
   );
@@ -676,22 +674,29 @@ function CampaignDropdown({
 
 function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void }) {
   const workspaces = useWorkspaces();
-  const color = resolveWsColor(workspaces, ws.slug);
   const name  = resolveWsName(workspaces, ws.slug);
-  const burnedCount = ws.statusCounts.burned;
-  const listCount   = ws.statusCounts.list_issue;
-  const isBurned    = burnedCount > 0;
-  const hasIssue    = isBurned || listCount > 0;
+  const burnedCount       = ws.statusCounts.burned;
+  const listCount         = ws.statusCounts.list_issue;
+  const lowRepliesCount   = ws.statusCounts.low_replies;
+  const insufficientCount = ws.statusCounts.insufficient_data;
+  const healthyCount      = ws.statusCounts.healthy;
 
-  const borderColor = isBurned ? "#E24B4A" : hasIssue ? "#FAC775" : "#ede9e3";
-  const leftColor   = isBurned ? "#E24B4A" : hasIssue ? "#854F0B" : color;
+  // Card border color reflects the worst status. Insufficient is NOT
+  // treated as healthy — if a workspace has only insufficient_data
+  // domains, the card is grey (no data yet), not green.
+  const accent =
+    burnedCount > 0     ? "#E24B4A" :         // red
+    listCount   > 0     ? "#F59E0B" :         // amber/yellow
+    lowRepliesCount > 0 ? "#F59E0B" :         // amber/yellow (other quality flag)
+    healthyCount > 0    ? "#84C56A" :         // green only when actual healthy domains exist
+                          "#9CA3AF";          // grey: insufficient data, no positive signal yet
 
   return (
     <div onClick={onClick}
       style={{
         background: "#ffffff",
-        border: hasIssue ? `1.5px solid ${borderColor}` : "0.5px solid #ede9e3",
-        borderLeft: `3px solid ${leftColor}`,
+        border: `1.5px solid ${accent}`,
+        borderLeft: `3px solid ${accent}`,
         borderRadius: "0 12px 12px 0",
         padding: "14px 16px", cursor: "pointer", position: "relative",
         transition: "box-shadow 0.15s",
@@ -702,7 +707,7 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 6, flexWrap: "wrap" }}>
         <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{name}</p>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {isBurned && (
+          {burnedCount > 0 && (
             <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595", fontWeight: 500, whiteSpace: "nowrap" }}>
               {burnedCount} burned
             </span>
@@ -712,7 +717,12 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
               {listCount} list issue
             </span>
           )}
-          {!hasIssue && (
+          {insufficientCount > 0 && (
+            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#F3F4F6", color: "#6B7280", border: "0.5px solid #D1D5DB", fontWeight: 500, whiteSpace: "nowrap" }}>
+              {insufficientCount} insufficient
+            </span>
+          )}
+          {burnedCount === 0 && listCount === 0 && insufficientCount === 0 && healthyCount > 0 && (
             <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", fontWeight: 500, whiteSpace: "nowrap" }}>
               All healthy
             </span>
@@ -721,10 +731,12 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {[
-          { label: "Domains",        value: ws.domainCount },
-          { label: "Emails sent",    value: ws.totalSent.toLocaleString() },
-          { label: "Bounce rate",    value: `${ws.bouncePct}%`,    color: ws.bouncePct >= 2 ? "#A32D2D" : ws.bouncePct > 1 ? "#854F0B" : "#111827" },
-          { label: "Avg reply rate", value: `${ws.avgReplyRate}%`, color: ws.avgReplyRate < 1 ? "#A32D2D" : ws.avgReplyRate < 2 ? "#854F0B" : "#3B6D11" },
+          // Counts: no KPI = always black
+          { label: "Domains",        value: ws.domainCount,                  color: undefined },
+          { label: "Emails sent",    value: ws.totalSent.toLocaleString(),   color: undefined },
+          // Rates: binary green/red per KPI
+          { label: "Bounce rate",    value: `${ws.bouncePct}%`,    color: ws.bouncePct < 2 ? "#3B6D11" : "#A32D2D" },
+          { label: "Avg reply rate", value: `${ws.avgReplyRate}%`, color: ws.avgReplyRate >= 1 ? "#3B6D11" : "#A32D2D" },
         ].map(s => (
           <div key={s.label}>
             <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{s.label}</p>
@@ -746,7 +758,6 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
   onActionDone: (msg: string, type: "success" | "error") => void;
 }) {
   const workspaces = useWorkspaces();
-  const color = resolveWsColor(workspaces, ws.slug);
   const name  = resolveWsName(workspaces, ws.slug);
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [expandedEmail, setExpandedEmail]   = useState<string | null>(null);
@@ -815,7 +826,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         <div>
           <p style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>
-            <span style={{ color }}>{name}</span> — sending domains
+            {name} — sending domains
           </p>
           <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
             Last {days} days · {ws.domainCount} domains · {ws.accounts.length} accounts
