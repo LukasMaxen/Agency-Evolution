@@ -1,17 +1,17 @@
 // Two-layer bounce classifier.
 //
-// Layer 1 (Gmail): subject is dispositive.
-//   "Delivery Status Notification (Failure)" -> data_failure
-//   "Delivery Status Notification (Delay)"   -> domain_burn
+// Layer 1 (Gmail Failure): subject is dispositive — permanent recipient
+//   failure (bad address).
 //
-// Layer 2 (Microsoft EOP, Postfix, generic): subject only signals "send
-// failed". The SMTP code inside text_body distinguishes a bad recipient
-// from a domain-reputation block.
+// Layer 2 (Gmail Delay, Microsoft EOP, Postfix, generic): subject only
+//   signals "send failed". The SMTP code in text_body distinguishes a
+//   recipient-side problem from a domain-reputation block.
 //
-// Rules below were validated against ~136 real bounces across 16 workspaces
-// via scripts/bounce-dry-run.js. Broadened ranges (5.7.x, 5.1.x, 5.4.x) are
-// intentional. They catch newer variants like 5.7.509 (DMARC failure) and
-// 5.4.x (Postfix routing) that narrower rules would miss.
+// Rules validated against ~70 real Gmail (Delay) rows + 100+ Outlook
+// Undeliverable rows via scripts/bounce-dry-run.js. SMTP-code patterns
+// are context-anchored (must follow a 3-digit response code like 451 or
+// 550) so stray "4.7.x" substrings inside IPs or hashes don't trigger
+// burn classification.
 
 export type BounceCategory = "data_failure" | "domain_burn" | "soft" | "unknown";
 export type BounceProvider = "google" | "microsoft" | "postfix" | "other";
@@ -28,29 +28,48 @@ const GMAIL_DELAY   = /Delivery Status Notification \(Delay\)/i;
 const OUTLOOK_SUBJ  = /^Undeliverable:/i;
 const POSTFIX_SUBJ  = /Undelivered Mail Returned to Sender/i;
 
-// Order inside each array matters: most-specific patterns fire first.
+// Domain burn (our reputation is being penalised).
+// Context-anchored: must be a real SMTP response code, not stray digits.
 const DOMAIN_BURN_PATTERNS: RegExp[] = [
-  /\b5\.7\.\d+\b/,                      // catches 5.7.1, 5.7.509 (DMARC), 5.7.606 (RBL), 5.7.708 (throttle)
-  /\b4\.7\.500\b/,                      // EOP anti-spam throttle
+  // 5.7.x policy class, prefixed by a 5xx response code (550 5.7.509, 554 5.7.1, etc.)
+  /(?:^|[\s>'"])(?:5\d\d)[\s-]+5\.7\.\d+\b/i,
+  // 4.7.x policy class, prefixed by 421 or 45x (421 4.7.28, 451 4.7.0, etc.)
+  /(?:^|[\s>'"])(?:421|45\d)[\s-]+4\.7\.\d+\b/i,
+  // Microsoft EOP anti-spam throttle (specific code, common phrasing)
+  /\b4\.7\.500\b/i,
+  // Explicit policy / throttle phrases when no SMTP code present
   /\bClient host blocked\b/i,
-  /\b451\b.*(?:rate|throttl|spam|block)/i,
+  /\b(?:unsolicited|bulk mail|unusual rate of)\b/i,
+  /\bnot whitelisted\b/i,
+  /\blisted in (?:block|black)list\b/i,
+  /\bpolicy violation\b/i,
+  /\b(?:blacklisted|blocklisted)\b/i,
+  /\b421\b[^\n]{0,80}?(?:rate|throttl|spam|block)/i,
 ];
 
+// Recipient-side permanent failure (bad address, mailbox full, etc.).
 const DATA_FAILURE_PATTERNS: RegExp[] = [
-  /\b5\.1\.\d+\b/,                      // 5.1.1 mailbox doesn't exist, 5.1.10 recipient rejected, etc.
+  /(?:^|[\s>'"])(?:5\d\d)[\s-]+5\.1\.\d+\b/i,          // 5.1.x mailbox doesn't exist
+  /(?:^|[\s>'"])(?:5\d\d)[\s-]+5\.2\.\d+\b/i,          // 5.2.x mailbox full / suspended
+  /(?:^|[\s>'"])(?:5\d\d)[\s-]+5\.4\.\d+\b/i,          // 5.4.x routing
   /\bUser Unknown\b/i,
-  /\bwasn'?t found at\b/i,              // EOP plain-English form
-  /\b5\.2\.\d+\b/,                      // mailbox full / over quota / suspended
-  /\b5\.4\.\d+\b/,                      // Postfix routing / DNS failures
+  /\bwasn'?t found at\b/i,                              // EOP plain-English form
 ];
 
+// Recipient-side transient failure. Includes the dominant Gmail (Delay)
+// 4.4.x recipient-routing failures and the no-SMTP-code "recipient server
+// did not accept" / DNS error messages.
 const SOFT_PATTERNS: RegExp[] = [
-  /\b4\.\d+\.\d+\b/,                    // any other transient 4xx
-  /\bmailbox full\b/i,                  // plain-English when no code present
+  /(?:^|[\s>'"])(?:421|45\d)[\s-]+4\.[1-6]\.\d+\b/i,    // 4.x.x transient (but not 4.7.x — that's burn)
+  /\bmailbox full\b/i,
+  /recipient server did not accept/i,
+  /DNS Error/i,
+  /MX.*lookup/i,
+  /\bcouldn'?t (?:be|connect|deliver)/i,
 ];
 
 function extractSmtpCode(body: string): string | null {
-  const m = body.match(/\b([45]\.\d+\.\d+)\b/);
+  const m = body.match(/(?:^|[\s>'"])(?:[245]\d\d)[\s-]+([45]\.\d+\.\d+)\b/i);
   return m ? m[1] : null;
 }
 
@@ -73,16 +92,21 @@ export function classifyBounce(args: {
   const smtp     = extractSmtpCode(body);
   const provider = detectProvider(from, body);
 
+  // Gmail (Failure) is the only fast path: Google has explicitly told us the
+  // recipient address is permanently undeliverable.
   if (GMAIL_FAILURE.test(subject)) {
     return { category: "data_failure", provider: "google", matched_rule: "gmail_failure_subject", smtp_code: smtp };
   }
-  if (GMAIL_DELAY.test(subject)) {
-    return { category: "domain_burn", provider: "google", matched_rule: "gmail_delay_subject", smtp_code: smtp };
-  }
 
+  // Everything else is body-driven. Gmail (Delay) now lives here because the
+  // subject alone is ambiguous — Gmail relays both reputation throttles and
+  // recipient-side transient failures under the same (Delay) label.
   const isBodyDriven =
-    OUTLOOK_SUBJ.test(subject) || POSTFIX_SUBJ.test(subject) ||
-    provider === "microsoft" || provider === "postfix";
+    GMAIL_DELAY.test(subject) ||
+    OUTLOOK_SUBJ.test(subject) ||
+    POSTFIX_SUBJ.test(subject) ||
+    provider === "microsoft" ||
+    provider === "postfix";
 
   if (isBodyDriven) {
     for (const re of DOMAIN_BURN_PATTERNS) {
@@ -93,6 +117,12 @@ export function classifyBounce(args: {
     }
     for (const re of SOFT_PATTERNS) {
       if (re.test(body)) return { category: "soft", provider, matched_rule: re.source, smtp_code: smtp };
+    }
+    // Gmail (Delay) is a delivery failure regardless of which exact phrase
+    // matched. Default to soft (transient/recipient-side) since the burn
+    // patterns above didn't fire.
+    if (GMAIL_DELAY.test(subject)) {
+      return { category: "soft", provider: "google", matched_rule: "gmail_delay_default_soft", smtp_code: smtp };
     }
   }
 

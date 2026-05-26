@@ -105,23 +105,50 @@ export async function GET(req: NextRequest) {
         GROUP BY es.sender_email, es.workspace_slug
       ),
       bounce_counts AS (
-        SELECT
-          es.sender_email,
-          es.workspace_slug,
-          COUNT(eb.id)::int AS bounces
-        FROM emails_sent es
-        JOIN email_bounces eb
-          ON  eb.workspace_slug = es.workspace_slug
-          AND eb.lead_email     = es.lead_email
-          AND eb.bounced_at    >= NOW() - ($1 || ' days')::interval
-        INNER JOIN active_senders sa
-          ON  sa.sender_email   = es.sender_email
-          AND sa.workspace_slug = es.workspace_slug
-        WHERE es.sent_at >= NOW() - ($1 || ' days')::interval
-          AND es.sender_email IS NOT NULL
-          AND es.sender_email != ''
-          ${wsFilter}
-        GROUP BY es.sender_email, es.workspace_slug
+        -- Two-path total: poll-ingested rows carry sender_email directly,
+        -- legacy webhook rows have lead_email only and need an emails_sent
+        -- join to recover the sender. Without this UNION the poll-path
+        -- bounces are invisible to the bounce_rate metric.
+        SELECT sender_email, workspace_slug, SUM(c)::int AS bounces
+        FROM (
+          -- Path A: poll rows (sender_email present directly on the bounce)
+          SELECT
+            eb.sender_email,
+            eb.workspace_slug,
+            COUNT(*)::int AS c
+          FROM email_bounces eb
+          INNER JOIN active_senders sa
+            ON  sa.sender_email   = eb.sender_email
+            AND sa.workspace_slug = eb.workspace_slug
+          WHERE eb.bounced_at >= NOW() - ($1 || ' days')::interval
+            AND eb.sender_email IS NOT NULL
+            AND eb.sender_email != ''
+            ${wsFilterB}
+          GROUP BY eb.sender_email, eb.workspace_slug
+
+          UNION ALL
+
+          -- Path B: legacy webhook rows (lead_email join)
+          SELECT
+            es.sender_email,
+            es.workspace_slug,
+            COUNT(eb.id)::int AS c
+          FROM emails_sent es
+          JOIN email_bounces eb
+            ON  eb.workspace_slug = es.workspace_slug
+            AND eb.lead_email     = es.lead_email
+            AND eb.bounced_at    >= NOW() - ($1 || ' days')::interval
+            AND (eb.sender_email IS NULL OR eb.sender_email = '')
+          INNER JOIN active_senders sa
+            ON  sa.sender_email   = es.sender_email
+            AND sa.workspace_slug = es.workspace_slug
+          WHERE es.sent_at >= NOW() - ($1 || ' days')::interval
+            AND es.sender_email IS NOT NULL
+            AND es.sender_email != ''
+            ${wsFilter}
+          GROUP BY es.sender_email, es.workspace_slug
+        ) all_paths
+        GROUP BY sender_email, workspace_slug
       ),
       burn_counts AS (
         -- New enriched bounces carry sender_email directly, so we join by
