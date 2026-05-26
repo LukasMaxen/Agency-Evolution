@@ -28,6 +28,17 @@ const GMAIL_DELAY   = /Delivery Status Notification \(Delay\)/i;
 const OUTLOOK_SUBJ  = /^Undeliverable:/i;
 const POSTFIX_SUBJ  = /Undelivered Mail Returned to Sender/i;
 
+// Recipient-side permission / config blocks. These look like burn signals
+// (often carry 5.7.x codes) but are actually permanent list-quality issues:
+// the recipient configured their account or group to reject our sender.
+// Cleaning the list is the action, not pausing our domain.
+const RECIPIENT_POLICY_BLOCK = /(?:isn'?t set up to receive|only accepts messages from|Sender not allowed|Action Required[^a-z]{0,30}Sender not allowed|not authorized to send|external forwarding|your organization does not allow|couldn'?t be forwarded|forwarding (?:is )?(?:disabled|blocked|not allowed))/i;
+
+// Third-party security filters (Mimecast, Proofpoint, Barracuda, etc.)
+// rejecting our sender. These ARE deliverability signals on our domain —
+// the recipient's security gateway is flagging our content/sender.
+const THIRD_PARTY_SECURITY_BLOCK = /(?:Message blocked|rejected due to security polic|554[^\n]{0,80}security|content[^\n]{0,30}block|filtered as spam|sender (?:reputation|blocked))/i;
+
 // Domain burn (our reputation is being penalised).
 // Context-anchored: must be a real SMTP response code, not stray digits.
 const DOMAIN_BURN_PATTERNS: RegExp[] = [
@@ -92,15 +103,30 @@ export function classifyBounce(args: {
   const smtp     = extractSmtpCode(body);
   const provider = detectProvider(from, body);
 
-  // Gmail (Failure) is the only fast path: Google has explicitly told us the
-  // recipient address is permanently undeliverable.
+  // STEP 1: Recipient-side permission / config blocks. These often carry
+  // policy-class SMTP codes (5.7.x) but the recipient or their org is the
+  // one rejecting us, not the mail provider's reputation system. Treat as
+  // permanent list-quality issues (data_failure). Check first so 5.7.x
+  // patterns later don't misroute them to burn.
+  if (RECIPIENT_POLICY_BLOCK.test(body)) {
+    return { category: "data_failure", provider, matched_rule: "recipient_policy_block", smtp_code: smtp };
+  }
+
+  // STEP 2: Gmail (Failure). Default is data_failure (bad recipient), but
+  // if the body wraps a third-party security filter rejection (Mimecast,
+  // Proofpoint, etc.), that IS our domain being blocked at the recipient's
+  // perimeter — escalate to burn.
   if (GMAIL_FAILURE.test(subject)) {
+    if (THIRD_PARTY_SECURITY_BLOCK.test(body)) {
+      return { category: "domain_burn", provider: "google", matched_rule: "gmail_failure_third_party_security", smtp_code: smtp };
+    }
     return { category: "data_failure", provider: "google", matched_rule: "gmail_failure_subject", smtp_code: smtp };
   }
 
-  // Everything else is body-driven. Gmail (Delay) now lives here because the
-  // subject alone is ambiguous — Gmail relays both reputation throttles and
-  // recipient-side transient failures under the same (Delay) label.
+  // STEP 3: Body-driven branch (Gmail Delay, Outlook Undeliverable,
+  // Postfix, generic microsoft/postfix providers). Subject alone is too
+  // ambiguous to classify; the SMTP code in the body is what distinguishes
+  // recipient issues from our reputation.
   const isBodyDriven =
     GMAIL_DELAY.test(subject) ||
     OUTLOOK_SUBJ.test(subject) ||
@@ -120,7 +146,7 @@ export function classifyBounce(args: {
     }
     // Gmail (Delay) is a delivery failure regardless of which exact phrase
     // matched. Default to soft (transient/recipient-side) since the burn
-    // patterns above didn't fire.
+    // patterns above did not fire.
     if (GMAIL_DELAY.test(subject)) {
       return { category: "soft", provider: "google", matched_rule: "gmail_delay_default_soft", smtp_code: smtp };
     }

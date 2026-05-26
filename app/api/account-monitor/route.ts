@@ -12,13 +12,15 @@ import pool from "@/lib/db";
 // Bounce rate target: <  2.0%   at/above = LIST_ISSUE signal fires
 // Burn rate target:   <  0.5%   at/above OR any single burn event fires
 // Account minimum sends: 50  (below this, only burn signal can fire)
-// Domain minimum sends:  50 * (number of accounts in domain)
+// Domain minimum sends:  max(50, 20 * accounts)  (gentle scaling: scales
+//   with capacity but doesn't punish low-volume warm-up phases)
 
 const REPLY_RATE_MIN   = 1.0;
 const BOUNCE_RATE_MAX  = 2.0;
 const BURN_RATE_MAX    = 0.5;
 const ACCOUNT_MIN_SEND = 50;
-const DOMAIN_MIN_PER_ACCOUNT = 50;
+const DOMAIN_MIN_PER_ACCOUNT = 20;
+const DOMAIN_MIN_FLOOR = 50;
 
 type Status = "burned" | "list_issue" | "low_replies" | "healthy" | "insufficient_data";
 
@@ -307,7 +309,7 @@ export async function GET(req: NextRequest) {
         const burnRate   = sent > 0 ? Math.round((d.totalBurns   / sent) * 10000) / 100 : 0;
         const replyRate  = sent > 0 ? Math.round((d.totalReplies / sent) * 10000) / 100 : 0;
 
-        const minSends = DOMAIN_MIN_PER_ACCOUNT * d.accounts.length;
+        const minSends = Math.max(DOMAIN_MIN_FLOOR, DOMAIN_MIN_PER_ACCOUNT * d.accounts.length);
         const { status, signals } = classify({
           sent,
           minSends,
@@ -414,6 +416,7 @@ export async function GET(req: NextRequest) {
         burnRateMax:   BURN_RATE_MAX,
         accountMinSend: ACCOUNT_MIN_SEND,
         domainMinPerAccount: DOMAIN_MIN_PER_ACCOUNT,
+        domainMinFloor: DOMAIN_MIN_FLOOR,
       },
       days,
       lastSynced,
