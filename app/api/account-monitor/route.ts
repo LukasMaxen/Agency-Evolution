@@ -142,9 +142,19 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    type DomainAgg = {
+      domain:        string;
+      accounts:      AccountRow[];
+      totalSent:     number;
+      totalReplies:  number;
+      totalBounces:  number;
+      spamRiskCount: number;
+    };
+
     const workspaceMap: Record<string, {
       slug:          string;
       accounts:      AccountRow[];
+      domainMap:     Record<string, DomainAgg>;
       totalSent:     number;
       totalReplies:  number;
       totalBounces:  number;
@@ -154,7 +164,7 @@ export async function GET(req: NextRequest) {
     for (const acc of accountRows) {
       const slug = acc.workspace_slug;
       if (!workspaceMap[slug]) {
-        workspaceMap[slug] = { slug, accounts: [], totalSent: 0, totalReplies: 0, totalBounces: 0, spamRiskCount: 0 };
+        workspaceMap[slug] = { slug, accounts: [], domainMap: {}, totalSent: 0, totalReplies: 0, totalBounces: 0, spamRiskCount: 0 };
       }
       const ws = workspaceMap[slug];
       ws.accounts.push(acc);
@@ -162,18 +172,52 @@ export async function GET(req: NextRequest) {
       ws.totalReplies += acc.replies;
       ws.totalBounces += acc.bounces;
       if (acc.status === "spam_risk") ws.spamRiskCount++;
+
+      // Level 2: domain rollup. Parses the sending domain from the account
+      // email (after the '@'). Domains are grouped per workspace so we can
+      // see e.g. how 911restorationpros.com is doing vs 911restoreteam.com
+      // inside the same client.
+      const atIdx = acc.sender_email.lastIndexOf("@");
+      const domain = atIdx >= 0 ? acc.sender_email.slice(atIdx + 1).toLowerCase() : "unknown";
+      if (!ws.domainMap[domain]) {
+        ws.domainMap[domain] = { domain, accounts: [], totalSent: 0, totalReplies: 0, totalBounces: 0, spamRiskCount: 0 };
+      }
+      const dom = ws.domainMap[domain];
+      dom.accounts.push(acc);
+      dom.totalSent    += acc.emails_sent;
+      dom.totalReplies += acc.replies;
+      dom.totalBounces += acc.bounces;
+      if (acc.status === "spam_risk") dom.spamRiskCount++;
     }
 
-    const workspaces = Object.values(workspaceMap).map((ws) => ({
-      slug:          ws.slug,
-      accounts:      ws.accounts,
-      totalSent:     ws.totalSent,
-      totalReplies:  ws.totalReplies,
-      totalBounces:  ws.totalBounces,
-      spamRiskCount: ws.spamRiskCount,
-      avgReplyRate:  ws.totalSent > 0 ? Math.round((ws.totalReplies / ws.totalSent) * 1000) / 10 : 0,
-      bouncePct:     ws.totalSent > 0 ? Math.round((ws.totalBounces / ws.totalSent) * 1000) / 10 : 0,
-    }));
+    const workspaces = Object.values(workspaceMap).map((ws) => {
+      const domains = Object.values(ws.domainMap).map((d) => ({
+        domain:        d.domain,
+        accounts:      d.accounts,
+        totalSent:     d.totalSent,
+        totalReplies:  d.totalReplies,
+        totalBounces:  d.totalBounces,
+        spamRiskCount: d.spamRiskCount,
+        bouncePct:     d.totalSent > 0 ? Math.round((d.totalBounces / d.totalSent) * 1000) / 10 : 0,
+        avgReplyRate:  d.totalSent > 0 ? Math.round((d.totalReplies / d.totalSent) * 1000) / 10 : 0,
+      }));
+
+      // Sort domains: spam-risk first, then by total sent desc.
+      domains.sort((a, b) => (b.spamRiskCount - a.spamRiskCount) || (b.totalSent - a.totalSent));
+
+      return {
+        slug:          ws.slug,
+        accounts:      ws.accounts,
+        domains,
+        totalSent:     ws.totalSent,
+        totalReplies:  ws.totalReplies,
+        totalBounces:  ws.totalBounces,
+        spamRiskCount: ws.spamRiskCount,
+        avgReplyRate:  ws.totalSent > 0 ? Math.round((ws.totalReplies / ws.totalSent) * 1000) / 10 : 0,
+        bouncePct:     ws.totalSent > 0 ? Math.round((ws.totalBounces / ws.totalSent) * 1000) / 10 : 0,
+        domainCount:   domains.length,
+      };
+    });
 
     workspaces.sort((a, b) => b.spamRiskCount - a.spamRiskCount);
 

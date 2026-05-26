@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import {
   RefreshCw, Loader2, ChevronLeft, AlertTriangle, CheckCircle,
   TrendingDown, WifiOff, Wifi, Flame, ChevronDown, ChevronUp,
@@ -23,9 +23,22 @@ interface Account {
   status: Status;
 }
 
+interface DomainData {
+  domain: string;
+  accounts: Account[];
+  totalSent: number;
+  totalReplies: number;
+  totalBounces: number;
+  spamRiskCount: number;
+  avgReplyRate: number;
+  bouncePct: number;
+}
+
 interface WorkspaceData {
   slug: string;
   accounts: Account[];
+  domains: DomainData[];
+  domainCount: number;
   totalSent: number;
   totalReplies: number;
   totalBounces: number;
@@ -545,9 +558,9 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
   );
 }
 
-// ── Level 2: Account table ────────────────────────────────────────────────────
+// ── Level 2: Domain-grouped table (domains as rows, accounts expand under each)
 
-function AccountTable({ ws, days, onBack, onActionDone }: {
+function DomainTable({ ws, days, onBack, onActionDone }: {
   ws: WorkspaceData;
   days: number;
   onBack: () => void;
@@ -556,9 +569,10 @@ function AccountTable({ ws, days, onBack, onActionDone }: {
   const workspaces = useWorkspaces();
   const color = resolveWsColor(workspaces, ws.slug);
   const name  = resolveWsName(workspaces, ws.slug);
-  const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
-  const [loadingMap, setLoadingMap]       = useState<Record<string, ActionKey | null>>({});
-  const [removedSet, setRemovedSet]       = useState<Set<string>>(new Set());
+  const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
+  const [expandedEmail, setExpandedEmail]   = useState<string | null>(null);
+  const [loadingMap, setLoadingMap]         = useState<Record<string, ActionKey | null>>({});
+  const [removedSet, setRemovedSet]         = useState<Set<string>>(new Set());
 
   async function runAction(senderEmail: string, action: ActionKey) {
     setLoadingMap(prev => ({ ...prev, [senderEmail]: action }));
@@ -591,7 +605,9 @@ function AccountTable({ ws, days, onBack, onActionDone }: {
   }
 
   const ORDER: Record<Status, number> = { spam_risk: 0, low_replies: 1, healthy: 2 };
-  const sorted = [...ws.accounts].sort((a, b) => ORDER[a.status] - ORDER[b.status]);
+  const sortedDomains = [...ws.domains].sort(
+    (a, b) => (b.spamRiskCount - a.spamRiskCount) || (b.totalSent - a.totalSent)
+  );
 
   return (
     <div>
@@ -608,16 +624,17 @@ function AccountTable({ ws, days, onBack, onActionDone }: {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         <div>
           <p style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>
-            <span style={{ color }}>{name}</span> — sender accounts
+            <span style={{ color }}>{name}</span> — sending domains
           </p>
           <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-            Last {days} days · {ws.accounts.length} accounts{ws.spamRiskCount > 0 ? ` · ${ws.spamRiskCount} at spam risk` : ""}
+            Last {days} days · {ws.domainCount} domains · {ws.accounts.length} accounts
+            {ws.spamRiskCount > 0 ? ` · ${ws.spamRiskCount} at spam risk` : ""}
           </p>
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
-        <SummaryCard label="Accounts"       value={ws.accounts.length} color="#185FA5" />
+        <SummaryCard label="Domains"        value={ws.domainCount} color="#185FA5" />
         <SummaryCard label="Spam risk"      value={ws.spamRiskCount} color={ws.spamRiskCount > 0 ? "#A32D2D" : "#111827"} />
         <SummaryCard label="Emails sent"    value={ws.totalSent.toLocaleString()} />
         <SummaryCard label="Avg reply rate" value={`${ws.avgReplyRate}%`} color={ws.avgReplyRate < 1 ? "#A32D2D" : ws.avgReplyRate < 2 ? "#854F0B" : "#3B6D11"} />
@@ -625,7 +642,7 @@ function AccountTable({ ws, days, onBack, onActionDone }: {
 
       <div style={{ background: "#f8f7f5", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "9px 12px", marginBottom: 14, fontSize: 11, color: "#6b7280", lineHeight: 1.6 }}>
         <strong style={{ color: "#374151" }}>Tip:</strong>{" "}
-        Click an email to see its campaigns. Remove it, then use the re-attach dropdown to restore it to specific campaigns.
+        Click a domain to see its accounts. Click an account to see its campaigns and remove or re-attach individually.
       </div>
 
       <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 12, overflow: "hidden" }}>
@@ -633,7 +650,7 @@ function AccountTable({ ws, days, onBack, onActionDone }: {
           <thead>
             <tr style={{ background: "#f8f7f5", borderBottom: "0.5px solid #ede9e3" }}>
               {[
-                { h: "Sender account", w: "24%", align: "left" },
+                { h: "Domain / account", w: "24%", align: "left" },
                 { h: "Sent",      w: "7%",  align: "right" },
                 { h: "Bounces",   w: "7%",  align: "right" },
                 { h: "Bounce %",  w: "8%",  align: "right" },
@@ -651,86 +668,143 @@ function AccountTable({ ws, days, onBack, onActionDone }: {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((acc, idx) => {
-              const isRemoved     = removedSet.has(acc.sender_email);
-              const isExpanded    = expandedEmail === acc.sender_email;
-              const loadingAction = loadingMap[acc.sender_email] ?? null;
-              const isLoading     = loadingAction !== null;
-              const rowBg         = isRemoved ? "#f0fdf4" : acc.status === "spam_risk" ? "#FCEBEB" : "transparent";
-              const isLast        = idx === sorted.length - 1;
+            {sortedDomains.map((dom, dIdx) => {
+              const isDomExpanded = expandedDomain === dom.domain;
+              const isLastDomain  = dIdx === sortedDomains.length - 1;
+              const domHasRisk    = dom.spamRiskCount > 0;
+              const domBg         = domHasRisk ? "#FCEBEB" : "#fafafa";
+              const sortedAccounts = [...dom.accounts].sort((a, b) => ORDER[a.status] - ORDER[b.status]);
 
               return (
-                <>
-                  <tr key={acc.sender_email}
+                <Fragment key={dom.domain}>
+                  {/* Domain row */}
+                  <tr
                     style={{
-                      borderBottom: isExpanded ? "none" : isLast ? "none" : "0.5px solid #f3f4f6",
-                      background: rowBg, transition: "background 0.2s",
-                    }}>
-                    <td style={{ padding: "9px 10px" }}>
-                      <button
-                        onClick={() => setExpandedEmail(isExpanded ? null : acc.sender_email)}
-                        style={{
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                          background: "none", border: "none", cursor: "pointer",
-                          padding: 0, fontFamily: "inherit", textAlign: "left", maxWidth: "100%",
-                        }}
-                      >
-                        <span style={{
-                          fontSize: 12, fontWeight: 500,
-                          color: isExpanded ? "#1a56db" : "#111827",
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                          textDecoration: isExpanded ? "underline" : "none", textUnderlineOffset: 2,
-                        }}>
-                          {acc.sender_email}
-                        </span>
-                        {isExpanded
-                          ? <ChevronUp size={11} style={{ color: "#1a56db", flexShrink: 0 }} />
-                          : <ChevronDown size={11} style={{ color: "#9ca3af", flexShrink: 0 }} />
+                      borderBottom: isDomExpanded ? "none" : isLastDomain ? "none" : "0.5px solid #ede9e3",
+                      background: domBg,
+                      transition: "background 0.2s",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setExpandedDomain(isDomExpanded ? null : dom.domain)}
+                  >
+                    <td style={{ padding: "10px 10px" }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        {isDomExpanded
+                          ? <ChevronUp size={12} style={{ color: "#1a56db", flexShrink: 0 }} />
+                          : <ChevronDown size={12} style={{ color: "#6b7280", flexShrink: 0 }} />
                         }
-                      </button>
-                      {isRemoved && (
-                        <span style={{ display: "block", marginTop: 2, fontSize: 9, color: "#3B6D11", background: "#EAF3DE", border: "0.5px solid #C0DD97", borderRadius: 4, padding: "1px 5px", width: "fit-content" }}>
-                          removed from all
+                        <span style={{
+                          fontSize: 13, fontWeight: 600,
+                          color: isDomExpanded ? "#1a56db" : "#111827",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {dom.domain}
                         </span>
-                      )}
+                        <span style={{ fontSize: 10, color: "#9ca3af", marginLeft: 4 }}>
+                          {dom.accounts.length} {dom.accounts.length === 1 ? "account" : "accounts"}
+                        </span>
+                      </span>
                     </td>
-                    <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{acc.emails_sent.toLocaleString()}</td>
-                    <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{acc.bounces}</td>
-                    <td style={{ padding: "9px 10px", textAlign: "right" }}><RateCell value={acc.bounce_rate} type="bounce" /></td>
-                    <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{acc.replies}</td>
-                    <td style={{ padding: "9px 10px", textAlign: "right" }}><RateCell value={acc.reply_rate} type="reply" /></td>
-                    <td style={{ padding: "9px 10px", textAlign: "center" }}><StatusBadge status={acc.status} /></td>
-                    <td style={{ padding: "8px 10px", textAlign: "center" }}>
-                      <div style={{ display: "flex", gap: 5, justifyContent: "center", flexWrap: "wrap" }}>
-                        {isRemoved ? (
-                          <ActionButton label="Re-attach" icon={Wifi} onClick={() => { setExpandedEmail(acc.sender_email); setRemovedSet(prev => { const s = new Set(prev); s.delete(acc.sender_email); return s; }); }} loading={false} variant="success" />
-                        ) : acc.status === "spam_risk" ? (
-                          <>
-                            <ActionButton label="Remove all"      icon={WifiOff} onClick={() => runAction(acc.sender_email, "remove")}           loading={isLoading && loadingAction === "remove"}           variant="danger" disabled={isLoading} />
-                            <ActionButton label="Remove + warmup" icon={Flame}   onClick={() => runAction(acc.sender_email, "remove_and_warmup")} loading={isLoading && loadingAction === "remove_and_warmup"} variant="warmup" disabled={isLoading} />
-                          </>
-                        ) : (
-                          <ActionButton label="Remove all" icon={WifiOff} onClick={() => runAction(acc.sender_email, "remove")} loading={isLoading && loadingAction === "remove"} variant="danger" disabled={isLoading} />
-                        )}
-                      </div>
+                    <td style={{ padding: "10px 10px", textAlign: "right", color: "#111827", fontWeight: 500 }}>{dom.totalSent.toLocaleString()}</td>
+                    <td style={{ padding: "10px 10px", textAlign: "right", color: "#111827", fontWeight: 500 }}>{dom.totalBounces}</td>
+                    <td style={{ padding: "10px 10px", textAlign: "right" }}><RateCell value={dom.bouncePct} type="bounce" /></td>
+                    <td style={{ padding: "10px 10px", textAlign: "right", color: "#111827", fontWeight: 500 }}>{dom.totalReplies}</td>
+                    <td style={{ padding: "10px 10px", textAlign: "right" }}><RateCell value={dom.avgReplyRate} type="reply" /></td>
+                    <td style={{ padding: "10px 10px", textAlign: "center" }}>
+                      {domHasRisk
+                        ? <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595", fontWeight: 500, whiteSpace: "nowrap" }}>{dom.spamRiskCount} at risk</span>
+                        : <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", fontWeight: 500, whiteSpace: "nowrap" }}>All healthy</span>
+                      }
+                    </td>
+                    <td style={{ padding: "8px 10px", textAlign: "center", color: "#9ca3af", fontSize: 10 }}>
+                      {isDomExpanded ? "" : "click to expand"}
                     </td>
                   </tr>
-                  {isExpanded && (
-                    <tr key={`${acc.sender_email}-expanded`} style={{ borderBottom: isLast ? "none" : "0.5px solid #f3f4f6", background: rowBg }}>
-                      <td colSpan={8} style={{ padding: 0 }}>
-                        <div style={{ borderTop: "0.5px solid #e5e7eb", margin: "0 10px" }}>
-                          <CampaignDropdown
-                            senderEmail={acc.sender_email}
-                            workspaceSlug={ws.slug}
-                            senderId={null}
-                            onAllRemoved={() => setRemovedSet(prev => new Set([...prev, acc.sender_email]))}
-                            onActionDone={onActionDone}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </>
+
+                  {/* Nested account rows, only when domain is expanded */}
+                  {isDomExpanded && sortedAccounts.map((acc, aIdx) => {
+                    const isRemoved     = removedSet.has(acc.sender_email);
+                    const isExpanded    = expandedEmail === acc.sender_email;
+                    const loadingAction = loadingMap[acc.sender_email] ?? null;
+                    const isLoading     = loadingAction !== null;
+                    const rowBg         = isRemoved ? "#f0fdf4" : acc.status === "spam_risk" ? "#FCEBEB" : "#ffffff";
+                    const isLastAccount = aIdx === sortedAccounts.length - 1;
+
+                    return (
+                      <Fragment key={acc.sender_email}>
+                        <tr
+                          style={{
+                            borderBottom: isExpanded ? "none" : (isLastAccount && isLastDomain) ? "none" : "0.5px solid #f3f4f6",
+                            background: rowBg, transition: "background 0.2s",
+                          }}>
+                          <td style={{ padding: "8px 10px 8px 32px" }}>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setExpandedEmail(isExpanded ? null : acc.sender_email); }}
+                              style={{
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                                background: "none", border: "none", cursor: "pointer",
+                                padding: 0, fontFamily: "inherit", textAlign: "left", maxWidth: "100%",
+                              }}
+                            >
+                              <span style={{
+                                fontSize: 12, fontWeight: 400,
+                                color: isExpanded ? "#1a56db" : "#374151",
+                                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                textDecoration: isExpanded ? "underline" : "none", textUnderlineOffset: 2,
+                              }}>
+                                {acc.sender_email}
+                              </span>
+                              {isExpanded
+                                ? <ChevronUp size={11} style={{ color: "#1a56db", flexShrink: 0 }} />
+                                : <ChevronDown size={11} style={{ color: "#9ca3af", flexShrink: 0 }} />
+                              }
+                            </button>
+                            {isRemoved && (
+                              <span style={{ display: "block", marginTop: 2, fontSize: 9, color: "#3B6D11", background: "#EAF3DE", border: "0.5px solid #C0DD97", borderRadius: 4, padding: "1px 5px", width: "fit-content" }}>
+                                removed from all
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151" }}>{acc.emails_sent.toLocaleString()}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151" }}>{acc.bounces}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right" }}><RateCell value={acc.bounce_rate} type="bounce" /></td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151" }}>{acc.replies}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right" }}><RateCell value={acc.reply_rate} type="reply" /></td>
+                          <td style={{ padding: "8px 10px", textAlign: "center" }}><StatusBadge status={acc.status} /></td>
+                          <td style={{ padding: "6px 10px", textAlign: "center" }}>
+                            <div style={{ display: "flex", gap: 5, justifyContent: "center", flexWrap: "wrap" }}>
+                              {isRemoved ? (
+                                <ActionButton label="Re-attach" icon={Wifi} onClick={() => { setExpandedEmail(acc.sender_email); setRemovedSet(prev => { const s = new Set(prev); s.delete(acc.sender_email); return s; }); }} loading={false} variant="success" />
+                              ) : acc.status === "spam_risk" ? (
+                                <>
+                                  <ActionButton label="Remove all"      icon={WifiOff} onClick={() => runAction(acc.sender_email, "remove")}           loading={isLoading && loadingAction === "remove"}           variant="danger" disabled={isLoading} />
+                                  <ActionButton label="Remove + warmup" icon={Flame}   onClick={() => runAction(acc.sender_email, "remove_and_warmup")} loading={isLoading && loadingAction === "remove_and_warmup"} variant="warmup" disabled={isLoading} />
+                                </>
+                              ) : (
+                                <ActionButton label="Remove all" icon={WifiOff} onClick={() => runAction(acc.sender_email, "remove")} loading={isLoading && loadingAction === "remove"} variant="danger" disabled={isLoading} />
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr style={{ borderBottom: (isLastAccount && isLastDomain) ? "none" : "0.5px solid #f3f4f6", background: rowBg }}>
+                            <td colSpan={8} style={{ padding: 0 }}>
+                              <div style={{ borderTop: "0.5px solid #e5e7eb", margin: "0 10px 0 32px" }}>
+                                <CampaignDropdown
+                                  senderEmail={acc.sender_email}
+                                  workspaceSlug={ws.slug}
+                                  senderId={null}
+                                  onAllRemoved={() => setRemovedSet(prev => new Set([...prev, acc.sender_email]))}
+                                  onActionDone={onActionDone}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </Fragment>
               );
             })}
           </tbody>
@@ -816,7 +890,7 @@ export function AccountMonitor() {
           <p style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>Account monitor</p>
           <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
             {selectedWs
-              ? `${resolveWsName(workspaces, selectedWs.slug)} — sender accounts`
+              ? `${resolveWsName(workspaces, selectedWs.slug)} — sending domains`
               : "Sender-level spam & reply rate monitoring across all workspaces"}
           </p>
         </div>
@@ -855,7 +929,12 @@ export function AccountMonitor() {
       )}
 
       {!loading && selectedWs && (
-        <AccountTable ws={selectedWs} days={days} onBack={() => setSelected(null)} onActionDone={(msg, type) => setToast({ msg, type })} />
+        <DomainTable
+          ws={selectedWs}
+          days={days}
+          onBack={() => setSelected(null)}
+          onActionDone={(msg, type) => setToast({ msg, type })}
+        />
       )}
 
       {!loading && !selectedWs && data && (
