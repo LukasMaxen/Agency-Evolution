@@ -73,9 +73,14 @@ interface WorkspaceData {
 
 interface Summary {
   totalAccounts: number;
+  totalDomains: number;
   totalSent: number;
+  totalReplies: number;
+  totalBounces: number;
   totalBurns: number;
   avgReplyRate: number;
+  avgBouncePct: number;
+  avgBurnPct: number;
   domainStatusCounts: StatusCounts;
 }
 
@@ -269,7 +274,7 @@ function Toast({ msg, type, onDismiss }: { msg: string; type: "success" | "error
 function DayToggle({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <div style={{ display: "flex", background: "var(--color-bg-secondary, #f8f7f5)", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: 3, gap: 2 }}>
-      {[3, 7, 14].map(d => (
+      {[3, 10, 30].map(d => (
         <button key={d} onClick={() => onChange(d)}
           style={{
             fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer",
@@ -287,11 +292,52 @@ function DayToggle({ value, onChange }: { value: number; onChange: (v: number) =
 
 // ── Summary card ──────────────────────────────────────────────────────────────
 
-function SummaryCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
+function SummaryCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {
   return (
     <div style={{ background: "#f8f7f5", borderRadius: 8, padding: "12px 14px" }}>
       <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 5 }}>{label}</p>
-      <p style={{ fontSize: 20, fontWeight: 500, color: color ?? "#111827" }}>{value}</p>
+      <p style={{ fontSize: 20, fontWeight: 500, color: color ?? "#111827" }}>
+        {value}
+        {sub && <span style={{ fontSize: 12, color: "#9ca3af", fontWeight: 400, marginLeft: 6 }}>{sub}</span>}
+      </p>
+    </div>
+  );
+}
+
+// Shared summary metrics row: Total domains, Avg bounce %, Avg burn %, Total replies (with reply %).
+// Used at the top of both the global view and the per-workspace (client) view.
+function MetricsRow({
+  totalDomains,
+  totalReplies,
+  avgReplyRate,
+  bouncePct,
+  burnPct,
+}: {
+  totalDomains: number;
+  totalReplies: number;
+  avgReplyRate: number;
+  bouncePct: number;
+  burnPct: number;
+}) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
+      <SummaryCard label="Total domains" value={totalDomains} color="#185FA5" />
+      <SummaryCard
+        label="Avg bounce rate"
+        value={`${bouncePct}%`}
+        color={bouncePct >= 2 ? "#A32D2D" : bouncePct >= 1 ? "#854F0B" : "#111827"}
+      />
+      <SummaryCard
+        label="Avg burn rate"
+        value={`${burnPct}%`}
+        color={burnPct > 0 ? "#A32D2D" : "#111827"}
+      />
+      <SummaryCard
+        label="Total replies"
+        value={totalReplies.toLocaleString()}
+        sub={`(${avgReplyRate}% reply rate)`}
+        color={avgReplyRate < 1 ? "#A32D2D" : avgReplyRate < 2 ? "#854F0B" : "#3B6D11"}
+      />
     </div>
   );
 }
@@ -710,9 +756,17 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
     insufficient_data: 3,
     healthy:           4,
   };
-  const sortedDomains = [...ws.domains].sort(
-    (a, b) => (ORDER[a.status] - ORDER[b.status]) || (b.totalSent - a.totalSent)
-  );
+  // Domain sort: lowest reply rate first (worst), then highest bounce
+  // rate (worst). Surfaces problem domains regardless of which status
+  // they tripped. insufficient_data domains float to the end so they do
+  // not clutter the top when they have 0/0 metrics.
+  const sortedDomains = [...ws.domains].sort((a, b) => {
+    const aInsuf = a.status === "insufficient_data" ? 1 : 0;
+    const bInsuf = b.status === "insufficient_data" ? 1 : 0;
+    if (aInsuf !== bInsuf) return aInsuf - bInsuf;
+    if (a.avgReplyRate !== b.avgReplyRate) return a.avgReplyRate - b.avgReplyRate;
+    return b.bouncePct - a.bouncePct;
+  });
 
   return (
     <div>
@@ -739,12 +793,13 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
-        <SummaryCard label="Burned domains" value={ws.statusCounts.burned}     color={ws.statusCounts.burned     > 0 ? "#A32D2D" : "#111827"} />
-        <SummaryCard label="List issues"    value={ws.statusCounts.list_issue} color={ws.statusCounts.list_issue > 0 ? "#854F0B" : "#111827"} />
-        <SummaryCard label="Emails sent"    value={ws.totalSent.toLocaleString()} />
-        <SummaryCard label="Avg reply rate" value={`${ws.avgReplyRate}%`} color={ws.avgReplyRate < 1 ? "#A32D2D" : ws.avgReplyRate < 2 ? "#854F0B" : "#3B6D11"} />
-      </div>
+      <MetricsRow
+        totalDomains={ws.domainCount}
+        totalReplies={ws.totalReplies}
+        avgReplyRate={ws.avgReplyRate}
+        bouncePct={ws.bouncePct}
+        burnPct={ws.burnPct}
+      />
 
       <div style={{ background: "#f8f7f5", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "9px 12px", marginBottom: 14, fontSize: 11, color: "#6b7280", lineHeight: 1.6 }}>
         <strong style={{ color: "#374151" }}>Tip:</strong>{" "}
@@ -934,7 +989,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
 
 export function AccountMonitor() {
   const workspaces        = useWorkspaces();
-  const [days, setDays]           = useState(7);
+  const [days, setDays]           = useState(10);
   const [data, setData]           = useState<{ workspaces: WorkspaceData[]; summary: Summary } | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
@@ -1055,20 +1110,13 @@ export function AccountMonitor() {
 
       {!loading && !selectedWs && data && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
-            <SummaryCard
-              label="Burned domains"
-              value={data.summary.domainStatusCounts.burned}
-              color={data.summary.domainStatusCounts.burned > 0 ? "#A32D2D" : "#111827"}
-            />
-            <SummaryCard
-              label="List issues"
-              value={data.summary.domainStatusCounts.list_issue}
-              color={data.summary.domainStatusCounts.list_issue > 0 ? "#854F0B" : "#111827"}
-            />
-            <SummaryCard label="Emails sent"      value={data.summary.totalSent.toLocaleString()} />
-            <SummaryCard label="Avg reply rate"   value={`${data.summary.avgReplyRate}%`} color={data.summary.avgReplyRate < 1 ? "#A32D2D" : data.summary.avgReplyRate < 2 ? "#854F0B" : "#3B6D11"} />
-          </div>
+          <MetricsRow
+            totalDomains={data.summary.totalDomains}
+            totalReplies={data.summary.totalReplies}
+            avgReplyRate={data.summary.avgReplyRate}
+            bouncePct={data.summary.avgBouncePct}
+            burnPct={data.summary.avgBurnPct}
+          />
 
           {data.workspaces.length === 0 ? (
             <div style={{ textAlign: "center", padding: 60, color: "#9ca3af", fontSize: 13 }}>

@@ -388,8 +388,12 @@ export async function GET(req: NextRequest) {
     const totalAccounts = accountRows.length;
     const totalSent     = accountRows.reduce((s, a) => s + a.emails_sent, 0);
     const totalReplies  = accountRows.reduce((s, a) => s + a.replies,     0);
+    const totalBounces  = accountRows.reduce((s, a) => s + a.bounces,     0);
     const totalBurns    = accountRows.reduce((s, a) => s + a.burns,       0);
+    const totalDomains  = workspaces.reduce((s, w) => s + w.domainCount, 0);
     const avgReplyRate  = totalSent > 0 ? Math.round((totalReplies / totalSent) * 10000) / 100 : 0;
+    const avgBouncePct  = totalSent > 0 ? Math.round((totalBounces / totalSent) * 10000) / 100 : 0;
+    const avgBurnPct    = totalSent > 0 ? Math.round((totalBurns   / totalSent) * 10000) / 100 : 0;
 
     // Domain-level rollup counts for the global summary.
     const allDomains = workspaces.flatMap(w => w.domains);
@@ -405,9 +409,14 @@ export async function GET(req: NextRequest) {
       workspaces,
       summary: {
         totalAccounts,
+        totalDomains,
         totalSent,
+        totalReplies,
+        totalBounces,
         totalBurns,
         avgReplyRate,
+        avgBouncePct,
+        avgBurnPct,
         domainStatusCounts: summaryStatusCounts,
       },
       thresholds: {
