@@ -157,6 +157,27 @@ function actionTooltip(args: {
   return "Copy or targeting issue. Review subject lines, ICP fit, and sequence relevance.";
 }
 
+// Short label of the action, shown inline next to the status so the user
+// does not have to hover the badge to know what to do. The full sentence
+// is still on the badge tooltip.
+function actionLabel(args: {
+  status: Status;
+  signals: SignalFlags;
+}): string {
+  const { status, signals } = args;
+  if (status === "healthy")           return "";
+  if (status === "insufficient_data") return "Wait for more sends";
+  if (status === "low_replies")       return "Review copy + targeting";
+  if (status === "list_issue") {
+    return signals.replies ? "Clean list + review targeting" : "Clean the list";
+  }
+  // burned
+  if (signals.bounce && signals.replies) return "Pause + warm 2-4w, then clean list";
+  if (signals.bounce)                    return "Pause + warm 2-4w + clean list";
+  if (signals.replies)                   return "Pause + warm 2-4w (replies recover)";
+  return "Pause + warm 2-4w, check DMARC/SPF/DKIM";
+}
+
 function StatusBadge({
   status, signals, sent, minSends,
 }: {
@@ -304,22 +325,24 @@ function SummaryCard({ label, value, sub, color }: { label: string; value: strin
   );
 }
 
-// Shared summary metrics: 8 cards in a 4-column, 2-row grid. Row 1 is
-// status/count metrics, row 2 is rate metrics. Used at the top of both
-// the global view and the per-workspace (client) view.
+// Shared summary metrics: 8 cards in a 4-column, 2-row grid.
+// Row 1 (counts):  Total domains | Healthy | List issues | Burned
+// Row 2 (rates):   Emails sent   | Reply % (replies) | Bounce % | Burn %
 function MetricsRow({
-  burned,
-  listIssue,
   totalDomains,
+  healthy,
+  listIssue,
+  burned,
   totalSent,
   totalReplies,
   avgReplyRate,
   bouncePct,
   burnPct,
 }: {
-  burned: number;
-  listIssue: number;
   totalDomains: number;
+  healthy: number;
+  listIssue: number;
+  burned: number;
   totalSent: number;
   totalReplies: number;
   avgReplyRate: number;
@@ -328,10 +351,17 @@ function MetricsRow({
 }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
-      <SummaryCard label="Burned domains" value={burned}     color={burned    > 0 ? "#A32D2D" : "#111827"} />
-      <SummaryCard label="List issues"    value={listIssue}  color={listIssue > 0 ? "#854F0B" : "#111827"} />
-      <SummaryCard label="Total domains"  value={totalDomains} color="#185FA5" />
-      <SummaryCard label="Emails sent"    value={totalSent.toLocaleString()} />
+      <SummaryCard label="Total domains"   value={totalDomains} color="#185FA5" />
+      <SummaryCard label="Healthy domains" value={healthy}      color={healthy   > 0 ? "#3B6D11" : "#111827"} />
+      <SummaryCard label="List issues"     value={listIssue}    color={listIssue > 0 ? "#854F0B" : "#111827"} />
+      <SummaryCard label="Burned domains"  value={burned}       color={burned    > 0 ? "#A32D2D" : "#111827"} />
+      <SummaryCard label="Emails sent"     value={totalSent.toLocaleString()} />
+      <SummaryCard
+        label="Avg reply rate"
+        value={`${avgReplyRate}%`}
+        sub={`(${totalReplies.toLocaleString()} replies)`}
+        color={avgReplyRate < 1 ? "#A32D2D" : avgReplyRate < 2 ? "#854F0B" : "#3B6D11"}
+      />
       <SummaryCard
         label="Avg bounce rate"
         value={`${bouncePct}%`}
@@ -341,15 +371,6 @@ function MetricsRow({
         label="Avg burn rate"
         value={`${burnPct}%`}
         color={burnPct > 0 ? "#A32D2D" : "#111827"}
-      />
-      <SummaryCard
-        label="Avg reply rate"
-        value={`${avgReplyRate}%`}
-        color={avgReplyRate < 1 ? "#A32D2D" : avgReplyRate < 2 ? "#854F0B" : "#3B6D11"}
-      />
-      <SummaryCard
-        label="Total replies"
-        value={totalReplies.toLocaleString()}
       />
     </div>
   );
@@ -769,14 +790,12 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
     insufficient_data: 3,
     healthy:           4,
   };
-  // Domain sort: lowest reply rate first (worst), then highest bounce
-  // rate (worst). Surfaces problem domains regardless of which status
-  // they tripped. insufficient_data domains float to the end so they do
-  // not clutter the top when they have 0/0 metrics.
+  // Domain sort: primary by status severity (burned first, list_issue
+  // next, etc.) so all same-status rows cluster together. Within each
+  // group, sort by reply rate ascending (worst first) then bounce rate
+  // descending (worst first).
   const sortedDomains = [...ws.domains].sort((a, b) => {
-    const aInsuf = a.status === "insufficient_data" ? 1 : 0;
-    const bInsuf = b.status === "insufficient_data" ? 1 : 0;
-    if (aInsuf !== bInsuf) return aInsuf - bInsuf;
+    if (ORDER[a.status] !== ORDER[b.status]) return ORDER[a.status] - ORDER[b.status];
     if (a.avgReplyRate !== b.avgReplyRate) return a.avgReplyRate - b.avgReplyRate;
     return b.bouncePct - a.bouncePct;
   });
@@ -807,9 +826,10 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
       </div>
 
       <MetricsRow
-        burned={ws.statusCounts.burned}
-        listIssue={ws.statusCounts.list_issue}
         totalDomains={ws.domainCount}
+        healthy={ws.statusCounts.healthy}
+        listIssue={ws.statusCounts.list_issue}
+        burned={ws.statusCounts.burned}
         totalSent={ws.totalSent}
         totalReplies={ws.totalReplies}
         avgReplyRate={ws.avgReplyRate}
@@ -894,8 +914,26 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                         minSends={dom.minSends}
                       />
                     </td>
-                    <td style={{ padding: "8px 10px", textAlign: "center", color: "#9ca3af", fontSize: 10 }}>
-                      {isDomExpanded ? "" : "click to expand"}
+                    <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                      {(() => {
+                        const label = actionLabel({ status: dom.status, signals: dom.signals });
+                        if (!label) return null;
+                        const tone =
+                          dom.status === "burned"            ? { bg: "#FCEBEB", color: "#A32D2D", border: "#F09595" } :
+                          dom.status === "list_issue"        ? { bg: "#FAEEDA", color: "#854F0B", border: "#FAC775" } :
+                          dom.status === "low_replies"       ? { bg: "#FAEEDA", color: "#854F0B", border: "#FAC775" } :
+                                                               { bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB" };
+                        return (
+                          <span style={{
+                            display: "inline-block",
+                            fontSize: 10, padding: "3px 9px", borderRadius: 6,
+                            background: tone.bg, color: tone.color, border: `0.5px solid ${tone.border}`,
+                            fontWeight: 500, whiteSpace: "nowrap",
+                          }}>
+                            {label}
+                          </span>
+                        );
+                      })()}
                     </td>
                   </tr>
 
@@ -1127,9 +1165,10 @@ export function AccountMonitor() {
       {!loading && !selectedWs && data && (
         <>
           <MetricsRow
-            burned={data.summary.domainStatusCounts.burned}
-            listIssue={data.summary.domainStatusCounts.list_issue}
             totalDomains={data.summary.totalDomains}
+            healthy={data.summary.domainStatusCounts.healthy}
+            listIssue={data.summary.domainStatusCounts.list_issue}
+            burned={data.summary.domainStatusCounts.burned}
             totalSent={data.summary.totalSent}
             totalReplies={data.summary.totalReplies}
             avgReplyRate={data.summary.avgReplyRate}
