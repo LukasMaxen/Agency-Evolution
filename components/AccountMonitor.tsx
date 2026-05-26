@@ -304,16 +304,23 @@ function SummaryCard({ label, value, sub, color }: { label: string; value: strin
   );
 }
 
-// Shared summary metrics row: Total domains, Avg bounce %, Avg burn %, Total replies (with reply %).
-// Used at the top of both the global view and the per-workspace (client) view.
+// Shared summary metrics: 8 cards in a 4-column, 2-row grid. Row 1 is
+// status/count metrics, row 2 is rate metrics. Used at the top of both
+// the global view and the per-workspace (client) view.
 function MetricsRow({
+  burned,
+  listIssue,
   totalDomains,
+  totalSent,
   totalReplies,
   avgReplyRate,
   bouncePct,
   burnPct,
 }: {
+  burned: number;
+  listIssue: number;
   totalDomains: number;
+  totalSent: number;
   totalReplies: number;
   avgReplyRate: number;
   bouncePct: number;
@@ -321,7 +328,10 @@ function MetricsRow({
 }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
-      <SummaryCard label="Total domains" value={totalDomains} color="#185FA5" />
+      <SummaryCard label="Burned domains" value={burned}     color={burned    > 0 ? "#A32D2D" : "#111827"} />
+      <SummaryCard label="List issues"    value={listIssue}  color={listIssue > 0 ? "#854F0B" : "#111827"} />
+      <SummaryCard label="Total domains"  value={totalDomains} color="#185FA5" />
+      <SummaryCard label="Emails sent"    value={totalSent.toLocaleString()} />
       <SummaryCard
         label="Avg bounce rate"
         value={`${bouncePct}%`}
@@ -333,10 +343,13 @@ function MetricsRow({
         color={burnPct > 0 ? "#A32D2D" : "#111827"}
       />
       <SummaryCard
+        label="Avg reply rate"
+        value={`${avgReplyRate}%`}
+        color={avgReplyRate < 1 ? "#A32D2D" : avgReplyRate < 2 ? "#854F0B" : "#3B6D11"}
+      />
+      <SummaryCard
         label="Total replies"
         value={totalReplies.toLocaleString()}
-        sub={`(${avgReplyRate}% reply rate)`}
-        color={avgReplyRate < 1 ? "#A32D2D" : avgReplyRate < 2 ? "#854F0B" : "#3B6D11"}
       />
     </div>
   );
@@ -794,7 +807,10 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
       </div>
 
       <MetricsRow
+        burned={ws.statusCounts.burned}
+        listIssue={ws.statusCounts.list_issue}
         totalDomains={ws.domainCount}
+        totalSent={ws.totalSent}
         totalReplies={ws.totalReplies}
         avgReplyRate={ws.avgReplyRate}
         bouncePct={ws.bouncePct}
@@ -1111,7 +1127,10 @@ export function AccountMonitor() {
       {!loading && !selectedWs && data && (
         <>
           <MetricsRow
+            burned={data.summary.domainStatusCounts.burned}
+            listIssue={data.summary.domainStatusCounts.list_issue}
             totalDomains={data.summary.totalDomains}
+            totalSent={data.summary.totalSent}
             totalReplies={data.summary.totalReplies}
             avgReplyRate={data.summary.avgReplyRate}
             bouncePct={data.summary.avgBouncePct}
