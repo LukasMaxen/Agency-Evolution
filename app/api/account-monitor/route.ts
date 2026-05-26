@@ -11,9 +11,14 @@ import pool from "@/lib/db";
 // Reply rate target:  >= 1.0%   below = LOW_REPLIES signal fires
 // Bounce rate target: <  2.0%   at/above = LIST_ISSUE signal fires
 // Burn rate target:   <  0.5%   at/above OR any single burn event fires
-// Account minimum sends: 50  (below this, only burn signal can fire)
-// Domain minimum sends:  max(50, 20 * accounts)  (gentle scaling: scales
-//   with capacity but doesn't punish low-volume warm-up phases)
+//
+// Confidence tiers (based on send volume):
+//   - sends >= full threshold:  status is confident (no asterisk)
+//   - 20 <= sends < full:       status is PROVISIONAL (asterisk + dashed)
+//   - sends < 20 and no burn:   INSUFFICIENT_DATA (truly noisy)
+// Account full threshold:  50
+// Domain full threshold:   max(50, 20 * accounts)
+// Provisional floor:       20 sends (both levels)
 
 const REPLY_RATE_MIN   = 1.0;
 const BOUNCE_RATE_MAX  = 2.0;
@@ -21,8 +26,10 @@ const BURN_RATE_MAX    = 0.5;
 const ACCOUNT_MIN_SEND = 50;
 const DOMAIN_MIN_PER_ACCOUNT = 20;
 const DOMAIN_MIN_FLOOR = 50;
+const PROVISIONAL_FLOOR = 20;
 
 type Status = "burned" | "list_issue" | "low_replies" | "healthy" | "insufficient_data";
+type Confidence = "full" | "provisional";
 
 interface SignalFlags {
   burn:    boolean;
@@ -32,23 +39,20 @@ interface SignalFlags {
 
 function classify(args: {
   sent: number;
-  minSends: number;
+  fullMinSends: number;
   burnCount: number;
   burnRate: number;
   bounceRate: number;
   replyRate: number;
-}): { status: Status; signals: SignalFlags } {
+}): { status: Status; confidence: Confidence; signals: SignalFlags } {
   const burnFires = args.burnCount > 0 || args.burnRate >= BURN_RATE_MAX;
 
-  // Burn bypasses the minimum sends gate: a single 5.7.509 / DMARC failure
-  // event is meaningful regardless of volume.
-  if (args.sent < args.minSends) {
-    if (burnFires) {
-      return { status: "burned", signals: { burn: true, bounce: false, replies: false } };
-    }
+  // Below the provisional floor and no burn event: truly no signal.
+  if (args.sent < PROVISIONAL_FLOOR && !burnFires) {
     return {
-      status:  "insufficient_data",
-      signals: { burn: false, bounce: false, replies: false },
+      status:     "insufficient_data",
+      confidence: "full",
+      signals:    { burn: false, bounce: false, replies: false },
     };
   }
 
@@ -58,10 +62,17 @@ function classify(args: {
     replies: args.replyRate  <  REPLY_RATE_MIN,
   };
 
-  if (signals.burn)    return { status: "burned",       signals };
-  if (signals.bounce)  return { status: "list_issue",   signals };
-  if (signals.replies) return { status: "low_replies",  signals };
-  return                    { status: "healthy",       signals };
+  // Priority cascade for the badge.
+  let status: Status;
+  if (signals.burn)         status = "burned";
+  else if (signals.bounce)  status = "list_issue";
+  else if (signals.replies) status = "low_replies";
+  else                      status = "healthy";
+
+  // Confidence: full only when sends are at or above the full threshold.
+  const confidence: Confidence = args.sent >= args.fullMinSends ? "full" : "provisional";
+
+  return { status, confidence, signals };
 }
 
 // Sort key by status severity. Lower = worse, sorted first.
@@ -69,8 +80,12 @@ const STATUS_ORDER: Record<Status, number> = {
   burned:            0,
   list_issue:        1,
   low_replies:       2,
-  insufficient_data: 3,
-  healthy:           4,
+  healthy:           3,
+  insufficient_data: 4,  // truly no data drops to the bottom
+};
+const CONFIDENCE_ORDER: Record<Confidence, number> = {
+  full:        0,
+  provisional: 1,
 };
 
 export async function GET(req: NextRequest) {
@@ -173,14 +188,21 @@ export async function GET(req: NextRequest) {
         GROUP BY eb.sender_email, eb.workspace_slug
       ),
       reply_counts AS (
+        -- Counts UNIQUE leads (first reply per lead), not every reply row.
+        -- This matches EmailBison's "unique_replies_per_contact" metric:
+        -- subsequent messages in the same thread don't inflate the count.
+        -- Also filters out bounce DSNs that occasionally sneak in as
+        -- LEAD_REPLIED events, and autoresponder/OOO subjects.
         SELECT
           sender_email,
           workspace_slug,
-          COUNT(id)::int AS replies
+          COUNT(DISTINCT lead_email)::int AS replies
         FROM replies
         WHERE received_at >= NOW() - ($1 || ' days')::interval
-          AND sender_email IS NOT NULL
-          AND sender_email != ''
+          AND sender_email IS NOT NULL AND sender_email != ''
+          AND lead_email   IS NOT NULL AND lead_email   != ''
+          AND lower(lead_email) !~ '^(postmaster|mailer-daemon|noreply|no-reply|bounce|bounces|bounce-handler)@'
+          AND (subject IS NULL OR subject !~* '^(Undeliverable|Delivery Status Notification|Undelivered Mail|Mail Delivery|Returned to Sender|Failure Notice|Automatic reply|Auto[- ]?reply|Out of [Oo]ffice|Away from)')
           ${wsFilterR}
         GROUP BY sender_email, workspace_slug
       )
@@ -225,6 +247,7 @@ export async function GET(req: NextRequest) {
       burn_rate:      number;
       reply_rate:     number;
       status:         Status;
+      confidence:     Confidence;
       signals:        SignalFlags;
     };
 
@@ -237,9 +260,9 @@ export async function GET(req: NextRequest) {
       const burnRate   = parseFloat(r.burn_rate   ?? 0);
       const replyRate  = parseFloat(r.reply_rate  ?? 0);
 
-      const { status, signals } = classify({
+      const { status, confidence, signals } = classify({
         sent,
-        minSends: ACCOUNT_MIN_SEND,
+        fullMinSends: ACCOUNT_MIN_SEND,
         burnCount: burns,
         burnRate,
         bounceRate,
@@ -254,7 +277,7 @@ export async function GET(req: NextRequest) {
         bounce_rate:    bounceRate,
         burn_rate:      burnRate,
         reply_rate:     replyRate,
-        status, signals,
+        status, confidence, signals,
       };
     });
 
@@ -309,10 +332,10 @@ export async function GET(req: NextRequest) {
         const burnRate   = sent > 0 ? Math.round((d.totalBurns   / sent) * 10000) / 100 : 0;
         const replyRate  = sent > 0 ? Math.round((d.totalReplies / sent) * 10000) / 100 : 0;
 
-        const minSends = Math.max(DOMAIN_MIN_FLOOR, DOMAIN_MIN_PER_ACCOUNT * d.accounts.length);
-        const { status, signals } = classify({
+        const fullMinSends = Math.max(DOMAIN_MIN_FLOOR, DOMAIN_MIN_PER_ACCOUNT * d.accounts.length);
+        const { status, confidence, signals } = classify({
           sent,
-          minSends,
+          fullMinSends,
           burnCount: d.totalBurns,
           burnRate,
           bounceRate,
@@ -337,16 +360,22 @@ export async function GET(req: NextRequest) {
           bouncePct:     bounceRate,
           burnPct:       burnRate,
           avgReplyRate:  replyRate,
-          minSends,
-          status, signals,
+          minSends:      fullMinSends,
+          provisionalMinSends: PROVISIONAL_FLOOR,
+          status, confidence, signals,
           statusCounts,
         };
       });
 
-      // Domains sorted by severity, then by volume.
+      // Domains sorted by severity, then by confidence (full before
+      // provisional), then by reply rate ascending, then bounce rate
+      // descending. So "real burned" surfaces above "provisional burned",
+      // both above any list_issue, etc.
       domains.sort((a, b) =>
         (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]) ||
-        (b.totalSent - a.totalSent)
+        (CONFIDENCE_ORDER[a.confidence] - CONFIDENCE_ORDER[b.confidence]) ||
+        (a.avgReplyRate - b.avgReplyRate) ||
+        (b.bouncePct - a.bouncePct)
       );
 
       const wsSent      = ws.totalSent;

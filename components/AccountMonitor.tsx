@@ -10,6 +10,7 @@ import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Status = "burned" | "list_issue" | "low_replies" | "healthy" | "insufficient_data";
+type Confidence = "full" | "provisional";
 type ActionKey = "remove" | "reattach" | "remove_and_warmup";
 
 interface SignalFlags {
@@ -37,6 +38,7 @@ interface Account {
   burn_rate: number;
   reply_rate: number;
   status: Status;
+  confidence: Confidence;
   signals: SignalFlags;
 }
 
@@ -51,7 +53,9 @@ interface DomainData {
   bouncePct: number;
   burnPct: number;
   minSends: number;
+  provisionalMinSends: number;
   status: Status;
+  confidence: Confidence;
   signals: SignalFlags;
   statusCounts: StatusCounts;
 }
@@ -179,31 +183,37 @@ function actionLabel(args: {
 }
 
 function StatusBadge({
-  status, signals, sent, minSends,
+  status, confidence, signals, sent, minSends,
 }: {
   status: Status;
+  confidence?: Confidence;
   signals?: SignalFlags;
   sent?: number;
   minSends?: number;
 }) {
   const cfg = STATUS_CFG[status];
   const Icon = cfg.icon;
-  const tooltip = signals !== undefined && sent !== undefined && minSends !== undefined
+  const isProvisional = confidence === "provisional";
+  const baseTooltip = signals !== undefined && sent !== undefined && minSends !== undefined
     ? actionTooltip({ status, signals, sent, minSends })
     : "";
+  const tooltip = isProvisional && sent !== undefined && minSends !== undefined
+    ? `Provisional: ${sent} of ${minSends} sends needed for full confidence. ${baseTooltip}`
+    : baseTooltip;
   return (
     <span
       title={tooltip}
       style={{
         display: "inline-flex", alignItems: "center", gap: 4,
         fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 500,
-        background: cfg.bg, color: cfg.color, border: `0.5px solid ${cfg.border}`,
+        background: cfg.bg, color: cfg.color,
+        border: `1px ${isProvisional ? "dashed" : "solid"} ${cfg.border}`,
         whiteSpace: "nowrap",
         cursor: tooltip ? "help" : "default",
       }}
     >
       <Icon size={10} />
-      {cfg.label}
+      {cfg.label}{isProvisional ? "*" : ""}
     </span>
   );
 }
@@ -798,15 +808,20 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
     burned:            0,
     list_issue:        1,
     low_replies:       2,
-    insufficient_data: 3,
-    healthy:           4,
+    healthy:           3,
+    insufficient_data: 4,
   };
-  // Domain sort: primary by status severity (burned first, list_issue
-  // next, etc.) so all same-status rows cluster together. Within each
-  // group, sort by reply rate ascending (worst first) then bounce rate
-  // descending (worst first).
+  const CONFIDENCE_ORDER: Record<Confidence, number> = {
+    full:        0,
+    provisional: 1,
+  };
+  // Domain sort: primary by status severity (burned > list_issue > etc.),
+  // secondary by confidence (full before provisional). Within the same
+  // tier, worst reply rate first, then worst bounce rate.
   const sortedDomains = [...ws.domains].sort((a, b) => {
     if (ORDER[a.status] !== ORDER[b.status]) return ORDER[a.status] - ORDER[b.status];
+    if (CONFIDENCE_ORDER[a.confidence] !== CONFIDENCE_ORDER[b.confidence])
+      return CONFIDENCE_ORDER[a.confidence] - CONFIDENCE_ORDER[b.confidence];
     if (a.avgReplyRate !== b.avgReplyRate) return a.avgReplyRate - b.avgReplyRate;
     return b.bouncePct - a.bouncePct;
   });
@@ -881,7 +896,13 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
               const domBg         = dom.status === "burned" ? "#FCEBEB" :
                                     dom.status === "list_issue" ? "#FFF7E6" :
                                     "#fafafa";
-              const sortedAccounts = [...dom.accounts].sort((a, b) => ORDER[a.status] - ORDER[b.status]);
+              const sortedAccounts = [...dom.accounts].sort((a, b) => {
+                if (ORDER[a.status] !== ORDER[b.status]) return ORDER[a.status] - ORDER[b.status];
+                if (CONFIDENCE_ORDER[a.confidence] !== CONFIDENCE_ORDER[b.confidence])
+                  return CONFIDENCE_ORDER[a.confidence] - CONFIDENCE_ORDER[b.confidence];
+                if (a.reply_rate !== b.reply_rate) return a.reply_rate - b.reply_rate;
+                return b.bounce_rate - a.bounce_rate;
+              });
 
               return (
                 <Fragment key={dom.domain}>
@@ -920,6 +941,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                     <td style={{ padding: "10px 10px", textAlign: "center" }}>
                       <StatusBadge
                         status={dom.status}
+                        confidence={dom.confidence}
                         signals={dom.signals}
                         sent={dom.totalSent}
                         minSends={dom.minSends}
@@ -1002,6 +1024,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                           <td style={{ padding: "8px 10px", textAlign: "center" }}>
                             <StatusBadge
                               status={acc.status}
+                              confidence={acc.confidence}
                               signals={acc.signals}
                               sent={acc.emails_sent}
                               minSends={50}
