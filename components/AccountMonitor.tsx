@@ -68,6 +68,7 @@ interface WorkspaceData {
   totalSent: number;
   totalReplies: number;
   totalBounces: number;
+  totalInterested: number;
   totalBurns: number;
   avgReplyRate: number;
   bouncePct: number;
@@ -81,6 +82,7 @@ interface Summary {
   totalSent: number;
   totalReplies: number;
   totalBounces: number;
+  totalInterested: number;
   totalBurns: number;
   avgReplyRate: number;
   avgBouncePct: number;
@@ -746,7 +748,7 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
           { label: "Emails sent",    value: ws.totalSent.toLocaleString(),   color: undefined },
           // Rates: binary green/red per KPI
           { label: "Bounce rate",    value: `${ws.bouncePct}%`,    color: ws.bouncePct < 2 ? "#3B6D11" : "#A32D2D" },
-          { label: "Avg reply rate", value: `${ws.avgReplyRate}%`, color: ws.avgReplyRate >= 1 ? "#3B6D11" : "#A32D2D" },
+          { label: "Avg reply rate", value: `${ws.avgReplyRate}% (${ws.totalReplies.toLocaleString()})`, color: ws.avgReplyRate >= 1 ? "#3B6D11" : "#A32D2D" },
         ].map(s => (
           <div key={s.label}>
             <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{s.label}</p>

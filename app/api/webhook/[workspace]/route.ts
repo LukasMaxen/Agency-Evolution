@@ -64,6 +64,9 @@ export async function POST(
       const threadContext   = extractQuotedThread(reply.text_body ?? "") || null;
       const receivedAt      = reply.date_received ? new Date(reply.date_received) : new Date();
 
+      // LEAD_REPLIED only fires for tracked replies (real responses to campaign
+      // sends), so we mark these as tracked unconditionally. Untracked replies
+      // land via the inbox-sync poller, which carries the EB-supplied flag.
       await pool.query(
   `INSERT INTO replies (
     id, workspace_id, workspace_slug, email_bison_id,
@@ -72,8 +75,9 @@ export async function POST(
     sender_email, sender_email_id,
     to_email, to_name,
     campaign, subject, message, thread_context,
-    received_at, status, interested
-  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'new',NULL)
+    received_at, status, interested,
+    reply_type, tracked_reply
+  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'new',NULL,'Tracked Reply',TRUE)
   ON CONFLICT (id) DO NOTHING`,
   [
     replyUuid, workspace.id, slug, replyUuid,

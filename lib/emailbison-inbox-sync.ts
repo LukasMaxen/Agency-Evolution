@@ -20,6 +20,7 @@ interface BisonReplyItem {
   text_body: string | null;
   date_received: string;
   type: string;
+  tracked_reply?: boolean;
   automated_reply?: boolean;
   campaign_id: number | null;
   lead_id: number | null;
@@ -94,6 +95,15 @@ export async function runEmailBisonInboxSync(): Promise<void> {
           const leadName = item.from_name ?? item.from_email_address;
           const message = extractCleanBody(item.text_body ?? "");
 
+          // EB distinguishes Tracked Reply (real response to a campaign send)
+          // from Untracked Reply (any other inbound — newsletters, fresh cold
+          // outreach to a sender mailbox, transactional). Only Tracked Reply
+          // counts toward the reply rate KPI in /api/account-monitor.
+          const isTracked =
+            typeof item.tracked_reply === "boolean"
+              ? item.tracked_reply
+              : item.type === "Tracked Reply";
+
           const inserted = await pool.query(
             `INSERT INTO replies (
                id, workspace_id, workspace_slug, email_bison_id,
@@ -102,8 +112,9 @@ export async function runEmailBisonInboxSync(): Promise<void> {
                sender_email, sender_email_id,
                to_email, to_name,
                campaign, subject, message,
-               received_at, status, interested
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'new',NULL)
+               received_at, status, interested,
+               reply_type, tracked_reply
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'new',NULL,$19,$20)
              ON CONFLICT (id) DO NOTHING
              RETURNING id`,
             [
@@ -115,6 +126,7 @@ export async function runEmailBisonInboxSync(): Promise<void> {
               item.primary_to_email_address ?? "", leadName,
               "", item.subject ?? "", message,
               receivedAt,
+              item.type ?? null, isTracked,
             ]
           );
 

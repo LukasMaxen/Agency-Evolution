@@ -191,8 +191,14 @@ export async function GET(req: NextRequest) {
         -- Counts UNIQUE leads (first reply per lead), not every reply row.
         -- This matches EmailBison's "unique_replies_per_contact" metric:
         -- subsequent messages in the same thread don't inflate the count.
-        -- Also filters out bounce DSNs that occasionally sneak in as
-        -- LEAD_REPLIED events, and autoresponder/OOO subjects.
+        --
+        -- Once migration 013 applies, this CTE will add
+        --   AND tracked_reply = TRUE
+        -- to drop EB-classified "Untracked Reply" rows (newsletters, fresh
+        -- cold outreach landing in a sender mailbox, transactional). Until
+        -- then the per-sender reply counts include those rows; the workspace
+        -- summary cards already get their numbers from the EB stats API
+        -- below, so the inflation only affects the per-sender table.
         SELECT
           sender_email,
           workspace_slug,
@@ -378,6 +384,9 @@ export async function GET(req: NextRequest) {
         (b.bouncePct - a.bouncePct)
       );
 
+      // Workspace-level totals: kept as DB-derived here. EB stats API
+      // overrides these below (see `ebStatsBySlug`) so the numbers shown
+      // on the summary cards match EB's dashboard exactly.
       const wsSent      = ws.totalSent;
       const wsBounceRate = wsSent > 0 ? Math.round((ws.totalBounces / wsSent) * 10000) / 100 : 0;
       const wsBurnRate   = wsSent > 0 ? Math.round((ws.totalBurns   / wsSent) * 10000) / 100 : 0;
@@ -399,6 +408,7 @@ export async function GET(req: NextRequest) {
         totalReplies:  ws.totalReplies,
         totalBounces:  ws.totalBounces,
         totalBurns:    ws.totalBurns,
+        totalInterested: 0,
         avgReplyRate:  wsReplyRate,
         bouncePct:     wsBounceRate,
         burnPct:       wsBurnRate,
@@ -407,6 +417,60 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    // ── Override workspace-level totals with EB stats API ─────────────────
+    // The /api/workspaces/v1.1/stats endpoint returns the same numbers the
+    // EB dashboard shows (emails_sent, unique_replies_per_contact, bounced,
+    // interested) for an arbitrary date window. We surface those on the
+    // workspace summary cards so what we display matches EB exactly.
+    //
+    // Per-account / per-domain breakdowns continue to come from the local
+    // DB query above, since EB has no per-sender date-windowed endpoint.
+    const toYmd = (d: Date) => d.toISOString().slice(0, 10);
+    const endDate   = new Date();
+    const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+    const startYmd  = toYmd(startDate);
+    const endYmd    = toYmd(endDate);
+
+    const ebCreds = await pool.query(
+      `SELECT slug, email_bison_api_key AS key, email_bison_instance_url AS url
+       FROM workspaces
+       WHERE email_bison_api_key IS NOT NULL
+         AND email_bison_instance_url IS NOT NULL
+         ${workspace !== "all" ? "AND slug = $1" : ""}`,
+      workspace !== "all" ? [workspace] : []
+    );
+
+    type EbStats = { sent: number; replies: number; bounced: number; interested: number };
+    const ebStatsBySlug: Record<string, EbStats> = {};
+    await Promise.all(ebCreds.rows.map(async (w) => {
+      try {
+        const url = `${w.url}/api/workspaces/v1.1/stats?start_date=${startYmd}&end_date=${endYmd}`;
+        const r = await fetch(url, { headers: { Authorization: `Bearer ${w.key}` } });
+        if (!r.ok) return;
+        const body = await r.json();
+        const d = body?.data ?? {};
+        ebStatsBySlug[w.slug] = {
+          sent:       d.emails_sent ?? 0,
+          replies:    d.unique_replies_per_contact ?? 0,
+          bounced:    d.bounced ?? 0,
+          interested: d.interested ?? 0,
+        };
+      } catch (err) {
+        console.error(`[account-monitor] EB stats fetch failed for ${w.slug}:`, err);
+      }
+    }));
+
+    for (const ws of workspaces) {
+      const eb = ebStatsBySlug[ws.slug];
+      if (!eb) continue;
+      ws.totalSent       = eb.sent;
+      ws.totalReplies    = eb.replies;
+      ws.totalBounces    = eb.bounced;
+      ws.totalInterested = eb.interested;
+      ws.avgReplyRate    = eb.sent > 0 ? Math.round((eb.replies / eb.sent) * 10000) / 100 : 0;
+      ws.bouncePct       = eb.sent > 0 ? Math.round((eb.bounced / eb.sent) * 10000) / 100 : 0;
+    }
+
     // Workspace order: burn count desc, then list-issue count desc, then sent desc.
     workspaces.sort((a, b) =>
       (b.statusCounts.burned     - a.statusCounts.burned) ||
@@ -414,15 +478,19 @@ export async function GET(req: NextRequest) {
       (b.totalSent               - a.totalSent)
     );
 
-    const totalAccounts = accountRows.length;
-    const totalSent     = accountRows.reduce((s, a) => s + a.emails_sent, 0);
-    const totalReplies  = accountRows.reduce((s, a) => s + a.replies,     0);
-    const totalBounces  = accountRows.reduce((s, a) => s + a.bounces,     0);
-    const totalBurns    = accountRows.reduce((s, a) => s + a.burns,       0);
-    const totalDomains  = workspaces.reduce((s, w) => s + w.domainCount, 0);
-    const avgReplyRate  = totalSent > 0 ? Math.round((totalReplies / totalSent) * 10000) / 100 : 0;
-    const avgBouncePct  = totalSent > 0 ? Math.round((totalBounces / totalSent) * 10000) / 100 : 0;
-    const avgBurnPct    = totalSent > 0 ? Math.round((totalBurns   / totalSent) * 10000) / 100 : 0;
+    const totalAccounts   = accountRows.length;
+    // Workspace-level totals already overridden with EB stats above. Sum
+    // those instead of the DB-derived account rows so the global summary
+    // also matches EB's dashboard numbers.
+    const totalSent       = workspaces.reduce((s, w) => s + w.totalSent,       0);
+    const totalReplies    = workspaces.reduce((s, w) => s + w.totalReplies,    0);
+    const totalBounces    = workspaces.reduce((s, w) => s + w.totalBounces,    0);
+    const totalInterested = workspaces.reduce((s, w) => s + w.totalInterested, 0);
+    const totalBurns      = accountRows.reduce((s, a) => s + a.burns,          0);
+    const totalDomains    = workspaces.reduce((s, w) => s + w.domainCount, 0);
+    const avgReplyRate    = totalSent > 0 ? Math.round((totalReplies / totalSent) * 10000) / 100 : 0;
+    const avgBouncePct    = totalSent > 0 ? Math.round((totalBounces / totalSent) * 10000) / 100 : 0;
+    const avgBurnPct      = totalSent > 0 ? Math.round((totalBurns   / totalSent) * 10000) / 100 : 0;
 
     // Domain-level rollup counts for the global summary.
     const allDomains = workspaces.flatMap(w => w.domains);
@@ -442,6 +510,7 @@ export async function GET(req: NextRequest) {
         totalSent,
         totalReplies,
         totalBounces,
+        totalInterested,
         totalBurns,
         avgReplyRate,
         avgBouncePct,
