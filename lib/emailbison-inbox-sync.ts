@@ -1,4 +1,5 @@
 import pool from "@/lib/db";
+import { classifyBounce } from "@/lib/bounce-classifier";
 
 // EmailBison inbox poller. Catches inbound replies that the LEAD_REPLIED
 // webhook would not deliver:
@@ -143,6 +144,112 @@ export async function runEmailBisonInboxSync(): Promise<void> {
     if (totalNew > 0) {
       console.log(
         `[inbox-sync] inserted ${totalNew} new replies across ${wss.rows.length} workspaces`
+      );
+    }
+
+    // ── BOUNCED FOLDER PASS ────────────────────────────────────────────
+    // Pulls bounce DSNs from EB's Bounced folder and writes enriched rows
+    // into email_bounces (subject, body, provider, category). The
+    // EMAIL_BOUNCED webhook only gives us a coarse "unknown" row; this
+    // pass adds the classification needed to distinguish data failures
+    // (bad recipient) from domain burn (we are being throttled).
+    //
+    // Runs for every workspace with EB creds, including the ones excluded
+    // from the Inbox pass above, so deliverability tracking covers the
+    // entire fleet.
+    const allBounceWss = await pool.query(`
+      SELECT slug, email_bison_api_key, email_bison_instance_url
+      FROM workspaces
+      WHERE email_bison_api_key IS NOT NULL
+        AND email_bison_instance_url IS NOT NULL
+    `);
+
+    let totalBouncesIngested = 0;
+    for (const ws of allBounceWss.rows) {
+      try {
+        const r = await fetch(
+          `${ws.email_bison_instance_url}/api/replies?type=Bounced&per_page=250`,
+          { headers: { Authorization: `Bearer ${ws.email_bison_api_key}` } }
+        );
+        if (!r.ok) {
+          console.error(`[inbox-sync] ${ws.slug} bounce fetch failed: ${r.status}`);
+          continue;
+        }
+        const body = await r.json();
+        const items: BisonReplyItem[] = body?.data ?? [];
+
+        let inserted = 0;
+        for (const item of items) {
+          if (!item.uuid) continue;
+          const receivedAt = new Date(item.date_received);
+          if (receivedAt.getTime() < cutoff) continue;
+
+          // Pre-filter: EB files some human autoresponders under the
+          // Bounced folder (OOO replies, inactive-user notices, etc.).
+          // Real bounce DSNs come from daemon mailboxes, or are auto
+          // replies whose subject matches a known DSN pattern.
+          const fromAddr = item.from_email_address || "";
+          const looksLikeBounce =
+            /^(postmaster|mailer-daemon|noreply|no-reply|bounce|bounces|bounce-handler)@/i.test(fromAddr) ||
+            (item.automated_reply === true &&
+              /(Delivery Status Notification|Undeliverable|Undelivered Mail|Mail Delivery|Returned to Sender|Failure Notice)/i.test(item.subject || ""));
+          if (!looksLikeBounce) continue;
+
+          // Idempotent: skip if we've already ingested this bounce uuid.
+          const existing = await pool.query(
+            "SELECT 1 FROM email_bounces WHERE eb_reply_uuid = $1",
+            [item.uuid]
+          );
+          if (existing.rows.length > 0) continue;
+
+          const cls = classifyBounce({
+            subject:   item.subject,
+            textBody:  item.text_body,
+            fromEmail: item.from_email_address,
+          });
+
+          const senderEmail = item.primary_to_email_address ?? null;
+          const reason = (item.text_body ?? "").slice(0, 500);
+          const rowId = `bounce-poll-${ws.slug}-${item.id}`;
+
+          const ins = await pool.query(
+            `INSERT INTO email_bounces (
+               id, workspace_slug, lead_email, lead_name, campaign_name,
+               bounce_type, bounced_at,
+               sender_email, sender_email_id,
+               eb_reply_id, eb_reply_uuid,
+               bounce_subject, bounce_reason, bounce_category, provider
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+             ON CONFLICT (id) DO NOTHING`,
+            [
+              rowId, ws.slug,
+              null, null, "",
+              cls.category,                // bounce_type mirrors category so legacy dashboards light up
+              receivedAt,
+              senderEmail,
+              item.sender_email_id ?? null,
+              item.id, item.uuid,
+              item.subject ?? null,
+              reason,
+              cls.category,
+              cls.provider,
+            ]
+          );
+          if (ins.rowCount && ins.rowCount > 0) inserted++;
+        }
+
+        if (inserted > 0) {
+          totalBouncesIngested += inserted;
+          console.log(`[inbox-sync] ${ws.slug} ingested ${inserted} new bounces`);
+        }
+      } catch (err: any) {
+        console.error(`[inbox-sync] ${ws.slug} bounce pass failed:`, err?.message ?? err);
+      }
+    }
+
+    if (totalBouncesIngested > 0) {
+      console.log(
+        `[inbox-sync] ingested ${totalBouncesIngested} new bounces across ${allBounceWss.rows.length} workspaces`
       );
     }
   } finally {
