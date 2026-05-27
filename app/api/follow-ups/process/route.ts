@@ -445,6 +445,11 @@ Draft FU step ${nextStep} now.`;
     }
   }
 
+  // Signature guard: append if Claude omitted it.
+  if (!/\{SENDER_EMAIL_SIGNATURE\}/i.test(draft.body)) {
+    draft.body = draft.body.trimEnd() + "\n\n{SENDER_EMAIL_SIGNATURE}";
+  }
+
   // FU emails auto-send directly — no approval queue.
   const sent = await sendReplyToEmailBison(reply, draft.body);
 
