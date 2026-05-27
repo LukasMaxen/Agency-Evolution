@@ -162,6 +162,7 @@ The following workspaces exist in the DB but are excluded from every CSM update:
 - **Venture Exits** (slug: `venture-exits`)
 - **Zebs IBS** (slug: `zebs-ibs`)
 - **Wrobel Capital** (slug: `wrobel-capital`)
+- **ITG Group** (slug: `itg-group`)
 
 ---
 
