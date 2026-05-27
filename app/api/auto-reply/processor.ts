@@ -537,6 +537,8 @@ Every reply is sent AS the client's sender (e.g. Jeff Zanardi from ACT Capital, 
 
 4. CHECK THE RECIPIENT. If the reply was sent by someone other than the lead on record (different name, "forwarded to me by", reply from a different email address), set recipient_email and recipient_name to that person. Address them directly.
 
+5. USE THE LEAD CONTEXT BLOCK IF PROVIDED. Location, company size, and LinkedIn are there to make the reply specific to this person. Reference at least one fact naturally. "I noticed you're based in [city]" or "given [company size]" is enough. If no LEAD CONTEXT block appears, skip this step.
+
 ## CAMPAIGN TYPE RULES (REPLY QUICK REFERENCE overrides these)
 
 Sell-side advisory (approaching business owners about selling): goal is a call. No teaser. Send Calendly only. Never name the buyer.
@@ -686,7 +688,7 @@ Fill in questions_to_answer, personal_hook, and pivot_line BEFORE writing reply_
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${alternateSender ? `${alternateSender}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
