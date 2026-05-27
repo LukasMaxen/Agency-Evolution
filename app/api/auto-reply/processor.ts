@@ -832,6 +832,12 @@ ${messageText.slice(0, 3000)}`;
     result.fu_sequence_type = "none";
   }
 
+  // Enforce fu_sequence_type = full for interested/needs_info. Claude occasionally
+  // returns "none" here which is a schema violation — only hard closes get none.
+  if (["interested", "needs_info"].includes(result.intent) && result.fu_sequence_type === "none") {
+    result.fu_sequence_type = "full";
+  }
+
   // If Claude returns manual for a hard-close intent, just close silently instead.
   if (result.action === "manual" && new Set(["unsubscribe","wrong_target","hostile","not_interested","hard_no"]).has(result.intent)) {
     result.action = "do_nothing";
