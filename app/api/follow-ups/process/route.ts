@@ -208,7 +208,7 @@ async function sendReplyToEmailBison(
   return true;
 }
 
-const SKIP_WORKSPACES = new Set(["itg-group", "sonaro-ai", "sro-consulting"]);
+const SKIP_WORKSPACES = new Set(["itg-group", "sonaro-ai", "sro-consulting", "hahnbeck"]);
 
 // Minimum 2000 — FU drafts load full thread history + client file + both skill files.
 // Below 2000, Claude truncates mid-draft and the 80-char body guard kills the FU.
