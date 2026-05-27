@@ -848,12 +848,14 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
   }
 
   const ORDER: Record<Status, number> = {
-    disconnected:      0,
-    burned:            1,
-    list_issue:        2,
-    low_replies:       3,
-    healthy:           4,
-    insufficient_data: 5,
+    disconnected:        0,
+    burned:              1,
+    list_issue:          2,
+    no_replies:          3,
+    drastic_low_replies: 4,
+    low_replies:         5,
+    healthy:             6,
+    insufficient_data:   7,
   };
   const CONFIDENCE_ORDER: Record<Confidence, number> = {
     full:        0,
