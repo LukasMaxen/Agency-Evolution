@@ -26,6 +26,7 @@ never:
 - Never say "efficacy" for cosmetics
 - Never overpromise on turnaround without checking
 - No P.S. opt-out lines
+- Never offer the complimentary sample unprompted when redirecting a pricing question to a call. The sample offer is only for leads who specifically ask about seeing work or a sample. Pricing redirect = call only.
 
 fu_context: |
   Romain Guillon produces premium CGI/3D video for product brands. The offer is a complimentary (never "free") sample matched to the lead's specific product — zero commitment required to see what's possible.
