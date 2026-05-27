@@ -16,6 +16,9 @@ import { backsyncInterestedToEmailBison } from "@/lib/emailbison-backsync";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AutoReplyResult {
+  questions_to_answer?: string[];
+  personal_hook?: string;
+  pivot_line?: string;
   action: "auto_send" | "manual" | "do_nothing";
   intent: string;
   fu_sequence_type: "full" | "abbreviated" | "none";
@@ -38,7 +41,8 @@ const SKIP_WORKSPACES = new Set(["itg-group", "sonaro-ai", "sro-consulting"]);
 
 // Minimum 2000 — replies load up to 8 thread messages + system prompt + client file.
 // Below 2000, Claude truncates mid-reply and the 80-char body guard routes everything to manual.
-const CLAUDE_MAX_TOKENS = 2500;
+// 3000 gives headroom for the reasoning fields (questions_to_answer, personal_hook, pivot_line).
+const CLAUDE_MAX_TOKENS = 3000;
 
 // ─── File helpers ──────────────────────────────────────────────────────────────
 
