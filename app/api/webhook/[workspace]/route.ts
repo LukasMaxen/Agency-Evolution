@@ -64,6 +64,14 @@ export async function POST(
       const threadContext   = extractQuotedThread(reply.text_body ?? "") || null;
       const receivedAt      = reply.date_received ? new Date(reply.date_received) : new Date();
 
+      // If the reply was sent FROM a different email than the campaign lead
+      // (e.g. Jagoda forwards to Grzegorz who replies from his own address),
+      // capture the actual sender so the processor can address and send to them.
+      const fromEmail = (reply.from_email_address as string | null) ?? null;
+      const fromName  = (reply.from_name as string | null) ?? null;
+      const preferredRecipientEmail = fromEmail && fromEmail.toLowerCase() !== leadEmail.toLowerCase() ? fromEmail : null;
+      const preferredRecipientName  = preferredRecipientEmail ? (fromName ?? null) : null;
+
       // LEAD_REPLIED only fires for tracked replies (real responses to campaign
       // sends), so we mark these as tracked unconditionally. Untracked replies
       // land via the inbox-sync poller, which carries the EB-supplied flag.
@@ -76,8 +84,9 @@ export async function POST(
     to_email, to_name,
     campaign, subject, message, thread_context,
     received_at, status, interested,
-    reply_type, tracked_reply
-  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'new',NULL,'Tracked Reply',TRUE)
+    reply_type, tracked_reply,
+    preferred_recipient_email, preferred_recipient_name
+  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'new',NULL,'Tracked Reply',TRUE,$20,$21)
   ON CONFLICT (id) DO NOTHING`,
   [
     replyUuid, workspace.id, slug, replyUuid,
@@ -90,6 +99,7 @@ export async function POST(
     campaign?.name ?? "",
     reply.email_subject ?? "",
     message, threadContext, receivedAt,
+    preferredRecipientEmail, preferredRecipientName,
   ]
 );
 

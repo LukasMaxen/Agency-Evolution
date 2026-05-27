@@ -520,7 +520,15 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   const coldEmailBody = coldEmailResult.rows[0]?.body?.slice(0, 600) ?? null;
 
   // ── Context injections ────────────────────────────────────────────────────────
-  const alternateSender = detectAlternateSender(messageText, reply.lead_email);
+  // If the webhook already identified a different sender (from_email_address != lead.email),
+  // inject a hard directive so Claude addresses the right person and sets recipient_email.
+  // This supersedes the body-text detectAlternateSender heuristic for these cases.
+  const webhookSenderOverride = reply.preferred_recipient_email &&
+    (reply.preferred_recipient_email as string).toLowerCase() !== reply.lead_email.toLowerCase();
+
+  const alternateSender = webhookSenderOverride
+    ? `RECIPIENT DETECTION: The reply was sent FROM ${reply.preferred_recipient_name ?? reply.preferred_recipient_email} <${reply.preferred_recipient_email}>, which differs from the campaign lead on record (${reply.lead_email}). You MUST address ${(reply.preferred_recipient_name as string | null)?.split(" ")[0] ?? "this person"} directly, NOT ${(reply.lead_name as string | null)?.split(" ")[0] ?? "the original lead"}. Set recipient_email to "${reply.preferred_recipient_email}" and recipient_name to "${reply.preferred_recipient_name ?? ""}".`
+    : detectAlternateSender(messageText, reply.lead_email);
 
   // ── System prompt ─────────────────────────────────────────────────────────────
   const systemPrompt = `You are the reply agent for Maxen Partners, a cold email agency managing outbound campaigns for M&A advisors, PE firms, franchise brands, and creative agencies. Your job is to draft replies that read like they came from a senior person who carefully read the whole thread — not an AI working through a checklist.
