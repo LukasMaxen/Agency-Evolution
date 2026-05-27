@@ -331,9 +331,12 @@ async function postApprovalCard(opts: {
   const ebLink = reply.id && instanceUrl ? `${instanceUrl}/inbox/replies/${reply.id}` : null;
   const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(", ");
 
-  const recipientOverride = result.recipient_email && result.recipient_email !== reply.lead_email;
+  // Prefer Claude's explicit override, fall back to the webhook-detected one.
+  const effectiveRecipientEmail = result.recipient_email ?? reply.preferred_recipient_email ?? null;
+  const effectiveRecipientName  = result.recipient_name  ?? reply.preferred_recipient_name  ?? null;
+  const recipientOverride = effectiveRecipientEmail && effectiveRecipientEmail !== reply.lead_email;
   const sendingToLine = recipientOverride
-    ? `:warning: *Sending to:* ${result.recipient_name ?? ""} <${result.recipient_email}> _(differs from lead: ${reply.lead_email})_`
+    ? `:warning: *Sending to:* ${effectiveRecipientName ?? ""} <${effectiveRecipientEmail}> _(differs from lead: ${reply.lead_email})_`
     : `*Sending to:* ${leadLine}`;
 
   const blocks: object[] = [
