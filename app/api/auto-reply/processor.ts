@@ -67,6 +67,45 @@ function extractQuickReference(clientFileContent: string): string {
   return marker + section.trim();
 }
 
+// ─── Lead enrichment fetch ─────────────────────────────────────────────────────
+
+async function fetchLeadEnrichment(instanceUrl: string, apiKey: string, leadId: number | string | null): Promise<string> {
+  if (!leadId || !instanceUrl || !apiKey) return "";
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8_000);
+    let res: Response;
+    try {
+      res = await fetch(`${instanceUrl}/api/leads/${leadId}`, {
+        headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) return "";
+    const data = await res.json();
+    const lead = data?.data;
+    if (!lead) return "";
+
+    const vars: Record<string, string> = {};
+    for (const v of (lead.custom_variables ?? [])) {
+      if (v.value) vars[(v.name as string).toLowerCase()] = String(v.value);
+    }
+
+    const lines: string[] = [];
+    const location = [vars.city, vars.state].filter(Boolean).join(", ");
+    if (location) lines.push(`Location: ${location}`);
+    if (vars.employees) lines.push(`Company size: ${vars.employees} employees`);
+    if (vars.linkedin) lines.push(`LinkedIn: ${vars.linkedin}`);
+    if (vars.website) lines.push(`Website: ${vars.website}`);
+
+    return lines.length > 0 ? `LEAD CONTEXT (use at least one of these facts to personalize the reply):\n${lines.join("\n")}` : "";
+  } catch {
+    return "";
+  }
+}
+
 // ─── Pre-filters (zero Claude cost) ───────────────────────────────────────────
 
 /** OOO, bounces, delivery failures, automated notices. */
@@ -449,7 +488,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // ── Build thread history ──────────────────────────────────────────────────────
   // Includes: original cold email (step 0), our reply/FU emails, and prior inbound replies.
   // This gives Claude the full picture — including what was promised in the original pitch.
-  const [coldEmailResult, outbound, inbound] = await Promise.all([
+  const [coldEmailResult, outbound, inbound, leadEnrichment] = await Promise.all([
     // The original cold email the lead is responding to — gives context the lead may reference.
     pool.query(
       `SELECT email_body AS body, subject, sent_at
@@ -469,6 +508,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
        FROM replies WHERE workspace_slug=$1 AND lead_email=$2 AND id!=$3`,
       [workspaceSlug, reply.lead_email, replyId]
     ),
+    fetchLeadEnrichment(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_lead_id ?? null),
   ]);
 
   const allMessages = [...outbound.rows, ...inbound.rows].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
