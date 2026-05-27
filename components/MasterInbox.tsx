@@ -225,7 +225,7 @@ export function MasterInbox() {
     { id: "inbox",           label: "Inbox",           icon: Inbox,       badge: newRepliesCount },
     { id: "dashboard",       label: "Dashboard",       icon: BarChart2,   badge: 0 },
     { id: "lead-monitoring", label: "Lead Monitoring", icon: Users,       badge: 0 },
-    { id: "account-monitor", label: "Acct Monitor",    icon: ShieldAlert, badge: 0 },
+    { id: "account-monitor", label: "Domain Monitor",  icon: ShieldAlert, badge: 0 },
     { id: "variant-refresh", label: "Var Refresh",     icon: RotateCcw,   badge: 0 },
   ];
 

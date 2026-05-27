@@ -9,7 +9,7 @@ import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Status = "burned" | "list_issue" | "low_replies" | "healthy" | "insufficient_data";
+type Status = "disconnected" | "burned" | "list_issue" | "low_replies" | "healthy" | "insufficient_data";
 type Confidence = "full" | "provisional";
 type ActionKey = "remove" | "reattach" | "remove_and_warmup";
 
@@ -20,6 +20,7 @@ interface SignalFlags {
 }
 
 interface StatusCounts {
+  disconnected:      number;
   burned:            number;
   list_issue:        number;
   low_replies:       number;
@@ -30,6 +31,7 @@ interface StatusCounts {
 interface Account {
   sender_email: string;
   workspace_slug: string;
+  conn_status: string;
   emails_sent: number;
   bounces: number;
   burns: number;
@@ -121,6 +123,7 @@ function resolveWsColor(workspaces: ReturnType<typeof useWorkspaces>, slug: stri
 }
 
 const STATUS_CFG: Record<Status, { label: string; bg: string; color: string; border: string; icon: React.ElementType }> = {
+  disconnected:      { label: "Disconnected",      bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC", icon: WifiOff },
   burned:            { label: "Burned",            bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: Flame },
   list_issue:        { label: "List issue",        bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: AlertTriangle },
   low_replies:       { label: "Low replies",       bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: TrendingDown },
@@ -139,6 +142,9 @@ function actionTooltip(args: {
 }): string {
   const { status, signals, sent, minSends } = args;
 
+  if (status === "disconnected") {
+    return "Mailbox is disconnected in EmailBison. Reconnect in Sender Emails settings before this account can resume sending.";
+  }
   if (status === "insufficient_data") {
     return `Not enough volume yet. ${sent}/${minSends} sends needed before flagging.`;
   }
@@ -172,6 +178,7 @@ function actionLabel(args: {
 }): string {
   const { status, signals } = args;
   if (status === "healthy")           return "";
+  if (status === "disconnected")      return "Reconnect mailbox in EmailBison";
   if (status === "insufficient_data") return "Wait for more sends";
   if (status === "low_replies")       return "Review copy + targeting";
   if (status === "list_issue") {
@@ -333,11 +340,15 @@ function SummaryCard({ label, value, sub, color }: { label: string; value: strin
 }
 
 // Shared summary metrics: 8 cards in a 4-column, 2-row grid.
-// Row 1 (counts):  Total domains | Healthy | List issues | Burned
+// Row 1 (counts):  Total domains | Disconnected | List issues | Burned
 // Row 2 (rates):   Emails sent   | Reply % (replies) | Bounce % | Burn %
+//
+// "Healthy" was dropped from row 1 in favour of "Disconnected" — disconnected
+// mailboxes are a hard block on sending and need operator attention. Healthy
+// counts are still visible in the workspace cards and the domain table.
 function MetricsRow({
   totalDomains,
-  healthy,
+  disconnected,
   listIssue,
   burned,
   totalSent,
@@ -347,7 +358,7 @@ function MetricsRow({
   burnPct,
 }: {
   totalDomains: number;
-  healthy: number;
+  disconnected: number;
   listIssue: number;
   burned: number;
   totalSent: number;
@@ -358,11 +369,11 @@ function MetricsRow({
 }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
-      {/* Row 1: counts (no KPI = always black) */}
-      <SummaryCard label="Total domains"   value={totalDomains} />
-      <SummaryCard label="Healthy domains" value={healthy} />
-      <SummaryCard label="List issues"     value={listIssue} />
-      <SummaryCard label="Burned domains"  value={burned} />
+      {/* Row 1: counts (no KPI = always black, except disconnected which goes indigo when > 0) */}
+      <SummaryCard label="Total domains"      value={totalDomains} />
+      <SummaryCard label="Disconnected"       value={disconnected} color={disconnected > 0 ? "#3730A3" : undefined} />
+      <SummaryCard label="List issues"        value={listIssue} />
+      <SummaryCard label="Burned domains"     value={burned} />
 
       {/* Row 2: rates (KPI-bound = binary green/red) */}
       <SummaryCard label="Emails sent" value={totalSent.toLocaleString()} />
@@ -687,21 +698,22 @@ function CampaignDropdown({
 function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void }) {
   const workspaces = useWorkspaces();
   const name  = resolveWsName(workspaces, ws.slug);
+  const disconnectedCount = ws.statusCounts.disconnected;
   const burnedCount       = ws.statusCounts.burned;
   const listCount         = ws.statusCounts.list_issue;
   const lowRepliesCount   = ws.statusCounts.low_replies;
   const insufficientCount = ws.statusCounts.insufficient_data;
   const healthyCount      = ws.statusCounts.healthy;
 
-  // Card border color reflects the worst status. Insufficient is NOT
-  // treated as healthy — if a workspace has only insufficient_data
-  // domains, the card is grey (no data yet), not green.
+  // Disconnected is the most urgent signal (mailbox cannot send at all).
+  // Sits above burned because it is a hard block, not a deliverability dip.
   const accent =
-    burnedCount > 0     ? "#E24B4A" :         // red
-    listCount   > 0     ? "#F59E0B" :         // amber/yellow
-    lowRepliesCount > 0 ? "#F59E0B" :         // amber/yellow (other quality flag)
-    healthyCount > 0    ? "#84C56A" :         // green only when actual healthy domains exist
-                          "#9CA3AF";          // grey: insufficient data, no positive signal yet
+    disconnectedCount > 0 ? "#6366F1" :       // indigo
+    burnedCount > 0       ? "#E24B4A" :       // red
+    listCount   > 0       ? "#F59E0B" :       // amber/yellow
+    lowRepliesCount > 0   ? "#F59E0B" :       // amber/yellow (other quality flag)
+    healthyCount > 0      ? "#84C56A" :       // green only when actual healthy domains exist
+                            "#9CA3AF";        // grey: insufficient data, no positive signal yet
 
   return (
     <div onClick={onClick}
@@ -719,6 +731,11 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 6, flexWrap: "wrap" }}>
         <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{name}</p>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {disconnectedCount > 0 && (
+            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#EEF2FF", color: "#3730A3", border: "0.5px solid #A5B4FC", fontWeight: 500, whiteSpace: "nowrap" }}>
+              {disconnectedCount} disconnected
+            </span>
+          )}
           {burnedCount > 0 && (
             <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595", fontWeight: 500, whiteSpace: "nowrap" }}>
               {burnedCount} burned
@@ -734,7 +751,7 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
               {insufficientCount} insufficient
             </span>
           )}
-          {burnedCount === 0 && listCount === 0 && insufficientCount === 0 && healthyCount > 0 && (
+          {disconnectedCount === 0 && burnedCount === 0 && listCount === 0 && insufficientCount === 0 && healthyCount > 0 && (
             <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", fontWeight: 500, whiteSpace: "nowrap" }}>
               All healthy
             </span>
@@ -807,11 +824,12 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
   }
 
   const ORDER: Record<Status, number> = {
-    burned:            0,
-    list_issue:        1,
-    low_replies:       2,
-    healthy:           3,
-    insufficient_data: 4,
+    disconnected:      0,
+    burned:            1,
+    list_issue:        2,
+    low_replies:       3,
+    healthy:           4,
+    insufficient_data: 5,
   };
   const CONFIDENCE_ORDER: Record<Confidence, number> = {
     full:        0,
@@ -843,10 +861,11 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         <div>
           <p style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>
-            {name} — sending domains
+            {name}, sending domains
           </p>
           <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
             Last {days} days · {ws.domainCount} domains · {ws.accounts.length} accounts
+            {ws.statusCounts.disconnected > 0 ? ` · ${ws.statusCounts.disconnected} disconnected` : ""}
             {ws.statusCounts.burned > 0 ? ` · ${ws.statusCounts.burned} burned` : ""}
             {ws.statusCounts.list_issue > 0 ? ` · ${ws.statusCounts.list_issue} list issue` : ""}
           </p>
@@ -855,7 +874,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
 
       <MetricsRow
         totalDomains={ws.domainCount}
-        healthy={ws.statusCounts.healthy}
+        disconnected={ws.statusCounts.disconnected}
         listIssue={ws.statusCounts.list_issue}
         burned={ws.statusCounts.burned}
         totalSent={ws.totalSent}
@@ -895,7 +914,8 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
             {sortedDomains.map((dom, dIdx) => {
               const isDomExpanded = expandedDomain === dom.domain;
               const isLastDomain  = dIdx === sortedDomains.length - 1;
-              const domBg         = dom.status === "burned" ? "#FCEBEB" :
+              const domBg         = dom.status === "disconnected" ? "#EEF2FF" :
+                                    dom.status === "burned" ? "#FCEBEB" :
                                     dom.status === "list_issue" ? "#FFF7E6" :
                                     "#fafafa";
               const sortedAccounts = [...dom.accounts].sort((a, b) => {
@@ -954,6 +974,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                         const label = actionLabel({ status: dom.status, signals: dom.signals });
                         if (!label) return null;
                         const tone =
+                          dom.status === "disconnected"      ? { bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC" } :
                           dom.status === "burned"            ? { bg: "#FCEBEB", color: "#A32D2D", border: "#F09595" } :
                           dom.status === "list_issue"        ? { bg: "#FAEEDA", color: "#854F0B", border: "#FAC775" } :
                           dom.status === "low_replies"       ? { bg: "#FAEEDA", color: "#854F0B", border: "#FAC775" } :
@@ -979,6 +1000,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                     const loadingAction = loadingMap[acc.sender_email] ?? null;
                     const isLoading     = loadingAction !== null;
                     const rowBg         = isRemoved ? "#f0fdf4" :
+                                          acc.status === "disconnected" ? "#EEF2FF" :
                                           acc.status === "burned"     ? "#FCEBEB" :
                                           acc.status === "list_issue" ? "#FFF7E6" :
                                           "#ffffff";
@@ -1148,11 +1170,11 @@ export function AccountMonitor() {
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <p style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>Account monitor</p>
+          <p style={{ fontSize: 15, fontWeight: 500, color: "#111827" }}>Domain monitoring</p>
           <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
             {selectedWs
-              ? `${resolveWsName(workspaces, selectedWs.slug)} — sending domains`
-              : "Sender-level spam & reply rate monitoring across all workspaces"}
+              ? `${resolveWsName(workspaces, selectedWs.slug)}, sending domains`
+              : "Sender-level connection, spam, and reply rate monitoring across all workspaces"}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -1202,7 +1224,7 @@ export function AccountMonitor() {
         <>
           <MetricsRow
             totalDomains={data.summary.totalDomains}
-            healthy={data.summary.domainStatusCounts.healthy}
+            disconnected={data.summary.domainStatusCounts.disconnected}
             listIssue={data.summary.domainStatusCounts.list_issue}
             burned={data.summary.domainStatusCounts.burned}
             totalSent={data.summary.totalSent}

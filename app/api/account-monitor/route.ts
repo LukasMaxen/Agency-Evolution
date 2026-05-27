@@ -28,7 +28,7 @@ const DOMAIN_MIN_PER_ACCOUNT = 20;
 const DOMAIN_MIN_FLOOR = 50;
 const PROVISIONAL_FLOOR = 20;
 
-type Status = "burned" | "list_issue" | "low_replies" | "healthy" | "insufficient_data";
+type Status = "disconnected" | "burned" | "list_issue" | "low_replies" | "healthy" | "insufficient_data";
 type Confidence = "full" | "provisional";
 
 interface SignalFlags {
@@ -44,7 +44,18 @@ function classify(args: {
   burnRate: number;
   bounceRate: number;
   replyRate: number;
+  disconnected?: boolean;
 }): { status: Status; confidence: Confidence; signals: SignalFlags } {
+  // Disconnected always wins. EB returns "Not connected" for senders whose
+  // mailbox auth has broken; they cannot send regardless of metrics.
+  if (args.disconnected) {
+    return {
+      status:     "disconnected",
+      confidence: "full",
+      signals:    { burn: false, bounce: false, replies: false },
+    };
+  }
+
   const burnFires = args.burnCount > 0 || args.burnRate >= BURN_RATE_MAX;
 
   // Below the provisional floor and no burn event: truly no signal.
@@ -77,11 +88,12 @@ function classify(args: {
 
 // Sort key by status severity. Lower = worse, sorted first.
 const STATUS_ORDER: Record<Status, number> = {
-  burned:            0,
-  list_issue:        1,
-  low_replies:       2,
-  healthy:           3,
-  insufficient_data: 4,  // truly no data drops to the bottom
+  disconnected:      0,  // cannot send at all — top priority to fix
+  burned:            1,
+  list_issue:        2,
+  low_replies:       3,
+  healthy:           4,
+  insufficient_data: 5,  // truly no data drops to the bottom
 };
 const CONFIDENCE_ORDER: Record<Confidence, number> = {
   full:        0,
@@ -102,7 +114,10 @@ export async function GET(req: NextRequest) {
 
     const sql = `
       WITH active_senders AS (
-        SELECT email AS sender_email, workspace_slug
+        SELECT
+          email          AS sender_email,
+          workspace_slug,
+          status         AS conn_status
         FROM sender_accounts
         ${workspace !== "all" ? "WHERE workspace_slug = $2" : ""}
       ),
@@ -192,19 +207,18 @@ export async function GET(req: NextRequest) {
         -- This matches EmailBison's "unique_replies_per_contact" metric:
         -- subsequent messages in the same thread don't inflate the count.
         --
-        -- Once migration 013 applies, this CTE will add
-        --   AND tracked_reply = TRUE
-        -- to drop EB-classified "Untracked Reply" rows (newsletters, fresh
-        -- cold outreach landing in a sender mailbox, transactional). Until
-        -- then the per-sender reply counts include those rows; the workspace
-        -- summary cards already get their numbers from the EB stats API
-        -- below, so the inflation only affects the per-sender table.
+        -- tracked_reply = TRUE drops EB-classified "Untracked Reply" rows
+        -- (newsletters, fresh cold outreach landing in a sender mailbox,
+        -- transactional). Webhook LEAD_REPLIED rows are always tracked;
+        -- inbox-sync rows carry the EB-supplied flag; older rows are
+        -- backfilled by scripts/backfill-tracked-reply.js.
         SELECT
           sender_email,
           workspace_slug,
           COUNT(DISTINCT lead_email)::int AS replies
         FROM replies
         WHERE received_at >= NOW() - ($1 || ' days')::interval
+          AND tracked_reply = TRUE
           AND sender_email IS NOT NULL AND sender_email != ''
           AND lead_email   IS NOT NULL AND lead_email   != ''
           AND lower(lead_email) !~ '^(postmaster|mailer-daemon|noreply|no-reply|bounce|bounces|bounce-handler)@'
@@ -213,26 +227,35 @@ export async function GET(req: NextRequest) {
         GROUP BY sender_email, workspace_slug
       )
       SELECT
-        sc.sender_email,
-        sc.workspace_slug,
-        sc.emails_sent,
-        COALESCE(bc.bounces, 0)                                                      AS bounces,
-        COALESCE(bn.burns,   0)                                                      AS burns,
-        COALESCE(rc.replies, 0)                                                      AS replies,
-        ROUND(COALESCE(bc.bounces,0)::numeric / NULLIF(sc.emails_sent,0) * 100, 2)  AS bounce_rate,
-        ROUND(COALESCE(bn.burns,  0)::numeric / NULLIF(sc.emails_sent,0) * 100, 2)  AS burn_rate,
-        ROUND(COALESCE(rc.replies,0)::numeric / NULLIF(sc.emails_sent,0) * 100, 2)  AS reply_rate
-      FROM sent_counts sc
+        sa.sender_email,
+        sa.workspace_slug,
+        sa.conn_status,
+        COALESCE(sc.emails_sent, 0)                                                       AS emails_sent,
+        COALESCE(bc.bounces, 0)                                                           AS bounces,
+        COALESCE(bn.burns,   0)                                                           AS burns,
+        COALESCE(rc.replies, 0)                                                           AS replies,
+        ROUND(COALESCE(bc.bounces,0)::numeric / NULLIF(sc.emails_sent,0) * 100, 2)        AS bounce_rate,
+        ROUND(COALESCE(bn.burns,  0)::numeric / NULLIF(sc.emails_sent,0) * 100, 2)        AS burn_rate,
+        ROUND(COALESCE(rc.replies,0)::numeric / NULLIF(sc.emails_sent,0) * 100, 2)        AS reply_rate
+      FROM active_senders sa
+      LEFT JOIN sent_counts sc
+        ON  sc.sender_email   = sa.sender_email
+        AND sc.workspace_slug = sa.workspace_slug
       LEFT JOIN bounce_counts bc
-        ON  bc.sender_email   = sc.sender_email
-        AND bc.workspace_slug = sc.workspace_slug
+        ON  bc.sender_email   = sa.sender_email
+        AND bc.workspace_slug = sa.workspace_slug
       LEFT JOIN burn_counts bn
-        ON  bn.sender_email   = sc.sender_email
-        AND bn.workspace_slug = sc.workspace_slug
+        ON  bn.sender_email   = sa.sender_email
+        AND bn.workspace_slug = sa.workspace_slug
       LEFT JOIN reply_counts rc
-        ON  rc.sender_email   = sc.sender_email
-        AND rc.workspace_slug = sc.workspace_slug
-      ORDER BY sc.workspace_slug ASC, sc.emails_sent DESC
+        ON  rc.sender_email   = sa.sender_email
+        AND rc.workspace_slug = sa.workspace_slug
+      -- Surface senders with sends in the window, OR disconnected senders
+      -- with 0 sends so we can still flag them. Connected senders with 0
+      -- sends are filtered out to keep the dashboard focused.
+      WHERE COALESCE(sc.emails_sent, 0) > 0
+         OR sa.conn_status = 'Not connected'
+      ORDER BY sa.workspace_slug ASC, COALESCE(sc.emails_sent, 0) DESC
     `;
 
     const result = await pool.query(sql, params);
@@ -245,6 +268,7 @@ export async function GET(req: NextRequest) {
     type AccountRow = {
       sender_email:   string;
       workspace_slug: string;
+      conn_status:    string;
       emails_sent:    number;
       bounces:        number;
       burns:          number;
@@ -258,13 +282,15 @@ export async function GET(req: NextRequest) {
     };
 
     const accountRows: AccountRow[] = result.rows.map((r) => {
-      const sent       = r.emails_sent;
-      const bounces    = r.bounces;
-      const burns      = r.burns;
-      const replies    = r.replies;
-      const bounceRate = parseFloat(r.bounce_rate ?? 0);
-      const burnRate   = parseFloat(r.burn_rate   ?? 0);
-      const replyRate  = parseFloat(r.reply_rate  ?? 0);
+      const sent        = r.emails_sent;
+      const bounces     = r.bounces;
+      const burns       = r.burns;
+      const replies     = r.replies;
+      const bounceRate  = parseFloat(r.bounce_rate ?? 0);
+      const burnRate    = parseFloat(r.burn_rate   ?? 0);
+      const replyRate   = parseFloat(r.reply_rate  ?? 0);
+      const connStatus  = r.conn_status ?? "Connected";
+      const isDisconnected = connStatus === "Not connected";
 
       const { status, confidence, signals } = classify({
         sent,
@@ -273,11 +299,13 @@ export async function GET(req: NextRequest) {
         burnRate,
         bounceRate,
         replyRate,
+        disconnected: isDisconnected,
       });
 
       return {
         sender_email:   r.sender_email,
         workspace_slug: r.workspace_slug,
+        conn_status:    connStatus,
         emails_sent:    sent,
         bounces, burns, replies,
         bounce_rate:    bounceRate,
@@ -339,6 +367,10 @@ export async function GET(req: NextRequest) {
         const replyRate  = sent > 0 ? Math.round((d.totalReplies / sent) * 10000) / 100 : 0;
 
         const fullMinSends = Math.max(DOMAIN_MIN_FLOOR, DOMAIN_MIN_PER_ACCOUNT * d.accounts.length);
+        // Domain rolls up to "disconnected" if ANY account in it is
+        // disconnected — one broken sender means the domain cannot send
+        // at full capacity and needs operator attention.
+        const anyDisconnected = d.accounts.some(a => a.status === "disconnected");
         const { status, confidence, signals } = classify({
           sent,
           fullMinSends,
@@ -346,9 +378,11 @@ export async function GET(req: NextRequest) {
           burnRate,
           bounceRate,
           replyRate,
+          disconnected: anyDisconnected,
         });
 
         const statusCounts = {
+          disconnected:      d.accounts.filter(a => a.status === "disconnected").length,
           burned:            d.accounts.filter(a => a.status === "burned").length,
           list_issue:        d.accounts.filter(a => a.status === "list_issue").length,
           low_replies:       d.accounts.filter(a => a.status === "low_replies").length,
@@ -393,6 +427,7 @@ export async function GET(req: NextRequest) {
       const wsReplyRate  = wsSent > 0 ? Math.round((ws.totalReplies / wsSent) * 10000) / 100 : 0;
 
       const statusCounts = {
+        disconnected:      domains.filter(d => d.status === "disconnected").length,
         burned:            domains.filter(d => d.status === "burned").length,
         list_issue:        domains.filter(d => d.status === "list_issue").length,
         low_replies:       domains.filter(d => d.status === "low_replies").length,
@@ -471,11 +506,13 @@ export async function GET(req: NextRequest) {
       ws.bouncePct       = eb.sent > 0 ? Math.round((eb.bounced / eb.sent) * 10000) / 100 : 0;
     }
 
-    // Workspace order: burn count desc, then list-issue count desc, then sent desc.
+    // Workspace order: disconnected first, then burn count desc, then
+    // list-issue count desc, then sent desc.
     workspaces.sort((a, b) =>
-      (b.statusCounts.burned     - a.statusCounts.burned) ||
-      (b.statusCounts.list_issue - a.statusCounts.list_issue) ||
-      (b.totalSent               - a.totalSent)
+      (b.statusCounts.disconnected - a.statusCounts.disconnected) ||
+      (b.statusCounts.burned       - a.statusCounts.burned) ||
+      (b.statusCounts.list_issue   - a.statusCounts.list_issue) ||
+      (b.totalSent                 - a.totalSent)
     );
 
     const totalAccounts   = accountRows.length;
@@ -495,6 +532,7 @@ export async function GET(req: NextRequest) {
     // Domain-level rollup counts for the global summary.
     const allDomains = workspaces.flatMap(w => w.domains);
     const summaryStatusCounts = {
+      disconnected:      allDomains.filter(d => d.status === "disconnected").length,
       burned:            allDomains.filter(d => d.status === "burned").length,
       list_issue:        allDomains.filter(d => d.status === "list_issue").length,
       low_replies:       allDomains.filter(d => d.status === "low_replies").length,
