@@ -106,6 +106,90 @@ async function fetchLeadEnrichment(instanceUrl: string, apiKey: string, leadId: 
   }
 }
 
+// ─── Self-critique pass ────────────────────────────────────────────────────────
+
+async function callClaudeCritique(
+  leadMessage: string,
+  draft: string,
+  leadEnrichment: string,
+  questionsToAnswer: string[]
+): Promise<string | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+  if (!checkRateLimit("claude-sonnet", 30)) return null;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 60_000);
+
+  const systemPrompt = `You are a reply quality reviewer. Read the lead's message and the drafted reply, then score it against three criteria.
+
+CRITERIA:
+1. answered_question: Did the reply directly address every specific question or request in the lead's message? If the lead asked something specific (a question, a request for info, a scheduling preference), it must be answered.
+2. has_personal_hook: Does the reply reference something concrete and specific to this lead or their company — from their message, their company name, their location, or the LEAD CONTEXT block? Generic replies that could go to anyone fail this. Only mark false if enrichment data was provided in the LEAD CONTEXT block and the reply ignores it entirely.
+3. clean_opener: Does the reply avoid banned openers? Banned: "Great", "Sounds great", "Thanks for", "Hope this", "I'd love to", "Excited to", "I appreciate", any variation of these as the first word or first sentence.
+
+VERDICT LOGIC:
+- "rewrite" if answered_question is false
+- "rewrite" if has_personal_hook is false AND a LEAD CONTEXT block was provided with usable data
+- "rewrite" if clean_opener is false
+- "approved" if all three pass
+
+If verdict is "rewrite": fix only what failed. Do not change the substance, the Calendly link, the case studies, or the overall structure unless answered_question failed. Keep it tight. End with {SENDER_EMAIL_SIGNATURE}.
+If verdict is "approved": reply_body must be an empty string.
+
+OUTPUT — JSON only, no preamble, no fences:
+{"answered_question":true,"has_personal_hook":true,"clean_opener":true,"verdict":"approved","reply_body":""}`;
+
+  const userMessage = `LEAD'S MESSAGE:
+${leadMessage.slice(0, 1000)}
+
+${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${questionsToAnswer.length > 0 ? `SPECIFIC QUESTIONS THAT MUST BE ANSWERED:\n${questionsToAnswer.map(q => `- ${q}`).join("\n")}\n\n` : ""}DRAFT REPLY TO REVIEW:
+${draft}`;
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1500,
+        system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: userMessage }],
+      }),
+      signal: ctrl.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error("[auto-reply] Critique timed out");
+    else console.error("[auto-reply] Critique error:", err?.message);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (!response.ok) { console.error("[auto-reply] Critique API error:", response.status); return null; }
+
+  const data = await response.json();
+  const raw = (data.content?.[0]?.text ?? "").replace(/```json|```/g, "").trim();
+
+  try {
+    const c = JSON.parse(raw);
+    if (c.verdict === "rewrite" && c.reply_body && c.reply_body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim().length > 80) {
+      console.log(`[auto-reply] Critique rewrote draft (answered:${c.answered_question} hook:${c.has_personal_hook} opener:${c.clean_opener})`);
+      return c.reply_body as string;
+    }
+    return null;
+  } catch {
+    console.error("[auto-reply] Critique parse failed:", raw.slice(0, 200));
+    return null;
+  }
+}
+
 // ─── Pre-filters (zero Claude cost) ───────────────────────────────────────────
 
 /** OOO, bounces, delivery failures, automated notices. */
