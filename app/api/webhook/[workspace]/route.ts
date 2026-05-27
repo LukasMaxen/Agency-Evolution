@@ -12,7 +12,22 @@ function extractCleanBody(textBody: string): string {
     if (line.startsWith(">")) break;
     clean.push(line);
   }
-  return clean.join("\n").trim();
+  const preQuote = clean.join("\n").trim();
+  if (preQuote) return preQuote;
+
+  // Lead replied below the quoted thread — extract content after the quote block
+  let pastQuote = false;
+  const postQuote: string[] = [];
+  for (const line of lines) {
+    if (!pastQuote) {
+      if (/^On .+ wrote:/.test(line.trim()) || line.startsWith(">")) {
+        pastQuote = true;
+      }
+      continue;
+    }
+    if (!line.startsWith(">")) postQuote.push(line);
+  }
+  return postQuote.join("\n").trim();
 }
 
 function extractQuotedThread(textBody: string): string {
