@@ -947,6 +947,22 @@ ${messageText.slice(0, 3000)}`;
     }
   }
 
+  // Self-critique pass: for interested/needs_info auto-sends, run a second Claude call
+  // that checks the draft against three criteria and rewrites only if something fails.
+  if (
+    result.action === "auto_send" &&
+    result.reply_body &&
+    (result.intent === "interested" || result.intent === "needs_info")
+  ) {
+    const revised = await callClaudeCritique(
+      messageText,
+      result.reply_body,
+      leadEnrichment,
+      result.questions_to_answer ?? []
+    );
+    if (revised) result.reply_body = sanitizeDashes(revised);
+  }
+
   // Signature guard
   if (result.action === "auto_send" && result.reply_body && !/\{SENDER_EMAIL_SIGNATURE\}/i.test(result.reply_body)) {
     result.reply_body = result.reply_body.trimEnd() + "\n\n{SENDER_EMAIL_SIGNATURE}";
