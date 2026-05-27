@@ -9,7 +9,15 @@ import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Status = "disconnected" | "burned" | "list_issue" | "low_replies" | "healthy" | "insufficient_data";
+type Status =
+  | "disconnected"
+  | "burned"
+  | "list_issue"
+  | "no_replies"
+  | "drastic_low_replies"
+  | "low_replies"
+  | "healthy"
+  | "insufficient_data";
 type Confidence = "full" | "provisional";
 type ActionKey = "remove" | "reattach" | "remove_and_warmup";
 
@@ -20,18 +28,21 @@ interface SignalFlags {
 }
 
 interface StatusCounts {
-  disconnected:      number;
-  burned:            number;
-  list_issue:        number;
-  low_replies:       number;
-  insufficient_data: number;
-  healthy:           number;
+  disconnected:        number;
+  burned:              number;
+  list_issue:          number;
+  no_replies:          number;
+  drastic_low_replies: number;
+  low_replies:         number;
+  insufficient_data:   number;
+  healthy:             number;
 }
 
 interface Account {
   sender_email: string;
   workspace_slug: string;
   conn_status: string;
+  warmup_enabled: boolean;
   emails_sent: number;
   bounces: number;
   burns: number;
@@ -123,12 +134,17 @@ function resolveWsColor(workspaces: ReturnType<typeof useWorkspaces>, slug: stri
 }
 
 const STATUS_CFG: Record<Status, { label: string; bg: string; color: string; border: string; icon: React.ElementType }> = {
-  disconnected:      { label: "Disconnected",      bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC", icon: WifiOff },
-  burned:            { label: "Burned",            bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: Flame },
-  list_issue:        { label: "List issue",        bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: AlertTriangle },
-  low_replies:       { label: "Low replies",       bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: TrendingDown },
-  insufficient_data: { label: "Insufficient data", bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB", icon: Loader2 },
-  healthy:           { label: "Healthy",           bg: "#EAF3DE", color: "#3B6D11", border: "#C0DD97", icon: CheckCircle },
+  disconnected:        { label: "Disconnected",      bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC", icon: WifiOff },
+  burned:              { label: "Burned",            bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: Flame },
+  list_issue:          { label: "List issue",        bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: AlertTriangle },
+  // 0% replies and <0.5% replies use a deeper red than the amber "low replies"
+  // tier — they are the clearest signal that something is wrong with copy or
+  // targeting, short of an actual burn / list quality event.
+  no_replies:          { label: "No replies",        bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: TrendingDown },
+  drastic_low_replies: { label: "Drastic low replies", bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: TrendingDown },
+  low_replies:         { label: "Low replies",       bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: TrendingDown },
+  insufficient_data:   { label: "Insufficient data", bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB", icon: Loader2 },
+  healthy:             { label: "Healthy",           bg: "#EAF3DE", color: "#3B6D11", border: "#C0DD97", icon: CheckCircle },
 };
 
 // Action tooltip: derives the right sentence from which signals are firing,
@@ -165,6 +181,12 @@ function actionTooltip(args: {
       return "List quality is hurting delivery and replies. Cleanse, then reassess targeting.";
     return "Bad recipient data. Cleanse or re-enrich the list before sending more.";
   }
+  if (status === "no_replies") {
+    return "Zero replies in the window despite real send volume. Pause and rework copy, offer, or ICP fit. Likely a fundamentally broken angle.";
+  }
+  if (status === "drastic_low_replies") {
+    return "Reply rate below 0.5%. Strong signal that copy, subject, or targeting is off. Review before continuing.";
+  }
   // low_replies
   return "Copy or targeting issue. Review subject lines, ICP fit, and sequence relevance.";
 }
@@ -177,10 +199,12 @@ function actionLabel(args: {
   signals: SignalFlags;
 }): string {
   const { status, signals } = args;
-  if (status === "healthy")           return "";
-  if (status === "disconnected")      return "Reconnect mailbox in EmailBison";
-  if (status === "insufficient_data") return "Wait for more sends";
-  if (status === "low_replies")       return "Review copy + targeting";
+  if (status === "healthy")             return "";
+  if (status === "disconnected")        return "Reconnect mailbox in EmailBison";
+  if (status === "insufficient_data")   return "Wait for more sends";
+  if (status === "no_replies")          return "Pause + rework copy or offer";
+  if (status === "drastic_low_replies") return "Review copy + targeting urgently";
+  if (status === "low_replies")         return "Review copy + targeting";
   if (status === "list_issue") {
     return signals.replies ? "Clean list + review targeting" : "Clean the list";
   }
@@ -1046,13 +1070,27 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                           <td style={{ padding: "8px 10px", textAlign: "right" }}><RateCell value={acc.burn_rate}   type="burn" /></td>
                           <td style={{ padding: "8px 10px", textAlign: "right" }}><RateCell value={acc.reply_rate} type="reply" /></td>
                           <td style={{ padding: "8px 10px", textAlign: "center" }}>
-                            <StatusBadge
-                              status={acc.status}
-                              confidence={acc.confidence}
-                              signals={acc.signals}
-                              sent={acc.emails_sent}
-                              minSends={50}
-                            />
+                            <div style={{ display: "inline-flex", flexDirection: "column", gap: 3, alignItems: "center" }}>
+                              <StatusBadge
+                                status={acc.status}
+                                confidence={acc.confidence}
+                                signals={acc.signals}
+                                sent={acc.emails_sent}
+                                minSends={50}
+                              />
+                              {acc.warmup_enabled === false && acc.conn_status !== "Not connected" && (
+                                <span
+                                  title="Warmup is disabled for this mailbox in EmailBison. Enable it to keep inbox placement healthy."
+                                  style={{
+                                    fontSize: 9, padding: "1px 6px", borderRadius: 20,
+                                    background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595",
+                                    fontWeight: 500, whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  Not warming
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td style={{ padding: "6px 10px", textAlign: "center" }}>
                             <div style={{ display: "flex", gap: 5, justifyContent: "center", flexWrap: "wrap" }}>

@@ -8,7 +8,11 @@ import pool from "@/lib/db";
 // also removed from sender_accounts, so they never appear here.
 
 // ── Deliverability thresholds ────────────────────────────────────────────
-// Reply rate target:  >= 1.0%   below = LOW_REPLIES signal fires
+// Reply rate tiers (lower is worse):
+//   reply_rate == 0    -> NO_REPLIES          (drastic, account not converting at all)
+//   reply_rate <  0.5  -> DRASTIC_LOW_REPLIES (clear underperformer)
+//   reply_rate <  1.0  -> LOW_REPLIES         (below target)
+//   reply_rate >= 1.0  -> healthy on the reply axis
 // Bounce rate target: <  2.0%   at/above = LIST_ISSUE signal fires
 // Burn rate target:   <  0.5%   at/above OR any single burn event fires
 //
@@ -20,15 +24,24 @@ import pool from "@/lib/db";
 // Domain full threshold:   max(50, 20 * accounts)
 // Provisional floor:       20 sends (both levels)
 
-const REPLY_RATE_MIN   = 1.0;
-const BOUNCE_RATE_MAX  = 2.0;
-const BURN_RATE_MAX    = 0.5;
-const ACCOUNT_MIN_SEND = 50;
+const REPLY_RATE_DRASTIC = 0.5;   // < this is drastic_low_replies
+const REPLY_RATE_MIN     = 1.0;   // < this is low_replies; >= is healthy
+const BOUNCE_RATE_MAX    = 2.0;
+const BURN_RATE_MAX      = 0.5;
+const ACCOUNT_MIN_SEND   = 50;
 const DOMAIN_MIN_PER_ACCOUNT = 20;
-const DOMAIN_MIN_FLOOR = 50;
-const PROVISIONAL_FLOOR = 20;
+const DOMAIN_MIN_FLOOR   = 50;
+const PROVISIONAL_FLOOR  = 20;
 
-type Status = "disconnected" | "burned" | "list_issue" | "low_replies" | "healthy" | "insufficient_data";
+type Status =
+  | "disconnected"
+  | "burned"
+  | "list_issue"
+  | "no_replies"
+  | "drastic_low_replies"
+  | "low_replies"
+  | "healthy"
+  | "insufficient_data";
 type Confidence = "full" | "provisional";
 
 interface SignalFlags {
@@ -73,12 +86,19 @@ function classify(args: {
     replies: args.replyRate  <  REPLY_RATE_MIN,
   };
 
-  // Priority cascade for the badge.
+  // Priority cascade for the badge. Reply-rate severity is graded:
+  //   0          -> no_replies
+  //   < 0.5      -> drastic_low_replies
+  //   < 1.0      -> low_replies
+  // Burn and list_issue still trump replies because they signal active
+  // deliverability damage rather than copy/targeting weakness.
   let status: Status;
-  if (signals.burn)         status = "burned";
-  else if (signals.bounce)  status = "list_issue";
-  else if (signals.replies) status = "low_replies";
-  else                      status = "healthy";
+  if (signals.burn)              status = "burned";
+  else if (signals.bounce)       status = "list_issue";
+  else if (args.replyRate === 0) status = "no_replies";
+  else if (args.replyRate < REPLY_RATE_DRASTIC) status = "drastic_low_replies";
+  else if (signals.replies)      status = "low_replies";
+  else                           status = "healthy";
 
   // Confidence: full only when sends are at or above the full threshold.
   const confidence: Confidence = args.sent >= args.fullMinSends ? "full" : "provisional";
@@ -88,12 +108,14 @@ function classify(args: {
 
 // Sort key by status severity. Lower = worse, sorted first.
 const STATUS_ORDER: Record<Status, number> = {
-  disconnected:      0,  // cannot send at all — top priority to fix
-  burned:            1,
-  list_issue:        2,
-  low_replies:       3,
-  healthy:           4,
-  insufficient_data: 5,  // truly no data drops to the bottom
+  disconnected:        0,  // cannot send at all — top priority to fix
+  burned:              1,
+  list_issue:          2,
+  no_replies:          3,  // 0% replies — drastic but no burn/bounce yet
+  drastic_low_replies: 4,
+  low_replies:         5,
+  healthy:             6,
+  insufficient_data:   7,  // truly no data drops to the bottom
 };
 const CONFIDENCE_ORDER: Record<Confidence, number> = {
   full:        0,
@@ -114,12 +136,19 @@ export async function GET(req: NextRequest) {
 
     const sql = `
       WITH active_senders AS (
+        -- Outlook (Microsoft) mailboxes are excluded from the deliverability
+        -- dashboard entirely. EB's provider_type values seen so far:
+        --   google_workspace_oauth, microsoft_oauth
+        -- Senders with NULL provider_type are kept on the safe side until
+        -- the next sync populates them.
         SELECT
-          email          AS sender_email,
+          email           AS sender_email,
           workspace_slug,
-          status         AS conn_status
+          status          AS conn_status,
+          warmup_enabled
         FROM sender_accounts
-        ${workspace !== "all" ? "WHERE workspace_slug = $2" : ""}
+        WHERE (provider_type IS NULL OR provider_type !~* '(microsoft|office365|outlook)')
+        ${workspace !== "all" ? "AND workspace_slug = $2" : ""}
       ),
       sent_counts AS (
         SELECT
@@ -230,6 +259,7 @@ export async function GET(req: NextRequest) {
         sa.sender_email,
         sa.workspace_slug,
         sa.conn_status,
+        sa.warmup_enabled,
         COALESCE(sc.emails_sent, 0)                                                       AS emails_sent,
         COALESCE(bc.bounces, 0)                                                           AS bounces,
         COALESCE(bn.burns,   0)                                                           AS burns,
@@ -250,11 +280,6 @@ export async function GET(req: NextRequest) {
       LEFT JOIN reply_counts rc
         ON  rc.sender_email   = sa.sender_email
         AND rc.workspace_slug = sa.workspace_slug
-      -- Surface senders with sends in the window, OR disconnected senders
-      -- with 0 sends so we can still flag them. Connected senders with 0
-      -- sends are filtered out to keep the dashboard focused.
-      WHERE COALESCE(sc.emails_sent, 0) > 0
-         OR sa.conn_status = 'Not connected'
       ORDER BY sa.workspace_slug ASC, COALESCE(sc.emails_sent, 0) DESC
     `;
 
@@ -269,6 +294,7 @@ export async function GET(req: NextRequest) {
       sender_email:   string;
       workspace_slug: string;
       conn_status:    string;
+      warmup_enabled: boolean;
       emails_sent:    number;
       bounces:        number;
       burns:          number;
@@ -306,6 +332,7 @@ export async function GET(req: NextRequest) {
         sender_email:   r.sender_email,
         workspace_slug: r.workspace_slug,
         conn_status:    connStatus,
+        warmup_enabled: r.warmup_enabled === true,
         emails_sent:    sent,
         bounces, burns, replies,
         bounce_rate:    bounceRate,
@@ -382,12 +409,14 @@ export async function GET(req: NextRequest) {
         });
 
         const statusCounts = {
-          disconnected:      d.accounts.filter(a => a.status === "disconnected").length,
-          burned:            d.accounts.filter(a => a.status === "burned").length,
-          list_issue:        d.accounts.filter(a => a.status === "list_issue").length,
-          low_replies:       d.accounts.filter(a => a.status === "low_replies").length,
-          insufficient_data: d.accounts.filter(a => a.status === "insufficient_data").length,
-          healthy:           d.accounts.filter(a => a.status === "healthy").length,
+          disconnected:        d.accounts.filter(a => a.status === "disconnected").length,
+          burned:              d.accounts.filter(a => a.status === "burned").length,
+          list_issue:          d.accounts.filter(a => a.status === "list_issue").length,
+          no_replies:          d.accounts.filter(a => a.status === "no_replies").length,
+          drastic_low_replies: d.accounts.filter(a => a.status === "drastic_low_replies").length,
+          low_replies:         d.accounts.filter(a => a.status === "low_replies").length,
+          insufficient_data:   d.accounts.filter(a => a.status === "insufficient_data").length,
+          healthy:             d.accounts.filter(a => a.status === "healthy").length,
         };
 
         return {
@@ -427,12 +456,14 @@ export async function GET(req: NextRequest) {
       const wsReplyRate  = wsSent > 0 ? Math.round((ws.totalReplies / wsSent) * 10000) / 100 : 0;
 
       const statusCounts = {
-        disconnected:      domains.filter(d => d.status === "disconnected").length,
-        burned:            domains.filter(d => d.status === "burned").length,
-        list_issue:        domains.filter(d => d.status === "list_issue").length,
-        low_replies:       domains.filter(d => d.status === "low_replies").length,
-        insufficient_data: domains.filter(d => d.status === "insufficient_data").length,
-        healthy:           domains.filter(d => d.status === "healthy").length,
+        disconnected:        domains.filter(d => d.status === "disconnected").length,
+        burned:              domains.filter(d => d.status === "burned").length,
+        list_issue:          domains.filter(d => d.status === "list_issue").length,
+        no_replies:          domains.filter(d => d.status === "no_replies").length,
+        drastic_low_replies: domains.filter(d => d.status === "drastic_low_replies").length,
+        low_replies:         domains.filter(d => d.status === "low_replies").length,
+        insufficient_data:   domains.filter(d => d.status === "insufficient_data").length,
+        healthy:             domains.filter(d => d.status === "healthy").length,
       };
 
       return {
@@ -506,6 +537,26 @@ export async function GET(req: NextRequest) {
       ws.bouncePct       = eb.sent > 0 ? Math.round((eb.bounced / eb.sent) * 10000) / 100 : 0;
     }
 
+    // ── Drop churned workspaces ────────────────────────────────────────────
+    // A workspace with zero sends in the last 7 days is treated as inactive
+    // (paused client, ended engagement, etc.) and hidden entirely. We use
+    // emails_sent from the local DB so the filter works even if EB stats
+    // returned 0 for some other reason.
+    const CHURN_WINDOW_DAYS = 7;
+    const recentSendsRes = await pool.query(
+      `SELECT workspace_slug, COUNT(*)::int AS sends
+         FROM emails_sent
+        WHERE sent_at >= NOW() - ($1 || ' days')::interval
+        GROUP BY workspace_slug`,
+      [CHURN_WINDOW_DAYS]
+    );
+    const activeWorkspaces = new Set(recentSendsRes.rows.map(r => r.workspace_slug));
+    const filteredWorkspaces = workspaces.filter(w => activeWorkspaces.has(w.slug));
+    // Replace `workspaces` with the filtered list so all downstream summary
+    // math is computed against active workspaces only.
+    workspaces.length = 0;
+    workspaces.push(...filteredWorkspaces);
+
     // Workspace order: disconnected first, then burn count desc, then
     // list-issue count desc, then sent desc.
     workspaces.sort((a, b) =>
@@ -515,7 +566,11 @@ export async function GET(req: NextRequest) {
       (b.totalSent                 - a.totalSent)
     );
 
-    const totalAccounts   = accountRows.length;
+    // Restrict accountRows used for global summary math to active workspaces
+    // only (matches the workspaces[] filter above).
+    const activeAccountRows = accountRows.filter(a => activeWorkspaces.has(a.workspace_slug));
+
+    const totalAccounts   = activeAccountRows.length;
     // Workspace-level totals already overridden with EB stats above. Sum
     // those instead of the DB-derived account rows so the global summary
     // also matches EB's dashboard numbers.
@@ -523,7 +578,7 @@ export async function GET(req: NextRequest) {
     const totalReplies    = workspaces.reduce((s, w) => s + w.totalReplies,    0);
     const totalBounces    = workspaces.reduce((s, w) => s + w.totalBounces,    0);
     const totalInterested = workspaces.reduce((s, w) => s + w.totalInterested, 0);
-    const totalBurns      = accountRows.reduce((s, a) => s + a.burns,          0);
+    const totalBurns      = activeAccountRows.reduce((s, a) => s + a.burns,    0);
     const totalDomains    = workspaces.reduce((s, w) => s + w.domainCount, 0);
     const avgReplyRate    = totalSent > 0 ? Math.round((totalReplies / totalSent) * 10000) / 100 : 0;
     const avgBouncePct    = totalSent > 0 ? Math.round((totalBounces / totalSent) * 10000) / 100 : 0;
@@ -532,12 +587,14 @@ export async function GET(req: NextRequest) {
     // Domain-level rollup counts for the global summary.
     const allDomains = workspaces.flatMap(w => w.domains);
     const summaryStatusCounts = {
-      disconnected:      allDomains.filter(d => d.status === "disconnected").length,
-      burned:            allDomains.filter(d => d.status === "burned").length,
-      list_issue:        allDomains.filter(d => d.status === "list_issue").length,
-      low_replies:       allDomains.filter(d => d.status === "low_replies").length,
-      insufficient_data: allDomains.filter(d => d.status === "insufficient_data").length,
-      healthy:           allDomains.filter(d => d.status === "healthy").length,
+      disconnected:        allDomains.filter(d => d.status === "disconnected").length,
+      burned:              allDomains.filter(d => d.status === "burned").length,
+      list_issue:          allDomains.filter(d => d.status === "list_issue").length,
+      no_replies:          allDomains.filter(d => d.status === "no_replies").length,
+      drastic_low_replies: allDomains.filter(d => d.status === "drastic_low_replies").length,
+      low_replies:         allDomains.filter(d => d.status === "low_replies").length,
+      insufficient_data:   allDomains.filter(d => d.status === "insufficient_data").length,
+      healthy:             allDomains.filter(d => d.status === "healthy").length,
     };
 
     return NextResponse.json({

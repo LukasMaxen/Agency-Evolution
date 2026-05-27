@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
       try {
         // 2. Fetch ALL sender emails from EmailBison (paginate if needed)
-        const ebSenders: { id: number; email: string; warmup_enabled: boolean; status: string }[] = [];
+        const ebSenders: { id: number; email: string; warmup_enabled: boolean; status: string; provider_type: string | null }[] = [];
         let page = 1;
         let hasMore = true;
 
@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
       email:          s.email?.toLowerCase().trim(),
       warmup_enabled: s.warmup_enabled ?? false,
       status:         s.status ?? "active",
+      provider_type:  s.type ?? null,
     }))
   );
 
@@ -91,16 +92,17 @@ export async function POST(req: NextRequest) {
 
         for (const sender of ebSenders) {
           const upsertResult = await pool.query(
-            `INSERT INTO sender_accounts (workspace_slug, email, eb_sender_id, warmup_enabled, status, synced_at)
-             VALUES ($1, $2, $3, $4, $5, NOW())
+            `INSERT INTO sender_accounts (workspace_slug, email, eb_sender_id, warmup_enabled, status, provider_type, synced_at)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW())
              ON CONFLICT (workspace_slug, email)
              DO UPDATE SET
                eb_sender_id   = EXCLUDED.eb_sender_id,
                warmup_enabled = EXCLUDED.warmup_enabled,
                status         = EXCLUDED.status,
+               provider_type  = EXCLUDED.provider_type,
                synced_at      = NOW()
              RETURNING (xmax = 0) AS inserted`,
-            [slug, sender.email, sender.id, sender.warmup_enabled, sender.status]
+            [slug, sender.email, sender.id, sender.warmup_enabled, sender.status, sender.provider_type]
           );
 
           if (upsertResult.rows[0]?.inserted) added++;
