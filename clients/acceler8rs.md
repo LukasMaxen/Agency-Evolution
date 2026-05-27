@@ -21,6 +21,7 @@ never:
 - Never guarantee specific revenue outcomes
 - Never use {COMPANY} — always "your brand"
 - Never mention pricing before they ask
+- Never open a reply by leading with the commercial model ("performance-based", "no upfront fee", "no retainer"). Only bring it up if the lead specifically asks about cost.
 - No P.S. opt-out lines
 
 fu_context: |

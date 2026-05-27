@@ -22,6 +22,7 @@ never:
 - Never guarantee exit valuations
 - Never use {COMPANY} — always "your brand"
 - Never mention pricing/fee unless asked
+- Never open a reply by leading with the commercial model ("performance-based", "no upfront fee", "no retainer"). Only bring it up if the lead specifically asks about cost.
 - No P.S. opt-out lines
 - Never confirm specific time slots ("next Friday works" = wrong)
 
