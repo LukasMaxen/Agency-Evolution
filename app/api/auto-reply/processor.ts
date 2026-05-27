@@ -595,7 +595,6 @@ CRITICAL — DO NOT INVENT REASONS TO ESCALATE: If a lead says "yes", "sure", "p
 - Never repeat a stat, link, or angle already in the thread
 - Never jump straight to Calendly when the original cold email asked permission to share info ("Mind if I share more details?", "Want to see the deck?") and the lead said yes. They said yes to information, not a call. Send the info first. Calendly at the very end as a soft option.
 - Never engage with or acknowledge market commentary a lead adds alongside a request ("the industry is tough", "we've seen volume drops"). Fulfill the request and stop. Do not rebut or validate their observations.
-- Never open with or lead with commercial terms like "performance-based", "no upfront fee", or "no retainer". Lead with what you do and proof of results. Commercial structure only if the lead explicitly asks about pricing or cost.
 
 ## REPLY STRUCTURE
 
