@@ -133,15 +133,15 @@ function resolveWsColor(workspaces: ReturnType<typeof useWorkspaces>, slug: stri
 
 const STATUS_CFG: Record<Status, { label: string; bg: string; color: string; border: string; icon: React.ElementType }> = {
   disconnected:         { label: "Disconnected",      bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC", icon: WifiOff },
-  burned:               { label: "Burned",            bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: Flame },
-  list_issue:           { label: "List issue",        bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: AlertTriangle },
+  burned:               { label: "Burned",            bg: "#FCEBEB", color: "#B91C1C", border: "#F09595", icon: Flame },
+  list_issue:           { label: "List issue",        bg: "#FAEEDA", color: "#D97706", border: "#FAC775", icon: AlertTriangle },
   // Reply rate < 0.5% is the action-required tier: pause outbound, put on
   // warmup-only for 1-2 weeks. Same red as burned/list_issue because the
   // recovery action is comparable.
-  critical_low_replies: { label: "Critical low replies", bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: TrendingDown },
-  low_replies:          { label: "Low replies",       bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: TrendingDown },
+  critical_low_replies: { label: "Critical low replies", bg: "#FCEBEB", color: "#B91C1C", border: "#F09595", icon: TrendingDown },
+  low_replies:          { label: "Low replies",       bg: "#FAEEDA", color: "#D97706", border: "#FAC775", icon: TrendingDown },
   insufficient_data:    { label: "Insufficient data", bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB", icon: Loader2 },
-  healthy:              { label: "Healthy",           bg: "#EAF3DE", color: "#3B6D11", border: "#C0DD97", icon: CheckCircle },
+  healthy:              { label: "Healthy",           bg: "#EAF3DE", color: "#15803D", border: "#C0DD97", icon: CheckCircle },
 };
 
 // Action tooltip: derives the right sentence from which signals are firing,
@@ -248,11 +248,11 @@ function RateCell({ value, type }: { value: number; type: "reply" | "bounce" | "
   // Binary KPI coloring: green if meeting the target, red if not.
   let color: string;
   if (type === "reply") {
-    color = value >= 1 ? "#3B6D11" : "#A32D2D";
+    color = value >= 1 ? "#15803D" : "#B91C1C";
   } else if (type === "bounce") {
-    color = value <  2 ? "#3B6D11" : "#A32D2D";
+    color = value <  2 ? "#15803D" : "#B91C1C";
   } else {
-    color = value <  0.5 ? "#3B6D11" : "#A32D2D";
+    color = value <  0.5 ? "#15803D" : "#B91C1C";
   }
   return <span style={{ fontSize: 12, color, fontWeight: value === 0 && type === "reply" ? 600 : 400 }}>{value}%</span>;
 }
@@ -270,8 +270,8 @@ interface ActionButtonProps {
 
 function ActionButton({ label, icon: Icon, onClick, loading, variant, disabled }: ActionButtonProps) {
   const styles: Record<string, { bg: string; color: string; border: string; hoverBg: string }> = {
-    danger:  { bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", hoverBg: "#f8d7d7" },
-    success: { bg: "#EAF3DE", color: "#3B6D11", border: "#C0DD97", hoverBg: "#daefc7" },
+    danger:  { bg: "#FCEBEB", color: "#B91C1C", border: "#F09595", hoverBg: "#f8d7d7" },
+    success: { bg: "#EAF3DE", color: "#15803D", border: "#C0DD97", hoverBg: "#daefc7" },
     warmup:  { bg: "#FEF3C7", color: "#92400E", border: "#FCD34D", hoverBg: "#fde68a" },
   };
   const s = styles[variant];
@@ -310,7 +310,7 @@ function Toast({ msg, type, onDismiss }: { msg: string; type: "success" | "error
       position: "fixed", bottom: 24, right: 24, zIndex: 9999,
       background: type === "success" ? "#EAF3DE" : "#FCEBEB",
       border: `0.5px solid ${type === "success" ? "#C0DD97" : "#F09595"}`,
-      color: type === "success" ? "#3B6D11" : "#A32D2D",
+      color: type === "success" ? "#15803D" : "#B91C1C",
       borderRadius: 10, padding: "10px 16px", fontSize: 12, fontWeight: 500,
       boxShadow: "0 4px 16px rgba(0,0,0,0.10)", maxWidth: 380,
       display: "flex", alignItems: "flex-start", gap: 8,
@@ -400,20 +400,20 @@ function MetricsRow({
         value={`${avgReplyRate}%`}
         sub={`(${totalReplies.toLocaleString()} replies)`}
         color={
-          avgReplyRate >= 1   ? "#3B6D11"
-          : avgReplyRate >= 0.5 ? "#854F0B"
-          : "#A32D2D"
+          avgReplyRate >= 1   ? "#15803D"
+          : avgReplyRate >= 0.5 ? "#D97706"
+          : "#B91C1C"
         }
       />
       <SummaryCard
         label="Avg bounce rate"
         value={`${bouncePct}%`}
-        color={bouncePct < 2 ? "#3B6D11" : "#A32D2D"}
+        color={bouncePct < 2 ? "#15803D" : "#B91C1C"}
       />
       <SummaryCard
         label="Avg burn rate"
         value={`${burnPct}%`}
-        color={burnPct < 0.5 ? "#3B6D11" : "#A32D2D"}
+        color={burnPct < 0.5 ? "#15803D" : "#B91C1C"}
       />
     </div>
   );
@@ -590,12 +590,12 @@ function CampaignDropdown({
               border: `0.5px solid ${isReattached ? "#C0DD97" : "#e5e7eb"}`,
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, background: isReattached ? "#3B6D11" : "#9ca3af" }} />
+                <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, background: isReattached ? "#15803D" : "#9ca3af" }} />
                 <span style={{ fontSize: 11, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {c.name || `Campaign #${c.id}`}
                 </span>
                 {isReattached && (
-                  <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 10, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97" }}>
+                  <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 10, background: "#EAF3DE", color: "#15803D", border: "0.5px solid #C0DD97" }}>
                     restored
                   </span>
                 )}
@@ -605,7 +605,7 @@ function CampaignDropdown({
                   style={{
                     marginLeft: 8, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3,
                     fontSize: 10, padding: "2px 7px", borderRadius: 5,
-                    border: "0.5px solid #C0DD97", background: "#EAF3DE", color: "#3B6D11",
+                    border: "0.5px solid #C0DD97", background: "#EAF3DE", color: "#15803D",
                     cursor: isLoading || reattachingAll ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500,
                   }}>
                   {isLoading ? <Loader2 size={8} style={{ animation: "spin 1s linear infinite" }} /> : <Wifi size={8} />}
@@ -620,7 +620,7 @@ function CampaignDropdown({
             style={{
               marginTop: 6, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
               fontSize: 10, padding: "5px 0", borderRadius: 6,
-              border: "0.5px solid #C0DD97", background: "#EAF3DE", color: "#3B6D11",
+              border: "0.5px solid #C0DD97", background: "#EAF3DE", color: "#15803D",
               cursor: reattachingAll ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500,
             }}>
             {reattachingAll
@@ -655,12 +655,12 @@ function CampaignDropdown({
             background: "#f8f7f5", border: "0.5px solid #e5e7eb",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, background: ["Active", "active", 1, 2].includes(c.status) ? "#3B6D11" : "#9ca3af" }} />
+              <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, background: ["Active", "active", 1, 2].includes(c.status) ? "#15803D" : "#9ca3af" }} />
               <span style={{ fontSize: 11, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {c.name || `Campaign #${c.id}`}
               </span>
               {c.reply_count > 0 ? (
-                <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 10, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", whiteSpace: "nowrap" }}>
+                <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 10, background: "#EAF3DE", color: "#15803D", border: "0.5px solid #C0DD97", whiteSpace: "nowrap" }}>
                   {c.reply_count} {c.reply_count === 1 ? "reply" : "replies"}
                   {c.interested_count > 0 && ` · ${c.interested_count} interested`}
                 </span>
@@ -674,7 +674,7 @@ function CampaignDropdown({
               style={{
                 marginLeft: 8, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3,
                 fontSize: 10, padding: "2px 7px", borderRadius: 5,
-                border: "0.5px solid #F09595", background: "#FCEBEB", color: "#A32D2D",
+                border: "0.5px solid #F09595", background: "#FCEBEB", color: "#B91C1C",
                 cursor: isLoading || busy ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500,
                 opacity: busy && !isLoading ? 0.5 : 1,
               }}>
@@ -690,7 +690,7 @@ function CampaignDropdown({
           style={{
             marginTop: 6, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
             fontSize: 10, padding: "5px 0", borderRadius: 6,
-            border: "0.5px solid #F09595", background: "#FCEBEB", color: "#A32D2D",
+            border: "0.5px solid #F09595", background: "#FCEBEB", color: "#B91C1C",
             cursor: busy ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500, opacity: busy ? 0.5 : 1,
           }}>
           {busy
@@ -705,7 +705,7 @@ function CampaignDropdown({
           style={{
             marginTop: 6, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
             fontSize: 10, padding: "5px 0", borderRadius: 6,
-            border: "0.5px solid #C0DD97", background: "#EAF3DE", color: "#3B6D11",
+            border: "0.5px solid #C0DD97", background: "#EAF3DE", color: "#15803D",
             cursor: "pointer", fontFamily: "inherit", fontWeight: 500,
           }}>
           <Wifi size={9} /> View {removedCampaigns.length} removed — re-attach?
@@ -762,17 +762,17 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
             </span>
           )}
           {burnedCount > 0 && (
-            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595", fontWeight: 500, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#B91C1C", border: "0.5px solid #F09595", fontWeight: 500, whiteSpace: "nowrap" }}>
               {burnedCount} burned
             </span>
           )}
           {criticalCount > 0 && (
-            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595", fontWeight: 500, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#B91C1C", border: "0.5px solid #F09595", fontWeight: 500, whiteSpace: "nowrap" }}>
               {criticalCount} critical low replies
             </span>
           )}
           {listCount > 0 && (
-            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FAEEDA", color: "#854F0B", border: "0.5px solid #FAC775", fontWeight: 500, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FAEEDA", color: "#D97706", border: "0.5px solid #FAC775", fontWeight: 500, whiteSpace: "nowrap" }}>
               {listCount} list issue
             </span>
           )}
@@ -782,7 +782,7 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
             </span>
           )}
           {disconnectedCount === 0 && burnedCount === 0 && criticalCount === 0 && listCount === 0 && insufficientCount === 0 && healthyCount > 0 && (
-            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", fontWeight: 500, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#EAF3DE", color: "#15803D", border: "0.5px solid #C0DD97", fontWeight: 500, whiteSpace: "nowrap" }}>
               All healthy
             </span>
           )}
@@ -800,11 +800,11 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
           {
             label: "Avg reply rate",
             value: `${ws.avgReplyRate}% (${ws.totalReplies.toLocaleString()})`,
-            color: ws.avgReplyRate >= 1   ? "#3B6D11"
-                 : ws.avgReplyRate >= 0.5 ? "#854F0B"
-                 : "#A32D2D",
+            color: ws.avgReplyRate >= 1   ? "#15803D"
+                 : ws.avgReplyRate >= 0.5 ? "#D97706"
+                 : "#B91C1C",
           },
-          { label: "Bounce rate",    value: `${ws.bouncePct}%`,    color: ws.bouncePct < 2 ? "#3B6D11" : "#A32D2D" },
+          { label: "Bounce rate",    value: `${ws.bouncePct}%`,    color: ws.bouncePct < 2 ? "#15803D" : "#B91C1C" },
         ].map(s => (
           <div key={s.label}>
             <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{s.label}</p>
@@ -1066,10 +1066,10 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                         if (!label) return null;
                         const tone =
                           dom.status === "disconnected"         ? { bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC" } :
-                          dom.status === "burned"               ? { bg: "#FCEBEB", color: "#A32D2D", border: "#F09595" } :
-                          dom.status === "critical_low_replies" ? { bg: "#FCEBEB", color: "#A32D2D", border: "#F09595" } :
-                          dom.status === "list_issue"           ? { bg: "#FAEEDA", color: "#854F0B", border: "#FAC775" } :
-                          dom.status === "low_replies"          ? { bg: "#FAEEDA", color: "#854F0B", border: "#FAC775" } :
+                          dom.status === "burned"               ? { bg: "#FCEBEB", color: "#B91C1C", border: "#F09595" } :
+                          dom.status === "critical_low_replies" ? { bg: "#FCEBEB", color: "#B91C1C", border: "#F09595" } :
+                          dom.status === "list_issue"           ? { bg: "#FAEEDA", color: "#D97706", border: "#FAC775" } :
+                          dom.status === "low_replies"          ? { bg: "#FAEEDA", color: "#D97706", border: "#FAC775" } :
                                                                   { bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB" };
                         return (
                           <span style={{
@@ -1128,7 +1128,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                               }
                             </button>
                             {isRemoved && (
-                              <span style={{ display: "block", marginTop: 2, fontSize: 9, color: "#3B6D11", background: "#EAF3DE", border: "0.5px solid #C0DD97", borderRadius: 4, padding: "1px 5px", width: "fit-content" }}>
+                              <span style={{ display: "block", marginTop: 2, fontSize: 9, color: "#15803D", background: "#EAF3DE", border: "0.5px solid #C0DD97", borderRadius: 4, padding: "1px 5px", width: "fit-content" }}>
                                 removed from all
                               </span>
                             )}
@@ -1151,7 +1151,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                                   title="Warmup is disabled for this mailbox in EmailBison. Enable it to keep inbox placement healthy."
                                   style={{
                                     fontSize: 9, padding: "1px 6px", borderRadius: 20,
-                                    background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595",
+                                    background: "#FCEBEB", color: "#B91C1C", border: "0.5px solid #F09595",
                                     fontWeight: 500, whiteSpace: "nowrap",
                                   }}
                                 >
@@ -1289,7 +1289,7 @@ export function AccountMonitor() {
             <button onClick={removeAllRisky} disabled={nukingAll || loading}
               style={{
                 display: "flex", alignItems: "center", gap: 6, fontSize: 11, padding: "5px 10px",
-                borderRadius: 8, border: "0.5px solid #F09595", background: "#FCEBEB", color: "#A32D2D",
+                borderRadius: 8, border: "0.5px solid #F09595", background: "#FCEBEB", color: "#B91C1C",
                 cursor: nukingAll ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 500,
               }}>
               {nukingAll ? <Loader2 size={11} className="animate-spin" /> : <WifiOff size={11} />}
