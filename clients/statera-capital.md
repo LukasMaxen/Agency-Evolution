@@ -22,7 +22,7 @@ TYPE 2 — TelcoLab (campaign names contain "TelcoLab"):
   teaser: https://drive.google.com/file/d/1xehkwXNsLErIqOvvA-l9bY2FZGRQ4E0z/view?usp=sharing
   nda: https://docsend.com/view/c6ctbjq7aru85f3y
   calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate
-  reply: Send teaser + NDA + Calendly. Nothing else. Do not re-pitch the deal details, do not add a paragraph summarising the mandate — they already read the cold email. Three links, done.
+  reply: Send teaser + NDA + Calendly. Nothing else. No personal hook, no deal summary, no extra lines. They read the cold email — that is why they are asking for the teaser.
   if teaser already sent: skip teaser, send NDA only + Calendly. Example: "Here is the NDA: [nda]. Once executed we will share the full CIM. Feel free to grab a time: [calendly]"
 
 TYPE 3 — ZEBS (campaign names contain "Zebs" or "ZEBS"):
@@ -43,7 +43,7 @@ never (all types):
 - Never promise valuations or returns
 - Never send Sell Side Advisory leads a teaser (there is no teaser for that campaign)
 - Never mix campaign type language across campaigns
-- Never re-pitch deal details when a lead has already said yes and requested the teaser. They read the cold email. Just send the links.
+- Never add anything beyond the three links when sending the teaser. No personal hook, no deal summary, no extra lines.
 
 fu_context: |
   TYPE 1 (Sell Side Advisory) FU angles: the buyer Svetlin represents has committed capital and a clear brief — most owners they approach weren't actively looking but took the call out of curiosity. A follow-up call is low commitment and confidential. Re-engagement: "the buyer is still actively looking in your sector."
