@@ -129,8 +129,63 @@ export async function POST(req: NextRequest) {
 
         const removed = deleteResult.rowCount ?? 0;
 
+        // 5. Refresh attached_campaigns_count per sender by walking all
+        //    campaigns and counting how many list each sender_email_id.
+        //    Paginated 15/page; only active-type campaigns count toward the
+        //    metric (paused/completed should not count, since the sender is
+        //    not currently delivering through them).
+        const attachedCount: Record<number, number> = {};
+        try {
+          let cPage = 1;
+          let cHasMore = true;
+          while (cHasMore) {
+            const cRes = await fetch(`${instanceUrl}/api/campaigns?per_page=250&page=${cPage}`, { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } });
+            if (!cRes.ok) break;
+            const cBody = await cRes.json();
+            const camps: any[] = cBody?.data ?? [];
+            for (const camp of camps) {
+              const s = String(camp.status ?? "").toLowerCase();
+              const isActive = s === "active" || s === "running" || s === "live" || s === "draft";
+              if (!isActive) continue;
+              // Walk paginated sender list for this campaign.
+              let sPage = 1, sHasMore = true;
+              while (sHasMore) {
+                const sRes = await fetch(`${instanceUrl}/api/campaigns/${camp.id}/sender-emails?per_page=250&page=${sPage}`, { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } });
+                if (!sRes.ok) break;
+                const sBody = await sRes.json();
+                for (const s of (sBody?.data ?? [])) {
+                  attachedCount[s.id] = (attachedCount[s.id] ?? 0) + 1;
+                }
+                const last = sBody?.meta?.last_page ?? sPage;
+                sHasMore = sPage < last;
+                sPage++;
+              }
+            }
+            const cLast = cBody?.meta?.last_page ?? cPage;
+            cHasMore = cPage < cLast;
+            cPage++;
+          }
+          // Write counts. Senders not in attachedCount get 0.
+          await pool.query(
+            `UPDATE sender_accounts
+               SET attached_campaigns_count = 0
+             WHERE workspace_slug = $1`,
+            [slug]
+          );
+          for (const [senderId, count] of Object.entries(attachedCount)) {
+            await pool.query(
+              `UPDATE sender_accounts
+                 SET attached_campaigns_count = $1
+               WHERE workspace_slug = $2 AND eb_sender_id = $3`,
+              [count, slug, parseInt(senderId, 10)]
+            );
+          }
+        } catch (attachErr: any) {
+          console.error(`[sync-sender-accounts] ${slug} attached-count refresh failed:`, attachErr?.message);
+        }
+
         results.push({ workspace: slug, added, updated, removed, total: ebSenders.length });
-        console.log(`[sync-sender-accounts] ${slug}: +${added} added, ~${updated} updated, -${removed} removed`);
+        console.log(`[sync-sender-accounts] ${slug}: +${added} added, ~${updated} updated, -${removed} removed, ${Object.keys(attachedCount).length} senders with active-campaign attachments`);
 
       } catch (wsErr: any) {
         console.error(`[sync-sender-accounts] ${slug} failed:`, wsErr.message);

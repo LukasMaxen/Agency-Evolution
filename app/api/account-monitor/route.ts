@@ -141,10 +141,12 @@ export async function GET(req: NextRequest) {
         -- Senders with NULL provider_type are kept on the safe side until
         -- the next sync populates them.
         SELECT
-          email           AS sender_email,
+          email                    AS sender_email,
           workspace_slug,
-          status          AS conn_status,
-          warmup_enabled
+          status                   AS conn_status,
+          warmup_enabled,
+          warming_since,
+          attached_campaigns_count
         FROM sender_accounts
         WHERE (provider_type IS NULL OR provider_type !~* '(microsoft|office365|outlook)')
         ${workspace !== "all" ? "AND workspace_slug = $2" : ""}
@@ -259,6 +261,8 @@ export async function GET(req: NextRequest) {
         sa.workspace_slug,
         sa.conn_status,
         sa.warmup_enabled,
+        sa.warming_since,
+        sa.attached_campaigns_count,
         COALESCE(sc.emails_sent, 0)                                                       AS emails_sent,
         COALESCE(bc.bounces, 0)                                                           AS bounces,
         COALESCE(bn.burns,   0)                                                           AS burns,
@@ -290,20 +294,22 @@ export async function GET(req: NextRequest) {
     const lastSynced = syncResult.rows[0]?.last_synced ?? null;
 
     type AccountRow = {
-      sender_email:   string;
-      workspace_slug: string;
-      conn_status:    string;
-      warmup_enabled: boolean;
-      emails_sent:    number;
-      bounces:        number;
-      burns:          number;
-      replies:        number;
-      bounce_rate:    number;
-      burn_rate:      number;
-      reply_rate:     number;
-      status:         Status;
-      confidence:     Confidence;
-      signals:        SignalFlags;
+      sender_email:             string;
+      workspace_slug:           string;
+      conn_status:              string;
+      warmup_enabled:           boolean;
+      warming_since:            string | null;
+      attached_campaigns_count: number | null;
+      emails_sent:              number;
+      bounces:                  number;
+      burns:                    number;
+      replies:                  number;
+      bounce_rate:              number;
+      burn_rate:                number;
+      reply_rate:               number;
+      status:                   Status;
+      confidence:               Confidence;
+      signals:                  SignalFlags;
     };
 
     const accountRows: AccountRow[] = result.rows.map((r) => {
@@ -328,15 +334,17 @@ export async function GET(req: NextRequest) {
       });
 
       return {
-        sender_email:   r.sender_email,
-        workspace_slug: r.workspace_slug,
-        conn_status:    connStatus,
-        warmup_enabled: r.warmup_enabled === true,
-        emails_sent:    sent,
+        sender_email:             r.sender_email,
+        workspace_slug:           r.workspace_slug,
+        conn_status:              connStatus,
+        warmup_enabled:           r.warmup_enabled === true,
+        warming_since:            r.warming_since ?? null,
+        attached_campaigns_count: r.attached_campaigns_count ?? null,
+        emails_sent:              sent,
         bounces, burns, replies,
-        bounce_rate:    bounceRate,
-        burn_rate:      burnRate,
-        reply_rate:     replyRate,
+        bounce_rate:              bounceRate,
+        burn_rate:                burnRate,
+        reply_rate:               replyRate,
         status, confidence, signals,
       };
     });

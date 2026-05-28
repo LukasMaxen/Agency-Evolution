@@ -41,6 +41,8 @@ interface Account {
   workspace_slug: string;
   conn_status: string;
   warmup_enabled: boolean;
+  warming_since: string | null;
+  attached_campaigns_count: number | null;
   emails_sent: number;
   bounces: number;
   burns: number;
@@ -1156,6 +1158,30 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                                   }}
                                 >
                                   Not warming
+                                </span>
+                              )}
+                              {acc.attached_campaigns_count === 0 && acc.conn_status !== "Not connected" && (
+                                <span
+                                  title="This sender is not attached to any active campaign in EmailBison. Use Attach to all to put it back in production."
+                                  style={{
+                                    fontSize: 9, padding: "1px 6px", borderRadius: 20,
+                                    background: "#F3F4F6", color: "#6B7280", border: "0.5px solid #D1D5DB",
+                                    fontWeight: 500, whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  0 campaigns
+                                </span>
+                              )}
+                              {acc.warming_since && (
+                                <span
+                                  title={`On warmup since ${new Date(acc.warming_since).toLocaleDateString()}.`}
+                                  style={{
+                                    fontSize: 9, padding: "1px 6px", borderRadius: 20,
+                                    background: "#FAEEDA", color: "#D97706", border: "0.5px solid #FAC775",
+                                    fontWeight: 500, whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  Warming {Math.floor((Date.now() - new Date(acc.warming_since).getTime()) / (24 * 60 * 60 * 1000))}d
                                 </span>
                               )}
                             </div>

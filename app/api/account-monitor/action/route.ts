@@ -5,10 +5,19 @@ import pool from "@/lib/db";
 // Body: {
 //   sender_email: string,
 //   workspace_slug: string,
-//   action: "remove" | "reattach" | "remove_and_warmup",
-//   campaign_id?: number,   // if provided, only act on this one campaign
-//   sender_id?: number,     // if provided, skip the EB lookup (caller already resolved it)
+//   action: "remove" | "reattach" | "remove_and_warmup" | "attach_to_all",
+//   campaign_id?: number,   // remove/reattach: act only on this campaign
+//   sender_id?: number,     // skip the EB lookup if caller resolved it
 // }
+//
+// attach_to_all fetches all active (non-paused, non-completed) campaigns in
+// the workspace from EB and attaches the sender to every one. Used by the
+// Warmup Monitor's "Add to all campaigns" action after a sender finishes
+// warmup and is ready to rejoin.
+//
+// remove_and_warmup sets sender_accounts.warming_since = NOW() so the
+// dashboard can show "Warming for X days" and surface ready-to-rejoin
+// senders. reattach (and attach_to_all) clears warming_since.
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,9 +31,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!["remove", "reattach", "remove_and_warmup"].includes(action)) {
+    if (!["remove", "reattach", "remove_and_warmup", "attach_to_all"].includes(action)) {
       return NextResponse.json(
-        { error: "action must be one of: remove, reattach, remove_and_warmup" },
+        { error: "action must be one of: remove, reattach, remove_and_warmup, attach_to_all" },
         { status: 400 }
       );
     }
@@ -99,8 +108,32 @@ export async function POST(req: NextRequest) {
     if (campaign_id) {
       // Single campaign — caller provided it, no need to fetch all
       campaigns = [{ id: campaign_id, name: "" }];
+    } else if (action === "attach_to_all") {
+      // All currently-running campaigns in the workspace (active outbound,
+      // not paused/completed/archived). The sender will be attached to each.
+      const campsRes = await fetch(
+        `${instanceUrl}/api/campaigns?per_page=250`,
+        { headers }
+      );
+      if (!campsRes.ok) {
+        const err = await campsRes.text();
+        return NextResponse.json(
+          { error: `Failed to fetch workspace campaigns (${campsRes.status}): ${err}` },
+          { status: 502 }
+        );
+      }
+      const campsData = await campsRes.json();
+      campaigns = (campsData.data ?? [])
+        .filter((c: any) => {
+          const s = String(c.status ?? "").toLowerCase();
+          // Skip terminal states. Anything labelled active/draft/running
+          // is fair game (EB also uses "live" sometimes).
+          return s === "active" || s === "running" || s === "live" || s === "draft";
+        })
+        .map((c: any) => ({ id: c.id, name: c.name }));
     } else {
-      // All campaigns this sender is attached to
+      // remove / remove_and_warmup / reattach — operate on campaigns this
+      // sender is currently attached to.
       const campsRes = await fetch(
         `${instanceUrl}/api/sender-emails/${senderId}/campaigns`,
         { headers }
@@ -118,7 +151,10 @@ export async function POST(req: NextRequest) {
 
     const results: { campaign_id: number; campaign_name: string; status: string; error?: string }[] = [];
 
-    // 4. Remove or re-attach
+    // 4. Remove or attach. EB's remove endpoint is async ("Sender emails
+    //    sent for deletion. This may take a moment.") and completes within a
+    //    few seconds; attach is synchronous. We treat a 200 from either as
+    //    success.
     for (const camp of campaigns) {
       if (action === "remove" || action === "remove_and_warmup") {
         const removeRes = await fetch(
@@ -135,7 +171,7 @@ export async function POST(req: NextRequest) {
           const err = await removeRes.text();
           results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "error", error: err });
         }
-      } else if (action === "reattach") {
+      } else if (action === "reattach" || action === "attach_to_all") {
         const attachRes = await fetch(
           `${instanceUrl}/api/campaigns/${camp.id}/attach-sender-emails`,
           {
@@ -145,7 +181,7 @@ export async function POST(req: NextRequest) {
           }
         );
         if (attachRes.ok) {
-          results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "reattached" });
+          results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "attached" });
         } else {
           const err = await attachRes.text();
           results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "error", error: err });
@@ -164,6 +200,24 @@ export async function POST(req: NextRequest) {
       warmupResult = warmupRes.ok ? "enabled" : `failed (${warmupRes.status})`;
     } else if (action === "remove_and_warmup" && warmupAlreadyEnabled) {
       warmupResult = "already_enabled";
+    }
+
+    // 6. Warming-since lifecycle. remove_and_warmup starts the clock;
+    //    reattach / attach_to_all clears it (sender is back in production).
+    //    "remove" alone does NOT touch warming_since because the sender
+    //    might be getting yanked for other reasons (burned, list issue).
+    if (action === "remove_and_warmup") {
+      await pool.query(
+        `UPDATE sender_accounts SET warming_since = NOW()
+         WHERE workspace_slug = $1 AND email = $2`,
+        [workspace_slug, sender_email.toLowerCase()]
+      );
+    } else if (action === "reattach" || action === "attach_to_all") {
+      await pool.query(
+        `UPDATE sender_accounts SET warming_since = NULL
+         WHERE workspace_slug = $1 AND email = $2 AND warming_since IS NOT NULL`,
+        [workspace_slug, sender_email.toLowerCase()]
+      );
     }
 
     const succeeded = results.filter(r => r.status !== "error").length;
