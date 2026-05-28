@@ -68,8 +68,16 @@ export async function POST(req: NextRequest) {
 
   const data = await res.json();
   const rows = data.data ?? [];
+  // Skip Microsoft/Outlook senders entirely. They are out of scope for
+  // the deliverability product line, so we don't keep their rows in
+  // sender_accounts at all (instead of filtering at read-time). EB
+  // provider_type values seen: google_workspace_oauth, microsoft_oauth.
+  const filtered = rows.filter((s: any) => {
+    const t = String(s.type ?? "").toLowerCase();
+    return !/(microsoft|office365|outlook)/.test(t);
+  });
   ebSenders.push(
-    ...rows.map((s: any) => ({
+    ...filtered.map((s: any) => ({
       id:             s.id,
       email:          s.email?.toLowerCase().trim(),
       warmup_enabled: s.warmup_enabled ?? false,

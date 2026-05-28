@@ -816,6 +816,14 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
   const [expandedEmail, setExpandedEmail]   = useState<string | null>(null);
   const [loadingMap, setLoadingMap]         = useState<Record<string, ActionKey | null>>({});
   const [removedSet, setRemovedSet]         = useState<Set<string>>(new Set());
+  // Tabs separate active-sending mailboxes from warming-only (zero sends in
+  // the current dashboard window). Warming-only senders have no
+  // deliverability data to evaluate so they live in their own view.
+  const [tab, setTab] = useState<"active" | "warming">("active");
+  const isWarming = (a: Account) => a.emails_sent === 0;
+  const isActive  = (a: Account) => a.emails_sent > 0;
+  const activeCount  = ws.accounts.filter(isActive).length;
+  const warmingCount = ws.accounts.filter(isWarming).length;
 
   async function runAction(senderEmail: string, action: ActionKey) {
     setLoadingMap(prev => ({ ...prev, [senderEmail]: action }));
@@ -864,13 +872,22 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
   // Domain sort: primary by status severity (burned > list_issue > etc.),
   // secondary by confidence (full before provisional). Within the same
   // tier, worst reply rate first, then worst bounce rate.
-  const sortedDomains = [...ws.domains].sort((a, b) => {
-    if (ORDER[a.status] !== ORDER[b.status]) return ORDER[a.status] - ORDER[b.status];
-    if (CONFIDENCE_ORDER[a.confidence] !== CONFIDENCE_ORDER[b.confidence])
-      return CONFIDENCE_ORDER[a.confidence] - CONFIDENCE_ORDER[b.confidence];
-    if (a.avgReplyRate !== b.avgReplyRate) return a.avgReplyRate - b.avgReplyRate;
-    return b.bouncePct - a.bouncePct;
-  });
+  //
+  // Tab filter: "active" keeps domains that have any sending account;
+  // "warming" keeps domains where any account is in warmup-only state.
+  // A domain with both kinds of accounts appears in both tabs (its
+  // expanded list is also filtered by the same predicate below).
+  const tabPredicate = tab === "active" ? isActive : isWarming;
+  const sortedDomains = ws.domains
+    .filter(d => d.accounts.some(tabPredicate))
+    .slice()
+    .sort((a, b) => {
+      if (ORDER[a.status] !== ORDER[b.status]) return ORDER[a.status] - ORDER[b.status];
+      if (CONFIDENCE_ORDER[a.confidence] !== CONFIDENCE_ORDER[b.confidence])
+        return CONFIDENCE_ORDER[a.confidence] - CONFIDENCE_ORDER[b.confidence];
+      if (a.avgReplyRate !== b.avgReplyRate) return a.avgReplyRate - b.avgReplyRate;
+      return b.bouncePct - a.bouncePct;
+    });
 
   return (
     <div>
@@ -915,6 +932,36 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
         Click a domain to see its accounts. Click an account to see its campaigns and remove or re-attach individually.
       </div>
 
+      <div style={{ display: "flex", gap: 4, marginBottom: 10, borderBottom: "0.5px solid #ede9e3" }}>
+        {([
+          { key: "active",  label: "Active sending", count: activeCount },
+          { key: "warming", label: "Warming only",   count: warmingCount },
+        ] as const).map(t => {
+          const selected = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => { setTab(t.key); setExpandedDomain(null); setExpandedEmail(null); }}
+              style={{
+                fontSize: 12,
+                fontWeight: selected ? 600 : 500,
+                color: selected ? "#111827" : "#6b7280",
+                padding: "8px 14px",
+                background: "transparent",
+                border: "none",
+                borderBottom: selected ? "2px solid #111827" : "2px solid transparent",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                marginBottom: -1,
+              }}
+            >
+              {t.label}{" "}
+              <span style={{ color: "#9ca3af", fontWeight: 400 }}>({t.count})</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 12, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
           <thead>
@@ -944,13 +991,16 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                                     dom.status === "burned" ? "#FCEBEB" :
                                     dom.status === "list_issue" ? "#FFF7E6" :
                                     "#fafafa";
-              const sortedAccounts = [...dom.accounts].sort((a, b) => {
-                if (ORDER[a.status] !== ORDER[b.status]) return ORDER[a.status] - ORDER[b.status];
-                if (CONFIDENCE_ORDER[a.confidence] !== CONFIDENCE_ORDER[b.confidence])
-                  return CONFIDENCE_ORDER[a.confidence] - CONFIDENCE_ORDER[b.confidence];
-                if (a.reply_rate !== b.reply_rate) return a.reply_rate - b.reply_rate;
-                return b.bounce_rate - a.bounce_rate;
-              });
+              const sortedAccounts = dom.accounts
+                .filter(tabPredicate)
+                .slice()
+                .sort((a, b) => {
+                  if (ORDER[a.status] !== ORDER[b.status]) return ORDER[a.status] - ORDER[b.status];
+                  if (CONFIDENCE_ORDER[a.confidence] !== CONFIDENCE_ORDER[b.confidence])
+                    return CONFIDENCE_ORDER[a.confidence] - CONFIDENCE_ORDER[b.confidence];
+                  if (a.reply_rate !== b.reply_rate) return a.reply_rate - b.reply_rate;
+                  return b.bounce_rate - a.bounce_rate;
+                });
 
               return (
                 <Fragment key={dom.domain}>
