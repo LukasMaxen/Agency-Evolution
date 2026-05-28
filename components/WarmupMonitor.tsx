@@ -393,7 +393,7 @@ export function WarmupMonitor() {
     : [];
 
   return (
-    <div style={{ padding: "20px 24px", fontFamily: "inherit", color: "#111827", background: "#faf9f6", minHeight: "100vh" }}>
+    <div style={{ flex: 1, overflowY: "auto", padding: 20, fontFamily: "inherit", color: "#111827", background: "#f8f7f5" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <p style={{ fontSize: 18, fontWeight: 600 }}>Warmup Monitor</p>
@@ -448,7 +448,7 @@ export function WarmupMonitor() {
             <SummaryCard label="Warming-only"      value={data.summary.warmingOnly} />
             <SummaryCard label="Idle (0 camps)"    value={data.summary.idle} />
             <SummaryCard label="Workspaces"        value={data.workspaces.length} />
-            <SummaryCard label="Active campaigns"  value={Object.values(attachedBySlug).reduce((s, n) => s + n, 0)} sub="senders with attachments" />
+            <SummaryCard label="Senders attached"  value={Object.values(attachedBySlug).reduce((s, n) => s + n, 0)} sub={`of ${data.summary.totalSenders}`} />
           </div>
 
           {data.workspaces.length === 0 ? (
