@@ -125,16 +125,19 @@ function WorkspaceCard({ w, attachedCount, onClick }: { w: WsAgg; attachedCount:
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        <div>
-          <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>Total senders</p>
-          <p style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>{w.total}</p>
-        </div>
-        <div>
-          <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>Attached to campaigns</p>
-          <p style={{ fontSize: 14, fontWeight: 500, color: attachedCount === 0 ? "#6B7280" : "#111827" }}>
-            {attachedCount} / {w.total}
-          </p>
-        </div>
+        {[
+          // Row 1: top-level counts (no KPI = always black)
+          { label: "Total senders",    value: w.total,                  color: undefined },
+          { label: "Attached / Total", value: `${attachedCount} / ${w.total}`, color: undefined },
+          // Row 2: status counts — colored only when the count > 0
+          { label: "Not warming",      value: w.notWarming,             color: w.notWarming   > 0 ? "#B91C1C" : undefined },
+          { label: "Idle (0 camps)",   value: w.idle,                   color: w.idle         > 0 ? "#6B7280" : undefined },
+        ].map(s => (
+          <div key={s.label}>
+            <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{s.label}</p>
+            <p style={{ fontSize: 14, fontWeight: 500, color: s.color ?? "#111827" }}>{s.value}</p>
+          </div>
+        ))}
       </div>
       <span style={{ position: "absolute", bottom: 12, right: 14, fontSize: 11, color: "#9ca3af" }}>→</span>
     </div>
