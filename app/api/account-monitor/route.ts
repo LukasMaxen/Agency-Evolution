@@ -9,9 +9,8 @@ import pool from "@/lib/db";
 
 // ── Deliverability thresholds ────────────────────────────────────────────
 // Reply rate tiers (lower is worse):
-//   reply_rate == 0    -> NO_REPLIES          (drastic, account not converting at all)
-//   reply_rate <  0.5  -> DRASTIC_LOW_REPLIES (clear underperformer)
-//   reply_rate <  1.0  -> LOW_REPLIES         (below target)
+//   reply_rate <  0.5  -> CRITICAL_LOW_REPLIES (pause + warmup 1-2 weeks)
+//   reply_rate <  1.0  -> LOW_REPLIES          (yellow, monitor only)
 //   reply_rate >= 1.0  -> healthy on the reply axis
 // Bounce rate target: <  2.0%   at/above = LIST_ISSUE signal fires
 // Burn rate target:   <  0.5%   at/above OR any single burn event fires
@@ -24,21 +23,20 @@ import pool from "@/lib/db";
 // Domain full threshold:   max(50, 20 * accounts)
 // Provisional floor:       20 sends (both levels)
 
-const REPLY_RATE_DRASTIC = 0.5;   // < this is drastic_low_replies
-const REPLY_RATE_MIN     = 1.0;   // < this is low_replies; >= is healthy
-const BOUNCE_RATE_MAX    = 2.0;
-const BURN_RATE_MAX      = 0.5;
-const ACCOUNT_MIN_SEND   = 50;
+const REPLY_RATE_CRITICAL = 0.5;   // < this is critical_low_replies (red)
+const REPLY_RATE_MIN      = 1.0;   // < this is low_replies (yellow); >= is healthy
+const BOUNCE_RATE_MAX     = 2.0;
+const BURN_RATE_MAX       = 0.5;
+const ACCOUNT_MIN_SEND    = 50;
 const DOMAIN_MIN_PER_ACCOUNT = 20;
-const DOMAIN_MIN_FLOOR   = 50;
-const PROVISIONAL_FLOOR  = 20;
+const DOMAIN_MIN_FLOOR    = 50;
+const PROVISIONAL_FLOOR   = 20;
 
 type Status =
   | "disconnected"
   | "burned"
   | "list_issue"
-  | "no_replies"
-  | "drastic_low_replies"
+  | "critical_low_replies"
   | "low_replies"
   | "healthy"
   | "insufficient_data";
@@ -87,18 +85,16 @@ function classify(args: {
   };
 
   // Priority cascade for the badge. Reply-rate severity is graded:
-  //   0          -> no_replies
-  //   < 0.5      -> drastic_low_replies
-  //   < 1.0      -> low_replies
+  //   < 0.5  -> critical_low_replies (red, pause + warmup 1-2 weeks)
+  //   < 1.0  -> low_replies          (yellow, monitor only)
   // Burn and list_issue still trump replies because they signal active
   // deliverability damage rather than copy/targeting weakness.
   let status: Status;
-  if (signals.burn)              status = "burned";
-  else if (signals.bounce)       status = "list_issue";
-  else if (args.replyRate === 0) status = "no_replies";
-  else if (args.replyRate < REPLY_RATE_DRASTIC) status = "drastic_low_replies";
-  else if (signals.replies)      status = "low_replies";
-  else                           status = "healthy";
+  if (signals.burn)                                   status = "burned";
+  else if (signals.bounce)                            status = "list_issue";
+  else if (args.replyRate < REPLY_RATE_CRITICAL)      status = "critical_low_replies";
+  else if (signals.replies)                           status = "low_replies";
+  else                                                status = "healthy";
 
   // Confidence: full only when sends are at or above the full threshold.
   const confidence: Confidence = args.sent >= args.fullMinSends ? "full" : "provisional";
@@ -108,14 +104,13 @@ function classify(args: {
 
 // Sort key by status severity. Lower = worse, sorted first.
 const STATUS_ORDER: Record<Status, number> = {
-  disconnected:        0,  // cannot send at all — top priority to fix
-  burned:              1,
-  list_issue:          2,
-  no_replies:          3,  // 0% replies — drastic but no burn/bounce yet
-  drastic_low_replies: 4,
-  low_replies:         5,
-  healthy:             6,
-  insufficient_data:   7,  // truly no data drops to the bottom
+  disconnected:         0,  // cannot send at all — top priority to fix
+  burned:               1,
+  list_issue:           2,
+  critical_low_replies: 3,  // < 0.5% replies — pause + warmup
+  low_replies:          4,
+  healthy:              5,
+  insufficient_data:    6,  // truly no data drops to the bottom
 };
 const CONFIDENCE_ORDER: Record<Confidence, number> = {
   full:        0,
@@ -412,8 +407,7 @@ export async function GET(req: NextRequest) {
           disconnected:        d.accounts.filter(a => a.status === "disconnected").length,
           burned:              d.accounts.filter(a => a.status === "burned").length,
           list_issue:          d.accounts.filter(a => a.status === "list_issue").length,
-          no_replies:          d.accounts.filter(a => a.status === "no_replies").length,
-          drastic_low_replies: d.accounts.filter(a => a.status === "drastic_low_replies").length,
+          critical_low_replies: d.accounts.filter(a => a.status === "critical_low_replies").length,
           low_replies:         d.accounts.filter(a => a.status === "low_replies").length,
           insufficient_data:   d.accounts.filter(a => a.status === "insufficient_data").length,
           healthy:             d.accounts.filter(a => a.status === "healthy").length,
@@ -459,8 +453,7 @@ export async function GET(req: NextRequest) {
         disconnected:        domains.filter(d => d.status === "disconnected").length,
         burned:              domains.filter(d => d.status === "burned").length,
         list_issue:          domains.filter(d => d.status === "list_issue").length,
-        no_replies:          domains.filter(d => d.status === "no_replies").length,
-        drastic_low_replies: domains.filter(d => d.status === "drastic_low_replies").length,
+        critical_low_replies: domains.filter(d => d.status === "critical_low_replies").length,
         low_replies:         domains.filter(d => d.status === "low_replies").length,
         insufficient_data:   domains.filter(d => d.status === "insufficient_data").length,
         healthy:             domains.filter(d => d.status === "healthy").length,
@@ -590,8 +583,7 @@ export async function GET(req: NextRequest) {
       disconnected:        allDomains.filter(d => d.status === "disconnected").length,
       burned:              allDomains.filter(d => d.status === "burned").length,
       list_issue:          allDomains.filter(d => d.status === "list_issue").length,
-      no_replies:          allDomains.filter(d => d.status === "no_replies").length,
-      drastic_low_replies: allDomains.filter(d => d.status === "drastic_low_replies").length,
+      critical_low_replies: allDomains.filter(d => d.status === "critical_low_replies").length,
       low_replies:         allDomains.filter(d => d.status === "low_replies").length,
       insufficient_data:   allDomains.filter(d => d.status === "insufficient_data").length,
       healthy:             allDomains.filter(d => d.status === "healthy").length,

@@ -13,8 +13,7 @@ type Status =
   | "disconnected"
   | "burned"
   | "list_issue"
-  | "no_replies"
-  | "drastic_low_replies"
+  | "critical_low_replies"
   | "low_replies"
   | "healthy"
   | "insufficient_data";
@@ -28,14 +27,13 @@ interface SignalFlags {
 }
 
 interface StatusCounts {
-  disconnected:        number;
-  burned:              number;
-  list_issue:          number;
-  no_replies:          number;
-  drastic_low_replies: number;
-  low_replies:         number;
-  insufficient_data:   number;
-  healthy:             number;
+  disconnected:         number;
+  burned:               number;
+  list_issue:           number;
+  critical_low_replies: number;
+  low_replies:          number;
+  insufficient_data:    number;
+  healthy:              number;
 }
 
 interface Account {
@@ -134,17 +132,16 @@ function resolveWsColor(workspaces: ReturnType<typeof useWorkspaces>, slug: stri
 }
 
 const STATUS_CFG: Record<Status, { label: string; bg: string; color: string; border: string; icon: React.ElementType }> = {
-  disconnected:        { label: "Disconnected",      bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC", icon: WifiOff },
-  burned:              { label: "Burned",            bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: Flame },
-  list_issue:          { label: "List issue",        bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: AlertTriangle },
-  // 0% replies and <0.5% replies use a deeper red than the amber "low replies"
-  // tier — they are the clearest signal that something is wrong with copy or
-  // targeting, short of an actual burn / list quality event.
-  no_replies:          { label: "No replies",        bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: TrendingDown },
-  drastic_low_replies: { label: "Drastic low replies", bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: TrendingDown },
-  low_replies:         { label: "Low replies",       bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: TrendingDown },
-  insufficient_data:   { label: "Insufficient data", bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB", icon: Loader2 },
-  healthy:             { label: "Healthy",           bg: "#EAF3DE", color: "#3B6D11", border: "#C0DD97", icon: CheckCircle },
+  disconnected:         { label: "Disconnected",      bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC", icon: WifiOff },
+  burned:               { label: "Burned",            bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: Flame },
+  list_issue:           { label: "List issue",        bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: AlertTriangle },
+  // Reply rate < 0.5% is the action-required tier: pause outbound, put on
+  // warmup-only for 1-2 weeks. Same red as burned/list_issue because the
+  // recovery action is comparable.
+  critical_low_replies: { label: "Critical low replies", bg: "#FCEBEB", color: "#A32D2D", border: "#F09595", icon: TrendingDown },
+  low_replies:          { label: "Low replies",       bg: "#FAEEDA", color: "#854F0B", border: "#FAC775", icon: TrendingDown },
+  insufficient_data:    { label: "Insufficient data", bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB", icon: Loader2 },
+  healthy:              { label: "Healthy",           bg: "#EAF3DE", color: "#3B6D11", border: "#C0DD97", icon: CheckCircle },
 };
 
 // Action tooltip: derives the right sentence from which signals are firing,
@@ -181,14 +178,11 @@ function actionTooltip(args: {
       return "List quality is hurting delivery and replies. Cleanse, then reassess targeting.";
     return "Bad recipient data. Cleanse or re-enrich the list before sending more.";
   }
-  if (status === "no_replies") {
-    return "Zero replies in the window despite real send volume. Pause and rework copy, offer, or ICP fit. Likely a fundamentally broken angle.";
+  if (status === "critical_low_replies") {
+    return "Reply rate below 0.5% with real send volume. Pause this account from outbound and put it on warmup only for 1-2 weeks before resuming.";
   }
-  if (status === "drastic_low_replies") {
-    return "Reply rate below 0.5%. Strong signal that copy, subject, or targeting is off. Review before continuing.";
-  }
-  // low_replies
-  return "Copy or targeting issue. Review subject lines, ICP fit, and sequence relevance.";
+  // low_replies (0.5% to 0.99%) — monitor only
+  return "Reply rate between 0.5% and 1%. Not great, not drastic. Monitor and consider copy / targeting tweaks.";
 }
 
 // Short label of the action, shown inline next to the status so the user
@@ -199,12 +193,11 @@ function actionLabel(args: {
   signals: SignalFlags;
 }): string {
   const { status, signals } = args;
-  if (status === "healthy")             return "";
-  if (status === "disconnected")        return "Reconnect mailbox in EmailBison";
-  if (status === "insufficient_data")   return "Wait for more sends";
-  if (status === "no_replies")          return "Pause + rework copy or offer";
-  if (status === "drastic_low_replies") return "Review copy + targeting urgently";
-  if (status === "low_replies")         return "Review copy + targeting";
+  if (status === "healthy")              return "";
+  if (status === "disconnected")         return "Reconnect mailbox in EmailBison";
+  if (status === "insufficient_data")    return "Wait for more sends";
+  if (status === "critical_low_replies") return "Pause + warmup 1-2 weeks";
+  if (status === "low_replies")          return "Monitor; tweak copy / targeting";
   if (status === "list_issue") {
     return signals.replies ? "Clean list + review targeting" : "Clean the list";
   }
@@ -856,14 +849,13 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
   }
 
   const ORDER: Record<Status, number> = {
-    disconnected:        0,
-    burned:              1,
-    list_issue:          2,
-    no_replies:          3,
-    drastic_low_replies: 4,
-    low_replies:         5,
-    healthy:             6,
-    insufficient_data:   7,
+    disconnected:         0,
+    burned:               1,
+    list_issue:           2,
+    critical_low_replies: 3,
+    low_replies:          4,
+    healthy:              5,
+    insufficient_data:    6,
   };
   const CONFIDENCE_ORDER: Record<Confidence, number> = {
     full:        0,
@@ -1148,7 +1140,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                             <div style={{ display: "flex", gap: 5, justifyContent: "center", flexWrap: "wrap" }}>
                               {isRemoved ? (
                                 <ActionButton label="Re-attach" icon={Wifi} onClick={() => { setExpandedEmail(acc.sender_email); setRemovedSet(prev => { const s = new Set(prev); s.delete(acc.sender_email); return s; }); }} loading={false} variant="success" />
-                              ) : acc.status === "burned" ? (
+                              ) : (acc.status === "burned" || acc.status === "critical_low_replies") ? (
                                 <>
                                   <ActionButton label="Remove all"      icon={WifiOff} onClick={() => runAction(acc.sender_email, "remove")}           loading={isLoading && loadingAction === "remove"}           variant="danger" disabled={isLoading} />
                                   <ActionButton label="Remove + warmup" icon={Flame}   onClick={() => runAction(acc.sender_email, "remove_and_warmup")} loading={isLoading && loadingAction === "remove_and_warmup"} variant="warmup" disabled={isLoading} />
