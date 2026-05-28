@@ -491,7 +491,7 @@ export async function processAutoReply(replyId: string, workspaceSlug: string): 
 async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Promise<void> {
   // Skip workspaces that handle their own replies
   if (SKIP_WORKSPACES.has(workspaceSlug)) {
-    await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1 AND status = 'new'`, [replyId]);
+    await pool.query(`UPDATE replies SET status = 'read', auto_reply_processed_at = NOW() WHERE id = $1 AND status IN ('new','read')`, [replyId]);
     return;
   }
 
@@ -520,7 +520,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
       [workspaceSlug, reply.lead_email, replyId, reply.received_at]
     );
     if (newer.rows.length > 0) {
-      await pool.query(`UPDATE replies SET status = 'read' WHERE id = $1`, [replyId]);
+      await pool.query(`UPDATE replies SET status = 'read', auto_reply_processed_at = NOW() WHERE id = $1`, [replyId]);
       return;
     }
   }
@@ -542,7 +542,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // ── Pre-filter 0: Empty message ──────────────────────────────────────────────
   const messageText = (reply.message ?? "").trim();
   if (!messageText) {
-    await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+    await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ intent: "no_action", skipped_reason: "empty_message" }), replyId]);
     return;
   }
@@ -550,7 +550,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // ── Pre-filter 1: OOO / bounce / spam ────────────────────────────────────────
   // Run BEFORE forwarding so we don't forward bounces/OOO to clients.
   if (isNoActionReply(messageText)) {
-    await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+    await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ intent: "no_action", skipped_reason: "OOO/bounce/spam" }), replyId]);
     return;
   }
@@ -841,7 +841,7 @@ ${messageText.slice(0, 3000)}`;
   // The pre-filter catches most of these for free; this catches any that slip through to Claude.
   if (result.intent === "not_interested" || result.intent === "hard_no") {
     await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'closed' WHERE reply_id = $1`, [replyId]);
-    await pool.query(`UPDATE replies SET status = 'read', interested = FALSE, ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+    await pool.query(`UPDATE replies SET status = 'read', interested = FALSE, ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ intent: result.intent, auto_replied: false, skipped_reason: "not_interested_no_reply" }), replyId]);
     return;
   }
@@ -886,7 +886,7 @@ ${messageText.slice(0, 3000)}`;
             ),
           });
           await pool.query(
-            `UPDATE replies SET status='awaiting_manual', ai_analysis=$1, ai_analyzed_at=NOW() WHERE id=$2`,
+            `UPDATE replies SET status='awaiting_manual', ai_analysis=$1, ai_analyzed_at=NOW(), auto_reply_processed_at=NOW() WHERE id=$2`,
             [JSON.stringify({ intent: result.intent, auto_replied: false, skipped_reason: "emailbison_refused_mark_interested" }), replyId]
           );
           return;
@@ -905,7 +905,7 @@ ${messageText.slice(0, 3000)}`;
   if (workspace.forward_replies_to_email) {
     const forwardableIntents = new Set(["interested", "needs_info"]);
     if (!forwardableIntents.has(result.intent)) {
-      await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+      await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
         [JSON.stringify({ intent: result.intent, skipped_reason: "forward_workspace_intent_not_forwardable" }), replyId]);
       return;
     }
@@ -916,8 +916,13 @@ ${messageText.slice(0, 3000)}`;
     } else {
       console.error(`[auto-reply] Forward failed for ${workspaceSlug} / ${reply.lead_name} → ${workspace.forward_replies_to_email}`);
     }
-    await pool.query(`UPDATE replies SET status = $1, ai_analysis = $2, ai_analyzed_at = NOW() WHERE id = $3`,
-      [forwarded ? "forwarded" : "new", JSON.stringify({ intent: result.intent, forwarded_to: workspace.forward_replies_to_email, status: forwarded ? "sent" : "failed" }), replyId]);
+    await pool.query(`UPDATE replies SET status = $1, ai_analysis = $2, ai_analyzed_at = NOW(), auto_reply_processed_at = $3 WHERE id = $4`,
+      [
+        forwarded ? "forwarded" : "new",
+        JSON.stringify({ intent: result.intent, forwarded_to: workspace.forward_replies_to_email, status: forwarded ? "sent" : "failed" }),
+        forwarded ? new Date() : null,
+        replyId,
+      ]);
     return;
   }
 
@@ -1006,7 +1011,7 @@ ${messageText.slice(0, 3000)}`;
           `INSERT INTO reply_drafts (id,reply_id,workspace_slug,lead_name,lead_email,intent,action,fu_sequence_type,flag_unsubscribe,flag_meeting_booked,manual_reason,subject,body,status,slack_ts,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',$14,NOW())`,
           [draftId, replyId, workspaceSlug, reply.lead_name, reply.lead_email, result.intent, result.action, result.fu_sequence_type, result.flag_unsubscribe, result.flag_meeting_booked, result.manual_reason ?? null, reply.subject ?? "", result.reply_body, slackTs]
         );
-        await pool.query(`UPDATE replies SET status='awaiting_approval', ai_analysis=$1, ai_analyzed_at=NOW() WHERE id=$2`,
+        await pool.query(`UPDATE replies SET status='awaiting_approval', ai_analysis=$1, ai_analyzed_at=NOW(), auto_reply_processed_at=NOW() WHERE id=$2`,
           [JSON.stringify({ intent: result.intent, auto_replied: false, awaiting_approval: true, fu_sequence_type: result.fu_sequence_type }), replyId]);
         return;
       }
@@ -1018,7 +1023,7 @@ ${messageText.slice(0, 3000)}`;
       await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
         [`auto-${replyId}-${Date.now()}`, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", result.reply_body]);
       const interested = ["interested","interested_urgent","needs_info"].includes(result.intent);
-      await pool.query(`UPDATE replies SET status='replied', interested=$1, ai_analysis=$2, ai_analyzed_at=NOW() WHERE id=$3`,
+      await pool.query(`UPDATE replies SET status='replied', interested=$1, ai_analysis=$2, ai_analyzed_at=NOW(), auto_reply_processed_at=NOW() WHERE id=$3`,
         [interested ? true : null, JSON.stringify({ intent: result.intent, auto_replied: true, fu_sequence_type: result.fu_sequence_type }), replyId]);
       await createFuRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
       console.log(`[auto-reply] Sent ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
@@ -1037,14 +1042,14 @@ ${messageText.slice(0, 3000)}`;
     }
 
   } else if (result.action === "manual") {
-    await pool.query(`UPDATE replies SET status = 'awaiting_manual' WHERE id = $1`, [replyId]);
+    await pool.query(`UPDATE replies SET status = 'awaiting_manual', auto_reply_processed_at = NOW() WHERE id = $1`, [replyId]);
     await postManual({ text: `Manual handling needed, ${workspaceSlug} / ${reply.lead_name}`,
       blocks: buildCard("Manual handling needed", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", { reason: result.manual_reason ?? "Needs human attention.", intent: result.intent }) });
     await createFuRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
 
   } else {
     // do_nothing path
-    await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+    await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ intent: result.intent, action: "do_nothing", auto_replied: false }), replyId]);
     if (result.intent === "unsubscribe") {
       await pool.query(`UPDATE follow_ups SET next_fu_due = NULL, outcome = 'unsubscribed' WHERE reply_id = $1`, [replyId]);

@@ -50,13 +50,16 @@ export async function runAutoReplySweep(): Promise<void> {
       );
     }
 
-    // ── 3. Flag 'new' replies stuck > 4 hours (sweeper should have caught these) ──
-    // Something is wrong if a reply is still 'new' after 4 hours. Log + alert,
-    // but DO NOT mark errored — leave them for the sweeper to process.
+    // ── 3. Flag unprocessed replies stuck > 4 hours (sweeper should have caught these) ──
+    // Something is wrong if a reply is still unprocessed after 4 hours. Log + alert,
+    // but DO NOT mark errored, leave them for the sweeper to process. Includes
+    // status='read' rows because the user may have opened the reply before the
+    // processor ran, which used to hide it from this alert.
     const stuck4h = await pool.query(
       `SELECT id, workspace_slug, lead_name, lead_email, received_at
        FROM replies
-       WHERE status = 'new'
+       WHERE auto_reply_processed_at IS NULL
+         AND status IN ('new', 'read')
          AND received_at <= NOW() - INTERVAL '4 hours'
          AND workspace_slug NOT IN ('itg-group', 'sonaro-ai', 'sro-consulting')
        LIMIT 20`
@@ -87,16 +90,20 @@ export async function runAutoReplySweep(): Promise<void> {
     }
 
     // ── 5. Main sweep: process replies the processor hasn't finished ──────────
-    // Trigger is status='new'. Every other status means the processor either
-    // completed (awaiting_approval/awaiting_manual/replied/forwarded/read) or
-    // is mid-flight (processing) or already errored out — none of those need
-    // sweeping. Do NOT filter on ai_analysis: the dashboard's /api/analyze
-    // also writes that column when a human opens a reply, which would hide
-    // the row from the sweeper even though the processor never ran.
+    // Trigger is auto_reply_processed_at IS NULL. This catches both 'new' rows
+    // (webhook arrived, processor never ran) and 'read' rows (user opened the
+    // reply in the dashboard before the processor could run, which used to
+    // strand them). 'processing' and 'errored' are excluded: 'processing' is
+    // mid-flight, 'errored' is handled by the retry block above.
+    //
+    // Do NOT filter on ai_analysis IS NULL, the dashboard's /api/analyze also
+    // writes that column when a human opens a reply, which would hide the row
+    // from the sweeper even though the processor never ran.
     const r = await pool.query(
       `SELECT id, workspace_slug
        FROM replies
-       WHERE status = 'new'
+       WHERE auto_reply_processed_at IS NULL
+         AND status IN ('new', 'read')
          AND received_at > NOW() - INTERVAL '48 hours'
          AND workspace_slug NOT IN ('itg-group', 'sonaro-ai', 'sro-consulting')
        ORDER BY received_at ASC

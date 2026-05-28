@@ -200,7 +200,7 @@ export async function POST(
       const leadEmail = body.data?.lead?.email;
       if (replyId) {
         await pool.query(
-          "UPDATE replies SET interested = FALSE, status = 'read' WHERE id = $1",
+          "UPDATE replies SET interested = FALSE, status = 'read', auto_reply_processed_at = COALESCE(auto_reply_processed_at, NOW()) WHERE id = $1",
           [replyId]
         );
       }
