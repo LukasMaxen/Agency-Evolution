@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  RefreshCw, Loader2, Flame, AlertTriangle, CheckCircle, WifiOff, Inbox as InboxIcon, Plus,
+  RefreshCw, Loader2, Flame, ChevronLeft, Plus, WifiOff,
 } from "lucide-react";
 import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
 
@@ -54,11 +54,14 @@ function resolveWsName(workspaces: ReturnType<typeof useWorkspaces>, slug: strin
     : slug;
 }
 
-function StatChip({ label, value, color }: { label: string; value: number | string; color?: string }) {
+function SummaryCard({ label, value, color, sub }: { label: string; value: number | string; color?: string; sub?: string }) {
   return (
-    <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 10, padding: "10px 14px" }}>
-      <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{label}</p>
-      <p style={{ fontSize: 20, fontWeight: 500, color: color ?? "#111827" }}>{value}</p>
+    <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 12, padding: "12px 16px" }}>
+      <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 4 }}>{label}</p>
+      <p style={{ fontSize: 20, fontWeight: 500, color: color ?? "#111827" }}>
+        {value}
+        {sub && <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400, marginLeft: 6 }}>{sub}</span>}
+      </p>
     </div>
   );
 }
@@ -81,43 +84,83 @@ function PillBadge({ text, tone }: { text: string; tone: "red" | "amber" | "gree
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Workspace card (Level 1) ─────────────────────────────────────────────────
+
+function WorkspaceCard({ w, attachedCount, onClick }: { w: WsAgg; attachedCount: number; onClick: () => void }) {
+  const workspaces = useWorkspaces();
+  const name = resolveWsName(workspaces, w.slug);
+
+  // Border severity: not-warming + disconnected are urgent (red); ready/
+  // warming-only show amber; idle-only shows grey; otherwise green.
+  const accent =
+    (w.notWarming + w.disconnected) > 0 ? "#E24B4A" :
+    (w.warmingOnly + w.readyToRejoin) > 0 ? "#F59E0B" :
+    w.idle > 0                          ? "#9CA3AF" :
+                                          "#84C56A";
+
+  return (
+    <div onClick={onClick}
+      style={{
+        background: "#ffffff",
+        border: `1.5px solid ${accent}`,
+        borderLeft: `3px solid ${accent}`,
+        borderRadius: "0 12px 12px 0",
+        padding: "14px 16px", cursor: "pointer", position: "relative",
+        transition: "box-shadow 0.15s",
+      }}
+      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.07)"}
+      onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.boxShadow = "none"}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 6, flexWrap: "wrap" }}>
+        <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{name}</p>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {w.notWarming    > 0 && <PillBadge text={`${w.notWarming} not warming`}  tone="red" />}
+          {w.disconnected  > 0 && <PillBadge text={`${w.disconnected} disconnected`} tone="indigo" />}
+          {w.readyToRejoin > 0 && <PillBadge text={`${w.readyToRejoin} ready`}      tone="green" />}
+          {w.warmingOnly   > 0 && <PillBadge text={`${w.warmingOnly} warming`}      tone="amber" />}
+          {w.idle          > 0 && <PillBadge text={`${w.idle} idle`}                tone="grey" />}
+          {w.notWarming === 0 && w.disconnected === 0 && w.warmingOnly === 0 && w.idle === 0 && (
+            <PillBadge text="All healthy" tone="green" />
+          )}
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div>
+          <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>Total senders</p>
+          <p style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>{w.total}</p>
+        </div>
+        <div>
+          <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>Attached to campaigns</p>
+          <p style={{ fontSize: 14, fontWeight: 500, color: attachedCount === 0 ? "#6B7280" : "#111827" }}>
+            {attachedCount} / {w.total}
+          </p>
+        </div>
+      </div>
+      <span style={{ position: "absolute", bottom: 12, right: 14, fontSize: 11, color: "#9ca3af" }}>→</span>
+    </div>
+  );
+}
+
+// ── Sender table for a single workspace (Level 2) ────────────────────────────
 
 type Tab = "all" | "not_warming" | "disconnected" | "warming_only" | "ready" | "idle";
 
-export function WarmupMonitor() {
+function SenderTable({
+  ws, senders, onBack, onActionDone, refresh,
+}: {
+  ws: WsAgg;
+  senders: Sender[];
+  onBack: () => void;
+  onActionDone: (msg: string, type: "success" | "error") => void;
+  refresh: () => void;
+}) {
   const workspaces = useWorkspaces();
-  const [data, setData]           = useState<WarmupData | null>(null);
-  const [loading, setLoading]     = useState(true);
-  const [tab, setTab]             = useState<Tab>("all");
+  const name = resolveWsName(workspaces, ws.slug);
+  const [tab, setTab] = useState<Tab>("all");
   const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "remove_and_warmup" | null>>({});
-  const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" } | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/warmup-monitor", { cache: "no-store" });
-      const j = await res.json();
-      setData(j);
-    } catch (err: any) {
-      setToast({ msg: err.message ?? "Failed to load warmup data", type: "error" });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  // Auto-clear toast.
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
 
   async function runSenderAction(s: Sender, action: "attach_to_all" | "remove_and_warmup") {
-    const key = `${s.workspace_slug}:${s.sender_email}`;
-    setActionMap(prev => ({ ...prev, [key]: action }));
+    setActionMap(prev => ({ ...prev, [s.sender_email]: action }));
     try {
       const res = await fetch("/api/account-monitor/action", {
         method: "POST",
@@ -131,33 +174,23 @@ export function WarmupMonitor() {
       });
       const j = await res.json();
       if (!res.ok || !j.ok) {
-        setToast({ msg: j.error ?? "Action failed", type: "error" });
+        onActionDone(j.error ?? "Action failed", "error");
         return;
       }
       const verb = action === "attach_to_all" ? "attached to" : "removed from";
-      setToast({
-        msg: `${s.sender_email} ${verb} ${j.campaigns_affected} campaigns. Refreshing…`,
-        type: j.failed > 0 ? "error" : "success",
-      });
-      // Give EB a few seconds to process the async remove, then reload.
-      setTimeout(() => load(), 4000);
+      onActionDone(
+        `${s.sender_email} ${verb} ${j.campaigns_affected} campaigns. Refreshing…`,
+        j.failed > 0 ? "error" : "success",
+      );
+      setTimeout(() => refresh(), 4000);
     } catch (err: any) {
-      setToast({ msg: err.message ?? "Network error", type: "error" });
+      onActionDone(err.message ?? "Network error", "error");
     } finally {
-      setActionMap(prev => ({ ...prev, [key]: null }));
+      setActionMap(prev => ({ ...prev, [s.sender_email]: null }));
     }
   }
 
-  if (loading || !data) {
-    return (
-      <div style={{ padding: 24 }}>
-        <Loader2 size={16} style={{ animation: "spin 1s linear infinite", color: "#9ca3af" }} />
-        <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>Loading warmup monitor…</span>
-      </div>
-    );
-  }
-
-  const senders = data.senders.filter(s => {
+  const filtered = senders.filter(s => {
     switch (tab) {
       case "not_warming":  return !s.warmup_enabled && s.conn_status !== "Not connected";
       case "disconnected": return s.conn_status === "Not connected";
@@ -169,61 +202,35 @@ export function WarmupMonitor() {
   });
 
   return (
-    <div style={{ padding: "20px 24px", fontFamily: "inherit", color: "#111827", background: "#faf9f6", minHeight: "100vh" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <div>
-          <p style={{ fontSize: 18, fontWeight: 600 }}>Warmup Monitor</p>
-          <p style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
-            All connected senders across active workspaces. "Ready" = warming for {data.thresholds.readyDays}+ days.
-          </p>
-        </div>
-        <button
-          onClick={load}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151",
-            background: "#ffffff", border: "0.5px solid #d1d5db", borderRadius: 7,
-            padding: "6px 12px", cursor: "pointer", fontFamily: "inherit",
-          }}>
-          <RefreshCw size={13} /> Refresh
-        </button>
-      </div>
+    <div>
+      <button onClick={onBack}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          fontSize: 12, color: "#6b7280", cursor: "pointer",
+          background: "#f8f7f5", border: "0.5px solid #e5e7eb",
+          borderRadius: 7, padding: "5px 10px", marginBottom: 16, fontFamily: "inherit",
+        }}>
+        <ChevronLeft size={13} /> All workspaces
+      </button>
 
-      {/* Summary cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 18 }}>
-        <StatChip label="Total senders"  value={data.summary.totalSenders} />
-        <StatChip label="Not warming"    value={data.summary.notWarming}   color={data.summary.notWarming   > 0 ? "#B91C1C" : undefined} />
-        <StatChip label="Disconnected"   value={data.summary.disconnected} color={data.summary.disconnected > 0 ? "#3730A3" : undefined} />
-        <StatChip label="Warming-only"   value={data.summary.warmingOnly} />
-        <StatChip label="Ready to rejoin" value={data.summary.readyToRejoin} color={data.summary.readyToRejoin > 0 ? "#15803D" : undefined} />
-        <StatChip label="Idle (0 camps)" value={data.summary.idle} />
-      </div>
+      <p style={{ fontSize: 15, fontWeight: 500, color: "#111827", marginBottom: 4 }}>
+        {name}, warmup status
+      </p>
+      <p style={{ fontSize: 11, color: "#9ca3af", marginBottom: 14 }}>
+        {senders.length} senders ·
+        {ws.notWarming > 0 ? ` ${ws.notWarming} not warming ·` : ""}
+        {ws.disconnected > 0 ? ` ${ws.disconnected} disconnected ·` : ""}
+        {ws.idle > 0 ? ` ${ws.idle} idle` : ""}
+      </p>
 
-      {/* Per-workspace overview */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10, marginBottom: 18 }}>
-        {data.workspaces.map(w => (
-          <div key={w.slug} style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 10, padding: "10px 12px" }}>
-            <p style={{ fontSize: 12, fontWeight: 500, marginBottom: 6 }}>{resolveWsName(workspaces, w.slug)}</p>
-            <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 6 }}>{w.total} senders</p>
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-              {w.notWarming    > 0 && <PillBadge text={`${w.notWarming} not warming`} tone="red" />}
-              {w.disconnected  > 0 && <PillBadge text={`${w.disconnected} disconnected`} tone="indigo" />}
-              {w.warmingOnly   > 0 && <PillBadge text={`${w.warmingOnly} warming-only`} tone="amber" />}
-              {w.readyToRejoin > 0 && <PillBadge text={`${w.readyToRejoin} ready`} tone="green" />}
-              {w.idle          > 0 && <PillBadge text={`${w.idle} idle`} tone="grey" />}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Filter tabs */}
       <div style={{ display: "flex", gap: 4, marginBottom: 10, borderBottom: "0.5px solid #ede9e3" }}>
         {([
-          { key: "all",           label: "All",            count: data.summary.totalSenders },
-          { key: "not_warming",   label: "Not warming",    count: data.summary.notWarming },
-          { key: "disconnected",  label: "Disconnected",   count: data.summary.disconnected },
-          { key: "warming_only",  label: "Warming only",   count: data.summary.warmingOnly },
-          { key: "ready",         label: "Ready to rejoin", count: data.summary.readyToRejoin },
-          { key: "idle",          label: "Idle",           count: data.summary.idle },
+          { key: "all",          label: "All",            count: senders.length },
+          { key: "not_warming",  label: "Not warming",    count: ws.notWarming },
+          { key: "disconnected", label: "Disconnected",   count: ws.disconnected },
+          { key: "warming_only", label: "Warming only",   count: ws.warmingOnly },
+          { key: "ready",        label: "Ready to rejoin", count: ws.readyToRejoin },
+          { key: "idle",         label: "Idle",           count: ws.idle },
         ] as const).map(t => {
           const selected = tab === t.key;
           return (
@@ -249,19 +256,17 @@ export function WarmupMonitor() {
         })}
       </div>
 
-      {/* Sender table */}
       <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 12, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
           <thead>
             <tr style={{ background: "#f8f7f5", borderBottom: "0.5px solid #ede9e3" }}>
               {[
-                { h: "Sender",       w: "30%", align: "left" },
-                { h: "Workspace",    w: "14%", align: "left" },
-                { h: "Connection",   w: "12%", align: "left" },
-                { h: "Warmup",       w: "12%", align: "left" },
+                { h: "Sender",       w: "32%", align: "left" },
+                { h: "Connection",   w: "14%", align: "left" },
+                { h: "Warmup",       w: "14%", align: "left" },
                 { h: "Attached",     w: "10%", align: "right" },
                 { h: "Warming",      w: "10%", align: "right" },
-                { h: "Action",       w: "12%", align: "center" },
+                { h: "Action",       w: "20%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -272,22 +277,22 @@ export function WarmupMonitor() {
             </tr>
           </thead>
           <tbody>
-            {senders.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No senders matching this filter.</td></tr>
+            {filtered.length === 0 && (
+              <tr><td colSpan={6} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+                No senders matching this filter.
+              </td></tr>
             )}
-            {senders.map(s => {
-              const key = `${s.workspace_slug}:${s.sender_email}`;
-              const acting = actionMap[key];
+            {filtered.map(s => {
+              const acting = actionMap[s.sender_email];
               const disconnected = s.conn_status === "Not connected";
               const notWarming   = !s.warmup_enabled && !disconnected;
               return (
-                <tr key={key} style={{ borderBottom: "0.5px solid #f3f4f6" }}>
+                <tr key={s.sender_email} style={{ borderBottom: "0.5px solid #f3f4f6" }}>
                   <td style={{ padding: "9px 10px", color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sender_email}</td>
-                  <td style={{ padding: "9px 10px", color: "#374151" }}>{resolveWsName(workspaces, s.workspace_slug)}</td>
                   <td style={{ padding: "9px 10px" }}>
                     {disconnected
                       ? <PillBadge text="Disconnected" tone="indigo" />
-                      : <PillBadge text="Connected" tone="green" />}
+                      : <PillBadge text="Connected"    tone="green" />}
                   </td>
                   <td style={{ padding: "9px 10px" }}>
                     {notWarming
@@ -337,8 +342,134 @@ export function WarmupMonitor() {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
 
-      {/* Toast */}
+// ── Top-level component ──────────────────────────────────────────────────────
+
+export function WarmupMonitor() {
+  const [data, setData]           = useState<WarmupData | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState<string | null>(null);
+  const [selected, setSelected]   = useState<WsAgg | null>(null);
+  const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" } | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/warmup-monitor", { cache: "no-store" });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Failed"); }
+      setData(await res.json());
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // Active senders per workspace = attached_campaigns_count > 0. Computed
+  // once here from the senders list and passed into each WorkspaceCard.
+  const attachedBySlug: Record<string, number> = {};
+  if (data) {
+    for (const s of data.senders) {
+      if ((s.attached_campaigns_count ?? 0) > 0) {
+        attachedBySlug[s.workspace_slug] = (attachedBySlug[s.workspace_slug] ?? 0) + 1;
+      }
+    }
+  }
+
+  const selectedSenders = (data && selected)
+    ? data.senders.filter(s => s.workspace_slug === selected.slug)
+    : [];
+
+  return (
+    <div style={{ padding: "20px 24px", fontFamily: "inherit", color: "#111827", background: "#faf9f6", minHeight: "100vh" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div>
+          <p style={{ fontSize: 18, fontWeight: 600 }}>Warmup Monitor</p>
+          <p style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+            Warmup status for every sender in active workspaces. "Ready" = warming for {data?.thresholds.readyDays ?? 14}+ days.
+          </p>
+        </div>
+        <button
+          onClick={load}
+          disabled={loading}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151",
+            background: "#ffffff", border: "0.5px solid #d1d5db", borderRadius: 7,
+            padding: "6px 12px", cursor: "pointer", fontFamily: "inherit",
+          }}>
+          <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
+
+      {error && (
+        <div style={{ fontSize: 12, color: "#dc2626", background: "#fee2e2", padding: "10px 14px", borderRadius: 8, marginBottom: 16 }}>
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: 60, justifyContent: "center" }}>
+          <Loader2 size={16} className="animate-spin" style={{ color: "#9ca3af" }} />
+          <span style={{ fontSize: 12, color: "#9ca3af" }}>Loading warmup data…</span>
+        </div>
+      )}
+
+      {!loading && data && selected && (
+        <SenderTable
+          ws={selected}
+          senders={selectedSenders}
+          onBack={() => setSelected(null)}
+          onActionDone={(msg, type) => setToast({ msg, type })}
+          refresh={load}
+        />
+      )}
+
+      {!loading && data && !selected && (
+        <>
+          {/* Summary metrics row: 4-col grid, 2 rows, matches AccountMonitor. */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
+            <SummaryCard label="Total senders"     value={data.summary.totalSenders} />
+            <SummaryCard label="Not warming"       value={data.summary.notWarming}    color={data.summary.notWarming    > 0 ? "#B91C1C" : undefined} />
+            <SummaryCard label="Disconnected"      value={data.summary.disconnected}  color={data.summary.disconnected  > 0 ? "#3730A3" : undefined} />
+            <SummaryCard label="Ready to rejoin"   value={data.summary.readyToRejoin} color={data.summary.readyToRejoin > 0 ? "#15803D" : undefined} />
+            <SummaryCard label="Warming-only"      value={data.summary.warmingOnly} />
+            <SummaryCard label="Idle (0 camps)"    value={data.summary.idle} />
+            <SummaryCard label="Workspaces"        value={data.workspaces.length} />
+            <SummaryCard label="Active campaigns"  value={Object.values(attachedBySlug).reduce((s, n) => s + n, 0)} sub="senders with attachments" />
+          </div>
+
+          {data.workspaces.length === 0 ? (
+            <div style={{ textAlign: "center", padding: 60, color: "#9ca3af", fontSize: 13 }}>
+              No active workspaces in the last {data.thresholds.churnWindowDays} days.
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+              {data.workspaces.map(w => (
+                <WorkspaceCard
+                  key={w.slug}
+                  w={w}
+                  attachedCount={attachedBySlug[w.slug] ?? 0}
+                  onClick={() => setSelected(w)}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
       {toast && (
         <div style={{
           position: "fixed", bottom: 24, right: 24, padding: "10px 14px",
