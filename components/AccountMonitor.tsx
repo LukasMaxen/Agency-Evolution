@@ -386,19 +386,24 @@ function MetricsRow({
 }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
-      {/* Row 1: counts (no KPI = always black, except disconnected which goes indigo when > 0) */}
+      {/* Row 1: counts — all black like the other non-KPI numbers. */}
       <SummaryCard label="Total domains"      value={totalDomains} />
-      <SummaryCard label="Disconnected"       value={disconnected} color={disconnected > 0 ? "#3730A3" : undefined} />
+      <SummaryCard label="Disconnected"       value={disconnected} />
       <SummaryCard label="List issues"        value={listIssue} />
       <SummaryCard label="Burned domains"     value={burned} />
 
-      {/* Row 2: rates (KPI-bound = binary green/red) */}
+      {/* Row 2: rates. Reply rate uses three tiers (red < 0.5, yellow < 1,
+          green >= 1); bounce/burn are binary. */}
       <SummaryCard label="Emails sent" value={totalSent.toLocaleString()} />
       <SummaryCard
         label="Avg reply rate"
         value={`${avgReplyRate}%`}
         sub={`(${totalReplies.toLocaleString()} replies)`}
-        color={avgReplyRate >= 1 ? "#3B6D11" : "#A32D2D"}
+        color={
+          avgReplyRate >= 1   ? "#3B6D11"
+          : avgReplyRate >= 0.5 ? "#854F0B"
+          : "#A32D2D"
+        }
       />
       <SummaryCard
         label="Avg bounce rate"
@@ -717,18 +722,21 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
   const name  = resolveWsName(workspaces, ws.slug);
   const disconnectedCount = ws.statusCounts.disconnected;
   const burnedCount       = ws.statusCounts.burned;
+  const criticalCount     = ws.statusCounts.critical_low_replies;
   const listCount         = ws.statusCounts.list_issue;
   const lowRepliesCount   = ws.statusCounts.low_replies;
   const insufficientCount = ws.statusCounts.insufficient_data;
   const healthyCount      = ws.statusCounts.healthy;
 
-  // Disconnected is the most urgent signal (mailbox cannot send at all).
-  // Sits above burned because it is a hard block, not a deliverability dip.
+  // Border severity matches the priority cascade in classify():
+  //   disconnected > burned > critical_low_replies > list_issue > low_replies
+  // critical_low_replies is red (action-required) and ranks above list_issue.
   const accent =
     disconnectedCount > 0 ? "#6366F1" :       // indigo
     burnedCount > 0       ? "#E24B4A" :       // red
+    criticalCount > 0     ? "#E24B4A" :       // red (pause + warmup)
     listCount   > 0       ? "#F59E0B" :       // amber/yellow
-    lowRepliesCount > 0   ? "#F59E0B" :       // amber/yellow (other quality flag)
+    lowRepliesCount > 0   ? "#F59E0B" :       // amber/yellow
     healthyCount > 0      ? "#84C56A" :       // green only when actual healthy domains exist
                             "#9CA3AF";        // grey: insufficient data, no positive signal yet
 
@@ -758,6 +766,11 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
               {burnedCount} burned
             </span>
           )}
+          {criticalCount > 0 && (
+            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FCEBEB", color: "#A32D2D", border: "0.5px solid #F09595", fontWeight: 500, whiteSpace: "nowrap" }}>
+              {criticalCount} critical low replies
+            </span>
+          )}
           {listCount > 0 && (
             <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#FAEEDA", color: "#854F0B", border: "0.5px solid #FAC775", fontWeight: 500, whiteSpace: "nowrap" }}>
               {listCount} list issue
@@ -768,7 +781,7 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
               {insufficientCount} insufficient
             </span>
           )}
-          {disconnectedCount === 0 && burnedCount === 0 && listCount === 0 && insufficientCount === 0 && healthyCount > 0 && (
+          {disconnectedCount === 0 && burnedCount === 0 && criticalCount === 0 && listCount === 0 && insufficientCount === 0 && healthyCount > 0 && (
             <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: "#EAF3DE", color: "#3B6D11", border: "0.5px solid #C0DD97", fontWeight: 500, whiteSpace: "nowrap" }}>
               All healthy
             </span>
@@ -780,9 +793,18 @@ function WorkspaceCard({ ws, onClick }: { ws: WorkspaceData; onClick: () => void
           // Counts: no KPI = always black
           { label: "Domains",        value: ws.domainCount,                  color: undefined },
           { label: "Emails sent",    value: ws.totalSent.toLocaleString(),   color: undefined },
-          // Rates: binary green/red per KPI
+          // Rates: reply rate uses three tiers (red < 0.5, yellow < 1, green
+          // >= 1) to match the per-account critical_low_replies threshold.
+          // Bounce rate is binary (red >= 2%, green otherwise). Reply rate
+          // sits on the left mirroring the global summary at the top.
+          {
+            label: "Avg reply rate",
+            value: `${ws.avgReplyRate}% (${ws.totalReplies.toLocaleString()})`,
+            color: ws.avgReplyRate >= 1   ? "#3B6D11"
+                 : ws.avgReplyRate >= 0.5 ? "#854F0B"
+                 : "#A32D2D",
+          },
           { label: "Bounce rate",    value: `${ws.bouncePct}%`,    color: ws.bouncePct < 2 ? "#3B6D11" : "#A32D2D" },
-          { label: "Avg reply rate", value: `${ws.avgReplyRate}% (${ws.totalReplies.toLocaleString()})`, color: ws.avgReplyRate >= 1 ? "#3B6D11" : "#A32D2D" },
         ].map(s => (
           <div key={s.label}>
             <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{s.label}</p>
@@ -851,8 +873,8 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
   const ORDER: Record<Status, number> = {
     disconnected:         0,
     burned:               1,
-    list_issue:           2,
-    critical_low_replies: 3,
+    critical_low_replies: 2,
+    list_issue:           3,
     low_replies:          4,
     healthy:              5,
     insufficient_data:    6,
@@ -981,6 +1003,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
               const isLastDomain  = dIdx === sortedDomains.length - 1;
               const domBg         = dom.status === "disconnected" ? "#EEF2FF" :
                                     dom.status === "burned" ? "#FCEBEB" :
+                                    dom.status === "critical_low_replies" ? "#FCEBEB" :
                                     dom.status === "list_issue" ? "#FFF7E6" :
                                     "#fafafa";
               const sortedAccounts = dom.accounts
@@ -1042,11 +1065,12 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                         const label = actionLabel({ status: dom.status, signals: dom.signals });
                         if (!label) return null;
                         const tone =
-                          dom.status === "disconnected"      ? { bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC" } :
-                          dom.status === "burned"            ? { bg: "#FCEBEB", color: "#A32D2D", border: "#F09595" } :
-                          dom.status === "list_issue"        ? { bg: "#FAEEDA", color: "#854F0B", border: "#FAC775" } :
-                          dom.status === "low_replies"       ? { bg: "#FAEEDA", color: "#854F0B", border: "#FAC775" } :
-                                                               { bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB" };
+                          dom.status === "disconnected"         ? { bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC" } :
+                          dom.status === "burned"               ? { bg: "#FCEBEB", color: "#A32D2D", border: "#F09595" } :
+                          dom.status === "critical_low_replies" ? { bg: "#FCEBEB", color: "#A32D2D", border: "#F09595" } :
+                          dom.status === "list_issue"           ? { bg: "#FAEEDA", color: "#854F0B", border: "#FAC775" } :
+                          dom.status === "low_replies"          ? { bg: "#FAEEDA", color: "#854F0B", border: "#FAC775" } :
+                                                                  { bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB" };
                         return (
                           <span style={{
                             display: "inline-block",

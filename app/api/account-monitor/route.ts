@@ -84,15 +84,17 @@ function classify(args: {
     replies: args.replyRate  <  REPLY_RATE_MIN,
   };
 
-  // Priority cascade for the badge. Reply-rate severity is graded:
-  //   < 0.5  -> critical_low_replies (red, pause + warmup 1-2 weeks)
-  //   < 1.0  -> low_replies          (yellow, monitor only)
-  // Burn and list_issue still trump replies because they signal active
-  // deliverability damage rather than copy/targeting weakness.
+  // Priority cascade for the badge. Severity order:
+  //   burned                -> reputation damaged, longest recovery
+  //   critical_low_replies  -> < 0.5% replies, pause + warmup 1-2 weeks
+  //   list_issue            -> bad list, fixable by data cleansing
+  //   low_replies           -> 0.5-0.99%, monitor / tweak copy
+  // critical_low_replies ranks above list_issue because a broken angle is
+  // harder to fix and wastes more send budget than dirty data.
   let status: Status;
   if (signals.burn)                                   status = "burned";
-  else if (signals.bounce)                            status = "list_issue";
   else if (args.replyRate < REPLY_RATE_CRITICAL)      status = "critical_low_replies";
+  else if (signals.bounce)                            status = "list_issue";
   else if (signals.replies)                           status = "low_replies";
   else                                                status = "healthy";
 
@@ -103,11 +105,13 @@ function classify(args: {
 }
 
 // Sort key by status severity. Lower = worse, sorted first.
+// critical_low_replies outranks list_issue because broken angles waste
+// more send budget than dirty lists do and take longer to fix.
 const STATUS_ORDER: Record<Status, number> = {
   disconnected:         0,  // cannot send at all — top priority to fix
   burned:               1,
-  list_issue:           2,
-  critical_low_replies: 3,  // < 0.5% replies — pause + warmup
+  critical_low_replies: 2,  // < 0.5% replies — pause + warmup
+  list_issue:           3,
   low_replies:          4,
   healthy:              5,
   insufficient_data:    6,  // truly no data drops to the bottom
