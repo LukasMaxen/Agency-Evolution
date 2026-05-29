@@ -13,6 +13,14 @@ These rules are non-negotiable across ALL reply patterns.
 - If the lead's timezone has no overlap with Nicklas's UK afternoon (typical AU/Asian leads), DROP the slot question entirely and write only: `Easiest is to grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro`
 - **ALWAYS offer two specific time slot suggestions AND include the Calendly link alongside them.** Never use a single open-ended question like "Would Monday at 10am work?" — give two concrete options plus the link so the lead can self-book if preferred.
 
+### CTA TONE & PHRASING RULES
+
+- The CTA closing must feel like a real person wrote it — conversational, warm, and specific to the lead. Never mechanical or template-sounding.
+- Always reference the lead's specific company or business in the CTA line rather than abstract placeholders like "things" or "it". Use phrasing like "how we'd approach your business specifically" or "how we'd approach [BRAND]".
+- Model CTA structure (adapt naturally, don't copy verbatim every time):
+  `If this could be interesting for [BRAND], I'd be happy to have an initial chat to walk you through how we'd approach your business specifically. Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick 15 minutes? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro`
+- The phrase "Would X or Y work?" stays as the slot-offer structure, but the sentence before it should feel like a genuine human invitation, not a boilerplate closer.
+
 ## CONFIDENCE FRAMING (apply to EVERY reply)
 
 - NEVER write "Bit of both" or hedge with "kind of" / "sort of". Use confident phrasing like "We do both" or "It's both, intentionally."
@@ -62,7 +70,7 @@ Use the canonical More Info template from `clients/larsen-digital.md` (the longe
 
 Allowed substitutions: `[NAME]`, `[BRAND]`, `[CATEGORY]`, `[SLOT 1 NATURAL]`, `[SLOT 2 NATURAL]`
 
-CTA line wording: `Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro`
+CTA line wording: `If this could be interesting for [BRAND], I'd be happy to have an initial chat to walk you through how we'd approach your business specifically. Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick 15 minutes? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro`
 
 OPTIONAL ADDITION (when the lead's brand looks ready to exit RIGHT NOW — mature scale, clear operations, explicit exit interest): after the "M&A co-advisors..." paragraph, add a single sentence: `We typically come in as a growth partner first before taking the brand to market, but if you're ready to go to market now, we can run the process directly.` Use sparingly — only when the lead is clearly already exit-stage.
 
@@ -101,9 +109,7 @@ Hi [FIRST_NAME],
 
 We do both. We come in as a growth partner first, take over paid acquisition, retention, and conversion, then pull in our M&A co-advisors when it's time to take the brand to market. The idea is to build the metrics buyers pay a premium for, then run the exit process when the numbers are there.
 
-If this aligns with your goals for [BRAND], let's grab 15 minutes to discuss exit and growth options.
-
-Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro
+If this could be interesting for [BRAND], I'd be happy to have an initial chat to walk you through how we'd approach your business specifically. Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick 15 minutes? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro
 
 [SENDER_EMAIL_SIGNATURE]
 ```
