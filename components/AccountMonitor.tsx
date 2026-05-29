@@ -872,6 +872,47 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
     }
   }
 
+  // Domain-level batch: runs the same action sequentially on every sender
+  // in the domain. Sequential is intentional because each remove_and_warmup
+  // is a ~9s parallel-batched pause/remove/resume cycle; running multiple
+  // in parallel would hammer EB's pause endpoint and confuse operators
+  // watching the dashboard refresh.
+  const [domainBatch, setDomainBatch] = useState<Record<string, "remove" | "remove_and_warmup" | null>>({});
+  async function runDomainBatch(domain: string, senders: Account[], action: "remove" | "remove_and_warmup") {
+    const targets = senders.filter(s => !removedSet.has(s.sender_email));
+    if (targets.length === 0) {
+      onActionDone(`No senders left to act on in ${domain}.`, "error");
+      return;
+    }
+    setDomainBatch(prev => ({ ...prev, [domain]: action }));
+    onActionDone(
+      `${action === "remove_and_warmup" ? "Pausing outbound + warmup" : "Removing"} on ${targets.length} senders in ${domain}…`,
+      "success",
+    );
+    let ok = 0;
+    let fail = 0;
+    for (const s of targets) {
+      try {
+        const r = await fetch("/api/account-monitor/action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sender_email: s.sender_email, workspace_slug: ws.slug, action }),
+        });
+        const j: ActionResult = await r.json();
+        if (r.ok && j.ok && j.failed === 0) {
+          ok++;
+          setRemovedSet(prev => new Set([...prev, s.sender_email]));
+        } else {
+          fail++;
+        }
+      } catch {
+        fail++;
+      }
+    }
+    setDomainBatch(prev => ({ ...prev, [domain]: null }));
+    onActionDone(`${domain}: ${ok} succeeded, ${fail} failed.`, fail > 0 ? "error" : "success");
+  }
+
   const ORDER: Record<Status, number> = {
     disconnected:         0,
     burned:               1,
@@ -1062,15 +1103,51 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                         minSends={dom.minSends}
                       />
                     </td>
-                    <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                    <td
+                      style={{ padding: "8px 10px", textAlign: "center" }}
+                      onClick={e => e.stopPropagation()}
+                    >
                       {(() => {
+                        const batchAction = domainBatch[dom.domain];
+                        const eligible = sortedAccounts.filter(a => !removedSet.has(a.sender_email));
+                        const isRed = dom.status === "burned" || dom.status === "critical_low_replies";
+                        const isAmber = dom.status === "list_issue";
+                        if (isRed && eligible.length > 0) {
+                          return (
+                            <button
+                              onClick={() => runDomainBatch(dom.domain, eligible, "remove_and_warmup")}
+                              disabled={!!batchAction}
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                background: "#FCEBEB", color: "#B91C1C", border: "0.5px solid #F09595",
+                                cursor: batchAction ? "wait" : "pointer", fontFamily: "inherit",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                              }}>
+                              {batchAction === "remove_and_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
+                              Pause + warmup ({eligible.length})
+                            </button>
+                          );
+                        }
+                        if (isAmber && eligible.length > 0) {
+                          return (
+                            <button
+                              onClick={() => runDomainBatch(dom.domain, eligible, "remove")}
+                              disabled={!!batchAction}
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                background: "#FAEEDA", color: "#D97706", border: "0.5px solid #FAC775",
+                                cursor: batchAction ? "wait" : "pointer", fontFamily: "inherit",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                              }}>
+                              {batchAction === "remove" ? <Loader2 size={11} className="animate-spin" /> : <WifiOff size={11} />}
+                              Remove all ({eligible.length})
+                            </button>
+                          );
+                        }
                         const label = actionLabel({ status: dom.status, signals: dom.signals });
                         if (!label) return null;
                         const tone =
                           dom.status === "disconnected"         ? { bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC" } :
-                          dom.status === "burned"               ? { bg: "#FCEBEB", color: "#B91C1C", border: "#F09595" } :
-                          dom.status === "critical_low_replies" ? { bg: "#FCEBEB", color: "#B91C1C", border: "#F09595" } :
-                          dom.status === "list_issue"           ? { bg: "#FAEEDA", color: "#D97706", border: "#FAC775" } :
                           dom.status === "low_replies"          ? { bg: "#FAEEDA", color: "#D97706", border: "#FAC775" } :
                                                                   { bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB" };
                         return (
