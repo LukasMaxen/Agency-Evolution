@@ -178,66 +178,79 @@ export async function POST(req: NextRequest) {
 
     // 4. Remove or attach. EB's DELETE is async ("Sender emails sent for
     //    deletion. This may take a moment.") and completes within a few
-    //    seconds. EB rejects DELETE on active campaigns, so we pause first
-    //    and resume after.
+    //    seconds. EB rejects DELETE on active campaigns, so we pause those
+    //    first. The deletion job EB queues will be cancelled if the
+    //    campaign is touched (e.g. resumed) before it completes — and
+    //    issuing other DELETE calls on the same workspace seems to clobber
+    //    pending jobs too. So we structure the work as:
+    //      a) pause all active campaigns in parallel
+    //      b) DELETE on every campaign in parallel
+    //      c) wait ONCE (8s) for EB to drain the deletion queue
+    //      d) resume those we paused in parallel
+    //    Sequential-per-campaign waits added up to nearly 2 minutes for
+    //    senders attached to many campaigns and produced unreliable
+    //    results because intermediate DELETEs cancelled earlier jobs.
     const ACTIVE_STATES = new Set(["active", "running", "live"]);
-    // EB's DELETE on a paused campaign is async ("Sender emails sent for
-    // deletion. This may take a moment.") and completes in ~5s. If we
-    // PATCH /resume too early, EB cancels the queued deletion and the
-    // sender stays attached. 8s is the smallest wait observed to be
-    // reliable in live testing.
     const REMOVE_WAIT_MS = 8000;
 
-    for (const camp of campaigns) {
-      if (action === "remove" || action === "remove_and_warmup") {
-        const wasActive = ACTIVE_STATES.has(camp.status ?? "");
-        let pausedByUs = false;
-
-        if (wasActive) {
-          const pauseRes = await setCampaignStatus(camp.id, "pause");
-          if (!pauseRes.ok) {
-            const err = await pauseRes.text();
-            results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "error", error: `pause failed: ${err}` });
-            continue;
+    if (action === "remove" || action === "remove_and_warmup") {
+      // Step a: pause active campaigns
+      const pausedCamps: number[] = [];
+      const pausePromises = campaigns
+        .filter(c => ACTIVE_STATES.has(c.status ?? ""))
+        .map(async c => {
+          const r = await setCampaignStatus(c.id, "pause");
+          if (r.ok) pausedCamps.push(c.id);
+          else {
+            const err = await r.text();
+            results.push({ campaign_id: c.id, campaign_name: c.name, status: "error", error: `pause failed: ${err}` });
           }
-          pausedByUs = true;
-        }
+        });
+      await Promise.all(pausePromises);
 
-        const removeRes = await fetch(
-          `${instanceUrl}/api/campaigns/${camp.id}/remove-sender-emails`,
-          {
-            method: "DELETE",
-            headers,
-            body: JSON.stringify({ sender_email_ids: [senderId] }),
-          }
+      // Step b: DELETE in parallel for all campaigns whose pause did not fail
+      const failedIds = new Set(results.filter(r => r.status === "error").map(r => r.campaign_id));
+      const removable = campaigns.filter(c => !failedIds.has(c.id));
+      const removeResults = await Promise.all(removable.map(async c => {
+        const r = await fetch(
+          `${instanceUrl}/api/campaigns/${c.id}/remove-sender-emails`,
+          { method: "DELETE", headers, body: JSON.stringify({ sender_email_ids: [senderId] }) }
         );
-        const removeOk = removeRes.ok;
-        const removeErr = removeOk ? null : await removeRes.text();
+        return { camp: c, ok: r.ok, err: r.ok ? null : await r.text() };
+      }));
 
-        if (pausedByUs) {
-          // EB DELETE is async. Give it a beat before resuming so the
-          // detach completes before sends fire again.
-          if (removeOk) await new Promise(r => setTimeout(r, REMOVE_WAIT_MS));
-          const resumeRes = await setCampaignStatus(camp.id, "resume");
-          if (!resumeRes.ok) {
-            // Resume failed — log loudly. Campaign will remain paused in
-            // EB until the user resumes it manually.
-            const err = await resumeRes.text();
-            results.push({
-              campaign_id: camp.id, campaign_name: camp.name,
-              status: removeOk ? "removed_but_resume_failed" : "error",
-              error: removeOk ? `RESUME FAILED — campaign left paused: ${err}` : `${removeErr}; resume also failed: ${err}`,
-            });
-            continue;
-          }
+      // Step c: single wait for EB to drain the async deletion queue.
+      // EB completes deletions in ~5s; 8s gives margin.
+      if (removeResults.some(r => r.ok)) {
+        await new Promise(r => setTimeout(r, REMOVE_WAIT_MS));
+      }
+
+      // Step d: resume paused campaigns in parallel
+      const resumeMap: Record<number, boolean> = {};
+      await Promise.all(pausedCamps.map(async id => {
+        const r = await setCampaignStatus(id, "resume");
+        resumeMap[id] = r.ok;
+        if (!r.ok) {
+          // Will be reported below alongside the campaign result
+          console.error(`[account-monitor/action] resume failed for campaign ${id}`);
         }
+      }));
 
-        if (removeOk) {
+      // Stitch results
+      for (const { camp, ok, err } of removeResults) {
+        const wasPaused = pausedCamps.includes(camp.id);
+        const resumeOk = !wasPaused || resumeMap[camp.id];
+        if (ok && resumeOk) {
           results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "removed" });
+        } else if (ok && !resumeOk) {
+          results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "removed_but_resume_failed", error: "campaign left paused — resume manually" });
         } else {
-          results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "error", error: removeErr ?? "remove failed" });
+          results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "error", error: err ?? "remove failed" });
         }
-      } else if (action === "reattach" || action === "attach_to_all") {
+      }
+    } else if (action === "reattach" || action === "attach_to_all") {
+      // Attaches in parallel for speed. Attach is synchronous on EB's side.
+      await Promise.all(campaigns.map(async camp => {
         const attachRes = await fetch(
           `${instanceUrl}/api/campaigns/${camp.id}/attach-sender-emails`,
           {
@@ -252,7 +265,7 @@ export async function POST(req: NextRequest) {
           const err = await attachRes.text();
           results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "error", error: err });
         }
-      }
+      }));
     }
 
     // 5. Enable warmup if requested. For enable_warmup we always hit EB
@@ -301,6 +314,32 @@ export async function POST(req: NextRequest) {
          WHERE workspace_slug = $1 AND email = $2 AND warming_since IS NOT NULL`,
         [workspace_slug, sender_email.toLowerCase()]
       );
+    }
+
+    // 7. Refresh the sender's attached_campaigns_count from EB so the
+    //    Warmup Monitor and Domain Monitor reflect the action immediately
+    //    instead of waiting for the next sync. Without this, after a
+    //    Pause-outbound the dashboard still shows "In 1 campaign" until
+    //    the periodic sync runs. Failures here are non-fatal — the next
+    //    sync will catch up. Only refresh for campaign-affecting actions.
+    if (action !== "enable_warmup") {
+      try {
+        const refreshRes = await fetch(
+          `${instanceUrl}/api/sender-emails/${senderId}/campaigns`,
+          { headers }
+        );
+        if (refreshRes.ok) {
+          const body = await refreshRes.json();
+          const liveCount = (body?.data ?? []).length;
+          await pool.query(
+            `UPDATE sender_accounts SET attached_campaigns_count = $1
+             WHERE workspace_slug = $2 AND email = $3`,
+            [liveCount, workspace_slug, sender_email.toLowerCase()]
+          );
+        }
+      } catch (err: any) {
+        console.error("[account-monitor/action] attached-count refresh failed:", err?.message);
+      }
     }
 
     const succeeded = results.filter(r => r.status !== "error").length;
