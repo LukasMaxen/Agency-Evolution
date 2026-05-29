@@ -121,13 +121,23 @@ export async function POST(req: NextRequest) {
     // a pause before DELETE.
     const campaignsBySender = await Promise.all(sender_ids.map(async id => {
       const r = await fetch(`${instanceUrl}/api/sender-emails/${id}/campaigns`, { headers });
-      if (!r.ok) return [] as { id: number; name: string; status: string }[];
+      if (!r.ok) return { id, camps: [] as { id: number; name: string; status: string }[] };
       const j = await r.json();
-      return (j.data ?? []).map((c: any) => ({ id: c.id, name: c.name, status: String(c.status ?? "").toLowerCase() }));
+      return { id, camps: (j.data ?? []).map((c: any) => ({ id: c.id, name: c.name, status: String(c.status ?? "").toLowerCase() })) };
     }));
-    const campMap = new Map<number, { id: number; name: string; status: string }>();
-    for (const list of campaignsBySender) {
-      for (const c of list) if (!campMap.has(c.id) && !TERMINAL_STATES.has(c.status)) campMap.set(c.id, c);
+    // campaign id -> { meta, senders-actually-attached-to-this-campaign }
+    // We need the per-campaign sender list so the DELETE only targets
+    // senders that EB actually has attached there. EB rejects the entire
+    // batch if any sender_id is "invalid" for that campaign, so passing
+    // the full batch when only one sender is attached blows up the call.
+    const campMap = new Map<number, { id: number; name: string; status: string; senderIds: number[] }>();
+    for (const { id: senderId, camps } of campaignsBySender) {
+      for (const c of camps) {
+        if (TERMINAL_STATES.has(c.status)) continue;
+        const slot = campMap.get(c.id) ?? { id: c.id, name: c.name, status: c.status, senderIds: [] };
+        slot.senderIds.push(senderId);
+        campMap.set(c.id, slot);
+      }
     }
     const campaigns = Array.from(campMap.values());
 
@@ -146,9 +156,13 @@ export async function POST(req: NextRequest) {
     // per campaign.
     const removeTargets = campaigns.filter(c => !pauseFailedIds.has(c.id));
     const removeResults = await Promise.all(removeTargets.map(async c => {
+      // Only DELETE the senders EB actually has attached to THIS campaign.
+      // Passing the full batch would trip "sender_email_ids.N is invalid"
+      // on EB for any sender not currently attached, which fails the
+      // entire call instead of just skipping the missing ones.
       const r = await fetch(`${instanceUrl}/api/campaigns/${c.id}/remove-sender-emails`, {
         method: "DELETE", headers,
-        body: JSON.stringify({ sender_email_ids: sender_ids }),
+        body: JSON.stringify({ sender_email_ids: c.senderIds }),
       });
       return { id: c.id, name: c.name, ok: r.ok, err: r.ok ? null : await r.text() };
     }));
