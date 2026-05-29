@@ -12,6 +12,10 @@ import {
 } from "@/lib/slack-approval";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { backsyncInterestedToEmailBison } from "@/lib/emailbison-backsync";
+import { CALENDLY_CLIENT_CONFIG } from "@/lib/calendly";
+import { inferLeadTimezone, lookupCategoryForDomain } from "@/lib/lead-timezone";
+import { suggestSlotsForClient } from "@/lib/calendly-slot-suggestions";
+import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +32,7 @@ interface AutoReplyResult {
   flag_meeting_booked: boolean;
   recipient_email?: string;
   recipient_name?: string;
+  cc_emails?: string[];
 }
 
 // ─── Client file aliases ───────────────────────────────────────────────────────
@@ -49,6 +54,17 @@ const CLAUDE_MAX_TOKENS = 3000;
 function readFile(filePath: string): string {
   try { return fs.readFileSync(filePath, "utf-8"); }
   catch { return ""; }
+}
+
+/**
+ * Loads per-workspace learnings appended to the system prompt at runtime.
+ * Lives at prompts/extras/<slug>.md so the weekly-review apply handler can
+ * commit accumulated feedback patterns here without modifying the core
+ * system prompt or the client file. Returns "" if no extras file exists.
+ */
+function readWorkspaceExtras(workspaceSlug: string): string {
+  const slug = CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
+  return readFile(path.join(process.cwd(), "prompts", "extras", `${slug}.md`)).trim();
 }
 
 /**
@@ -202,7 +218,15 @@ function isNoActionReply(message: string): boolean {
     /undeliverable|delivery has failed|delivery failure|bounce|mailer.daemon|postmaster/.test(m) ||
     /do not reply to this (email|message)|please do not reply/.test(m) ||
     /message could not be delivered/.test(m) ||
-    /mailinblack|one click to deliver your email|confirm they are human|protected by protect/.test(m)
+    /mailinblack|one click to deliver your email|confirm they are human|protected by protect/.test(m) ||
+    // Dutch OOO patterns ("not in a position to reply", "back at the office on", "currently absent")
+    /niet in de gelegenheid|terug op kantoor|momenteel afwezig|ben (ik )?afwezig|met vakantie/.test(m) ||
+    // German OOO patterns ("currently on vacation", "outside the office")
+    /derzeit (im )?urlaub|außerhalb des büros|abwesenheitsnotiz/.test(m) ||
+    // French OOO patterns ("currently absent", "return to office")
+    /actuellement absent(e)?|de retour le|réponse automatique/.test(m) ||
+    // Spanish OOO patterns ("currently on vacation", "out of office")
+    /actualmente de vacaciones|fuera de la oficina|respuesta automática/.test(m)
   );
 }
 
@@ -297,7 +321,7 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
 
 // ─── EmailBison send ───────────────────────────────────────────────────────────
 
-async function sendToEmailBison(reply: Record<string, any>, body: string): Promise<boolean> {
+async function sendToEmailBison(reply: Record<string, any>, body: string, ccEmails?: string[]): Promise<boolean> {
   const { email_bison_instance_url: url, email_bison_api_key: key, email_bison_reply_id: ebId, sender_email_id: senderId } = reply;
   if (!url || !key || !ebId || !senderId) {
     console.error("[auto-reply] Missing EmailBison fields for reply", reply.id);
@@ -312,6 +336,19 @@ async function sendToEmailBison(reply: Record<string, any>, body: string): Promi
     .map(p => `<p style="margin:0 0 16px 0;">${linkify(p.replace(/\n/g, "<br>"))}</p>`)
     .join("");
 
+  const ccList = (ccEmails ?? [])
+    .filter(e => typeof e === "string" && e.includes("@") && e.toLowerCase() !== recipientEmail.toLowerCase())
+    .map(email_address => ({ name: null, email_address }));
+
+  const payload: Record<string, unknown> = {
+    message: htmlBody,
+    sender_email_id: senderId,
+    to_emails: [{ name: recipientName, email_address: recipientEmail }],
+    inject_previous_email_body: true,
+    content_type: "html",
+  };
+  if (ccList.length > 0) payload.cc_emails = ccList;
+
   const ebCtrl = new AbortController();
   const ebTimer = setTimeout(() => ebCtrl.abort(), 30_000);
   let res: Response;
@@ -319,13 +356,7 @@ async function sendToEmailBison(reply: Record<string, any>, body: string): Promi
     res = await fetch(`${url}/api/replies/${ebId}/reply`, {
       method: "POST",
       headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify({
-        message: htmlBody,
-        sender_email_id: senderId,
-        to_emails: [{ name: recipientName, email_address: recipientEmail }],
-        inject_previous_email_body: true,
-        content_type: "html",
-      }),
+      body: JSON.stringify(payload),
       signal: ebCtrl.signal,
     });
   } catch (err: any) {
@@ -423,13 +454,17 @@ async function postApprovalCard(opts: {
     ? `:warning: *Sending to:* ${effectiveRecipientName ?? ""} <${effectiveRecipientEmail}> _(differs from lead: ${reply.lead_email})_`
     : `*Sending to:* ${leadLine}`;
 
+  const ccLine = (result.cc_emails && result.cc_emails.length > 0)
+    ? `\n*CC:* ${result.cc_emails.join(", ")} _(set by automation, verify before send)_`
+    : "";
+
   const blocks: object[] = [
     { type: "header", text: { type: "plain_text", text: "Auto-reply draft, needs review", emoji: true } },
     { type: "section", fields: [
       { type: "mrkdwn", text: `*Client:*\n${slugToNameShared(workspaceSlug)}` },
       { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign ?? "unknown"}` },
     ]},
-    { type: "section", text: { type: "mrkdwn", text: `${sendingToLine}\n*Intent:* ${result.intent}  ·  *FU:* ${result.fu_sequence_type}` } },
+    { type: "section", text: { type: "mrkdwn", text: `${sendingToLine}${ccLine}\n*Intent:* ${result.intent}  ·  *FU:* ${result.fu_sequence_type}` } },
     { type: "section", text: { type: "mrkdwn", text: `*Subject:* ${reply.subject ?? "(no subject)"}` } },
     { type: "section", text: { type: "mrkdwn", text: `*Lead's reply:*\n${quoteForSlack(reply.message ?? "", 600)}` } },
     { type: "section", text: { type: "mrkdwn", text: `*Drafted reply:*\n${quoteForSlack(result.reply_body ?? "", 2500)}` } },
@@ -632,7 +667,22 @@ Every reply is sent AS the client's sender (e.g. Jeff Zanardi from ACT Capital, 
 
 4. CHECK THE RECIPIENT. If the reply was sent by someone other than the lead on record (different name, "forwarded to me by", reply from a different email address), set recipient_email and recipient_name to that person. Address them directly.
 
-5. USE THE LEAD CONTEXT BLOCK IF PROVIDED. Location, company size, and LinkedIn are there to make the reply specific to this person. Reference at least one fact naturally. "I noticed you're based in [city]" or "given [company size]" is enough. If no LEAD CONTEXT block appears, skip this step.
+5. USE THE LEAD COMPANY CONTEXT BLOCK. This is the most important personalization input. The block gives you EXIT SIGNALS, the attributes that make this brand attractive to a strategic or PE buyer (own manufacturing, consumable LTV, patented IP, premium pricing, category buyer interest, etc.). You MUST reference at least ONE specific exit signal from this block in the opener of the reply. The reference must be concrete, drawn from a visible detail on their site.
+
+CRITICAL FRAMING. The reason we reach out to a brand is because something about THEIR brand makes us think they could exit well. NEVER frame it as "we focus on [category] brands" or "we work with [category]". We do NOT focus on categories, we focus on brands that look exit-worthy. The right framing is "what made [BRAND] stand out" or "what caught our eye about [BRAND]" followed by the specific exit signal. The signal can be one of:
+   - their product is consumable / generates repeat purchase / strong LTV
+   - they have proprietary IP, a patent, or a defensible formula
+   - premium positioning suggests strong margins
+   - their category is seeing real buyer interest right now (only say this if genuinely true)
+   - they own manufacturing or have meaningful vertical integration
+   - distinctive brand identity that holds up at exit
+
+If no LEAD COMPANY CONTEXT block appears (because the site was unreachable), fall back to LEAD CONTEXT (location, size, LinkedIn) and reference one of those instead.
+
+DISTINGUISHING REPLY INTENTS, this changes how you draft:
+- "Why are you interested in MY company?" / "What made you reach out to me?" → answer the why directly. Lead with what about THEIR brand makes them interesting for an exit (a specific EXIT SIGNAL). Brief mention of what we do. Then slot. Pattern E2.
+- "Send me more info" / "Tell me more" / "Share details about how you work" → they want to learn about us, so explain briefly what we do (we help founders maximize the value of their brand at exit), and tie it to ONE specific exit signal we noticed about their brand. Then slot. Pattern E3.
+Both intents reference EXIT SIGNALS. The difference is which side leads (their brand vs. what we do).
 
 ## CAMPAIGN TYPE RULES (REPLY QUICK REFERENCE overrides these)
 
@@ -644,11 +694,26 @@ Agency / services (franchise, CGI, growth): goal is a call. Answer what they ask
 
 ## HOW TO DRAFT
 
-Mirror their length and energy. A one-line reply gets a three-line response. A detailed message can justify more. Never default to a three-paragraph structure by habit.
+HARD LENGTH CAP. Every reply body (everything between "Hi [name]" and "{SENDER_EMAIL_SIGNATURE}") MUST be 150 words or fewer. Count them before you finalize. The cap exists because long templated pitches read as automation and get ignored, but the cap is high enough to fit a full personalized opener + clean value paragraph + value-rich CTA + slot proposal.
 
-Start with the substance. The first sentence responds to what they said. Not "Thanks for getting back to me." Jump straight to the point.
+Structure budget: greeting line, then 3 to 5 short paragraphs, then the slot or Calendly line. Each paragraph should add genuine value for the reader, not pad the reply.
 
-Make it specific. Reference something from their actual message — their company, their question, their hesitation. Generic replies that could go to anyone are wrong.
+Mirror their length and energy. A one-line "Sure" gets a short response. A specific question ("why are you interested in my company") justifies a fuller reply that answers it properly. Lead with one specific reason this lead matters (drawn from LEAD COMPANY CONTEXT EXIT SIGNALS). Then say what we do. Then the value-rich CTA (mapping their EV multiple range, operational levers, deal structures). Then the no-pressure closer. Then slots.
+
+Start with the substance, and make the first body line acknowledge what the lead actually said. Do not default to a stock opener regardless of context. Examples:
+- Lead asked for more info ("send me details", "tell me more", "share more info"): "Happy to share more." fits.
+- Lead agreed with a point ("yes you're probably right", "good point", "fair point"): acknowledge the agreement. "Glad that resonated." or "Appreciate that." Do NOT open with "Happy to share more." because they did not ask for info.
+- Lead said yes to a meeting ("happy to chat", "let's set something up", "sure send the link"): skip the info dump and acknowledge the meeting ask. "Easiest is to grab a slot here, ..." or "Great, let's get a time on the calendar."
+- Lead is forwarding to a colleague ("@John have a chat with them"): greet the new person first, briefly acknowledge the intro from the original sender.
+- Lead pushed back, hedged, or raised an objection: acknowledge the specific point they made before pivoting.
+
+Never write a first line that could be sent to any lead. It must respond to THIS lead's specific message.
+
+Then jump to the substance, no "Thanks for getting back to me" filler.
+
+Make it specific. Reference something concrete: the specific fact from LEAD COMPANY CONTEXT HOOK, their actual message, their company, their question, their hesitation. Generic replies that could go to anyone are wrong. If you find yourself writing a sentence that could apply to any DTC brand, replace it with a sentence that could only apply to THIS brand.
+
+CATEGORY filling: when the template has [CATEGORY], pull the value from LEAD COMPANY CONTEXT CATEGORY line. If that line says "skincare brands", write "skincare brands". Do not output the placeholder [CATEGORY] or the generic phrase "your category" in the final reply.
 
 The goal is a 30-minute call. Every reply should move toward it. When you send the Calendly link, make the ask feel natural.
 
@@ -664,21 +729,52 @@ Exception: if the REPLY QUICK REFERENCE says always_send_calendly:true (Larsen D
 
 Route to manual ONLY when: (1) lead explicitly says "call me" or "give me a call" AND provides a phone number they want to be called on — a phone number in their email signature alone does not count; (2) lead gives a specific day AND time AND always_send_calendly is not true.
 
-CRITICAL — DO NOT INVENT REASONS TO ESCALATE: If a lead says "yes", "sure", "please send it over", "send me the teaser", "I'm interested", or any clear affirmative — draft the reply and set action to auto_send. Do not route to manual because you imagine a scenario (NDA, data room, legal process) that is not explicitly stated in the lead's message. Only escalate to manual for the two cases above. Everything else: draft it and send it.
+Route to manual when a lead asks for a meeting in a specific human-stated timeframe ("next week", "this week", "Monday morning", "Tuesday afternoon", "later this month"). These are edge cases where a human should pick the slot and confirm directly, rather than the auto reply proposing slots. Calendly slots can still be sent for general interest ("happy to chat", "sure send the link"), but specific human-stated windows go to manual.
+
+CRITICAL — DO NOT INVENT REASONS TO ESCALATE: If a lead says "yes", "sure", "please send it over", "send me the teaser", "I'm interested", or any clear affirmative — draft the reply and set action to auto_send. Do not route to manual because you imagine a scenario (NDA, data room, legal process) that is not explicitly stated in the lead's message. Only escalate to manual for the three cases above (phone with number, specific day+time without always_send_calendly, specific human-stated meeting window). Everything else: draft it and send it.
+
+REFERRAL HANDOVER PATTERN: When the lead forwards/passes you to a colleague ("@Gilbert have an initial conversation", "looping in our COO", "let's bring in [Name]"), do all of this:
+1. Set recipient_email and recipient_name to the new person they pointed you to (the colleague, not the original lead).
+2. Greet the new person by first name.
+3. Briefly acknowledge the intro from the original sender in one short line.
+4. Keep the reply SHORT. The colleague has been pre-greenlit, do not dump info, do not pitch the full value prop, do not list case studies.
+5. Lead with the Calendly link or proposed slots. The whole reply is at most 4 short lines plus signature.
+6. If LIVE CALENDAR AVAILABILITY is present, propose the two slots. Otherwise just send the Calendly link with a natural lead-in.
+7. ALWAYS CC THE INTRODUCER. Set cc_emails to an array containing the original sender's email (the person who made the intro). This is non-negotiable, standard etiquette, the introducer needs to see we followed up so they know the loop closed. Do not skip this even if it feels optional.
 
 ## WHAT NEVER TO DO
 
 - Never use em dashes or en dashes. Restructure the sentence instead.
+- Never use colons in body copy. The only colon allowed is the one before a URL link.
 - Never open with: "Hope this finds you well", "Thanks for reaching out", "I appreciate you taking the time", "Sounds great!", "I'd love to", "Excited to"
 - Never confirm times or fabricate availability
 - Never reply to a not-interested or hard-no lead
-- Never send a teaser that does not match the campaign — default to a call if unsure
+- Never send a teaser that does not match the campaign, default to a call if unsure
 - Never refer to the sender in third person as the subject of a sentence
-- Never end with "Best," or any name — the signature variable handles everything
+- Never end with "Best," or any name, the signature variable handles everything
 - Never pad a short yes-reply into multiple paragraphs
 - Never repeat a stat, link, or angle already in the thread
+- Never list multiple case studies or revenue trajectories inline (Motel Margarita went from X to Y, KyiKyi did Z, etc). Single brief reference at most. Save the case study dump for the call.
+- Never recite our M&A track record stats unprompted ("$1B+ in CPG transactions", "closed X deals"). BUT it is OK and encouraged to mention "M&A bankers as co-advisors" as the mechanism for how we get founders the best exit, just without the specific stat dump. Phrase as a credibility hook, not a stats dump.
+- Never explain our pricing model unless explicitly asked
+- Never list 3-phase models or operational breakdowns in the body. If the lead asked for info, give one plain sentence about what we do (we help founders maximize the value of their brand at exit), then tie it to their brand's exit signal, then go to slot.
 - Never jump straight to Calendly when the original cold email asked permission to share info ("Mind if I share more details?", "Want to see the deck?") and the lead said yes. They said yes to information, not a call. Send the info first. Calendly at the very end as a soft option.
 - Never engage with or acknowledge market commentary a lead adds alongside a request ("the industry is tough", "we've seen volume drops"). Fulfill the request and stop. Do not rebut or validate their observations.
+
+BANNED WORDS / PHRASES (zero tolerance, do not appear in any reply body):
+- "differentiated" / "differentiated angle" / "differentiation" (just describe the specific thing)
+- "positioning" as a noun ("your positioning"). Either describe what they actually say about themselves, or use "the way you describe yourselves"
+- "package" in the M&A sense ("package the numbers")
+- "the kind of X that buyers pay extra for" (any sentence in this shape is MBA-deck language)
+- "velocity" (say "speed" or "pace")
+- "verticals" (say "industries" or "categories")
+- "leverage" as a verb (say "use")
+- "synergies"
+- "go to market" as a phrase (just describe what's happening)
+- "run rate", "top-line", "bottom-line" (use "revenue", "profit")
+- "we focus on [category] brands" / "we work with [category] brands" / "brands in your category". We DO NOT focus on categories. We focus on brands that look exit-worthy. Reframe these sentences around the brand's specific exit signals.
+
+If a sentence you wrote uses any of these, rewrite it in words a 16-year-old would use. Write like a smart founder texting another founder, not like a McKinsey deck.
 
 ## REPLY STRUCTURE
 
@@ -694,40 +790,39 @@ Hi [First Name],
 
 ## EXAMPLES (what good looks like, pattern-match against these before writing)
 
---- E1: "Sure" (lead said yes to an info request) ---
-Cold email asked: "Mind if I share some more info?" Lead replied: "Sure."
-Wrong: "Great. Here's a link to grab a time: [calendly]"
-Right: Send the actual info they agreed to receive. Calendly as the last line only.
+--- E2: CANONICAL LARSEN DIGITAL TEMPLATE for "why are you interested in MY company" / "tell me more" / "send more info" / "share details about how you work" ---
+THIS TEMPLATE IS FIXED TEXT WITH PLACEHOLDER FILL. Treat it as a fill-in-the-blanks task, NOT a creative rewrite.
 
-Hi Amanda,
+Rules:
+- Output the template VERBATIM, only substituting [PLACEHOLDERS].
+- Do NOT reword any non-placeholder text. "at the moment" stays "at the moment", do not change to "right now". "branded trademark" stays "branded trademark", do not change to "registered trademark" or "branded IP". "to get you the best exit possible" stays in para 2.
+- Do NOT merge paragraphs. Output 5 distinct paragraphs after the greeting. The CTA paragraph and the no-pressure paragraph are SEPARATE.
+- Do NOT skip a paragraph.
+- The ONLY allowed substitutions are: [FIRST_NAME], [BRAND], [SPECIFIC EXIT SIGNAL], [SPECIFIC ATTRIBUTE], [SLOT 1 NATURAL], [SLOT 2 NATURAL], [CALENDLY_LINK].
 
-To give you some more details, we run a 3-phase system for consumer brands:
+Hi [FIRST_NAME],
 
-1. Grow (Acceler8rs.com): find PMF and build a profitable acquisition engine to generate strong cash flow.
-2. Scale (LarsenDigitalMarketing.com): operating partner for brands above 7 figures (P&L, growth execution, equity).
-3. Exit: M&A planning and transaction execution through our investment banking partners.
+What caught my eye about [BRAND] was [SPECIFIC EXIT SIGNAL from LEAD COMPANY CONTEXT, e.g. "the branded trademark in the sports recovery space" or "a patented non-steroid formula in a consumable, repeat-purchase category"]. Buyer interest is increasing in the consumer space at the moment, and a brand [SPECIFIC ATTRIBUTE drawn from EXIT SIGNALS, e.g. "positioning itself as a category innovator with its own registered IP", "with defensible IP and recurring purchase built in", "with vertical integration and premium pricing power"] tends to command higher valuations at exit.
 
-Here's what 4 months in our Grow phase looked like for a brand we took from $6k/mo to $93k/mo in DTC sales: [CASE_STUDY_LINK]
+We help founders build the parts of the business that increase enterprise value most, while pulling in M&A bankers as co-advisors when taking brands to market to get you the best exit possible.
 
-If this seems like a fit, I'd love to learn more about your plans. Calendar here if you'd like to explore further: [CALENDLY_LINK]
+If this aligns with your goals for [BRAND], let's grab 15 minutes to discuss valuation/exit and growth opportunities.
 
-{SENDER_EMAIL_SIGNATURE}
+Whether exiting is on the immediate horizon or not, you would leave with a clearer read on your valuation and exit options.
 
---- E2: "Please tell me more details" (standard info request) ---
-Wrong: "Everything is performance-based, no upfront fee, no retainer." Never lead with commercial terms.
-Right: What you do, proof of results, Calendly. Commercial terms dropped entirely.
-
-Hi Ignacio,
-
-We work with DTC brands to drive serious revenue growth and build toward a clean 8-figure exit from day one, not as an afterthought.
-
-The short version: we take over paid acquisition, retention, and conversion optimization, with M&A partners who've closed $1B+ in CPG transactions guiding the broader exit strategy.
-
-To give you a sense of what that looks like in practice: Motel Margarita went from £25k to £102k/month in 90 days. KyiKyi went from £13k to £140k/month in 60 days.
-
-Worth a quick call to see if it makes sense for your brand. Calendar fills up fast: [CALENDLY_LINK]
+Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work? If not, grab a slot on my calendar here: [CALENDLY_LINK]
 
 {SENDER_EMAIL_SIGNATURE}
+
+PLACEHOLDER FILLING RULES (do this automatically, never leave placeholders as literal strings in the output):
+- [FIRST_NAME] = lead's first name from their signature or the lead_name field
+- [BRAND] = the actual brand name (not the {COMPANY} merge variable), grab from lead_company, signature, or LEAD COMPANY CONTEXT
+- [SPECIFIC EXIT SIGNAL] = ONE exit-worthy attribute pulled directly from LEAD COMPANY CONTEXT EXIT SIGNALS (patented IP, consumable LTV, premium margins, own manufacturing, category buyer interest, etc.). Phrase it naturally, not as a label.
+- [SPECIFIC ATTRIBUTE] = a slightly different angle on the same EXIT SIGNAL or a related attribute, written to flow with "a brand [SPECIFIC ATTRIBUTE] tends to command..."
+- [SLOT 1 NATURAL] / [SLOT 2 NATURAL] = the two natural-language strings from LIVE CALENDAR AVAILABILITY exactly as given (e.g. "Monday at 1pm BST")
+- [CALENDLY_LINK] = the Calendly URL from REPLY QUICK REFERENCE (for Larsen Digital, https://calendly.com/larsen-digital-marketing/intro)
+
+If LIVE CALENDAR AVAILABILITY has fewer than 2 slots (e.g. lead is in a TZ that doesn't overlap with Nicklas's business hours), drop the "Would [SLOT 1] or [SLOT 2] work?" sentence and just write "Easiest is to grab a slot on my calendar here: [CALENDLY_LINK]"
 
 --- E3: "Copying my CEO" (forward to decision-maker) ---
 Right: Address both by first name. Two sentences on what you do. Calendly.
@@ -772,17 +867,69 @@ Fill in questions_to_answer, personal_hook, and pivot_line BEFORE writing reply_
   "flag_unsubscribe": false,
   "flag_meeting_booked": false,
   "recipient_email": "only if reply was written by someone other than the lead on record",
-  "recipient_name": "display name if recipient_email is set"
+  "recipient_name": "display name if recipient_email is set",
+  "cc_emails": ["array of email addresses to CC. Use for referral handovers to keep the original sender in the loop. Empty array if no CCs needed."]
 }`;
 
   const coldEmailBlock = coldEmailBody
     ? `ORIGINAL COLD EMAIL SENT TO THIS LEAD (what they are responding to):\n${coldEmailBody}\n\n`
     : "";
 
+  // ── Lead company research (fetch + Haiku-summarize website) ──────────────────
+  // Every interested/needs_info reply gets a custom hook based on what the lead's
+  // company actually does. Cached 7 days per domain in lead_website_cache.
+  // Silent fallback if unreachable, processor still drafts with template-only
+  // personalization but the human-level hook line will be missing.
+  let companyContextBlock = "";
+  const leadDomain = resolveLeadDomain({ leadEmail: reply.lead_email });
+  if (leadDomain) {
+    const ctx = await getLeadCompanyContext(leadDomain);
+    if (ctx) {
+      companyContextBlock = `LEAD COMPANY CONTEXT (read this carefully, you MUST reference at least one specific concrete fact from here in the opener or hook line of the reply, no generic praise):
+Source: ${leadDomain} (${ctx.source})
+${ctx.summary}
+
+`;
+    }
+  }
+
+  // ── Live Calendly slot suggestion ─────────────────────────────────────────────
+  // For clients with a per-client Calendly config (lib/calendly.ts), infer the
+  // lead's timezone from enrichment/email/company, then pull 2 well-spaced live
+  // slots in that TZ. Slots are injected into the prompt so Claude can propose
+  // them as natural "would either of these work?" options. Calendly link remains
+  // the fallback. Silently no-ops if Calendly is unreachable or token missing.
+  let calendlyHint = "";
+  const categoryOverride = lookupCategoryForDomain(reply.lead_email);
+  if (categoryOverride) {
+    calendlyHint += `CATEGORY OVERRIDE for this lead, use exactly "${categoryOverride}" wherever the template asks for [CATEGORY]. Do not infer a different category.\n\n`;
+  }
+  if (CALENDLY_CLIENT_CONFIG[workspaceSlug]) {
+    const clientCfg = CALENDLY_CLIENT_CONFIG[workspaceSlug];
+    const inferred = inferLeadTimezone({
+      enrichment: leadEnrichment,
+      leadEmail: reply.lead_email,
+      leadCompany: reply.lead_company,
+      defaultTz: clientCfg.defaultTz,
+      defaultUsTz: "America/New_York",
+    });
+    const slots = await suggestSlotsForClient(workspaceSlug, inferred.tz);
+    if (slots.length >= 2) {
+      calendlyHint = `LIVE CALENDAR AVAILABILITY (use these natural-language slot strings exactly as written when proposing times):
+Slot 1 NATURAL: ${slots[0].natural}
+Slot 2 NATURAL: ${slots[1].natural}
+Lead's inferred timezone: ${inferred.tz} (${inferred.reason})
+
+Use exactly the slot strings above when proposing times in the reply, do not reformat them, do not add the date back in, do not switch to 24-hour. The format is intentionally "Day at time TZ" (e.g. "Monday at 1pm BST"). Always pair with the Calendly link as the fallback. Do not confirm a single slot, always offer both.
+
+`;
+    }
+  }
+
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${companyContextBlock}${calendlyHint}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
@@ -793,8 +940,17 @@ Subject: ${reply.subject ?? ""}
 
 ${messageText.slice(0, 3000)}`;
 
+  // ── Append per-workspace learnings to the system prompt ──────────────────────
+  // Loaded from prompts/extras/<slug>.md so the weekly-review handler can
+  // auto-commit approved feedback patterns without touching the core prompt.
+  // Cache invalidation cost is per-workspace, not global.
+  const workspaceExtras = readWorkspaceExtras(workspaceSlug);
+  const effectiveSystemPrompt = workspaceExtras
+    ? `${systemPrompt}\n\n## WORKSPACE-SPECIFIC LEARNINGS (${workspaceSlug})\n\n${workspaceExtras}`
+    : systemPrompt;
+
   // ── Call Claude ───────────────────────────────────────────────────────────────
-  let result = await callClaude(systemPrompt, userMessage);
+  let result = await callClaude(effectiveSystemPrompt, userMessage);
 
   // Second pass: if interested and we have the quoted chain, re-draft with full context.
   // This only fires for ~10-20% of replies so the extra credit cost stays minimal.
@@ -810,7 +966,7 @@ ${messageText.slice(0, 3000)}`;
       "THREAD HISTORY — WHAT HAS BEEN SAID",
       `${threadContextBlock}THREAD HISTORY — WHAT HAS BEEN SAID`
     );
-    const refined = await callClaude(systemPrompt, enrichedMessage);
+    const refined = await callClaude(effectiveSystemPrompt, enrichedMessage);
     if (refined) result = refined;
   }
 
@@ -1018,7 +1174,7 @@ ${messageText.slice(0, 3000)}`;
     }
 
     // Direct send (only for hard closes — unsubscribe confirmations etc.)
-    const sent = await sendToEmailBison(replyWithCreds, result.reply_body);
+    const sent = await sendToEmailBison(replyWithCreds, result.reply_body, result.cc_emails);
     if (sent) {
       await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
         [`auto-${replyId}-${Date.now()}`, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", result.reply_body]);

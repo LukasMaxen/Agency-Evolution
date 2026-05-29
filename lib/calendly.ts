@@ -1,5 +1,27 @@
 const CALENDLY_BASE = "https://api.calendly.com";
 
+export type CalendlyClientConfig = {
+  tokenEnv: string;
+  eventTypeUrl: string;
+  defaultTz?: string;
+};
+
+export const CALENDLY_CLIENT_CONFIG: Record<string, CalendlyClientConfig> = {
+  "larsen-digital": {
+    tokenEnv: "CALENDLY_TOKEN_LARSEN_DIGITAL",
+    eventTypeUrl: "https://calendly.com/larsen-digital-marketing/intro",
+    defaultTz: "Europe/London",
+  },
+};
+
+export function resolveCalendlyToken(client?: string | null): string | undefined {
+  if (client && CALENDLY_CLIENT_CONFIG[client]) {
+    const env = CALENDLY_CLIENT_CONFIG[client].tokenEnv;
+    return process.env[env] ?? process.env.CALENDLY_TOKEN;
+  }
+  return process.env.CALENDLY_TOKEN;
+}
+
 async function calendlyFetch(path: string, token: string, options?: RequestInit) {
   const res = await fetch(`${CALENDLY_BASE}${path}`, {
     ...options,

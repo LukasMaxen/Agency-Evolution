@@ -58,11 +58,18 @@ export async function register() {
   // and an approval queue is wired in (today the route auto-sends with no review).
   console.log("[instrumentation] follow-up processor DISABLED (paused 2026-05-14)");
 
-  // ── 4. Weekly feedback review ─────────────────────────────────────────────
+  // ── 4. Feedback review ────────────────────────────────────────────────────
+  // TEMPORARY (set 2026-05-28): running daily at ~14:00 UTC over the last 24h
+  // of replies + feedback while Lukas validates the new Larsen rules. The
+  // hour gate fires once per day in the 14-15 UTC window; the 23h dedupe
+  // inside runWeeklyFeedbackReviewOnce prevents double-fires if the hourly
+  // tick lands twice in the same window. Revert to weekly
+  // (`d.getUTCDay() !== 1 || d.getUTCHours() < 8 || d.getUTCHours() >= 12`)
+  // + 6-day dedupe + 7-day lookback once the cadence catches what we want.
   let wrRunning = false;
   const tryWeeklyReview = async () => {
     const d = new Date();
-    if (d.getUTCDay() !== 1 || d.getUTCHours() < 8 || d.getUTCHours() >= 12) return;
+    if (d.getUTCHours() !== 14) return;
     if (wrRunning) return;
     wrRunning = true;
     try {

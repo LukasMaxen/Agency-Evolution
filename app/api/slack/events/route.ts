@@ -133,6 +133,228 @@ async function sendViaEmailBison(
 
 // ─── Reply draft handlers ──────────────────────────────────────────────────────
 
+/**
+ * Send-time learning: called after a successful reply send to either bake
+ * thread feedback into config files (evergreen rules) or annotate that the
+ * draft was approved as-is (positive example signal).
+ *
+ * Fired fire-and-forget from approveReplyDraft so the user does not wait
+ * on Claude + GitHub round-trips. Any failure is logged in the thread but
+ * does not affect the send.
+ */
+async function learnFromSendApproval(
+  draft: ReplyDraftRow,
+  inboundMessage: string,
+  channel: string,
+  ts: string,
+  reviewerName: string
+): Promise<void> {
+  try {
+    const feedback = await getThreadFeedback(ts);
+
+    if (feedback.length === 0) {
+      await postToSlack({
+        channel,
+        threadTs: ts,
+        text: `Approved as-is by ${reviewerName}. Logged as a positive example for similar future replies on \`${draft.workspace_slug}\`.`,
+      });
+      return;
+    }
+
+    const decision = await extractEvergreenRule(draft, inboundMessage, feedback);
+    if (!decision) {
+      await postToSlack({
+        channel,
+        threadTs: ts,
+        text: `Feedback noted but rule extraction failed (Claude error). Will be picked up by the 14:00 UTC review.`,
+      });
+      return;
+    }
+    if (!decision.evergreen) {
+      await postToSlack({
+        channel,
+        threadTs: ts,
+        text: `Feedback noted, but read as a one-off lead-specific tweak (not evergreen). Nothing committed to config files.`,
+      });
+      return;
+    }
+
+    const targetPath = resolveTargetPath(decision.target_file);
+    if (!targetPath) {
+      await postToSlack({
+        channel,
+        threadTs: ts,
+        text: `Wanted to bake the rule but \`${decision.target_file}\` is not an auto-applicable target. Will be picked up by the 14:00 UTC review.`,
+      });
+      return;
+    }
+
+    const file = await readFileFromGitHub(targetPath);
+    if (!file) {
+      await postToSlack({
+        channel,
+        threadTs: ts,
+        text: `Wanted to bake the rule into \`${targetPath}\` but could not read the file from GitHub. Will be picked up by the 14:00 UTC review.`,
+      });
+      return;
+    }
+
+    const syntheticPattern: WeeklyReviewPattern = {
+      title: `Send-time learning from ${reviewerName}`,
+      examples_count: 1,
+      proposed_rule_change: decision.rule,
+      target_file: decision.target_file,
+      confidence: "high",
+    };
+    const newContent = await applyPatternsToFile(file.content, [syntheticPattern], feedback.join("\n\n"));
+    if (!newContent || newContent === file.content) {
+      await postToSlack({
+        channel,
+        threadTs: ts,
+        text: `Tried to bake the rule into \`${targetPath}\` but Claude returned no change. Skipping.`,
+      });
+      return;
+    }
+
+    const commitMessage = `Send-time learning by ${reviewerName}, ${decision.rule.slice(0, 80)}\n\nApplied from #reply-approval card thread.`;
+    const commitUrl = await commitFileToGitHub(targetPath, newContent, commitMessage, file.sha);
+    if (!commitUrl) {
+      await postToSlack({
+        channel,
+        threadTs: ts,
+        text: `Tried to commit to \`${targetPath}\` but the GitHub commit failed. Will be picked up by the 14:00 UTC review.`,
+      });
+      return;
+    }
+
+    await postToSlack({
+      channel,
+      threadTs: ts,
+      text: `Baked into \`${targetPath}\`. <${commitUrl}|commit>\n> ${decision.rule}`,
+    });
+  } catch (err: any) {
+    console.error(`[slack-events] learnFromSendApproval failed for draft ${draft.id}:`, err?.message ?? err);
+    try {
+      await postToSlack({
+        channel,
+        threadTs: ts,
+        text: `Send-time learning hit an unexpected error: ${err?.message ?? err}. Feedback will still be picked up by the 14:00 UTC review.`,
+      });
+    } catch {}
+  }
+}
+
+/**
+ * Use Claude to decide whether thread feedback on a reply card describes an
+ * evergreen rule for the workspace (vs a one-off lead-specific tweak), and
+ * if so, write the rule + pick the right target file.
+ *
+ * Returns null on API failure. Returns { evergreen: false, ... } when the
+ * feedback is lead-specific.
+ */
+async function extractEvergreenRule(
+  draft: ReplyDraftRow,
+  inboundMessage: string,
+  feedback: string[]
+): Promise<{ evergreen: boolean; target_file: string; rule: string } | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  const systemPrompt = `You analyze human feedback left on a sent email reply (in a Slack thread) and decide if the feedback contains an EVERGREEN rule that should apply to ALL future replies for the same workspace.
+
+OUTPUT strict JSON, nothing else:
+{
+  "evergreen": boolean,
+  "target_file": "clients/<workspace_slug>.md" | "prompts/extras/<workspace_slug>.md",
+  "rule": "the evergreen rule as a single self-contained directive, including the WHY if the human gave one"
+}
+
+THERE ARE TWO PATHS TO evergreen=true:
+
+PATH 1 (explicit) — the human used directive language: "always", "never", "every time", "from now on", "going forward", "for all future X", "in this workspace always do X". Treat as evergreen=true. The rule is what they directly said.
+
+PATH 2 (inferred from rewrite) — the human did not give a directive but instead pasted a REWRITTEN DRAFT in the thread (the feedback looks like a full email body, not a one-liner correction). In this case:
+  - Compare the rewritten draft to OUR SENT DRAFT.
+  - Identify the structural / framing / opener differences that a competent writer would generalize across the same workspace + intent (e.g. "leads with what the buyer is looking for instead of our pitch", "names the lead's specific industry early", "ends with two date placeholders instead of a single calendar link").
+  - If you can extract at least one clear, generalizable pattern, treat as evergreen=true and write the rule as a directive that captures the pattern.
+  - The rule must be GENERALIZABLE. Do not write "use the words 'roofing and general contracting'" — that's lead-specific. Write "name the lead's specific industry/category early in the opener". Do not write "mention Northeast" — write "name the buyer's geographic focus when the buyer mandate specifies one".
+  - If the only differences are surface tweaks (one word swap, punctuation, capitalisation), it is NOT a pattern. Set evergreen=false.
+
+evergreen=false ONLY when neither PATH applies:
+  - Feedback is a single-line tweak ("change Robert to Bobby"), one-off lead context ("this person hates emojis"), or unrelated chatter ("nice draft").
+  - Feedback is a rewrite but the differences are too small to constitute a teachable pattern.
+
+target_file:
+- "clients/<workspace_slug>.md" when the rule is about CONTENT, templates, value props, what to say, framing, per-client offer/positioning, or the structural shape of replies for that workspace.
+- "prompts/extras/<workspace_slug>.md" when the rule is about FORMAT, wording, style, processor routing logic, intent classification, or anything that adjusts HOW the processor drafts (CTA wording, punctuation, "we" vs "I", which template Pattern to use for a given inbound).
+
+The rule field must be readable as a directive on its own without seeing the original feedback. Phrase it positively. Include the "why" if the human gave one or if it is obvious from the rewrite (e.g. "Why: leads respond better when the email opens with what the buyer wants, not our pitch.").`;
+
+  const userMessage = `Workspace: ${draft.workspace_slug}
+Intent classified: ${draft.intent ?? "unknown"}
+
+LEAD INBOUND (truncated):
+${(inboundMessage || "").slice(0, 600)}
+
+OUR SENT DRAFT (truncated):
+${(draft.body || "").slice(0, 800)}
+
+HUMAN FEEDBACK in thread (oldest first):
+${feedback.map((f, i) => `[${i + 1}] ${f}`).join("\n\n")}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60_000);
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 800,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }],
+      }),
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error("[slack-events] extractEvergreenRule timed out after 60s");
+    else console.error("[slack-events] extractEvergreenRule fetch error:", err?.message);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    console.error("[slack-events] extractEvergreenRule error:", response.status, await response.text());
+    return null;
+  }
+  const data = await response.json();
+  const raw = (data.content?.[0]?.text ?? "").replace(/```json|```/g, "").trim();
+  const firstBrace = raw.indexOf("{");
+  if (firstBrace === -1) return null;
+  let depth = 0, lastBrace = -1;
+  for (let i = firstBrace; i < raw.length; i++) {
+    if (raw[i] === "{") depth++;
+    else if (raw[i] === "}") { depth--; if (depth === 0) { lastBrace = i; break; } }
+  }
+  if (lastBrace === -1) return null;
+  try {
+    const parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));
+    if (typeof parsed.evergreen !== "boolean" || typeof parsed.target_file !== "string" || typeof parsed.rule !== "string") {
+      return null;
+    }
+    return parsed;
+  } catch (err: any) {
+    console.error("[slack-events] extractEvergreenRule JSON parse failed:", err?.message);
+    return null;
+  }
+}
+
 async function approveReplyDraft(draft: ReplyDraftRow, slackUserId: string, channel: string, ts: string): Promise<void> {
   // Pull reply + workspace creds
   const replyResult = await pool.query(
@@ -212,6 +434,13 @@ async function approveReplyDraft(draft: ReplyDraftRow, slackUserId: string, chan
 
   await addReaction(channel, ts, "outbox_tray");
   console.log(`[slack-events] Approved + sent reply draft ${draft.id}`);
+
+  // Send-time learning: fire-and-forget. If thread feedback exists, Claude
+  // decides if it is evergreen and commits the rule to the right config file.
+  // If no feedback, we just annotate the thread (positive example signal).
+  // Errors are logged in the thread but never affect the send result.
+  const reviewerName = (await getSlackUserName(slackUserId)) || "team";
+  void learnFromSendApproval(draft, reply.message ?? "", channel, ts, reviewerName);
 }
 
 async function rejectReplyDraft(draft: ReplyDraftRow, slackUserId: string, channel: string, ts: string): Promise<void> {
@@ -417,15 +646,31 @@ interface WeeklyReviewSummary {
 
 /**
  * Map a Claude-suggested target_file string to the actual repo path of the file
- * that gets edited. Returns null if the target is unsupported (eg "client file"
- * which would need a workspace slug).
+ * that gets edited. Returns null if the target is unsupported.
+ *
+ * Supported formats:
+ *   - "CONTEXT_Replies.md", "CONTEXT_FollowUps.md", "SKILL_Reply-Management.md", "SKILL_FollowUps.md"
+ *   - "clients/<slug>.md" (per-client rules)
+ *   - "prompts/extras/<slug>.md" (per-workspace processor system-prompt learnings)
+ *
+ * Slug must match [a-z0-9-]+ for safety (no path traversal, no arbitrary writes).
  */
 function resolveTargetPath(target: string): string | null {
-  const t = target.trim().toLowerCase();
+  const raw = target.trim();
+  const t = raw.toLowerCase();
   if (t.includes("context_replies")) return "1. Departments/reply-management/CONTEXT_Replies.md";
   if (t.includes("context_followups")) return "1. Departments/follow-up-management/CONTEXT_FollowUps.md";
   if (t.includes("skill_followups")) return "1. Departments/follow-up-management/SKILL_FollowUps.md";
   if (t.includes("skill_reply")) return "1. Departments/reply-management/SKILL_Reply-Management.md";
+
+  // clients/<slug>.md — per-client rules
+  const clientMatch = raw.match(/^clients\/([a-z0-9-]+)\.md$/i);
+  if (clientMatch) return `clients/${clientMatch[1].toLowerCase()}.md`;
+
+  // prompts/extras/<slug>.md — per-workspace processor system-prompt learnings
+  const extrasMatch = raw.match(/^prompts\/extras\/([a-z0-9-]+)\.md$/i);
+  if (extrasMatch) return `prompts/extras/${extrasMatch[1].toLowerCase()}.md`;
+
   return null;
 }
 

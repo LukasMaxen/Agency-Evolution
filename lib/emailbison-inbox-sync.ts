@@ -18,6 +18,7 @@ interface BisonReplyItem {
   folder: string;
   subject: string | null;
   text_body: string | null;
+  html_body: string | null;
   date_received: string;
   type: string;
   tracked_reply?: boolean;
@@ -28,6 +29,8 @@ interface BisonReplyItem {
   from_name: string | null;
   from_email_address: string | null;
   primary_to_email_address: string | null;
+  to_email_addresses?: Array<{ name?: string | null; email_address: string }>;
+  cc_email_addresses?: Array<{ name?: string | null; email_address: string }>;
 }
 
 function extractCleanBody(textBody: string): string {
@@ -262,6 +265,106 @@ export async function runEmailBisonInboxSync(): Promise<void> {
     if (totalBouncesIngested > 0) {
       console.log(
         `[inbox-sync] ingested ${totalBouncesIngested} new bounces across ${allBounceWss.rows.length} workspaces`
+      );
+    }
+
+    // ── SENT FOLDER PASS ───────────────────────────────────────────────
+    // EB stores everything Nicklas sends manually from the EB UI (replies
+    // to inbound, ad-hoc follow-ups). Our sent_emails table only captures
+    // sends that go through /api/send-reply (i.e. the processor or the
+    // dashboard composer). Without this pass the queue looks misleading,
+    // because manually-handled leads keep showing as "no reply sent".
+    //
+    // We only ingest a Sent item when there's a matching inbound `replies`
+    // row (same lead + workspace) older than the send. That filters out
+    // campaign sends and scheduled follow-ups to never-replied leads,
+    // which belong in `emails_sent`, not `sent_emails`.
+    let totalSentIngested = 0;
+    for (const ws of wss.rows) {
+      try {
+        const r = await fetch(
+          `${ws.email_bison_instance_url}/api/replies?per_page=100&type=Sent`,
+          { headers: { Authorization: `Bearer ${ws.email_bison_api_key}` } }
+        );
+        if (!r.ok) {
+          console.error(`[inbox-sync] ${ws.slug} sent fetch failed: ${r.status}`);
+          continue;
+        }
+        const body = await r.json();
+        const items: BisonReplyItem[] = body?.data ?? [];
+
+        for (const item of items) {
+          if (item.folder !== "Sent") continue;
+          const sentAt = new Date(item.date_received);
+          if (sentAt.getTime() < cutoff) continue;
+
+          const recipient = item.to_email_addresses?.[0]?.email_address
+            ?? item.primary_to_email_address
+            ?? null;
+          if (!recipient) continue;
+
+          const stableId = `eb-sent-${ws.slug}-${item.id}`;
+          const dup = await pool.query(
+            "SELECT 1 FROM sent_emails WHERE id = $1",
+            [stableId]
+          );
+          if (dup.rows.length > 0) continue;
+
+          // Find the matching inbound reply: most recent reply from this
+          // lead in this workspace, received before the send. If none
+          // exists, this is a campaign send (skip).
+          const match = await pool.query(
+            `SELECT id, lead_name FROM replies
+             WHERE workspace_slug = $1
+               AND lead_email = $2
+               AND received_at <= $3
+             ORDER BY received_at DESC
+             LIMIT 1`,
+            [ws.slug, recipient, sentAt]
+          );
+          if (match.rows.length === 0) continue;
+
+          const matchedReplyId: string = match.rows[0].id;
+          const leadName: string = match.rows[0].lead_name ?? recipient;
+          const bodyText = item.text_body ?? item.html_body ?? "";
+
+          await pool.query(
+            `INSERT INTO sent_emails
+               (id, reply_id, workspace_slug, lead_email, lead_name,
+                email_type, subject, body, sent_at, sent_by)
+             VALUES ($1, $2, $3, $4, $5, 'reply', $6, $7, $8, 'emailbison-manual')
+             ON CONFLICT (id) DO NOTHING`,
+            [
+              stableId,
+              matchedReplyId,
+              ws.slug,
+              recipient,
+              leadName,
+              item.subject ?? null,
+              bodyText,
+              sentAt,
+            ]
+          );
+
+          // If the matched reply was still sitting in a queue state, flip
+          // it to 'replied' since EB confirms a reply went out.
+          await pool.query(
+            `UPDATE replies SET status = 'replied'
+             WHERE id = $1
+               AND status IN ('new', 'awaiting_approval', 'awaiting_manual')`,
+            [matchedReplyId]
+          );
+
+          totalSentIngested++;
+        }
+      } catch (err: any) {
+        console.error(`[inbox-sync] ${ws.slug} sent pass failed:`, err?.message ?? err);
+      }
+    }
+
+    if (totalSentIngested > 0) {
+      console.log(
+        `[inbox-sync] ingested ${totalSentIngested} new sent_emails rows from EB Sent folders`
       );
     }
   } finally {

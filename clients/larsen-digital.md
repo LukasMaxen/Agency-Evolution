@@ -11,12 +11,54 @@ calendly: https://calendly.com/larsen-digital-marketing/intro
 always_send_calendly: true (LARSEN DIGITAL EXCEPTION: always send Calendly even when lead gives specific day/time. Find natural reason: "easiest to lock something in here", "calendar fills up fast")
 
 reply_rules:
-- Lead shows any interest: send Calendly. Always. No exceptions.
-- Lead gives specific day/time ("next week", "Monday"): STILL send Calendly. Do not route to manual. Find natural reason to send link.
+- Lead shows general interest (no specific timeframe): send Calendly. Use the live slots from LIVE CALENDAR AVAILABILITY block if present.
+- Lead asks for meeting in a specific human-stated timeframe ("next week", "this week", "Monday morning", "Tuesday afternoon"): route to manual. A human picks the actual slot and confirms.
 - Lead asks about fees: "Fully performance-based, no upfront fee or retainer. We earn when you grow."
 - Lead asks for case studies: mention Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days)
 - Lead already booked: confirm in 2 lines max. Flag meeting_booked = true. Stop FU sequence.
-- Lead asks what we do: explain the M&A angle — growth built toward a clean 8-figure exit, not just ads
+- Lead asks what we do: explain the M&A angle, growth built toward a clean 8-figure exit, not just ads
+- Lead asks for more info ("tell me more", "share more details", "send the info"): use more_info_body_template below, but the FIRST LINE must acknowledge what they actually said, do not hard-code "Happy to share more".
+- Lead forwards to a colleague ("@Gilbert have a chat", "looping in [Name]"): use referral_handover_template below. Short reply, CC the original sender, lead with Calendly.
+- Lead agrees with a point in the cold email ("yes you're probably right", "fair point"): use info_body but open with "Glad that resonated" or "Appreciate that", not "Happy to share more".
+
+reply_body_rules: |
+  HARD LIMIT, every reply body must be 90 words or less. 2-3 short paragraphs maximum, no dump.
+
+  TWO DISTINCT REPLY PATTERNS based on what the lead actually asked. Pick the right one.
+
+  PATTERN A, lead asked "why are you interested in MY company" / "what made you reach out":
+  Open by naming what about THEIR brand made them stand out, using a specific EXIT SIGNAL from LEAD COMPANY CONTEXT (consumable LTV, patented IP, own manufacturing, premium margin, strong brand identity, category buyer interest). One short sentence on what we do (we help founders maximize exit value). Slot close. Example shape:
+    "What made [BRAND] stand out was [EXIT SIGNAL], that's the kind of thing that makes brands attract serious buyer interest at exit. We help founders grow the parts of the business that move the needle when you eventually sell. Would [SLOT 1] or [SLOT 2] work?"
+
+  PATTERN B, lead asked "send me more info" / "tell me more" / "share details about how you work":
+  Open with brief acknowledgment + one plain sentence on what we do (we help founders maximize the value of their brand at exit). Tie it to ONE specific EXIT SIGNAL we noticed about their brand. Slot close. Example shape:
+    "Happy to share more. What we do is help founders maximize the value of their brand at exit, both by growing the right parts of the business and by working with our M&A partners on the deal itself. [BRAND] caught our eye because [EXIT SIGNAL with one short reason it matters for exit]. Would [SLOT 1] or [SLOT 2] work?"
+
+  FRAMING RULES across both patterns:
+  - NEVER say "we focus on [category] brands" or "we work with [category]". We do NOT focus on categories. We focus on brands that look exit-worthy.
+  - The reason for reaching out is always ONE specific exit-worthy attribute of THEIR brand, drawn from LEAD COMPANY CONTEXT EXIT SIGNALS.
+  - If no LEAD COMPANY CONTEXT EXIT SIGNALS are available, fall back to acknowledging the lead's message and going straight to a slot proposal without the exit framing.
+  - If LIVE CALENDAR AVAILABILITY has 2 slots, propose them: "Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick call?" + Calendly fallback. If no slots, just send Calendly link.
+
+  Do NOT dump our full value prop (dual-track, $850k/mo case, $1B+ M&A, structuring options). Save that for the call. The reply's job is to get the call booked, not pre-sell.
+
+referral_handover_template: |
+  Hi [NEW_PERSON_FIRST_NAME],
+
+  [ONE LINE: acknowledge the intro from the original sender by first name. e.g. "Thanks for the intro, [ORIGINAL_SENDER_FIRST_NAME] mentioned you'd be the right person to chat with."]
+
+  [SLOT LINE: If LIVE CALENDAR AVAILABILITY has 2 slots, write "Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick call? If not, easiest is to grab a time here: https://calendly.com/larsen-digital-marketing/intro" Otherwise just "Easiest is to grab a time here: https://calendly.com/larsen-digital-marketing/intro"]
+
+  {SENDER_EMAIL_SIGNATURE}
+
+  [Set recipient_email to NEW_PERSON's email, recipient_name to their display name. ALWAYS set cc_emails to [ORIGINAL_SENDER_EMAIL], non-negotiable, the introducer must stay in the loop. Do NOT dump value props, case studies, or the full info pitch. They have been pre-greenlit by the original sender, the goal is just to get the call booked.]
+
+template_personalization_rules:
+- BRAND = the actual correctly formatted brand name (from signature, website, or LinkedIn). Never use the {COMPANY} merge variable. If you cannot determine a clean brand name, write "your brand" instead.
+- CATEGORY = the lead's specific product category in plural form (e.g. apparel, beauty, supplements, footwear, food & beverage, skincare, sportswear, prebiotic supplements). Infer from the lead's company name, signature, or message. Avoid generic terms like DTC or consumer goods.
+- SLOT 1 NATURAL / SLOT 2 NATURAL = the natural-language strings from the LIVE CALENDAR AVAILABILITY block above, e.g. "Monday at 1pm BST" or "Tuesday at 9am EST". Use them exactly as given, do not reformat the date or time.
+- Only colon allowed in the body is the one before the Calendly URL. No other colons anywhere.
+- No em dashes, no en dashes, no semicolons inside the template. Use periods, commas, parentheses.
 
 never:
 - Never guarantee exit valuations
@@ -174,6 +216,52 @@ Happy with current setup, not looking to scale or exit, B2B pivot.
 
 **Calendly rule (Larsen Digital only):**
 Always send the Calendly link — even when the lead mentions specific availability or a preferred time. Never book manually. Instead, find a natural, valid reason to send the link anyway (e.g. "easiest way to lock something in", "calendar fills up fast", "grab whichever slot works on your end"). The excuse must feel genuine, not forced. If the lead says yes/interested/happy to chat, always close with the Calendly link.
+
+---
+
+## Reply Templates
+
+### More Info Response (lead asks "tell me more" / "send more info")
+
+Use when a lead replies positively to the cold email and asks for more details, more info, a deck, or how we work. Designed for DTC founders on large digital campaigns. Always personalize NAME and BRAND before sending. Pull two live Calendly slots in the lead's timezone before send (manual lookup until per-client Calendly tokens are wired, see "Open Workflow Items" below).
+
+Subject (when threading is broken, otherwise reply in-thread):
+Re, more on how we work
+
+Body:
+
+Hi NAME,
+
+Happy to share more.
+
+We run a model built around one outcome, maximizing the value of your brand when you eventually exit. Traditional advisors package the numbers you already have. We step in earlier and actively shape the numbers you'll bring into the transaction to increase the enterprise value.
+
+We take over multi-channel growth and retention. For context on velocity, last year we took 2 brands past 8 figure run rates. One went from $0 to $850k/mo in 4 months, a global brand you would recognize instantly. Our M&A co-advisors have closed $1B+ in consumer transactions, giving us a clear read on what strategic and PE buyers pay a premium for and how to position your brand for the best possible exit.
+
+If this aligns with your goals for [BRAND], let's grab 15 minutes to map the current EV multiple range for [CATEGORY] brands, the main operational levers that will move your valuation most over the next couple of years, and the deal structures that best fit your personal goals. Whether exiting is on the immediate horizon or not, you would leave with a clearer read on your valuation and exit options.
+
+Would [DAY at TIME, their TZ] or [DAY at TIME, their TZ] work? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro
+
+Looking forward to connecting,
+
+Nicklas Larsen
+Founder, Larsen Digital
+
+---
+
+**Personalization rules for this template:**
+- NAME = lead first name from signature or LinkedIn
+- BRAND = the actual, correctly formatted brand name (from email signature, website, or LinkedIn). Never use the {COMPANY} merge variable
+- CATEGORY = the lead's actual product category, plural (e.g. "apparel", "beauty", "supplements", "footwear", "home & living", "food & beverage", "skincare", "sportswear"). Infer from the brand's website, product line, or LinkedIn industry. Avoid generic terms like "DTC" or "consumer", be specific to what they sell
+- Two time slot placeholders = pulled live from Nicklas's Calendly, converted into the lead's timezone. Pick one mid-morning and one early-afternoon slot in their TZ for best conversion
+- Lead's timezone = inferred from country/city in signature, LinkedIn location, or email domain. If unknown, default to UK time and note it in the line (e.g. "10am UK")
+- Keep the Calendly link as the fallback even when proposing times
+
+**Open workflow items (unblock live slot pulling):**
+- Nicklas to generate a Calendly Personal Access Token from his Larsen Digital account (Integrations → API & Webhooks → Personal Access Tokens)
+- Add token to `.env.local` as `CALENDLY_TOKEN_LARSEN_DIGITAL`
+- Refactor `lib/calendly.ts` + `app/api/calendly/slots/route.ts` to support per-client tokens (lookup keyed by client slug, fallback to global token)
+- Same pattern will apply to other clients once they each provide their own Calendly token
 
 ---
 

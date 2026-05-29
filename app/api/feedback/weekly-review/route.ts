@@ -44,7 +44,7 @@ interface ReviewSummary {
     title: string;
     examples_count: number;
     proposed_rule_change: string;
-    target_file: "CONTEXT_Replies.md" | "CONTEXT_FollowUps.md" | "client file" | "skill";
+    target_file: string;
     confidence: "high" | "medium" | "low";
   }[];
   one_off_notes: string[];
@@ -96,20 +96,27 @@ interface WeeklyReviewResult {
 
 // Exported so the in-process scheduler (instrumentation.ts) can call this
 // directly without going through HTTP. `dedupeWindow=true` skips the run if
-// a weekly_reviews row was inserted within the last 6 days.
+// a weekly_reviews row was inserted within the last 23 hours.
+// TEMPORARY (set 2026-05-28): 23h dedupe + 24h lookback (was 6 days dedupe +
+// 7 days lookback) to give Lukas a daily review of the previous 24h of
+// replies and feedback while we validate the new Larsen rules. Revert to
+// 6 days dedupe + 7 days lookback (sevenDaysAgo) once the cadence catches
+// what we want.
 export async function runWeeklyFeedbackReviewOnce(opts: { dedupeWindow?: boolean } = {}): Promise<WeeklyReviewResult> {
   if (opts.dedupeWindow) {
     const last = await pool.query(
       `SELECT created_at FROM weekly_reviews ORDER BY created_at DESC LIMIT 1`
     );
     const lastAt = last.rows[0]?.created_at as Date | undefined;
-    if (lastAt && Date.now() - new Date(lastAt).getTime() < 6 * 24 * 60 * 60 * 1000) {
-      return { ok: true, skipped: "ran within last 6 days" };
+    if (lastAt && Date.now() - new Date(lastAt).getTime() < 23 * 60 * 60 * 1000) {
+      return { ok: true, skipped: "ran within last 23 hours" };
     }
   }
 
-  // Aggregate stats for the past 7 days across both draft types.
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  // Aggregate stats for the past 24 hours across both draft types.
+  // (Variable name kept as `sevenDaysAgo` to minimise diff; the value is now
+  // 24h. Restore to 7 days when reverting to weekly cadence.)
+  const sevenDaysAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const replyStats = await pool.query<DraftStats>(`
     SELECT
@@ -191,7 +198,7 @@ Output strictly a single JSON object, no preamble, no fences. Shape:
       "title": "short label, eg 'Booking format on soft-no replies'",
       "examples_count": 2,
       "proposed_rule_change": "exact text to add or modify in the target file. Include the section heading the change goes under. Be specific enough that someone could paste it directly. Limit to 80 words.",
-      "target_file": "CONTEXT_Replies.md" | "CONTEXT_FollowUps.md" | "client file" | "skill",
+      "target_file": "one of: CONTEXT_Replies.md, CONTEXT_FollowUps.md, SKILL_Reply-Management.md, SKILL_FollowUps.md, clients/<workspace-slug>.md (for per-client rules), prompts/extras/<workspace-slug>.md (for per-workspace processor system-prompt learnings)",
       "confidence": "high" | "medium" | "low"
     }
   ],
@@ -208,6 +215,15 @@ Guidelines:
 - Keep proposed rules consistent with existing rules in the context files (provided below).
 - If the team's feedback contradicts an existing rule, flag it explicitly and let humans decide.
 - Output 0 to 5 patterns. Quality over quantity.
+
+Target file selection:
+- Generic reply tone or formatting across all clients → CONTEXT_Replies.md
+- Generic follow-up rules across all clients → CONTEXT_FollowUps.md
+- Reply skill/workflow change → SKILL_Reply-Management.md
+- FU skill/workflow change → SKILL_FollowUps.md
+- Rule specific to ONE client (e.g. "Larsen Digital should always do X") → clients/<workspace-slug>.md
+- Processor-level instruction specific to ONE workspace (e.g. "when processing Larsen Digital replies, always do Y") → prompts/extras/<workspace-slug>.md
+- Prefer client files for content/copy rules. Prefer extras files for processor behavior/routing rules.
 
 === EXISTING CONTEXT_Replies.md ===
 ${replyContext}

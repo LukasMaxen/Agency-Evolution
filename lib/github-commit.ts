@@ -25,7 +25,7 @@ interface FileResponse {
  */
 export async function readFileFromGitHub(filePath: string): Promise<{
   content: string;
-  sha: string;
+  sha: string | null;
 } | null> {
   const token = process.env.GITHUB_TOKEN;
   const repo = process.env.GITHUB_REPO ?? DEFAULT_REPO;
@@ -42,6 +42,11 @@ export async function readFileFromGitHub(filePath: string): Promise<{
       "X-GitHub-Api-Version": "2022-11-28",
     },
   });
+  if (response.status === 404) {
+    // File does not exist yet. Treat as empty so the apply flow can create it
+    // on commit (commitFileToGitHub accepts sha=null for new files).
+    return { content: "", sha: null };
+  }
   if (!response.ok) {
     console.error("[github-commit] readFile failed:", response.status, await response.text());
     return null;
@@ -65,7 +70,7 @@ export async function commitFileToGitHub(
   filePath: string,
   newContent: string,
   commitMessage: string,
-  expectedSha: string
+  expectedSha: string | null
 ): Promise<string | null> {
   const token = process.env.GITHUB_TOKEN;
   const repo = process.env.GITHUB_REPO ?? DEFAULT_REPO;
@@ -75,6 +80,14 @@ export async function commitFileToGitHub(
   }
 
   const url = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(filePath)}`;
+  const body: Record<string, unknown> = {
+    message: commitMessage,
+    content: Buffer.from(newContent, "utf-8").toString("base64"),
+    branch: DEFAULT_BRANCH,
+  };
+  // Omit sha when creating a new file. GitHub Contents API treats this as a create.
+  if (expectedSha) body.sha = expectedSha;
+
   const response = await fetch(url, {
     method: "PUT",
     headers: {
@@ -83,12 +96,7 @@ export async function commitFileToGitHub(
       "Content-Type": "application/json",
       "X-GitHub-Api-Version": "2022-11-28",
     },
-    body: JSON.stringify({
-      message: commitMessage,
-      content: Buffer.from(newContent, "utf-8").toString("base64"),
-      sha: expectedSha,
-      branch: DEFAULT_BRANCH,
-    }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     console.error("[github-commit] commitFile failed:", response.status, await response.text());
