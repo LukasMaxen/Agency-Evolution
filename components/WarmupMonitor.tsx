@@ -211,27 +211,44 @@ function SenderTable({
       action === "enable_warmup"  ? "enable_warmup" :
       action === "attach_to_all"  ? "attach_to_all" :
                                     "remove_and_warmup";
-    let ok = 0;
-    let fail = 0;
-    for (const s of targets) {
-      try {
-        const res = await fetch("/api/account-monitor/action", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sender_email: s.sender_email,
-            workspace_slug: s.workspace_slug,
-            sender_id: s.eb_sender_id,
-            action: senderAction,
-          }),
-        });
-        const j = await res.json();
-        if (res.ok && j.ok && (j.failed ?? 0) === 0) ok++; else fail++;
-      } catch {
-        fail++;
-      }
+    const senderIds = targets
+      .map(s => s.eb_sender_id)
+      .filter((n): n is number => typeof n === "number");
+    if (senderIds.length === 0) {
+      onActionDone(`No EB sender IDs found for ${domain}.`, "error");
+      setDomainAction(prev => ({ ...prev, [domain]: null }));
+      return;
     }
-    onActionDone(`${domain}: ${ok} succeeded, ${fail} failed.`, fail > 0 ? "error" : "success");
+    // Single atomic batch call: the new domain-batch endpoint pauses every
+    // affected campaign once, removes all senders per campaign in one EB
+    // call, waits once, resumes once. Then it verifies every sender ended
+    // at attached_count = 0 and retries any straggler. This is what
+    // prevents the "half-paused domain" state we hit on gnmotioninfo.com.
+    try {
+      const res = await fetch("/api/account-monitor/domain-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspace_slug: targets[0].workspace_slug,
+          sender_ids:     senderIds,
+          action:         senderAction,
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        onActionDone(j.error ?? "Batch failed", "error");
+      } else if (!j.ok) {
+        const stragglerNote = j.stragglers ? ` · ${j.stragglers} sender(s) still attached after retry` : "";
+        onActionDone(`${domain}: partial${stragglerNote}. Check EmailBison.`, "error");
+      } else {
+        const note = action === "pause_outbound"
+          ? `${senderIds.length} sender(s) moved to warming, ${j.campaigns ?? 0} campaign(s) touched.`
+          : `${senderIds.length} sender(s) processed.`;
+        onActionDone(`${domain}: ${note}`, "success");
+      }
+    } catch (err: any) {
+      onActionDone(err.message ?? "Network error", "error");
+    }
     setDomainAction(prev => ({ ...prev, [domain]: null }));
     setTimeout(() => refresh(), 1500);
   }

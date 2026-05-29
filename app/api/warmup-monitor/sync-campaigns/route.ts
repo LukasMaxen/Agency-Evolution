@@ -61,13 +61,26 @@ export async function POST() {
       // ones we actually want in outbound: connected, warmup enabled,
       // already attached to >= 1 campaign. Warming-only and disconnected
       // are excluded.
+      //
+      // GUARD: skip any domain where at least one peer sender is currently
+      // in warming (warming_since IS NOT NULL). Reasoning: the operator
+      // deliberately moved that domain into warmup via Pause-outbound;
+      // re-attaching the active siblings would undo their intent. This is
+      // what caused the gnmotioninfo.com regression — Sync re-attached
+      // sender 1318 right after the user paused the other four.
       const sendersRes = await pool.query(
-        `SELECT eb_sender_id FROM sender_accounts
+        `WITH paused_domains AS (
+           SELECT DISTINCT split_part(email, '@', 2) AS domain
+             FROM sender_accounts
+            WHERE workspace_slug = $1 AND warming_since IS NOT NULL
+         )
+         SELECT eb_sender_id FROM sender_accounts s
           WHERE workspace_slug = $1
             AND eb_sender_id IS NOT NULL
             AND status = 'Connected'
             AND warmup_enabled = TRUE
-            AND COALESCE(attached_campaigns_count, 0) > 0`,
+            AND COALESCE(attached_campaigns_count, 0) > 0
+            AND split_part(email, '@', 2) NOT IN (SELECT domain FROM paused_domains)`,
         [slug]
       );
       const senderIds: number[] = sendersRes.rows.map(r => Number(r.eb_sender_id)).filter(n => Number.isFinite(n));
