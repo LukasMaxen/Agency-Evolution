@@ -104,32 +104,40 @@ export async function GET() {
     // for healthy mailboxes, so anything below 98 stands out.
     const LOW_HEALTH_THRESHOLD = 98;
 
-    const sendersWithScore = senders.filter(s => typeof s.warmup_score === "number");
+    // warmup_score = 0 means "no warmup activity yet" in EB — the sender
+    // was added but no warmup emails have been sent to or from it. Treat
+    // that as no-data so it does not drag down domain or workspace
+    // averages and falsely flag a healthy domain as low-health.
+    const hasScore = (s: SenderRow) => typeof s.warmup_score === "number" && (s.warmup_score as number) > 0;
+    const sendersWithScore = senders.filter(hasScore);
     const avgScore = sendersWithScore.length > 0
       ? Math.round(sendersWithScore.reduce((sum, s) => sum + (s.warmup_score as number), 0) / sendersWithScore.length * 10) / 10
       : null;
 
-    // Domain-level aggregation. A domain is "unhealthy" only when the avg
-    // of its connected, scored senders is below the threshold. The flag
-    // then propagates: all senders on the unhealthy domain are counted as
-    // low health, since the planned action (Pause outbound) operates on
-    // the whole domain.
+    // Domain-level aggregation. A domain is "low-health" only when:
+    //   1) at least one sender on the domain is currently active (in an
+    //      outbound campaign — attached_campaigns_count > 0), AND
+    //   2) the avg of its connected, scored senders is below threshold.
+    // A domain that has been fully moved to warming-only is being
+    // remediated already, so we do not double-flag it.
     const sendersByDomain: Record<string, SenderRow[]> = {};
     for (const s of senders) {
       const dom = s.sender_email.split("@")[1] ?? "unknown";
       (sendersByDomain[dom] ??= []).push(s);
     }
-    type DomainAgg = { workspace_slug: string; domain: string; avgScore: number | null; lowHealth: boolean; senders: number };
+    type DomainAgg = { workspace_slug: string; domain: string; avgScore: number | null; lowHealth: boolean; hasActive: boolean; senders: number };
     const domainAggs: DomainAgg[] = Object.entries(sendersByDomain).map(([dom, list]) => {
-      const reachableScored = list.filter(s => s.conn_status !== "Not connected" && typeof s.warmup_score === "number");
+      const reachableScored = list.filter(s => s.conn_status !== "Not connected" && hasScore(s));
       const avg = reachableScored.length > 0
         ? Math.round(reachableScored.reduce((a, s) => a + (s.warmup_score as number), 0) / reachableScored.length * 10) / 10
         : null;
+      const hasActive = list.some(s => (s.attached_campaigns_count ?? 0) > 0);
       return {
         workspace_slug: list[0].workspace_slug,
         domain:         dom,
         avgScore:       avg,
-        lowHealth:      avg !== null && avg < LOW_HEALTH_THRESHOLD,
+        lowHealth:      hasActive && avg !== null && avg < LOW_HEALTH_THRESHOLD,
+        hasActive,
         senders:        list.length,
       };
     });
@@ -155,6 +163,7 @@ export async function GET() {
     type WsAgg = {
       slug:              string;
       total:             number;
+      active:            number;
       notWarming:        number;
       warmingOnly:       number;
       readyToRejoin:     number;
@@ -165,16 +174,17 @@ export async function GET() {
     const wsScoreSums: Record<string, { sum: number; count: number }> = {};
     for (const s of senders) {
       const w = wsMap[s.workspace_slug] ?? (wsMap[s.workspace_slug] = {
-        slug: s.workspace_slug, total: 0, notWarming: 0, warmingOnly: 0,
+        slug: s.workspace_slug, total: 0, active: 0, notWarming: 0, warmingOnly: 0,
         readyToRejoin: 0, lowHealthDomains: 0, warmupHealthAvg: null,
       });
       w.total++;
+      if ((s.attached_campaigns_count ?? 0) > 0) w.active++;
       if (!s.warmup_enabled)         w.notWarming++;
       if (isWarmingOnly(s))          w.warmingOnly++;
       if (s.ready_to_rejoin)         w.readyToRejoin++;
-      if (typeof s.warmup_score === "number") {
+      if (hasScore(s)) {
         const slot = wsScoreSums[s.workspace_slug] ?? (wsScoreSums[s.workspace_slug] = { sum: 0, count: 0 });
-        slot.sum += s.warmup_score;
+        slot.sum += s.warmup_score as number;
         slot.count++;
       }
     }

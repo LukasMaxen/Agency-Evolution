@@ -33,6 +33,7 @@ interface Summary {
 interface WsAgg {
   slug:             string;
   total:            number;
+  active:           number;
   notWarming:       number;
   warmingOnly:      number;
   readyToRejoin:    number;
@@ -125,11 +126,19 @@ function WorkspaceCard({ w, onClick }: { w: WsAgg; onClick: () => void }) {
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        {/*
+          The four key metrics. "Active" is the load-bearing one for daily
+          send capacity (~20 emails per sender per day), so it sits in the
+          top row alongside the total. Warming-only counts the workforce
+          currently being remediated. Warmup health is the workspace avg
+          across senders that have any warmup activity (zero-score senders
+          are excluded as no-data).
+        */}
         {[
-          { label: "Total senders",       value: w.total,                                                    color: undefined },
-          { label: "Not warming",         value: w.notWarming,                                               color: w.notWarming   > 0 ? "#B91C1C" : undefined },
-          { label: "Warmup health",       value: w.warmupHealthAvg !== null ? `${w.warmupHealthAvg}%` : "—", color: w.warmupHealthAvg === null ? "#9ca3af" : w.warmupHealthAvg >= 98 ? "#15803D" : w.warmupHealthAvg >= 90 ? "#D97706" : "#B91C1C" },
-          { label: "Low-health domains",  value: w.lowHealthDomains,                                         color: w.lowHealthDomains > 0 ? "#B91C1C" : undefined },
+          { label: "Total senders",  value: w.total,                                                    color: undefined },
+          { label: "Active",         value: w.active,                                                   color: undefined },
+          { label: "Warming only",   value: w.warmingOnly,                                              color: w.warmingOnly > 0 ? "#D97706" : undefined },
+          { label: "Warmup health",  value: w.warmupHealthAvg !== null ? `${w.warmupHealthAvg}%` : "—", color: w.warmupHealthAvg === null ? "#9ca3af" : w.warmupHealthAvg >= 98 ? "#15803D" : w.warmupHealthAvg >= 90 ? "#D97706" : "#B91C1C" },
         ].map(s => (
           <div key={s.label}>
             <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{s.label}</p>
@@ -144,7 +153,7 @@ function WorkspaceCard({ w, onClick }: { w: WsAgg; onClick: () => void }) {
 
 // ── Sender table for a single workspace (Level 2) ────────────────────────────
 
-type Tab = "all" | "warming_only";
+type Tab = "active" | "warming_only";
 
 function SenderTable({
   ws, senders, onBack, onActionDone, refresh,
@@ -157,7 +166,7 @@ function SenderTable({
 }) {
   const workspaces = useWorkspaces();
   const name = resolveWsName(workspaces, ws.slug);
-  const [tab, setTab] = useState<Tab>("all");
+  const [tab, setTab] = useState<Tab>("active");
   const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "remove_and_warmup" | "enable_warmup" | null>>({});
   const [domainAction, setDomainAction] = useState<Record<string, "enable_warmup" | "pause_outbound" | "attach_to_all" | null>>({});
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
@@ -270,10 +279,15 @@ function SenderTable({
   // otherwise-99% domain is left alone because the domain itself is healthy
   // and the outlier recovers passively.
 
+  // Active = currently in at least one outbound campaign (sending capacity).
+  // Warming only = no active campaign slots (being warmed up or paused).
+  // Disconnected senders fall into whichever bucket matches their last-known
+  // attached_campaigns_count, with a Reconnect link surfaced on the row.
   const filtered = senders
     .filter(s => {
       switch (tab) {
-        case "warming_only": return isWarmingOnly(s);
+        case "warming_only": return (s.attached_campaigns_count ?? 0) === 0;
+        case "active":       return (s.attached_campaigns_count ?? 0) > 0;
         default:             return true;
       }
     });
@@ -309,16 +323,23 @@ function SenderTable({
   //   2  Domain avg below 98%      (red — Pause-outbound batch)
   //   3  Healthy / other           (green or amber, bottom)
   const domainGroups: DomainGroup[] = Object.entries(domainMap).map(([dom, list]) => {
-    // Health score only computed over connected senders. A disconnected
-    // mailbox's score is meaningless (or stale from before the disconnect).
+    // Health score only computed over connected senders with real warmup
+    // activity. Disconnected senders are excluded (score is stale or
+    // meaningless). Senders with score = 0 are excluded too: in EB that
+    // means "no warmup emails yet", not "0% deliverability". Including
+    // them as zeros would mis-flag healthy domains as low-health.
     const reachable = list.filter(s => !isDisconnected(s));
-    const scored = reachable.filter(s => typeof s.warmup_score === "number");
+    const scored = reachable.filter(s => typeof s.warmup_score === "number" && (s.warmup_score as number) > 0);
     const avg = scored.length > 0
       ? Math.round(scored.reduce((a, s) => a + (s.warmup_score as number), 0) / scored.length * 10) / 10
       : null;
     const disconnected = list.filter(isDisconnected).length;
     const notWarming   = list.filter(isNotWarming).length;
-    const lowHealth    = avg !== null && avg < 98;
+    // Low-health is only actionable when the domain has at least one active
+    // sender. A fully warming-only domain is already being remediated and
+    // should not be flagged again (the workspace card would never go green).
+    const hasActive    = list.some(s => (s.attached_campaigns_count ?? 0) > 0);
+    const lowHealth    = hasActive && avg !== null && avg < 98;
     const worstSev     = disconnected > 0 ? 0 : notWarming > 0 ? 1 : lowHealth ? 2 : 3;
     return {
       domain:            dom,
@@ -366,7 +387,7 @@ function SenderTable({
 
       <div style={{ display: "flex", gap: 4, marginBottom: 10, borderBottom: "0.5px solid #ede9e3" }}>
         {([
-          { key: "all",          label: "All accounts", count: senders.length },
+          { key: "active",       label: "Active",       count: ws.active },
           { key: "warming_only", label: "Warming only", count: ws.warmingOnly },
         ] as const).map(t => {
           const selected = tab === t.key;
@@ -616,13 +637,15 @@ function SenderTable({
                         </td>
                         <td style={{
                           padding: "8px 10px", textAlign: "right",
-                          color: s.warmup_score === null ? "#9ca3af"
+                          // Score 0 means "no warmup data yet" in EB — shown
+                          // as "—" so it does not look like a 0% deliverability.
+                          color: s.warmup_score === null || s.warmup_score === 0 ? "#9ca3af"
                                : s.warmup_score >= 98   ? "#15803D"
                                : s.warmup_score >= 90   ? "#D97706"
                                                         : "#B91C1C",
                           fontWeight: 500,
                         }}>
-                          {s.warmup_score === null ? "—" : `${Math.round(s.warmup_score)}%`}
+                          {s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
                         </td>
                         <td style={{ padding: "8px 10px", textAlign: "center" }}>
                           {disconnected ? (() => {
