@@ -159,31 +159,43 @@ function SenderTable({
   const name = resolveWsName(workspaces, ws.slug);
   const [tab, setTab] = useState<Tab>("all");
   const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "remove_and_warmup" | "enable_warmup" | null>>({});
-  const [domainAction, setDomainAction] = useState<Record<string, "enable_warmup" | "pause_outbound" | null>>({});
+  const [domainAction, setDomainAction] = useState<Record<string, "enable_warmup" | "pause_outbound" | "attach_to_all" | null>>({});
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
 
   // Domain-level batch: walk through each affected sender sequentially.
   // Sequential is intentional — pausing many campaigns in parallel would
   // be confusing for operators and may trip EB rate limits.
-  async function runDomainBatch(domain: string, senders: Sender[], action: "enable_warmup" | "pause_outbound") {
+  async function runDomainBatch(domain: string, senders: Sender[], action: "enable_warmup" | "pause_outbound" | "attach_to_all") {
     setDomainAction(prev => ({ ...prev, [domain]: action }));
     // Disconnected senders are never valid targets — the action would
     // succeed at the API level but cannot actually run on a mailbox EB
-    // can't reach. Skip them. For pause_outbound we target every reachable
-    // sender currently attached to a campaign: the domain action is
-    // triggered by the *domain* avg falling under threshold, not by
-    // individual scores, so every account on the unhealthy domain gets
-    // pulled into warmup together.
+    // can't reach. Skip them.
+    //
+    // Target selection per action:
+    //   enable_warmup   senders whose warmup is off (turn it on)
+    //   pause_outbound  warming senders currently attached (pull into warmup)
+    //                   triggered by domain avg < 98%, not individual scores
+    //   attach_to_all   warming-only senders (no active campaign slots)
+    //                   reinstate them into the workspace's live campaigns
     const reachable = senders.filter(s => s.conn_status !== "Not connected");
-    const targets = action === "enable_warmup"
-      ? reachable.filter(s => !s.warmup_enabled)
-      : reachable.filter(s => s.warmup_enabled && (s.attached_campaigns_count ?? 0) > 0);
+    const targets =
+      action === "enable_warmup"   ? reachable.filter(s => !s.warmup_enabled) :
+      action === "attach_to_all"   ? reachable.filter(s => (s.attached_campaigns_count ?? 0) === 0) :
+                                     reachable.filter(s => s.warmup_enabled && (s.attached_campaigns_count ?? 0) > 0);
     if (targets.length === 0) {
       onActionDone(`No senders in ${domain} match this action.`, "error");
       setDomainAction(prev => ({ ...prev, [domain]: null }));
       return;
     }
-    onActionDone(`${action === "enable_warmup" ? "Enabling warmup" : "Pausing outbound"} on ${targets.length} sender(s) in ${domain}…`, "success");
+    const verb =
+      action === "enable_warmup"  ? "Enabling warmup" :
+      action === "attach_to_all"  ? "Adding to campaigns" :
+                                    "Pausing outbound";
+    onActionDone(`${verb} on ${targets.length} sender(s) in ${domain}…`, "success");
+    const senderAction =
+      action === "enable_warmup"  ? "enable_warmup" :
+      action === "attach_to_all"  ? "attach_to_all" :
+                                    "remove_and_warmup";
     let ok = 0;
     let fail = 0;
     for (const s of targets) {
@@ -195,7 +207,7 @@ function SenderTable({
             sender_email: s.sender_email,
             workspace_slug: s.workspace_slug,
             sender_id: s.eb_sender_id,
-            action: action === "enable_warmup" ? "enable_warmup" : "remove_and_warmup",
+            action: senderAction,
           }),
         });
         const j = await res.json();
@@ -531,6 +543,28 @@ function SenderTable({
                             </button>
                           );
                         }
+                        // Warming-only senders can be reinstated into outbound
+                        // campaigns regardless of the 14-day timer — the timer
+                        // is a recommendation, not a hard gate. Once the domain
+                        // is healthy and the operator wants the volume back,
+                        // they can flip every warming-only sender at once.
+                        const warmingOnlyCount = d.senders.filter(s => !isDisconnected(s) && (s.attached_campaigns_count ?? 0) === 0).length;
+                        if (warmingOnlyCount > 0) {
+                          return (
+                            <button
+                              onClick={() => runDomainBatch(d.domain, d.senders, "attach_to_all")}
+                              disabled={!!acting}
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                background: "#EAF3DE", color: "#15803D", border: "0.5px solid #C0DD97",
+                                cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                              }}>
+                              {acting === "attach_to_all" ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
+                              Add to campaigns ({warmingOnlyCount})
+                            </button>
+                          );
+                        }
                         return <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>;
                       })()}
                     </td>
@@ -622,7 +656,7 @@ function SenderTable({
                               {acting === "enable_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
                               Enable warmup
                             </button>
-                          ) : s.ready_to_rejoin ? (
+                          ) : warmingOnly ? (
                             <button
                               onClick={() => runSenderAction(s, "attach_to_all")}
                               disabled={acting === "attach_to_all"}
