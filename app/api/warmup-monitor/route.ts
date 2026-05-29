@@ -54,7 +54,8 @@ export async function GET() {
          provider_type
        FROM sender_accounts
       WHERE workspace_slug = ANY($1::text[])
-        AND (provider_type IS NULL OR provider_type !~* '(microsoft|office365|outlook)')
+        AND provider_type IS NOT NULL
+        AND provider_type !~* '(microsoft|office365|outlook)'
       ORDER BY workspace_slug, email`,
       [activeSlugs]
     );

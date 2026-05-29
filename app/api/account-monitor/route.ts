@@ -145,10 +145,11 @@ export async function GET(req: NextRequest) {
     const sql = `
       WITH active_senders AS (
         -- Outlook (Microsoft) mailboxes are excluded from the deliverability
-        -- dashboard entirely. EB's provider_type values seen so far:
-        --   google_workspace_oauth, microsoft_oauth
-        -- Senders with NULL provider_type are kept on the safe side until
-        -- the next sync populates them.
+        -- dashboard entirely. Senders with NULL provider_type are also
+        -- excluded: in EB that means "just added, not yet classified" and
+        -- in practice these are short-lived test rows or rollback artifacts
+        -- that pollute the dashboard with hundreds of phantom senders.
+        -- EB provider_type values seen: google_workspace_oauth, microsoft_oauth.
         SELECT
           email                    AS sender_email,
           workspace_slug,
@@ -157,7 +158,8 @@ export async function GET(req: NextRequest) {
           warming_since,
           attached_campaigns_count
         FROM sender_accounts
-        WHERE (provider_type IS NULL OR provider_type !~* '(microsoft|office365|outlook)')
+        WHERE provider_type IS NOT NULL
+          AND provider_type !~* '(microsoft|office365|outlook)'
         ${workspace !== "all" ? "AND workspace_slug = $2" : ""}
       ),
       sent_counts AS (
