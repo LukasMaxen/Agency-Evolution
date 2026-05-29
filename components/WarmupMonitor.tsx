@@ -122,12 +122,20 @@ function WorkspaceCard({ w, onClick }: { w: WsAgg; onClick: () => void }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 6, flexWrap: "wrap" }}>
         <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{name}</p>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {w.disconnected     > 0 && <PillBadge text={`${w.disconnected} disconnected`}                                                  tone="indigo" />}
-          {w.notWarming       > 0 && <PillBadge text={`${w.notWarming} not warming`}                                                     tone="red" />}
-          {w.lowHealthDomains > 0 && <PillBadge text={`${w.lowHealthDomains} low-health ${w.lowHealthDomains === 1 ? "domain" : "domains"}`} tone="red" />}
-          {w.readyToRejoin    > 0 && <PillBadge text={`${w.readyToRejoin} ready`}                                                          tone="green" />}
-          {w.disconnected === 0 && w.notWarming === 0 && w.lowHealthDomains === 0 && (
-            <PillBadge text="All healthy" tone="green" />
+          {/* Disconnected is exclusive: when any sender is unreachable,
+              warmup/health/ready states are stale or unactionable so we
+              hide every other badge and just surface the Reconnect signal. */}
+          {w.disconnected > 0 ? (
+            <PillBadge text={`${w.disconnected} disconnected`} tone="indigo" />
+          ) : (
+            <>
+              {w.notWarming       > 0 && <PillBadge text={`${w.notWarming} not warming`}                                                     tone="red" />}
+              {w.lowHealthDomains > 0 && <PillBadge text={`${w.lowHealthDomains} low-health ${w.lowHealthDomains === 1 ? "domain" : "domains"}`} tone="red" />}
+              {w.readyToRejoin    > 0 && <PillBadge text={`${w.readyToRejoin} ready`}                                                          tone="green" />}
+              {w.notWarming === 0 && w.lowHealthDomains === 0 && (
+                <PillBadge text="All healthy" tone="green" />
+              )}
+            </>
           )}
         </div>
       </div>
@@ -511,12 +519,14 @@ function SenderTable({
                               ? <PillBadge text={`In ${d.attachedMin} ${d.attachedMin === 1 ? "campaign" : "campaigns"}`} tone="green" />
                               : <PillBadge text={`In ${d.attachedMin}-${d.attachedMax} campaigns`} tone="amber" />}
                     </td>
-                    {/* Warmup column: hidden once anyone in the domain is
-                        disconnected. The warmup_enabled flag is unreliable
-                        on disconnected mailboxes — EB will accept the toggle
-                        but warmup cannot actually run. */}
+                    {/* Warmup column: hidden whenever ANY sender in the
+                        domain is disconnected. The warmup_enabled flag and
+                        score on a disconnected mailbox are stale/unactionable,
+                        and "20 disconnected · 13 not warming" double-counts
+                        the same senders confusingly. Disconnected is the
+                        only flag we surface until the operator reconnects. */}
                     <td style={{ padding: "10px 10px" }}>
-                      {d.fullyDisconnected
+                      {d.disconnected > 0
                         ? <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>
                         : d.notWarming > 0
                           ? <PillBadge text={`${d.notWarming} not warming`} tone="red" />
@@ -526,14 +536,14 @@ function SenderTable({
                     </td>
                     <td style={{
                       padding: "10px 10px", textAlign: "right",
-                      color: d.fullyDisconnected ? "#9ca3af"
-                           : d.avgScore === null  ? "#9ca3af"
-                           : d.avgScore >= 98     ? "#15803D"
-                           : d.avgScore >= 90     ? "#D97706"
-                                                  : "#B91C1C",
+                      color: d.disconnected > 0  ? "#9ca3af"
+                           : d.avgScore === null ? "#9ca3af"
+                           : d.avgScore >= 98    ? "#15803D"
+                           : d.avgScore >= 90    ? "#D97706"
+                                                 : "#B91C1C",
                       fontWeight: 500,
                     }}>
-                      {d.fullyDisconnected || d.avgScore === null ? "—" : `${d.avgScore}%`}
+                      {d.disconnected > 0 || d.avgScore === null ? "—" : `${d.avgScore}%`}
                     </td>
                     <td
                       style={{ padding: "10px 10px", textAlign: "center" }}
