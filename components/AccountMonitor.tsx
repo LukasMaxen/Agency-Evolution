@@ -1112,6 +1112,25 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                         const eligible = sortedAccounts.filter(a => !removedSet.has(a.sender_email));
                         const isRed = dom.status === "burned" || dom.status === "critical_low_replies";
                         const isAmber = dom.status === "list_issue";
+                        if (dom.status === "disconnected") {
+                          // Reconnect happens in EB's UI (OAuth re-auth flow).
+                          // Deep-link to the workspace's Sender Emails page.
+                          const wsInfo = findWorkspace(workspaces, ws.slug);
+                          const reconnectUrl = wsInfo.instanceUrl ? `${wsInfo.instanceUrl}/sender-emails` : null;
+                          return reconnectUrl ? (
+                            <a href={reconnectUrl} target="_blank" rel="noopener noreferrer"
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                background: "#EEF2FF", color: "#3730A3", border: "0.5px solid #A5B4FC",
+                                fontFamily: "inherit", textDecoration: "none",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                              }}>
+                              <Wifi size={11} /> Reconnect in EmailBison
+                            </a>
+                          ) : (
+                            <span style={{ color: "#9ca3af", fontSize: 11 }}>Reconnect in EmailBison</span>
+                          );
+                        }
                         if (isRed && eligible.length > 0) {
                           return (
                             <button
@@ -1144,12 +1163,14 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                             </button>
                           );
                         }
+                        // disconnected / burned / critical_low_replies / list_issue
+                        // are already handled with explicit buttons above; the
+                        // remaining cases fall through here as text labels.
                         const label = actionLabel({ status: dom.status, signals: dom.signals });
                         if (!label) return null;
-                        const tone =
-                          dom.status === "disconnected"         ? { bg: "#EEF2FF", color: "#3730A3", border: "#A5B4FC" } :
-                          dom.status === "low_replies"          ? { bg: "#FAEEDA", color: "#D97706", border: "#FAC775" } :
-                                                                  { bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB" };
+                        const tone = dom.status === "low_replies"
+                          ? { bg: "#FAEEDA", color: "#D97706", border: "#FAC775" }
+                          : { bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB" };
                         return (
                           <span style={{
                             display: "inline-block",
@@ -1265,7 +1286,21 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                           </td>
                           <td style={{ padding: "6px 10px", textAlign: "center" }}>
                             <div style={{ display: "flex", gap: 5, justifyContent: "center", flexWrap: "wrap" }}>
-                              {isRemoved ? (
+                              {acc.status === "disconnected" ? (() => {
+                                const wsInfo = findWorkspace(workspaces, ws.slug);
+                                const reconnectUrl = wsInfo.instanceUrl ? `${wsInfo.instanceUrl}/sender-emails` : null;
+                                return reconnectUrl ? (
+                                  <a href={reconnectUrl} target="_blank" rel="noopener noreferrer"
+                                    style={{
+                                      fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                      background: "#EEF2FF", color: "#3730A3", border: "0.5px solid #A5B4FC",
+                                      fontFamily: "inherit", textDecoration: "none",
+                                      display: "inline-flex", alignItems: "center", gap: 5,
+                                    }}>
+                                    <Wifi size={11} /> Reconnect in EmailBison
+                                  </a>
+                                ) : <span style={{ color: "#9ca3af", fontSize: 11 }}>Reconnect in EmailBison</span>;
+                              })() : isRemoved ? (
                                 <ActionButton label="Re-attach" icon={Wifi} onClick={() => { setExpandedEmail(acc.sender_email); setRemovedSet(prev => { const s = new Set(prev); s.delete(acc.sender_email); return s; }); }} loading={false} variant="success" />
                               ) : (acc.status === "burned" || acc.status === "critical_low_replies") ? (
                                 <>

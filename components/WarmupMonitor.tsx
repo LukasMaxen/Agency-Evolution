@@ -239,17 +239,23 @@ function SenderTable({
   // traffic. "Ready for outbound" still requires the manual-pause path so
   // the 14-day clock has a real start.
   const isWarmingOnly  = (s: Sender) => (s.attached_campaigns_count ?? 0) === 0;
-  const isNotWarming   = (s: Sender) => !s.warmup_enabled;
+  const isDisconnected = (s: Sender) => s.conn_status === "Not connected";
+  // Not warming = warmup disabled AND the mailbox is actually reachable.
+  // A disconnected mailbox shows up here as warmup_enabled=false too, but
+  // the fix is reconnecting the mailbox in EB, not flipping warmup back on.
+  const isNotWarming   = (s: Sender) => !s.warmup_enabled && !isDisconnected(s);
   const isLowHealth    = (s: Sender) => s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98;
 
   // Severity bucket for row sort:
-  //   0  Not warming         (red, top — flag + enable warmup)
-  //   1  Low health (<98%)   (red, middle — flag + pause outbound)
-  //   2  Healthy / other     (green or amber, bottom)
+  //   0  Disconnected        (indigo, top — fix in EB before warmup matters)
+  //   1  Not warming         (red — flag + enable warmup)
+  //   2  Low health (<98%)   (red — flag + pause outbound)
+  //   3  Healthy / other     (green or amber, bottom)
   const severity = (s: Sender) =>
-    isNotWarming(s) ? 0 :
-    isLowHealth(s)  ? 1 :
-                      2;
+    isDisconnected(s) ? 0 :
+    isNotWarming(s)   ? 1 :
+    isLowHealth(s)    ? 2 :
+                        3;
 
   const filtered = senders
     .filter(s => {
@@ -481,9 +487,11 @@ function SenderTable({
                   {/* Expanded sender rows */}
                   {isExpanded && d.senders.map(s => {
                     const acting       = actionMap[s.sender_email];
-                    const notWarming   = !s.warmup_enabled;
+                    const disconnected = isDisconnected(s);
+                    const notWarming   = isNotWarming(s);
                     const warmingOnly  = isWarmingOnly(s);
                     const senderBg     =
+                      disconnected                                ? "#EEF2FF" :
                       notWarming                                  ? "#FEF2F2" :
                       tab === "warming_only" && s.ready_to_rejoin ? "#F0FDF4" :
                                                                     "#ffffff";
@@ -493,16 +501,22 @@ function SenderTable({
                           {s.sender_email}
                         </td>
                         <td style={{ padding: "8px 10px" }}>
-                          {warmingOnly
-                            ? (s.ready_to_rejoin
-                                ? <PillBadge text="Ready for outbound" tone="green" />
-                                : <PillBadge text="Warming only"       tone="amber" />)
-                            : <PillBadge text={`In ${s.attached_campaigns_count} ${s.attached_campaigns_count === 1 ? "campaign" : "campaigns"}`} tone="green" />}
+                          {disconnected
+                            ? <PillBadge text="Disconnected" tone="indigo" />
+                            : warmingOnly
+                              ? (s.ready_to_rejoin
+                                  ? <PillBadge text="Ready for outbound" tone="green" />
+                                  : <PillBadge text="Warming only"       tone="amber" />)
+                              : <PillBadge text={`In ${s.attached_campaigns_count} ${s.attached_campaigns_count === 1 ? "campaign" : "campaigns"}`} tone="green" />}
                         </td>
                         <td style={{ padding: "8px 10px" }}>
-                          {notWarming
-                            ? <PillBadge text="Not warming" tone="red" />
-                            : <PillBadge text="Warming"     tone="green" />}
+                          {/* Warmup column: show real state. Disconnected senders show "—"
+                              since EB's warmup flag is meaningless without a live connection. */}
+                          {disconnected
+                            ? <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>
+                            : notWarming
+                              ? <PillBadge text="Not warming" tone="red" />
+                              : <PillBadge text="Warming"     tone="green" />}
                         </td>
                         <td style={{
                           padding: "8px 10px", textAlign: "right",
@@ -515,7 +529,25 @@ function SenderTable({
                           {s.warmup_score === null ? "—" : `${Math.round(s.warmup_score)}%`}
                         </td>
                         <td style={{ padding: "8px 10px", textAlign: "center" }}>
-                          {notWarming ? (
+                          {disconnected ? (() => {
+                            // Disconnected -> deep-link to EB's Sender Emails page
+                            // where the user re-authorizes the mailbox.
+                            const wsInfo = findWorkspace(workspaces, s.workspace_slug);
+                            const reconnectUrl = wsInfo.instanceUrl ? `${wsInfo.instanceUrl}/sender-emails` : null;
+                            return reconnectUrl ? (
+                              <a href={reconnectUrl} target="_blank" rel="noopener noreferrer"
+                                style={{
+                                  fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                  background: "#EEF2FF", color: "#3730A3", border: "0.5px solid #A5B4FC",
+                                  fontFamily: "inherit", textDecoration: "none",
+                                  display: "inline-flex", alignItems: "center", gap: 5,
+                                }}>
+                                Reconnect in EmailBison
+                              </a>
+                            ) : (
+                              <span style={{ color: "#3730A3", fontSize: 11, fontWeight: 500 }}>Reconnect in EB</span>
+                            );
+                          })() : notWarming ? (
                             <button
                               onClick={() => runSenderAction(s, "enable_warmup")}
                               disabled={acting === "enable_warmup"}
