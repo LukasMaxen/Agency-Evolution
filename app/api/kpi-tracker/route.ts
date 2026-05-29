@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { fetchAllWorkspacesMeetingsCount, fetchWorkspaceMeetingsCount } from "@/lib/airtable-meetings";
+import {
+  aggregateWorkspaceSuccess,
+  getWorkspaceSuccess,
+  getSuccessMetricConfig,
+} from "@/lib/airtable-meetings";
 
 // KPI Tracker — replaces the weekly performance Google Sheet.
 // Returns the calendar month split into 5 buckets:
@@ -108,7 +112,7 @@ export async function GET(req: NextRequest) {
     // Workspaces list, drives the dropdown (matches /api/dashboard).
     const wsResult = await pool.query<{ slug: string; name: string }>(`
       SELECT slug, name FROM workspaces
-      WHERE slug NOT IN ('itg-group', 'sonaro-ai', 'sro-consulting')
+      WHERE slug NOT IN ('sro-consulting')
       ORDER BY name ASC
     `);
     const workspaces = wsResult.rows;
@@ -121,7 +125,7 @@ export async function GET(req: NextRequest) {
     const bucketResults: WeekKPIs[] = await Promise.all(buckets.map(async (b) => {
       const args = isAll ? [b.start, b.end] : [b.start, b.end, workspaceParam];
 
-      const [sentRes, replyRes] = await Promise.all([
+      const [sentRes, replyRes, intPerWsRes] = await Promise.all([
         pool.query<{ sent: number }>(`
           SELECT COUNT(*)::int AS sent
           FROM emails_sent
@@ -133,38 +137,48 @@ export async function GET(req: NextRequest) {
                  COUNT(*) FILTER (WHERE interested = TRUE)::int AS interested
           FROM replies
           WHERE received_at BETWEEN $1 AND $2
+            AND tracked_reply = TRUE
           ${wsFilterSql}
+        `, args),
+        pool.query<{ slug: string; n: number }>(`
+          SELECT workspace_slug AS slug,
+                 COUNT(*) FILTER (WHERE interested = TRUE)::int AS n
+          FROM replies
+          WHERE received_at BETWEEN $1 AND $2
+            AND tracked_reply = TRUE
+          ${wsFilterSql}
+          GROUP BY workspace_slug
         `, args),
       ]);
 
-      let meetings = 0;
-      if (apiKey) {
-        try {
-          if (isAll) {
-            const r = await fetchAllWorkspacesMeetingsCount(b.start, b.end, apiKey, activeSlugs);
-            meetings = r.total;
-          } else {
-            const r = await fetchWorkspaceMeetingsCount(workspaceParam, b.start, b.end, apiKey);
-            meetings = r ?? 0;
-          }
-        } catch (err: any) {
-          console.error(`[kpi-tracker] meetings fetch failed for ${b.label}:`, err?.message ?? err);
+      const intMap: Record<string, number> = {};
+      for (const row of intPerWsRes.rows) intMap[row.slug] = row.n;
+
+      let conversions = 0;
+      try {
+        if (isAll) {
+          const r = await aggregateWorkspaceSuccess(activeSlugs, b.start, b.end, intMap, apiKey);
+          conversions = r.total;
+        } else {
+          conversions = await getWorkspaceSuccess(workspaceParam, b.start, b.end, intMap[workspaceParam] ?? 0, apiKey);
         }
+      } catch (err: any) {
+        console.error(`[kpi-tracker] conversions fetch failed for ${b.label}:`, err?.message ?? err);
       }
 
       const totals = {
         sent: sentRes.rows[0]?.sent ?? 0,
         replies: replyRes.rows[0]?.replies ?? 0,
         interested: replyRes.rows[0]?.interested ?? 0,
-        meetings,
+        meetings: conversions, // kept as legacy key for UI compat
       };
 
       const efficiency = {
         reply_rate:         safeRate(totals.replies, totals.sent),
         interested_rate:    safeRate(totals.interested, totals.replies),
-        conv_rate:          safeRate(totals.meetings, totals.interested),
+        conv_rate:          safeRate(conversions, totals.interested),
         emails_per_lead:    safeRatio(totals.sent, totals.interested),
-        emails_per_meeting: safeRatio(totals.sent, totals.meetings),
+        emails_per_meeting: safeRatio(totals.sent, conversions),
       };
 
       return {
@@ -176,11 +190,17 @@ export async function GET(req: NextRequest) {
       };
     }));
 
+    // Per-workspace success label for the UI (single-workspace view).
+    const successLabel = isAll
+      ? "Conversions"
+      : getSuccessMetricConfig(workspaceParam).successLabel;
+
     return NextResponse.json({
       workspaces,
       workspace: workspaceParam,
       year,
       month,
+      successLabel,
       buckets: bucketResults,
       meta: { key_present: Boolean(apiKey) },
     });

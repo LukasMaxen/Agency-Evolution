@@ -31,6 +31,7 @@ interface KPIPayload {
   year: number;
   month: number;
   buckets: WeekKPIs[];
+  successLabel?: string;
 }
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -250,7 +251,7 @@ export function KPITracker() {
                   {mtdBucket && <td className="px-3 py-2 text-right font-semibold text-slate-900 bg-amber-50/50">{fmtInt(mtdBucket.totals.interested)}</td>}
                 </tr>
                 <tr className="border-b border-slate-200">
-                  <td className="px-4 py-2 font-semibold text-slate-800 sticky left-0 bg-white">Meetings Booked</td>
+                  <td className="px-4 py-2 font-semibold text-slate-800 sticky left-0 bg-white">{data.successLabel || "Conversions"}</td>
                   {weekBuckets.map(b => (
                     <td key={b.label} className={`px-3 py-2 text-right font-semibold ${b.totals.meetings > 0 ? "text-slate-900" : "text-slate-400"}`}>
                       {fmtInt(b.totals.meetings)}
@@ -290,7 +291,7 @@ export function KPITracker() {
                   {mtdBucket && renderRatioCell("mtd", mtdBucket.efficiency.emails_per_lead, 500, 1600)}
                 </tr>
                 <tr>
-                  <td className="px-4 py-2 font-semibold text-slate-800 sticky left-0 bg-white">Email : Meeting Ratio</td>
+                  <td className="px-4 py-2 font-semibold text-slate-800 sticky left-0 bg-white">Email : {data.successLabel ? (data.successLabel.split(" ")[0]) : "Conversion"} Ratio</td>
                   {/* Derived, GOOD ≤ 1111 (1% × 20% × 45%), OK ≤ 5333 (0.5% × 12.5% × 30%), BAD above */}
                   {weekBuckets.map(b => renderRatioCell(b.label, b.efficiency.emails_per_meeting, 1111, 5333))}
                   {mtdBucket && renderRatioCell("mtd", mtdBucket.efficiency.emails_per_meeting, 1111, 5333)}
@@ -305,7 +306,11 @@ export function KPITracker() {
                 <span className="inline-block mr-2 px-2 py-0.5 rounded bg-rose-100 text-rose-900">needs work</span>
                 <span className="inline-block px-2 py-0.5 rounded bg-slate-50 text-slate-400">no data</span>
               </div>
-              <div>Meetings sourced from Airtable. Reply + send totals from internal DB.</div>
+              <div>
+                {workspace === "all"
+                  ? "Conversions = meetings (Airtable) + interested-proxy workspaces (911, ACT, Statera, Hahnbeck)"
+                  : `${data.successLabel || "Conversions"} sourced from ${data.successLabel?.toLowerCase().includes("meeting") ? "Airtable" : "interested-reply count"}.`}
+              </div>
             </div>
           </div>
         )}

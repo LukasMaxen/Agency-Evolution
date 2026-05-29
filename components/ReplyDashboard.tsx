@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { RefreshCw, Loader2, ChevronDown } from "lucide-react";
+import { RefreshCw, Loader2, ChevronDown, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -29,7 +29,8 @@ interface DashboardPayload {
     replies: number;
     interested: number;
     bounced: number;
-    meetings: number;
+    meetings: number;       // alias of conversions (legacy field, kept for compat)
+    conversions: number;
   };
   rates: {
     reply_rate: number;
@@ -37,9 +38,25 @@ interface DashboardPayload {
     bounce_rate: number;
     conv_rate: number;
     emails_per_lead: number;
-    emails_per_meeting: number;
+    emails_per_meeting: number;    // alias of emails_per_conversion
+    emails_per_conversion: number;
   };
+  successLabel: string;            // "Conversions" for All, or per-workspace label
+  conversionsBreakdown: Record<string, { count: number; label: string; type: string }>;
   series: Array<{ date: string; sent: number; replies: number; interested: number; bounced: number }>;
+  previous: null | {
+    window: { start: string; end: string };
+    totals: {
+      sent: number; contacted: number; replies: number; interested: number;
+      bounced: number; meetings: number; conversions: number;
+    };
+    rates: {
+      reply_rate: number; interested_rate: number; bounce_rate: number;
+      conv_rate: number; emails_per_lead: number; emails_per_meeting: number;
+      emails_per_conversion: number;
+    };
+    series: Array<{ date: string; sent: number; replies: number; interested: number; bounced: number }>;
+  };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -83,16 +100,68 @@ const TONE_BG: Record<string, string> = {
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 
+// Direction of "good" per metric: "up" means higher is better, "down" means
+// lower is better. Used by the change badge to colour green/grey.
+type GoodDirection = "up" | "down" | "neutral";
+
+interface ChangeProps {
+  current: number;
+  previous: number | null | undefined;
+  goodDirection: GoodDirection;
+  /** Format the values as integers vs rates */
+  isRate?: boolean;
+}
+
+/**
+ * Shopify-style change indicator. Green arrow when the change is favourable
+ * (current beat the previous period), grey arrow when it regressed. No red,
+ * the goal is supportive trajectory feedback, not alarm.
+ */
+function ChangeBadge({ current, previous, goodDirection }: ChangeProps) {
+  if (previous === null || previous === undefined) return null;
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) return null;
+  // If prior was 0, we can't compute a percent. Show a +N badge in that case
+  // only when current > 0 (some improvement) — otherwise nothing.
+  if (previous === 0) {
+    if (current > 0 && goodDirection !== "neutral") {
+      return (
+        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-600">
+          <ArrowUpRight className="w-3 h-3" />new
+        </span>
+      );
+    }
+    return null;
+  }
+  const delta = current - previous;
+  const pct = (delta / Math.abs(previous)) * 100;
+  if (Math.abs(pct) < 0.5) return null; // ignore noise <0.5%
+  const isImproving =
+    goodDirection === "up"   ? delta > 0 :
+    goodDirection === "down" ? delta < 0 :
+    false;
+  const arrowUp = delta > 0;
+  const Arrow = arrowUp ? ArrowUpRight : ArrowDownRight;
+  const colorClass = isImproving ? "text-emerald-600" : "text-slate-400";
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${colorClass}`}>
+      <Arrow className="w-3 h-3" />
+      {Math.abs(pct).toFixed(Math.abs(pct) >= 10 ? 0 : 1)}%
+    </span>
+  );
+}
+
 interface KpiCardProps {
   label: string;
   value: string;
   rate?: { value: string; tone: "green" | "yellow" | "red" | "neutral"; label?: string };
   sub?: string;
+  tooltip?: string;
+  change?: ChangeProps;
 }
 
-function KpiCard({ label, value, rate, sub }: KpiCardProps) {
+function KpiCard({ label, value, rate, sub, tooltip, change }: KpiCardProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 flex flex-col gap-2 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 flex flex-col gap-2 shadow-sm relative" title={tooltip}>
       <div className="flex items-start justify-between">
         <span className="text-sm text-slate-500">{label}</span>
         {rate && (
@@ -101,10 +170,30 @@ function KpiCard({ label, value, rate, sub }: KpiCardProps) {
           </span>
         )}
       </div>
-      <div className="text-3xl font-semibold text-slate-900">{value}</div>
+      <div className="flex items-baseline gap-2">
+        <span className="text-3xl font-semibold text-slate-900">{value}</span>
+        {change && <ChangeBadge {...change} />}
+      </div>
       {sub && <div className="text-xs text-slate-400">{sub}</div>}
     </div>
   );
+}
+
+// Formats per-workspace conversion breakdown into a native title-attribute
+// tooltip (one line per workspace, sorted by count descending, only those
+// with at least one conversion).
+function formatBreakdown(
+  breakdown: Record<string, { count: number; label: string; type: string }> | undefined,
+  workspaces: DBWorkspace[]
+): string | undefined {
+  if (!breakdown) return undefined;
+  const nameBySlug = new Map(workspaces.map(w => [w.slug, w.name]));
+  const lines = Object.entries(breakdown)
+    .filter(([, v]) => v.count > 0)
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(([slug, v]) => `${nameBySlug.get(slug) ?? slug}: ${v.count} (${v.label})`);
+  if (lines.length === 0) return undefined;
+  return lines.join("\n");
 }
 
 // ─── Workspace selector ───────────────────────────────────────────────────────
@@ -199,12 +288,20 @@ export function ReplyDashboard() {
 
   const seriesForChart = useMemo(() => {
     if (!data?.series) return [];
-    return data.series.map(p => ({
-      ...p,
-      // Recharts axis labels look better with short month-day labels
-      label: p.date.slice(5).replace("-", "/"),
-    }));
-  }, [data?.series]);
+    const prev = data.previous?.series ?? [];
+    return data.series.map((p, i) => {
+      const pPrev = prev[i];
+      return {
+        ...p,
+        // Recharts axis labels look better with short month-day labels
+        label: p.date.slice(5).replace("-", "/"),
+        prev_sent:       pPrev?.sent       ?? null,
+        prev_replies:    pPrev?.replies    ?? null,
+        prev_interested: pPrev?.interested ?? null,
+        prev_bounced:    pPrev?.bounced    ?? null,
+      };
+    });
+  }, [data?.series, data?.previous]);
 
   return (
     <div className="flex-1 overflow-auto bg-slate-50">
@@ -248,20 +345,24 @@ export function ReplyDashboard() {
               <KpiCard
                 label="Emails sent"
                 value={fmtInt(data.totals.sent)}
+                change={{ current: data.totals.sent, previous: data.previous?.totals.sent, goodDirection: "neutral" }}
               />
               <KpiCard
                 label="Total people contacted"
                 value={fmtInt(data.totals.contacted)}
+                change={{ current: data.totals.contacted, previous: data.previous?.totals.contacted, goodDirection: "neutral" }}
               />
               <KpiCard
                 label="Replies"
                 value={fmtInt(data.totals.replies)}
                 rate={{ value: fmtPct(data.rates.reply_rate), tone: rateTone(data.rates.reply_rate, 0.01, 0.005) }}
+                change={{ current: data.rates.reply_rate, previous: data.previous?.rates.reply_rate, goodDirection: "up", isRate: true }}
               />
               <KpiCard
                 label="Bounced"
                 value={fmtInt(data.totals.bounced)}
                 rate={{ value: fmtPct(data.rates.bounce_rate), tone: data.rates.bounce_rate >= 0.05 ? "red" : data.rates.bounce_rate >= 0.02 ? "yellow" : "green" }}
+                change={{ current: data.rates.bounce_rate, previous: data.previous?.rates.bounce_rate, goodDirection: "down", isRate: true }}
               />
             </div>
 
@@ -271,22 +372,27 @@ export function ReplyDashboard() {
                 value={fmtInt(data.totals.interested)}
                 rate={{ value: fmtPct(data.rates.interested_rate), tone: rateTone(data.rates.interested_rate, 0.20, 0.125) }}
                 sub="of total replies"
+                change={{ current: data.rates.interested_rate, previous: data.previous?.rates.interested_rate, goodDirection: "up", isRate: true }}
               />
               <KpiCard
-                label="Meetings booked"
-                value={fmtInt(data.totals.meetings)}
+                label={data.successLabel || "Conversions"}
+                value={fmtInt(data.totals.conversions ?? data.totals.meetings)}
                 rate={{ value: fmtPct(data.rates.conv_rate), tone: rateTone(data.rates.conv_rate, 0.45, 0.30) }}
-                sub="conversion rate"
+                sub={workspace === "all" ? "meetings + interested-proxy" : "of positive replies"}
+                tooltip={workspace === "all" ? formatBreakdown(data.conversionsBreakdown, data.workspaces) : undefined}
+                change={{ current: data.rates.conv_rate, previous: data.previous?.rates.conv_rate, goodDirection: "up", isRate: true }}
               />
               <KpiCard
                 label="Emails per lead"
                 value={fmtRatio(data.rates.emails_per_lead)}
                 sub="sent ÷ positive replies"
+                change={{ current: data.rates.emails_per_lead, previous: data.previous?.rates.emails_per_lead, goodDirection: "down" }}
               />
               <KpiCard
-                label="Emails per meeting"
-                value={fmtRatio(data.rates.emails_per_meeting)}
-                sub="sent ÷ meetings"
+                label={workspace === "all" ? "Emails per conversion" : `Emails per ${(data.successLabel || "conversion").toLowerCase()}`}
+                value={fmtRatio(data.rates.emails_per_conversion ?? data.rates.emails_per_meeting)}
+                sub={`sent ÷ ${workspace === "all" ? "conversions" : (data.successLabel || "conversion").toLowerCase()}`}
+                change={{ current: data.rates.emails_per_conversion ?? data.rates.emails_per_meeting, previous: data.previous?.rates.emails_per_conversion ?? data.previous?.rates.emails_per_meeting, goodDirection: "down" }}
               />
             </div>
 
@@ -298,7 +404,7 @@ export function ReplyDashboard() {
               </div>
               <div className="h-[360px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={seriesForChart} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                  <ComposedChart data={seriesForChart} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="gradSent" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.45} />
@@ -325,13 +431,29 @@ export function ReplyDashboard() {
                       labelStyle={{ color: "#0f172a", fontWeight: 600 }}
                     />
                     <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
+                    {/* Current period (solid areas) */}
                     <Area type="monotone" dataKey="sent"       name="Sent"             stroke="#3b82f6" fill="url(#gradSent)"       strokeWidth={2} />
                     <Area type="monotone" dataKey="replies"    name="Replies"          stroke="#8b5cf6" fill="url(#gradReplies)"    strokeWidth={2} />
                     <Area type="monotone" dataKey="interested" name="Positive replies" stroke="#10b981" fill="url(#gradInterested)" strokeWidth={2} />
                     <Area type="monotone" dataKey="bounced"    name="Bounced"          stroke="#f43f5e" fill="url(#gradBounced)"    strokeWidth={2} />
-                  </AreaChart>
+                    {/* Previous period overlay (dotted thin lines, hidden from legend) */}
+                    {data.previous && (
+                      <>
+                        <Line type="monotone" dataKey="prev_sent"       stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="3 4" dot={false} legendType="none" name="Sent (prev)" />
+                        <Line type="monotone" dataKey="prev_replies"    stroke="#8b5cf6" strokeWidth={1.5} strokeDasharray="3 4" dot={false} legendType="none" name="Replies (prev)" />
+                        <Line type="monotone" dataKey="prev_interested" stroke="#10b981" strokeWidth={1.5} strokeDasharray="3 4" dot={false} legendType="none" name="Positive (prev)" />
+                        <Line type="monotone" dataKey="prev_bounced"    stroke="#f43f5e" strokeWidth={1.5} strokeDasharray="3 4" dot={false} legendType="none" name="Bounced (prev)" />
+                      </>
+                    )}
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
+              {data.previous && (
+                <div className="mt-3 flex items-center justify-end text-xs text-slate-500">
+                  <span className="inline-block w-4 h-0.5 mr-2 align-middle border-t border-dashed border-slate-400"></span>
+                  Previous period: {data.previous.window.start} → {data.previous.window.end}
+                </div>
+              )}
             </div>
           </>
         )}
