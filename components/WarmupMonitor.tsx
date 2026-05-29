@@ -160,7 +160,47 @@ function SenderTable({
   const name = resolveWsName(workspaces, ws.slug);
   const [tab, setTab] = useState<Tab>("all");
   const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "remove_and_warmup" | "enable_warmup" | null>>({});
+  const [domainAction, setDomainAction] = useState<Record<string, "enable_warmup" | "pause_outbound" | null>>({});
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
+
+  // Domain-level batch: walk through each affected sender sequentially.
+  // Sequential is intentional — pausing many campaigns in parallel would
+  // be confusing for operators and may trip EB rate limits.
+  async function runDomainBatch(domain: string, senders: Sender[], action: "enable_warmup" | "pause_outbound") {
+    setDomainAction(prev => ({ ...prev, [domain]: action }));
+    const targets = action === "enable_warmup"
+      ? senders.filter(s => !s.warmup_enabled)
+      : senders.filter(s => s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98 && (s.attached_campaigns_count ?? 0) > 0);
+    if (targets.length === 0) {
+      onActionDone(`No senders in ${domain} match this action.`, "error");
+      setDomainAction(prev => ({ ...prev, [domain]: null }));
+      return;
+    }
+    onActionDone(`${action === "enable_warmup" ? "Enabling warmup" : "Pausing outbound"} on ${targets.length} sender(s) in ${domain}…`, "success");
+    let ok = 0;
+    let fail = 0;
+    for (const s of targets) {
+      try {
+        const res = await fetch("/api/account-monitor/action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sender_email: s.sender_email,
+            workspace_slug: s.workspace_slug,
+            sender_id: s.eb_sender_id,
+            action: action === "enable_warmup" ? "enable_warmup" : "remove_and_warmup",
+          }),
+        });
+        const j = await res.json();
+        if (res.ok && j.ok && (j.failed ?? 0) === 0) ok++; else fail++;
+      } catch {
+        fail++;
+      }
+    }
+    onActionDone(`${domain}: ${ok} succeeded, ${fail} failed.`, fail > 0 ? "error" : "success");
+    setDomainAction(prev => ({ ...prev, [domain]: null }));
+    setTimeout(() => refresh(), 1500);
+  }
 
   async function runSenderAction(s: Sender, action: "attach_to_all" | "remove_and_warmup" | "enable_warmup") {
     setActionMap(prev => ({ ...prev, [s.sender_email]: action }));
@@ -394,8 +434,47 @@ function SenderTable({
                     }}>
                       {d.avgScore === null ? "—" : `${d.avgScore}%`}
                     </td>
-                    <td style={{ padding: "10px 10px", textAlign: "center", color: "#9ca3af", fontSize: 11 }}>
-                      Click to expand
+                    <td
+                      style={{ padding: "10px 10px", textAlign: "center" }}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      {(() => {
+                        const acting = domainAction[d.domain];
+                        if (d.notWarming > 0) {
+                          return (
+                            <button
+                              onClick={() => runDomainBatch(d.domain, d.senders, "enable_warmup")}
+                              disabled={!!acting}
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                background: "#EAF3DE", color: "#15803D", border: "0.5px solid #C0DD97",
+                                cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                              }}>
+                              {acting === "enable_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
+                              Enable warmup ({d.notWarming})
+                            </button>
+                          );
+                        }
+                        const eligibleForPause = d.senders.filter(s => s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98 && (s.attached_campaigns_count ?? 0) > 0).length;
+                        if (eligibleForPause > 0) {
+                          return (
+                            <button
+                              onClick={() => runDomainBatch(d.domain, d.senders, "pause_outbound")}
+                              disabled={!!acting}
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                background: "#FCEBEB", color: "#B91C1C", border: "0.5px solid #F09595",
+                                cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                              }}>
+                              {acting === "pause_outbound" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
+                              Pause outbound ({eligibleForPause})
+                            </button>
+                          );
+                        }
+                        return <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>;
+                      })()}
                     </td>
                   </tr>
 

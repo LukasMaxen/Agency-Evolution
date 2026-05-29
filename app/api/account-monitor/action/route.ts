@@ -255,9 +255,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5. Enable warmup if requested
+    // 5. Enable warmup if requested. For enable_warmup we always hit EB
+    //    regardless of the cached warmup_enabled value — the local DB can be
+    //    stale (warmup gets toggled in EB UI between syncs) and the operator
+    //    is explicitly asking for the on-state, so we should respect that.
+    //    For remove_and_warmup we keep the cached short-circuit since the
+    //    primary intent is the remove, not the warmup flip.
     let warmupResult: string | null = null;
-    if ((action === "remove_and_warmup" || action === "enable_warmup") && !warmupAlreadyEnabled) {
+    const shouldEnable =
+      action === "enable_warmup" ||
+      (action === "remove_and_warmup" && !warmupAlreadyEnabled);
+    if (shouldEnable) {
       const warmupRes = await fetch(`${instanceUrl}/api/warmup/sender-emails/enable`, {
         method: "PATCH",
         headers,
@@ -273,7 +281,7 @@ export async function POST(req: NextRequest) {
           [workspace_slug, sender_email.toLowerCase()]
         );
       }
-    } else if ((action === "remove_and_warmup" || action === "enable_warmup") && warmupAlreadyEnabled) {
+    } else if (action === "remove_and_warmup" && warmupAlreadyEnabled) {
       warmupResult = "already_enabled";
     }
 
