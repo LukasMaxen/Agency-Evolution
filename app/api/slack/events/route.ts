@@ -179,6 +179,13 @@ async function learnFromSendApproval(
       return;
     }
 
+    // Universal rules require approval in #feedback-review before committing.
+    // They affect every workspace, so the safety bar is higher.
+    if (decision.scope === "universal") {
+      await postUniversalRuleApprovalCard(draft, decision, reviewerName, channel, ts);
+      return;
+    }
+
     const targetPath = resolveTargetPath(decision.target_file);
     if (!targetPath) {
       await postToSlack({
@@ -245,6 +252,92 @@ async function learnFromSendApproval(
 }
 
 /**
+ * Post a universal-rule approval card to #feedback-review when send-time
+ * learning detects a rule that should apply across ALL workspaces. We do NOT
+ * auto-commit universal rules because they touch every client. The card is
+ * persisted as a one-pattern weekly_reviews row so the existing :white_check_mark:
+ * applyWeeklyReview handler can commit it on human approval.
+ */
+async function postUniversalRuleApprovalCard(
+  draft: ReplyDraftRow,
+  decision: { rule: string; target_file: string; scope: "workspace" | "universal" },
+  reviewerName: string,
+  originChannel: string,
+  originThreadTs: string
+): Promise<void> {
+  const syntheticPattern: WeeklyReviewPattern = {
+    title: `Universal rule proposed by ${reviewerName}`,
+    examples_count: 1,
+    proposed_rule_change: decision.rule,
+    target_file: decision.target_file,
+    confidence: "high",
+  };
+  const syntheticSummary: WeeklyReviewSummary = {
+    headline: `Send-time learning flagged a universal rule from ${draft.workspace_slug}.`,
+    patterns: [syntheticPattern],
+    one_off_notes: [],
+  };
+
+  const blocks: object[] = [
+    {
+      type: "header",
+      text: { type: "plain_text", text: "Universal rule — needs approval", emoji: true },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*From:* ${draft.workspace_slug} reply approval (\`${draft.lead_email ?? "?"}\`) reviewed by ${reviewerName}\n*Target:* \`${decision.target_file}\`\n\nThis rule was extracted as UNIVERSAL (applies to every workspace). It will not auto-commit. React :white_check_mark: below to apply, :x: to discard.`,
+      },
+    },
+    { type: "divider" },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Proposed universal rule:*\n${decision.rule}`,
+      },
+    },
+    { type: "divider" },
+    {
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: "If you want this as workspace-only instead, react :x: and re-give the feedback with explicit workspace scoping.",
+        },
+      ],
+    },
+  ];
+
+  const slackTs = await postToSlack({
+    channel: FEEDBACK_REVIEW_CHANNEL,
+    text: `Universal rule proposed from ${draft.workspace_slug}: ${decision.rule.slice(0, 100)}`,
+    blocks,
+  });
+
+  if (slackTs) {
+    const reviewId = `wr-univ-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO weekly_reviews (id, slack_ts, channel, summary, status)
+       VALUES ($1, $2, $3, $4::jsonb, 'pending')`,
+      [reviewId, slackTs, FEEDBACK_REVIEW_CHANNEL, JSON.stringify(syntheticSummary)]
+    );
+    await postToSlack({
+      channel: originChannel,
+      threadTs: originThreadTs,
+      text: `Feedback flagged a UNIVERSAL rule (applies to every workspace, not just \`${draft.workspace_slug}\`). Posted to <#${FEEDBACK_REVIEW_CHANNEL}> for explicit approval — react :white_check_mark: there to commit.`,
+    });
+  } else {
+    await postToSlack({
+      channel: originChannel,
+      threadTs: originThreadTs,
+      text: `Wanted to post a universal-rule approval card to <#${FEEDBACK_REVIEW_CHANNEL}> but the Slack post failed. Rule was: ${decision.rule}`,
+    });
+  }
+}
+
+/**
  * Use Claude to decide whether thread feedback on a reply card describes an
  * evergreen rule for the workspace (vs a one-off lead-specific tweak), and
  * if so, write the rule + pick the right target file.
@@ -256,18 +349,21 @@ async function extractEvergreenRule(
   draft: ReplyDraftRow,
   inboundMessage: string,
   feedback: string[]
-): Promise<{ evergreen: boolean; target_file: string; rule: string } | null> {
+): Promise<{ evergreen: boolean; scope: "workspace" | "universal"; target_file: string; rule: string } | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
-  const systemPrompt = `You analyze human feedback left on a sent email reply (in a Slack thread) and decide if the feedback contains an EVERGREEN rule that should apply to ALL future replies for the same workspace.
+  const systemPrompt = `You analyze human feedback left on a sent email reply (in a Slack thread) and decide if the feedback contains an EVERGREEN rule.
 
 OUTPUT strict JSON, nothing else:
 {
   "evergreen": boolean,
-  "target_file": "clients/<workspace_slug>.md" | "prompts/extras/<workspace_slug>.md",
+  "scope": "workspace" | "universal",
+  "target_file": "clients/<workspace_slug>.md" | "prompts/extras/<workspace_slug>.md" | "CONTEXT_Replies.md",
   "rule": "the evergreen rule as a single self-contained directive, including the WHY if the human gave one"
 }
+
+DEFAULT BIAS, when in doubt, choose scope="workspace". Workspace-specific rules are safer because they only affect one client. Universal rules touch every workspace and need to be unambiguously general. Workspace rules commit immediately. Universal rules post an approval card to #feedback-review and wait for human :white_check_mark:.
 
 THERE ARE TWO PATHS TO evergreen=true:
 
@@ -284,9 +380,19 @@ evergreen=false ONLY when neither PATH applies:
   - Feedback is a single-line tweak ("change Robert to Bobby"), one-off lead context ("this person hates emojis"), or unrelated chatter ("nice draft").
   - Feedback is a rewrite but the differences are too small to constitute a teachable pattern.
 
-target_file:
+scope="universal" is ONLY appropriate when ALL of these are true:
+  - The rule does not reference the workspace's industry, offer, value props, sender persona, or any client-specific facts.
+  - The rule is about voice, format, tone, punctuation, structural reply patterns, or universal classification logic that should apply to every reply across every client we ever send for.
+  - The rule would be wrong to apply WORKSPACE-WIDE only (i.e., it would be silly to repeat it in every client file).
+  - Examples of legitimate universal rules: "Never use em dashes", "Always sign off with the sender's first name only", "When a lead asks for the deck, link to it inline rather than attaching a file", "Treat 'remove me' as not_interested even without 'unsubscribe' wording".
+  - If the rule mentions a specific client by name, mentions a specific industry/category, references a specific calendar link, or otherwise reads as client-flavored, it is NOT universal.
+
+scope="workspace" target_file:
 - "clients/<workspace_slug>.md" when the rule is about CONTENT, templates, value props, what to say, framing, per-client offer/positioning, or the structural shape of replies for that workspace.
-- "prompts/extras/<workspace_slug>.md" when the rule is about FORMAT, wording, style, processor routing logic, intent classification, or anything that adjusts HOW the processor drafts (CTA wording, punctuation, "we" vs "I", which template Pattern to use for a given inbound).
+- "prompts/extras/<workspace_slug>.md" when the rule is about FORMAT, wording, style, processor routing logic, intent classification, or anything that adjusts HOW the processor drafts FOR THAT WORKSPACE (CTA wording, punctuation choices specific to the client voice, "we" vs "I", which template Pattern to use for a given inbound).
+
+scope="universal" target_file:
+- Always "CONTEXT_Replies.md" (the universal reply-management knowledge file).
 
 The rule field must be readable as a directive on its own without seeing the original feedback. Phrase it positively. Include the "why" if the human gave one or if it is obvious from the rewrite (e.g. "Why: leads respond better when the email opens with what the buyer wants, not our pitch.").`;
 
@@ -347,6 +453,11 @@ ${feedback.map((f, i) => `[${i + 1}] ${f}`).join("\n\n")}`;
     const parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));
     if (typeof parsed.evergreen !== "boolean" || typeof parsed.target_file !== "string" || typeof parsed.rule !== "string") {
       return null;
+    }
+    // Backward-compat: older responses (or low-confidence parses) may omit "scope".
+    // Default to workspace when missing — safer.
+    if (parsed.scope !== "workspace" && parsed.scope !== "universal") {
+      parsed.scope = "workspace";
     }
     return parsed;
   } catch (err: any) {

@@ -143,6 +143,48 @@ export async function runWeeklyFeedbackReviewOnce(opts: { dedupeWindow?: boolean
   const r = replyStats.rows[0];
   const f = fuStats.rows[0];
 
+  // Per-workspace maturity stats. Surfaces which workspace still needs the
+  // most attention (high feedback rate = still being corrected) vs which
+  // is approaching readiness (low feedback rate, clean sends).
+  const perWsStats = await pool.query<{
+    workspace_slug: string;
+    total: number;
+    sent: number;
+    rejected: number;
+    with_feedback: number;
+    evergreen_commits_today: number;
+  }>(`
+    WITH ws_drafts AS (
+      SELECT rd.workspace_slug,
+             COUNT(*)::int AS total,
+             COUNT(*) FILTER (WHERE rd.status = 'sent')::int AS sent,
+             COUNT(*) FILTER (WHERE rd.status = 'rejected')::int AS rejected,
+             COUNT(*) FILTER (WHERE rd.id IN (
+               SELECT draft_id FROM draft_feedback WHERE draft_type = 'reply' AND created_at >= $1
+             ))::int AS with_feedback
+      FROM reply_drafts rd
+      WHERE rd.created_at >= $1
+      GROUP BY rd.workspace_slug
+    ),
+    ws_commits AS (
+      SELECT (summary->'patterns'->0->>'target_file') AS target_file,
+             COUNT(*)::int AS applied_count
+      FROM weekly_reviews
+      WHERE applied_at >= $1
+        AND status = 'applied'
+      GROUP BY target_file
+    )
+    SELECT d.workspace_slug, d.total, d.sent, d.rejected, d.with_feedback,
+           COALESCE((
+             SELECT SUM(c.applied_count)::int FROM ws_commits c
+             WHERE c.target_file LIKE '%/' || d.workspace_slug || '.md'
+                OR c.target_file LIKE 'clients/' || d.workspace_slug || '.md'
+                OR c.target_file LIKE 'prompts/extras/' || d.workspace_slug || '.md'
+           ), 0) AS evergreen_commits_today
+    FROM ws_drafts d
+    ORDER BY d.total DESC, d.with_feedback DESC
+  `, [sevenDaysAgo]);
+
   // Pull every feedback comment from the past 7 days, joined with the draft it was attached to.
   const feedbackResult = await pool.query<FeedbackRow>(`
     SELECT
@@ -214,11 +256,16 @@ Guidelines:
 - Only propose rule changes for tone, format, content, structure, or process. Do not propose product changes.
 - Keep proposed rules consistent with existing rules in the context files (provided below).
 - If the team's feedback contradicts an existing rule, flag it explicitly and let humans decide.
-- Output 0 to 5 patterns. Quality over quantity.
+- Output 0 to 8 patterns. Quality over quantity.
+
+CROSS-WORKSPACE PATTERN DETECTION (important):
+- For EACH pattern you identify, first determine the scope by looking at which workspaces' feedback contributed to it.
+- If the pattern is supported by feedback from a SINGLE workspace → target_file must be workspace-specific (clients/<slug>.md or prompts/extras/<slug>.md). The pattern title should include the workspace name (e.g. "Larsen Digital: open with brand-specific exit signal").
+- If the pattern is supported by feedback from 2+ DIFFERENT workspaces → escalate to UNIVERSAL. target_file must be CONTEXT_Replies.md (or CONTEXT_FollowUps.md for FU patterns). The pattern title should explicitly say "UNIVERSAL:" prefix. List the contributing workspace slugs in the proposed_rule_change so Lukas can verify the cross-workspace evidence.
+- Default bias: prefer workspace-specific. Escalate to universal ONLY when the same correction is being made for 2+ distinct workspaces AND the rule does not reference workspace-specific facts (industry, offer, sender persona, calendar link, etc).
 
 Target file selection:
-- Generic reply tone or formatting across all clients → CONTEXT_Replies.md
-- Generic follow-up rules across all clients → CONTEXT_FollowUps.md
+- UNIVERSAL pattern (cross-workspace, no client-specific facts) → CONTEXT_Replies.md (reply rules) or CONTEXT_FollowUps.md (FU rules).
 - Reply skill/workflow change → SKILL_Reply-Management.md
 - FU skill/workflow change → SKILL_FollowUps.md
 - Rule specific to ONE client (e.g. "Larsen Digital should always do X") → clients/<workspace-slug>.md
@@ -280,6 +327,27 @@ Identify patterns and propose rule updates now.`;
     },
     { type: "divider" },
   ];
+
+  // Per-workspace maturity table. High feedback ratio = still being corrected.
+  // Low feedback ratio + recent evergreen commits = approaching readiness.
+  if (perWsStats.rows.length > 0) {
+    const lines = perWsStats.rows.map(row => {
+      const feedbackRatio = row.total > 0 ? Math.round((row.with_feedback / row.total) * 100) : 0;
+      const tag = feedbackRatio === 0
+        ? ":white_check_mark: clean"
+        : feedbackRatio < 25
+          ? ":seedling: maturing"
+          : feedbackRatio < 60
+            ? ":construction: training"
+            : ":warning: needs work";
+      return `• \`${row.workspace_slug}\` — ${row.total} replies · ${row.sent} sent · ${row.with_feedback} w/ feedback (${feedbackRatio}%) · ${row.rejected} rejected · ${row.evergreen_commits_today} rules baked ${tag}`;
+    });
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: `*Per-workspace maturity (last 24h):*\n${lines.join("\n")}\n\n_High feedback ratio = still being corrected. :white_check_mark: clean = no feedback today (positive signal). Focus your attention on :warning: needs-work workspaces._` },
+    });
+    blocks.push({ type: "divider" });
+  }
 
   if (summary.patterns.length > 0) {
     blocks.push({
