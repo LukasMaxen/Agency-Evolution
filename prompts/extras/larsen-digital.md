@@ -27,6 +27,39 @@ These rules are non-negotiable across ALL reply patterns.
 - NEVER open with "Happy to chat" or "Happy to share more" when the lead has already been through multiple back-and-forth touches with us. In that case the lead already knows we want to chat, so a flat "Happy to chat" sounds tone-deaf. Open by acknowledging what they JUST said before transitioning to the CTA.
 - "Happy to chat" / "Happy to share more" IS still fine when this is the first response after the cold email.
 
+## PERSONALIZATION ACCURACY RULES (apply to EVERY reply)
+
+- **Do NOT include fabricated or assumed details about the lead's company** — no invented revenue figures, company size estimates, headcount, or brand name assumptions. If a detail is unverified, leave it out entirely.
+- If the lead's company details are unclear or unverified, keep the reply focused on what we do and why the **category** is relevant — not on specifics about their business that could be wrong.
+- **Incorrect personalization is worse than no personalization.** An email that gets a detail wrong signals immediately that it was AI-generated and damages credibility irreparably.
+- When in doubt, anchor on the category-level insight (e.g. "organic skincare is a repeat-purchase category with strong margins and real buyer demand") rather than making claims about the specific brand.
+- Use a **verified case study result** to make the reply feel concrete and credible without needing to fabricate brand-specific details (e.g. "One of our brands went from £25k to £102k a month in 90 days.").
+- The Pattern B / More Info reply in particular should NOT over-personalize the opener with unverified brand specifics. Category relevance + a real case study result is the correct approach.
+
+### PREFERRED MORE INFO REPLY SHAPE (Pattern B refinement)
+
+When a lead asks for more info and we have done a background check but details are limited or uncertain, use this leaner structure rather than the full canonical template:
+
+```
+Hi [FIRST_NAME],
+
+Happy to share more.
+
+We help founders build toward an exit, growing the right parts of the business first and working with our M&A partners when the time comes to take it to market.
+
+[BRAND] stood out because [CATEGORY-LEVEL REASON — e.g. "organic skincare is a repeat-purchase category with strong margins and real buyer demand"]. [VERIFIED CASE STUDY RESULT — e.g. "One of our brands went from £25k to £102k a month in 90 days."] That kind of growth changes what a brand looks like on paper when it goes to market.
+
+If that sounds relevant, worth 15 minutes to talk through it. Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro
+
+[SENDER_EMAIL_SIGNATURE]
+```
+
+Key rules for this shape:
+- The category-level insight replaces any unverified brand-specific claims.
+- The case study result is the credibility mechanism — use a real, verified figure from an existing client.
+- Keep the whole reply to four short paragraphs maximum. No bullet points, no sub-headers.
+- The CTA is direct and conversational — no "If this could be interesting for [BRAND]" preamble needed here; the lead already asked.
+
 ## INTENT CLASSIFICATION → ROUTING
 
 | Lead's message shape | Intent | Route |
@@ -74,6 +107,8 @@ Allowed substitutions: `[NAME]`, `[BRAND]`, `[CATEGORY]`, `[SLOT 1 NATURAL]`, `[
 CTA line wording: `If this could be interesting for [BRAND], I'd be happy to have an initial chat to walk you through how we'd approach your business specifically. Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick 15 minutes? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro`
 
 OPTIONAL ADDITION (when the lead's brand looks ready to exit RIGHT NOW — mature scale, clear operations, explicit exit interest): after the "M&A co-advisors..." paragraph, add a single sentence: `We typically come in as a growth partner first before taking the brand to market, but if you're ready to go to market now, we can run the process directly.` Use sparingly — only when the lead is clearly already exit-stage.
+
+**When background research on the brand is limited or uncertain, use the leaner PREFERRED MORE INFO REPLY SHAPE from the PERSONALIZATION ACCURACY RULES section above instead of the full canonical template.** Category-level relevance + a verified case study result outperforms over-personalized claims that could be wrong.
 
 ## SHORT-INTERESTED REPLY (lead just says "sure", "yes", "happy to chat")
 
@@ -190,3 +225,23 @@ Would Monday at 1pm BST or Wednesday at 2:45pm BST work? If not, grab a slot on 
 
 {SENDER_EMAIL_SIGNATURE}
 ```
+
+## Reference Example — Pattern B lean shape (Gaelle @ Gaelle Organic)
+
+FR lead, organic skincare brand, asked for more info. Background research limited — leaner shape used instead of full canonical template:
+
+```
+Hi Gaelle,
+
+Happy to share more.
+
+We help founders build toward an exit, growing the right parts of the business first and working with our M&A partners when the time comes to take it to market.
+
+Gaelle Organic stood out because organic skincare is a repeat-purchase category with strong margins and real buyer demand. One of our brands went from £25k to £102k a month in 90 days. That kind of growth changes what a brand looks like on paper when it goes to market.
+
+If that sounds relevant, worth 15 minutes to talk through it. Would Monday at 1pm BST or Wednesday at 2pm BST work? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro
+
+{SENDER_EMAIL_SIGNATURE}
+```
+
+**Why this shape was used:** Brand details were unverified — the full canonical template with brand-specific personalization risked including wrong assumptions, which reads as AI-generated. Category-level insight + verified case study result is the correct fallback.
