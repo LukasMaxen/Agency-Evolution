@@ -764,6 +764,7 @@ export function WarmupMonitor() {
   const [selected, setSelected]   = useState<WsAgg | null>(null);
   const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [syncing, setSyncing]     = useState(false);
+  const [pulling, setPulling]     = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -780,6 +781,44 @@ export function WarmupMonitor() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Pull the latest sender state from EmailBison into sender_accounts
+  // (status, warmup_enabled, warmup_score, attached_campaigns_count) so
+  // the dashboard reflects manual changes operators just made in EB,
+  // without waiting for the next 6-hour scheduled sync. If the operator
+  // is viewing a single workspace drilldown, target only that one — a
+  // full-org pull walks every campaign and can take several minutes.
+  const pullFromEB = useCallback(async (workspace_slug?: string) => {
+    if (pulling) return;
+    setPulling(true);
+    setToast({
+      msg: workspace_slug
+        ? `Pulling latest sender data for ${workspace_slug} from EmailBison…`
+        : "Pulling latest sender data for all workspaces from EmailBison (this can take 1-5 min)…",
+      type: "success",
+    });
+    try {
+      const url = workspace_slug
+        ? `/api/sync-sender-accounts?workspace=${encodeURIComponent(workspace_slug)}`
+        : "/api/sync-sender-accounts";
+      const res = await fetch(url, { method: "POST" });
+      const j = await res.json();
+      if (!res.ok || !j.ok) {
+        setToast({ msg: j.error ?? "Sync failed", type: "error" });
+        return;
+      }
+      const failed = j.failed ?? 0;
+      setToast({
+        msg: `Synced ${j.synced ?? 0} workspace(s)${failed > 0 ? ` · ${failed} failed` : ""}.`,
+        type: failed > 0 ? "error" : "success",
+      });
+      load();
+    } catch (err: any) {
+      setToast({ msg: err.message ?? "Network error", type: "error" });
+    } finally {
+      setPulling(false);
+    }
+  }, [pulling, load]);
 
   // One-click "ensure every active sender is in every active campaign"
   // for every workspace. The button confirms before running because it
@@ -832,6 +871,20 @@ export function WarmupMonitor() {
           </p>
         </div>
         <div style={{ display: "inline-flex", gap: 8 }}>
+          <button
+            onClick={() => pullFromEB(selected?.slug)}
+            disabled={pulling || loading}
+            title={selected
+              ? `Pull latest sender state from EmailBison for ${selected.slug}`
+              : "Pull latest sender state from EmailBison for every workspace (1-5 min)"}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#3730A3",
+              background: "#EEF2FF", border: "0.5px solid #A5B4FC", borderRadius: 7,
+              padding: "6px 12px", cursor: pulling ? "wait" : "pointer", fontFamily: "inherit",
+            }}>
+            {pulling ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+            {selected ? "Sync this workspace from EB" : "Sync all from EB"}
+          </button>
           <button
             onClick={syncAllToCampaigns}
             disabled={syncing || loading}
