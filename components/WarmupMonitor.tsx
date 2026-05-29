@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import {
-  RefreshCw, Loader2, Flame, ChevronLeft, Plus, WifiOff,
+  RefreshCw, Loader2, Flame, ChevronLeft, ChevronUp, ChevronDown, Plus, WifiOff,
 } from "lucide-react";
 import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
 
@@ -160,6 +160,7 @@ function SenderTable({
   const name = resolveWsName(workspaces, ws.slug);
   const [tab, setTab] = useState<Tab>("all");
   const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "remove_and_warmup" | "enable_warmup" | null>>({});
+  const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
 
   async function runSenderAction(s: Sender, action: "attach_to_all" | "remove_and_warmup" | "enable_warmup") {
     setActionMap(prev => ({ ...prev, [s.sender_email]: action }));
@@ -220,13 +221,58 @@ function SenderTable({
     .slice()
     .sort((a, b) => {
       if (severity(a) !== severity(b)) return severity(a) - severity(b);
-      // Within the same bucket, lower score first so the worst surface
-      // before the borderline ones.
       const scoreA = a.warmup_score ?? 100;
       const scoreB = b.warmup_score ?? 100;
       if (scoreA !== scoreB) return scoreA - scoreB;
       return a.sender_email.localeCompare(b.sender_email);
     });
+
+  // Group filtered senders by their email domain so the workspace drilldown
+  // mirrors Domain Monitor: one row per domain, click to expand individual
+  // senders. Domain-level row shows aggregated counts (not warming, low
+  // health, avg score) so the operator can act on whole sending domains
+  // when issues are systemic (which they usually are — 66% of low-health
+  // domains have >=50% of senders affected).
+  type DomainGroup = {
+    domain:        string;
+    senders:       Sender[];
+    notWarming:    number;
+    lowHealth:     number;
+    warmingOnly:   number;
+    avgScore:      number | null;
+    totalAttached: number;
+    worstSev:      number;
+  };
+  const domainMap: Record<string, Sender[]> = {};
+  for (const s of filtered) {
+    const d = s.sender_email.split("@")[1] ?? "unknown";
+    if (!domainMap[d]) domainMap[d] = [];
+    domainMap[d].push(s);
+  }
+  const domainGroups: DomainGroup[] = Object.entries(domainMap).map(([dom, list]) => {
+    const scored = list.filter(s => typeof s.warmup_score === "number");
+    const avg = scored.length > 0
+      ? Math.round(scored.reduce((a, s) => a + (s.warmup_score as number), 0) / scored.length * 10) / 10
+      : null;
+    return {
+      domain:        dom,
+      senders:       list,
+      notWarming:    list.filter(isNotWarming).length,
+      lowHealth:     list.filter(isLowHealth).length,
+      warmingOnly:   list.filter(isWarmingOnly).length,
+      avgScore:      avg,
+      totalAttached: list.reduce((a, s) => a + (s.attached_campaigns_count ?? 0), 0),
+      worstSev:      Math.min(...list.map(severity)),
+    };
+  }).sort((a, b) => {
+    if (a.worstSev !== b.worstSev)         return a.worstSev - b.worstSev;
+    if (b.notWarming !== a.notWarming)     return b.notWarming - a.notWarming;
+    if (b.lowHealth !== a.lowHealth)       return b.lowHealth - a.lowHealth;
+    const avgA = a.avgScore ?? 101;
+    const avgB = b.avgScore ?? 101;
+    if (avgA !== avgB)                     return avgA - avgB;
+    return a.domain.localeCompare(b.domain);
+  });
 
   return (
     <div>
@@ -299,102 +345,144 @@ function SenderTable({
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 && (
+            {domainGroups.length === 0 && (
               <tr><td colSpan={5} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
                 No senders matching this filter.
               </td></tr>
             )}
-            {filtered.map(s => {
-              const acting       = actionMap[s.sender_email];
-              const notWarming   = !s.warmup_enabled;
-              const warmingOnly  = isWarmingOnly(s);
-              // Row treatment mirrors Domain Monitor:
-              //   not warming      -> red background (urgent)
-              //   ready for outbound (warming-only tab, >=14 days)
-              //                    -> green background (action available)
-              const rowBg =
-                notWarming                                  ? "#FCEBEB" :
-                tab === "warming_only" && s.ready_to_rejoin ? "#EAF3DE" :
-                                                              "transparent";
+            {domainGroups.map(d => {
+              const isExpanded = expandedDomain === d.domain;
+              // Domain row background tracks severity, same idea as the
+              // workspace card border.
+              const domBg =
+                d.notWarming > 0    ? "#FCEBEB" :
+                d.lowHealth  > 0    ? "#FEF3C7" :
+                                      "#fafafa";
               return (
-                <tr key={s.sender_email} style={{ borderBottom: "0.5px solid #f3f4f6", background: rowBg }}>
-                  <td style={{ padding: "9px 10px", color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sender_email}</td>
-                  <td style={{ padding: "9px 10px" }}>
-                    {/* Status: in active campaigns vs warming-only (no attachments). */}
-                    {warmingOnly
-                      ? (s.ready_to_rejoin
-                          ? <PillBadge text="Ready for outbound" tone="green" />
-                          : <PillBadge text="Warming only"       tone="amber" />)
-                      : <PillBadge text={`In ${s.attached_campaigns_count} ${s.attached_campaigns_count === 1 ? "campaign" : "campaigns"}`} tone="green" />}
-                  </td>
-                  <td style={{ padding: "9px 10px" }}>
-                    {notWarming
-                      ? <PillBadge text="Not warming" tone="red" />
-                      : <PillBadge text="Warming"     tone="green" />}
-                  </td>
-                  {/* Warmup health % from EB /api/warmup/sender-emails warmup_score */}
-                  <td style={{
-                    padding: "9px 10px", textAlign: "right",
-                    color: s.warmup_score === null ? "#9ca3af"
-                         : s.warmup_score >= 98   ? "#15803D"
-                         : s.warmup_score >= 90   ? "#D97706"
-                                                  : "#B91C1C",
-                    fontWeight: 500,
-                  }}>
-                    {s.warmup_score === null ? "—" : `${Math.round(s.warmup_score)}%`}
-                  </td>
-                  <td style={{ padding: "9px 10px", textAlign: "center" }}>
-                    {/* Contextual action per row severity:
-                          Not warming      -> Enable warmup
-                          Low health (<98) -> Pause outbound (auto-pause/remove/resume, keeps warmup on)
-                          Ready for outbound -> Add to campaigns
-                          Healthy in campaigns -> no action
-                        Pause+warmup decisions for burn / list / reply
-                        signals still live on Domain Monitor. */}
-                    {notWarming ? (
-                      <button
-                        onClick={() => runSenderAction(s, "enable_warmup")}
-                        disabled={acting === "enable_warmup"}
-                        style={{
-                          fontSize: 11, padding: "4px 10px", borderRadius: 6,
-                          background: "#EAF3DE", color: "#15803D", border: "0.5px solid #C0DD97",
-                          cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
-                          display: "inline-flex", alignItems: "center", gap: 5,
+                <Fragment key={d.domain}>
+                  {/* Domain header row */}
+                  <tr
+                    onClick={() => setExpandedDomain(isExpanded ? null : d.domain)}
+                    style={{ cursor: "pointer", borderBottom: "0.5px solid #ede9e3", background: domBg }}
+                  >
+                    <td style={{ padding: "10px 10px", fontWeight: 500, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        {d.domain}
+                        <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 400 }}>· {d.senders.length} {d.senders.length === 1 ? "sender" : "senders"}</span>
+                      </span>
+                    </td>
+                    <td style={{ padding: "10px 10px" }}>
+                      {d.warmingOnly === d.senders.length
+                        ? <PillBadge text="All warming only" tone="amber" />
+                        : <PillBadge text={`${d.totalAttached} campaign-slots`} tone="green" />}
+                    </td>
+                    <td style={{ padding: "10px 10px" }}>
+                      {d.notWarming > 0
+                        ? <PillBadge text={`${d.notWarming} not warming`} tone="red" />
+                        : d.lowHealth > 0
+                          ? <PillBadge text={`${d.lowHealth} low health`} tone="red" />
+                          : <PillBadge text="All warming" tone="green" />}
+                    </td>
+                    <td style={{
+                      padding: "10px 10px", textAlign: "right",
+                      color: d.avgScore === null ? "#9ca3af"
+                           : d.avgScore >= 98    ? "#15803D"
+                           : d.avgScore >= 90    ? "#D97706"
+                                                 : "#B91C1C",
+                      fontWeight: 500,
+                    }}>
+                      {d.avgScore === null ? "—" : `${d.avgScore}%`}
+                    </td>
+                    <td style={{ padding: "10px 10px", textAlign: "center", color: "#9ca3af", fontSize: 11 }}>
+                      Click to expand
+                    </td>
+                  </tr>
+
+                  {/* Expanded sender rows */}
+                  {isExpanded && d.senders.map(s => {
+                    const acting       = actionMap[s.sender_email];
+                    const notWarming   = !s.warmup_enabled;
+                    const warmingOnly  = isWarmingOnly(s);
+                    const senderBg     =
+                      notWarming                                  ? "#FEF2F2" :
+                      tab === "warming_only" && s.ready_to_rejoin ? "#F0FDF4" :
+                                                                    "#ffffff";
+                    return (
+                      <tr key={d.domain + "::" + s.sender_email} style={{ borderBottom: "0.5px solid #f3f4f6", background: senderBg }}>
+                        <td style={{ padding: "8px 10px 8px 36px", color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>
+                          {s.sender_email}
+                        </td>
+                        <td style={{ padding: "8px 10px" }}>
+                          {warmingOnly
+                            ? (s.ready_to_rejoin
+                                ? <PillBadge text="Ready for outbound" tone="green" />
+                                : <PillBadge text="Warming only"       tone="amber" />)
+                            : <PillBadge text={`In ${s.attached_campaigns_count} ${s.attached_campaigns_count === 1 ? "campaign" : "campaigns"}`} tone="green" />}
+                        </td>
+                        <td style={{ padding: "8px 10px" }}>
+                          {notWarming
+                            ? <PillBadge text="Not warming" tone="red" />
+                            : <PillBadge text="Warming"     tone="green" />}
+                        </td>
+                        <td style={{
+                          padding: "8px 10px", textAlign: "right",
+                          color: s.warmup_score === null ? "#9ca3af"
+                               : s.warmup_score >= 98   ? "#15803D"
+                               : s.warmup_score >= 90   ? "#D97706"
+                                                        : "#B91C1C",
+                          fontWeight: 500,
                         }}>
-                        {acting === "enable_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
-                        Enable warmup
-                      </button>
-                    ) : isLowHealth(s) && !warmingOnly ? (
-                      <button
-                        onClick={() => runSenderAction(s, "remove_and_warmup")}
-                        disabled={acting === "remove_and_warmup"}
-                        style={{
-                          fontSize: 11, padding: "4px 10px", borderRadius: 6,
-                          background: "#FCEBEB", color: "#B91C1C", border: "0.5px solid #F09595",
-                          cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                        }}>
-                        {acting === "remove_and_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
-                        Pause outbound
-                      </button>
-                    ) : s.ready_to_rejoin ? (
-                      <button
-                        onClick={() => runSenderAction(s, "attach_to_all")}
-                        disabled={acting === "attach_to_all"}
-                        style={{
-                          fontSize: 11, padding: "4px 10px", borderRadius: 6,
-                          background: "#EAF3DE", color: "#15803D", border: "0.5px solid #C0DD97",
-                          cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                        }}>
-                        {acting === "attach_to_all" ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
-                        Add to campaigns
-                      </button>
-                    ) : (
-                      <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>
-                    )}
-                  </td>
-                </tr>
+                          {s.warmup_score === null ? "—" : `${Math.round(s.warmup_score)}%`}
+                        </td>
+                        <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                          {notWarming ? (
+                            <button
+                              onClick={() => runSenderAction(s, "enable_warmup")}
+                              disabled={acting === "enable_warmup"}
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                background: "#EAF3DE", color: "#15803D", border: "0.5px solid #C0DD97",
+                                cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                              }}>
+                              {acting === "enable_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
+                              Enable warmup
+                            </button>
+                          ) : isLowHealth(s) && !warmingOnly ? (
+                            <button
+                              onClick={() => runSenderAction(s, "remove_and_warmup")}
+                              disabled={acting === "remove_and_warmup"}
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                background: "#FCEBEB", color: "#B91C1C", border: "0.5px solid #F09595",
+                                cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                              }}>
+                              {acting === "remove_and_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
+                              Pause outbound
+                            </button>
+                          ) : s.ready_to_rejoin ? (
+                            <button
+                              onClick={() => runSenderAction(s, "attach_to_all")}
+                              disabled={acting === "attach_to_all"}
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                background: "#EAF3DE", color: "#15803D", border: "0.5px solid #C0DD97",
+                                cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                              }}>
+                              {acting === "attach_to_all" ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
+                              Add to campaigns
+                            </button>
+                          ) : (
+                            <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </Fragment>
               );
             })}
           </tbody>
