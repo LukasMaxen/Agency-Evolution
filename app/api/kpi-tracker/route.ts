@@ -5,6 +5,7 @@ import {
   getWorkspaceSuccess,
   getSuccessMetricConfig,
 } from "@/lib/airtable-meetings";
+import { fetchAggregateEBStats } from "@/lib/emailbison-stats";
 
 // KPI Tracker — replaces the weekly performance Google Sheet.
 // Returns the calendar month split into 5 buckets:
@@ -118,41 +119,22 @@ export async function GET(req: NextRequest) {
     const workspaces = wsResult.rows;
     const activeSlugs = workspaces.map(w => w.slug);
 
-    // For each bucket, run the four DB queries + one meetings fetch.
-    // Buckets typically = 6 (5 weeks + MTD). Parallel for speed.
-    const wsFilterSql = isAll ? "" : "AND workspace_slug = $3";
+    // For each bucket, fetch EmailBison stats and resolve conversions
+    // (meetings from Airtable for meeting-tracked workspaces; 40% of EB's
+    // interested count for proxy workspaces). Buckets typically = 6
+    // (5 weeks + MTD). Parallel for speed.
+
+    // Per-bucket totals now pull from EmailBison stats so the weekly
+    // numbers reconcile with the CSM update and the Main Dashboard.
+    // Internal DB is no longer consulted for sent/replies/interested.
+    const targetSlugs = isAll ? activeSlugs : [workspaceParam];
 
     const bucketResults: WeekKPIs[] = await Promise.all(buckets.map(async (b) => {
-      const args = isAll ? [b.start, b.end] : [b.start, b.end, workspaceParam];
-
-      const [sentRes, replyRes, intPerWsRes] = await Promise.all([
-        pool.query<{ sent: number }>(`
-          SELECT COUNT(*)::int AS sent
-          FROM emails_sent
-          WHERE sent_at BETWEEN $1 AND $2
-          ${wsFilterSql}
-        `, args),
-        pool.query<{ replies: number; interested: number }>(`
-          SELECT COUNT(*)::int AS replies,
-                 COUNT(*) FILTER (WHERE interested = TRUE)::int AS interested
-          FROM replies
-          WHERE received_at BETWEEN $1 AND $2
-            AND tracked_reply IS NOT FALSE
-          ${wsFilterSql}
-        `, args),
-        pool.query<{ slug: string; n: number }>(`
-          SELECT workspace_slug AS slug,
-                 COUNT(*) FILTER (WHERE interested = TRUE)::int AS n
-          FROM replies
-          WHERE received_at BETWEEN $1 AND $2
-            AND tracked_reply IS NOT FALSE
-          ${wsFilterSql}
-          GROUP BY workspace_slug
-        `, args),
-      ]);
-
+      const ebStats = await fetchAggregateEBStats(targetSlugs, b.start, b.end);
       const intMap: Record<string, number> = {};
-      for (const row of intPerWsRes.rows) intMap[row.slug] = row.n;
+      for (const slug of targetSlugs) {
+        intMap[slug] = ebStats.byWorkspace[slug]?.interested ?? 0;
+      }
 
       let conversions = 0;
       try {
@@ -167,9 +149,9 @@ export async function GET(req: NextRequest) {
       }
 
       const totals = {
-        sent: sentRes.rows[0]?.sent ?? 0,
-        replies: replyRes.rows[0]?.replies ?? 0,
-        interested: replyRes.rows[0]?.interested ?? 0,
+        sent: ebStats.total.emails_sent,
+        replies: ebStats.total.unique_replies_per_contact,
+        interested: ebStats.total.interested,
         meetings: conversions, // kept as legacy key for UI compat
       };
 
