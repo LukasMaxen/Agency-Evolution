@@ -308,8 +308,8 @@ export function KPITracker() {
               </div>
               <div>
                 {workspace === "all"
-                  ? "Conversions = meetings (Airtable) + interested-proxy workspaces (911, ACT, Statera, Hahnbeck)"
-                  : `${data.successLabel || "Conversions"} sourced from ${data.successLabel?.toLowerCase().includes("meeting") ? "Airtable" : "interested-reply count"}.`}
+                  ? "Conversions = meetings (Airtable, real) + 40% of positive replies for proxy workspaces (911, ACT, Statera, Hahnbeck). 40% is our historical average where downstream tracking is not visible."
+                  : `${data.successLabel || "Conversions"} sourced from ${data.successLabel?.toLowerCase().includes("meeting") ? "Airtable" : "40% of positive replies (historical average)"}.`}
               </div>
             </div>
           </div>

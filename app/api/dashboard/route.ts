@@ -191,7 +191,10 @@ export async function GET(req: NextRequest) {
         const intCount = intMap[workspaceParam] ?? 0;
         conversions = await getWorkspaceSuccess(workspaceParam, start, end, intCount, airtableKey);
         const cfg = getSuccessMetricConfig(workspaceParam);
-        conversionsBreakdown = { [workspaceParam]: { count: conversions, label: cfg.successLabel, type: cfg.successType } };
+        const basis = cfg.successType === "interested_proxy"
+          ? { interested: intCount, multiplier: cfg.proxyConversionRate ?? 0.40 }
+          : undefined;
+        conversionsBreakdown = { [workspaceParam]: { count: conversions, label: cfg.successLabel, type: cfg.successType, basis } as any };
       }
     } catch (err: any) {
       meetingsDebug.error = err?.message ?? String(err);

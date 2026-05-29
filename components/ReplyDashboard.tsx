@@ -42,7 +42,12 @@ interface DashboardPayload {
     emails_per_conversion: number;
   };
   successLabel: string;            // "Conversions" for All, or per-workspace label
-  conversionsBreakdown: Record<string, { count: number; label: string; type: string }>;
+  conversionsBreakdown: Record<string, {
+    count: number;
+    label: string;
+    type: string;
+    basis?: { interested: number; multiplier: number };
+  }>;
   series: Array<{ date: string; sent: number; replies: number; interested: number; bounced: number }>;
   previous: null | {
     window: { start: string; end: string };
@@ -181,17 +186,25 @@ function KpiCard({ label, value, rate, sub, tooltip, change }: KpiCardProps) {
 
 // Formats per-workspace conversion breakdown into a native title-attribute
 // tooltip (one line per workspace, sorted by count descending, only those
-// with at least one conversion).
+// with at least one conversion). For interested_proxy workspaces the line
+// shows the basis (e.g. "75 interested × 40% = 30").
 function formatBreakdown(
-  breakdown: Record<string, { count: number; label: string; type: string }> | undefined,
+  breakdown: Record<string, { count: number; label: string; type: string; basis?: { interested: number; multiplier: number } }> | undefined,
   workspaces: DBWorkspace[]
 ): string | undefined {
   if (!breakdown) return undefined;
   const nameBySlug = new Map(workspaces.map(w => [w.slug, w.name]));
   const lines = Object.entries(breakdown)
-    .filter(([, v]) => v.count > 0)
+    .filter(([, v]) => v.count > 0 || (v.basis && v.basis.interested > 0))
     .sort((a, b) => b[1].count - a[1].count)
-    .map(([slug, v]) => `${nameBySlug.get(slug) ?? slug}: ${v.count} (${v.label})`);
+    .map(([slug, v]) => {
+      const name = nameBySlug.get(slug) ?? slug;
+      if (v.basis) {
+        const pct = Math.round(v.basis.multiplier * 100);
+        return `${name}: ${v.count} est. (${v.basis.interested} interested × ${pct}%) — ${v.label}`;
+      }
+      return `${name}: ${v.count} (${v.label})`;
+    });
   if (lines.length === 0) return undefined;
   return lines.join("\n");
 }
@@ -378,7 +391,7 @@ export function ReplyDashboard() {
                 label={data.successLabel || "Conversions"}
                 value={fmtInt(data.totals.conversions ?? data.totals.meetings)}
                 rate={{ value: fmtPct(data.rates.conv_rate), tone: rateTone(data.rates.conv_rate, 0.45, 0.30) }}
-                sub={workspace === "all" ? "meetings + interested-proxy" : "of positive replies"}
+                sub={workspace === "all" ? "meetings + 40% of proxy interested" : "of positive replies"}
                 tooltip={workspace === "all" ? formatBreakdown(data.conversionsBreakdown, data.workspaces) : undefined}
                 change={{ current: data.rates.conv_rate, previous: data.previous?.rates.conv_rate, goodDirection: "up", isRate: true }}
               />

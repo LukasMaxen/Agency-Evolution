@@ -6,18 +6,25 @@
 //                          in the range. Used when the workspace actually
 //                          tracks a downstream conversion event (meeting
 //                          booked, deal closed, etc.).
-//   "interested_proxy"   — use the workspace's positive-reply count as the
-//                          success number. Used when the workspace either
-//                          (a) treats every interested lead as a success
-//                              (911, all interested leads are handed off
-//                              directly to sales), OR
-//                          (b) has no downstream tracking we can read
-//                              (ACT/Statera/Hahnbeck — NDA signing or
-//                              call booking happens outside our visibility).
+//   "interested_proxy"   — estimate success as (positive_replies × proxy
+//                          conversion rate, default 40%). Used when the
+//                          workspace has no downstream tracking we can read
+//                          (ACT/Statera/Hahnbeck — NDA signing or call
+//                          booking happens outside our visibility, but
+//                          historically ~40-50% of interested leads convert).
+//                          Lukas confirmed 2026-05-29 that 40% is the
+//                          historical average for these workspaces.
 //
 // successLabel is what we display in the UI for the per-workspace view.
 
 export type SuccessType = "airtable_date" | "interested_proxy";
+
+/**
+ * Default conversion rate applied to interested_proxy workspaces.
+ * Historically 40-50% of interested replies convert downstream for
+ * workspaces where we don't have visibility into the actual conversion event.
+ */
+export const DEFAULT_PROXY_CONVERSION_RATE = 0.40;
 
 export interface SuccessMetricConfig {
   /** Internal workspace slug as stored in the workspaces table */
@@ -34,14 +41,17 @@ export interface SuccessMetricConfig {
   field?: string;
   /** Optional extra filter clause, ANDed with the date filter */
   filter?: string;
+  /** Override the default proxy conversion rate for interested_proxy workspaces */
+  proxyConversionRate?: number;
 }
 
 export const SUCCESS_METRIC_CONFIG: SuccessMetricConfig[] = [
-  // Interested-proxy workspaces: deeper tracking not available or not relevant.
-  { workspaceSlug: "911-restoration",   successLabel: "Leads Delivered", successType: "interested_proxy" },
-  { workspaceSlug: "act-capital",        successLabel: "Interested (NDA pipeline)", successType: "interested_proxy" },
-  { workspaceSlug: "statera-capital",    successLabel: "Interested (NDA pipeline)", successType: "interested_proxy" },
-  { workspaceSlug: "hahnbeck",           successLabel: "Interested (Taliesen handoff)", successType: "interested_proxy" },
+  // Interested-proxy workspaces: deeper tracking not available, so we
+  // estimate success as positive_replies × 40% (historical average).
+  { workspaceSlug: "911-restoration",   successLabel: "Est. Leads Delivered", successType: "interested_proxy" },
+  { workspaceSlug: "act-capital",        successLabel: "Est. NDAs Signed", successType: "interested_proxy" },
+  { workspaceSlug: "statera-capital",    successLabel: "Est. NDAs Signed", successType: "interested_proxy" },
+  { workspaceSlug: "hahnbeck",           successLabel: "Est. Taliesen Handoffs", successType: "interested_proxy" },
 
   // Meeting-tracked workspaces (Airtable date column).
   { workspaceSlug: "acceler8rs",         successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appV8wpBdqTgCi4Ws", tableId: "tblCATnaPTV9fb2Ab", field: "Meeting booked date", filter: `{Deal Source} = "Cold email (Acceler8rs)"` },
@@ -212,7 +222,8 @@ export async function getWorkspaceSuccess(
 ): Promise<number> {
   const cfg = getSuccessMetricConfig(workspaceSlug);
   if (cfg.successType === "interested_proxy") {
-    return interestedCount;
+    const rate = cfg.proxyConversionRate ?? DEFAULT_PROXY_CONVERSION_RATE;
+    return Math.round(interestedCount * rate);
   }
   if (!apiKey) return 0;
   const n = await fetchWorkspaceMeetingsCount(workspaceSlug, start, end, apiKey);
@@ -229,25 +240,36 @@ export async function getWorkspaceSuccess(
  *
  * Returns total + per-workspace breakdown for tooltips.
  */
+export interface WorkspaceSuccessRow {
+  count: number;
+  label: string;
+  type: SuccessType;
+  /** For interested_proxy workspaces, the raw interested count and the multiplier */
+  basis?: { interested: number; multiplier: number };
+}
+
 export async function aggregateWorkspaceSuccess(
   workspaceSlugs: string[],
   start: Date,
   end: Date,
   interestedByWorkspace: Record<string, number>,
   apiKey: string | undefined
-): Promise<{ total: number; byWorkspace: Record<string, { count: number; label: string; type: SuccessType }> }> {
+): Promise<{ total: number; byWorkspace: Record<string, WorkspaceSuccessRow> }> {
   const results = await Promise.all(
     workspaceSlugs.map(async slug => {
       const cfg = getSuccessMetricConfig(slug);
       const interested = interestedByWorkspace[slug] ?? 0;
       const count = await getWorkspaceSuccess(slug, start, end, interested, apiKey);
-      return { slug, count, label: cfg.successLabel, type: cfg.successType };
+      const basis = cfg.successType === "interested_proxy"
+        ? { interested, multiplier: cfg.proxyConversionRate ?? DEFAULT_PROXY_CONVERSION_RATE }
+        : undefined;
+      return { slug, count, label: cfg.successLabel, type: cfg.successType, basis };
     })
   );
-  const byWorkspace: Record<string, { count: number; label: string; type: SuccessType }> = {};
+  const byWorkspace: Record<string, WorkspaceSuccessRow> = {};
   let total = 0;
   for (const r of results) {
-    byWorkspace[r.slug] = { count: r.count, label: r.label, type: r.type };
+    byWorkspace[r.slug] = { count: r.count, label: r.label, type: r.type, basis: r.basis };
     total += r.count;
   }
   return { total, byWorkspace };
