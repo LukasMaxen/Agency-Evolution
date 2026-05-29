@@ -119,7 +119,6 @@ function WorkspaceCard({ w, onClick }: { w: WsAgg; onClick: () => void }) {
           {w.notWarming      > 0 && <PillBadge text={`${w.notWarming} not warming`}     tone="red" />}
           {w.lowWarmupHealth > 0 && <PillBadge text={`${w.lowWarmupHealth} low health`} tone="red" />}
           {w.readyToRejoin   > 0 && <PillBadge text={`${w.readyToRejoin} ready`}        tone="green" />}
-          {w.warmingOnly     > 0 && w.readyToRejoin === 0 && <PillBadge text={`${w.warmingOnly} warming`} tone="amber" />}
           {w.notWarming === 0 && w.lowWarmupHealth === 0 && (
             <PillBadge text="All healthy" tone="green" />
           )}

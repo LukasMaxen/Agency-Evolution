@@ -159,9 +159,15 @@ export async function POST(req: NextRequest) {
         );
       }
       const campsData = await campsRes.json();
-      campaigns = (campsData.data ?? []).map((c: any) => ({
-        id: c.id, name: c.name, status: String(c.status ?? "").toLowerCase(),
-      }));
+      // Completed and archived campaigns can't be DELETE'd (EB rejects with
+      // "campaign must be draft or paused") and they aren't actively sending
+      // anyway, so removing the sender from them is meaningless. Skip them.
+      const TERMINAL = new Set(["completed", "archived", "finished", "ended"]);
+      campaigns = (campsData.data ?? [])
+        .map((c: any) => ({
+          id: c.id, name: c.name, status: String(c.status ?? "").toLowerCase(),
+        }))
+        .filter((c: any) => !TERMINAL.has(c.status));
     }
 
     type ActionResult = { campaign_id: number; campaign_name: string; status: string; error?: string };
@@ -330,7 +336,14 @@ export async function POST(req: NextRequest) {
         );
         if (refreshRes.ok) {
           const body = await refreshRes.json();
-          const liveCount = (body?.data ?? []).length;
+          // Match the action-side filter: completed/archived campaigns are
+          // not actively sending and should not count as "attached" for
+          // dashboard purposes (otherwise the row keeps showing
+          // "In 1 campaign" after Pause+warmup against a completed one).
+          const TERMINAL = new Set(["completed", "archived", "finished", "ended"]);
+          const liveCount = (body?.data ?? []).filter((c: any) =>
+            !TERMINAL.has(String(c.status ?? "").toLowerCase())
+          ).length;
           await pool.query(
             `UPDATE sender_accounts SET attached_campaigns_count = $1
              WHERE workspace_slug = $2 AND email = $3`,
