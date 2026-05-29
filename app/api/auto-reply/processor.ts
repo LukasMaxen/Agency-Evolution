@@ -83,6 +83,75 @@ function extractQuickReference(clientFileContent: string): string {
   return marker + section.trim();
 }
 
+// ─── Recent approved examples ─────────────────────────────────────────────────
+//
+// Pulls the most recent sent replies for a workspace and formats them as
+// in-context positive examples. Every approved + sent reply becomes a
+// training signal at draft time, not just retrospectively in the daily
+// review. Excludes the current lead so we never echo the same lead back
+// to themselves. Capped at 3 examples × ~1200 chars each ≈ 1k tokens.
+
+async function fetchRecentApprovedExamples(
+  workspaceSlug: string,
+  excludeLeadEmail: string | null,
+  limit: number = 3
+): Promise<string> {
+  try {
+    const r = await pool.query<{
+      sent_at: Date;
+      lead_company: string | null;
+      inbound: string;
+      sent_body: string;
+      subject: string | null;
+    }>(
+      `SELECT se.sent_at,
+              r.lead_company,
+              r.message AS inbound,
+              se.body   AS sent_body,
+              r.subject
+       FROM sent_emails se
+       JOIN replies r ON r.id = se.reply_id
+       WHERE se.workspace_slug = $1
+         AND se.sent_at > NOW() - INTERVAL '14 days'
+         AND ($2::text IS NULL OR r.lead_email <> $2)
+         AND COALESCE(r.message, '') <> ''
+         AND COALESCE(se.body, '') <> ''
+       ORDER BY se.sent_at DESC
+       LIMIT $3`,
+      [workspaceSlug, excludeLeadEmail, limit]
+    );
+    if (r.rows.length === 0) return "";
+
+    const examples = r.rows.map((row, i) => {
+      const inbound = (row.inbound || "")
+        .replace(/On \w+,? \w+ \d+,? \d{4}[\s\S]*/, "")
+        .split("\n")
+        .filter(line => !line.trimStart().startsWith(">"))
+        .join("\n")
+        .trim()
+        .slice(0, 350);
+      const sent = (row.sent_body || "").trim().slice(0, 700);
+      const company = row.lead_company ? ` (${row.lead_company})` : "";
+      return `--- Example ${i + 1}${company} ---
+LEAD INBOUND:
+${inbound}
+
+OUR APPROVED REPLY (sent):
+${sent}`;
+    }).join("\n\n");
+
+    return `POSITIVE EXAMPLES (the last ${r.rows.length} approved replies for this workspace, match this voice and structure unless the current lead's situation requires deviating, do NOT copy specifics verbatim, learn the pattern):
+
+${examples}
+
+`;
+  } catch (err: any) {
+    // Examples are a nice-to-have. Never block draft generation on a query failure.
+    console.error(`[positive-examples] fetch failed for ${workspaceSlug}:`, err?.message ?? err);
+    return "";
+  }
+}
+
 // ─── Lead enrichment fetch ─────────────────────────────────────────────────────
 
 async function fetchLeadEnrichment(instanceUrl: string, apiKey: string, leadId: number | string | null): Promise<string> {
@@ -926,10 +995,15 @@ Use exactly the slot strings above when proposing times in the reply, do not ref
     }
   }
 
+  // Recent approved sends as in-context positive examples. Updates the
+  // processor's "what good looks like" every time it drafts. Silent fallback
+  // if the query returns nothing (e.g. fresh workspace with no sends yet).
+  const positiveExamples = await fetchRecentApprovedExamples(workspaceSlug, reply.lead_email, 3);
+
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${companyContextBlock}${calendlyHint}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${companyContextBlock}${calendlyHint}${positiveExamples}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
