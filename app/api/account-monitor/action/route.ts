@@ -196,14 +196,20 @@ export async function POST(req: NextRequest) {
     //    Sequential-per-campaign waits added up to nearly 2 minutes for
     //    senders attached to many campaigns and produced unreliable
     //    results because intermediate DELETEs cancelled earlier jobs.
-    const ACTIVE_STATES = new Set(["active", "running", "live"]);
+    // EB only allows DELETE on "draft" or "paused". Everything else
+    // (active, running, live, launching, queued, …) needs to be paused
+    // first. We use a deny-list against the two known-pausable states
+    // rather than an allow-list of active states, because EB has shipped
+    // new statuses ("launching", "queued") that we kept missing and that
+    // silently broke the auto-pause step for whole batches of senders.
+    const PAUSABLE_STATES = new Set(["draft", "paused"]);
     const REMOVE_WAIT_MS = 8000;
 
     if (action === "remove" || action === "remove_and_warmup") {
-      // Step a: pause active campaigns
+      // Step a: pause anything that isn't already pause-eligible
       const pausedCamps: number[] = [];
       const pausePromises = campaigns
-        .filter(c => ACTIVE_STATES.has(c.status ?? ""))
+        .filter(c => !PAUSABLE_STATES.has(c.status ?? ""))
         .map(async c => {
           const r = await setCampaignStatus(c.id, "pause");
           if (r.ok) pausedCamps.push(c.id);
