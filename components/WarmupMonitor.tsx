@@ -21,22 +21,20 @@ interface Sender {
 }
 
 interface Summary {
-  totalSenders:  number;
-  notWarming:    number;
-  disconnected:  number;
-  warmingOnly:   number;
-  readyToRejoin: number;
-  idle:          number;
+  totalSenders:    number;
+  notWarming:      number;
+  readyToRejoin:   number;
+  lowWarmupHealth: number;
+  warmupHealthAvg: number | null;
 }
 
 interface WsAgg {
-  slug:          string;
-  total:         number;
-  notWarming:    number;
-  disconnected:  number;
-  warmingOnly:   number;
-  readyToRejoin: number;
-  idle:          number;
+  slug:            string;
+  total:           number;
+  notWarming:      number;
+  readyToRejoin:   number;
+  lowWarmupHealth: number;
+  warmupHealthAvg: number | null;
 }
 
 interface WarmupData {
@@ -86,17 +84,18 @@ function PillBadge({ text, tone }: { text: string; tone: "red" | "amber" | "gree
 
 // ── Workspace card (Level 1) ─────────────────────────────────────────────────
 
-function WorkspaceCard({ w, attachedCount, onClick }: { w: WsAgg; attachedCount: number; onClick: () => void }) {
+function WorkspaceCard({ w, onClick }: { w: WsAgg; onClick: () => void }) {
   const workspaces = useWorkspaces();
   const name = resolveWsName(workspaces, w.slug);
 
-  // Border severity: not-warming + disconnected are urgent (red); ready/
-  // warming-only show amber; idle-only shows grey; otherwise green.
+  // Border severity:
+  //   red   if any sender is not warming or warmup health is below the cutoff
+  //   amber if any sender is ready to rejoin (lifecycle action needed)
+  //   green otherwise
   const accent =
-    (w.notWarming + w.disconnected) > 0 ? "#E24B4A" :
-    (w.warmingOnly + w.readyToRejoin) > 0 ? "#F59E0B" :
-    w.idle > 0                          ? "#9CA3AF" :
-                                          "#84C56A";
+    (w.notWarming + w.lowWarmupHealth) > 0 ? "#E24B4A" :
+    w.readyToRejoin > 0                    ? "#F59E0B" :
+                                             "#84C56A";
 
   return (
     <div onClick={onClick}
@@ -114,24 +113,20 @@ function WorkspaceCard({ w, attachedCount, onClick }: { w: WsAgg; attachedCount:
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 6, flexWrap: "wrap" }}>
         <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{name}</p>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {w.notWarming    > 0 && <PillBadge text={`${w.notWarming} not warming`}  tone="red" />}
-          {w.disconnected  > 0 && <PillBadge text={`${w.disconnected} disconnected`} tone="indigo" />}
-          {w.readyToRejoin > 0 && <PillBadge text={`${w.readyToRejoin} ready`}      tone="green" />}
-          {w.warmingOnly   > 0 && <PillBadge text={`${w.warmingOnly} warming`}      tone="amber" />}
-          {w.idle          > 0 && <PillBadge text={`${w.idle} idle`}                tone="grey" />}
-          {w.notWarming === 0 && w.disconnected === 0 && w.warmingOnly === 0 && w.idle === 0 && (
+          {w.notWarming      > 0 && <PillBadge text={`${w.notWarming} not warming`}        tone="red" />}
+          {w.lowWarmupHealth > 0 && <PillBadge text={`${w.lowWarmupHealth} low health`}    tone="red" />}
+          {w.readyToRejoin   > 0 && <PillBadge text={`${w.readyToRejoin} ready`}           tone="green" />}
+          {w.notWarming === 0 && w.lowWarmupHealth === 0 && (
             <PillBadge text="All healthy" tone="green" />
           )}
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {[
-          // Row 1: top-level counts (no KPI = always black)
-          { label: "Total senders",    value: w.total,                  color: undefined },
-          { label: "Attached / Total", value: `${attachedCount} / ${w.total}`, color: undefined },
-          // Row 2: status counts — colored only when the count > 0
-          { label: "Not warming",      value: w.notWarming,             color: w.notWarming   > 0 ? "#B91C1C" : undefined },
-          { label: "Idle (0 camps)",   value: w.idle,                   color: w.idle         > 0 ? "#6B7280" : undefined },
+          { label: "Total senders",   value: w.total,                                                            color: undefined },
+          { label: "Not warming",     value: w.notWarming,                                                       color: w.notWarming   > 0 ? "#B91C1C" : undefined },
+          { label: "Warmup health",   value: w.warmupHealthAvg !== null ? `${w.warmupHealthAvg}%` : "—",         color: w.warmupHealthAvg === null ? "#9ca3af" : w.warmupHealthAvg >= 98 ? "#15803D" : w.warmupHealthAvg >= 90 ? "#D97706" : "#B91C1C" },
+          { label: "Ready to rejoin", value: w.readyToRejoin,                                                    color: w.readyToRejoin > 0 ? "#15803D" : undefined },
         ].map(s => (
           <div key={s.label}>
             <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{s.label}</p>
@@ -146,7 +141,7 @@ function WorkspaceCard({ w, attachedCount, onClick }: { w: WsAgg; attachedCount:
 
 // ── Sender table for a single workspace (Level 2) ────────────────────────────
 
-type Tab = "all" | "not_warming" | "disconnected" | "warming_only" | "ready" | "idle";
+type Tab = "all" | "not_warming" | "low_health" | "ready";
 
 function SenderTable({
   ws, senders, onBack, onActionDone, refresh,
@@ -195,12 +190,10 @@ function SenderTable({
 
   const filtered = senders.filter(s => {
     switch (tab) {
-      case "not_warming":  return !s.warmup_enabled && s.conn_status !== "Not connected";
-      case "disconnected": return s.conn_status === "Not connected";
-      case "warming_only": return s.warming_since !== null;
-      case "ready":        return s.ready_to_rejoin;
-      case "idle":         return (s.attached_campaigns_count ?? 0) === 0 && s.warming_since === null && s.conn_status === "Connected";
-      default:             return true;
+      case "not_warming": return !s.warmup_enabled;
+      case "low_health":  return false; // placeholder: no health source yet
+      case "ready":       return s.ready_to_rejoin;
+      default:            return true;
     }
   });
 
@@ -220,20 +213,17 @@ function SenderTable({
         {name}, warmup status
       </p>
       <p style={{ fontSize: 11, color: "#9ca3af", marginBottom: 14 }}>
-        {senders.length} senders ·
-        {ws.notWarming > 0 ? ` ${ws.notWarming} not warming ·` : ""}
-        {ws.disconnected > 0 ? ` ${ws.disconnected} disconnected ·` : ""}
-        {ws.idle > 0 ? ` ${ws.idle} idle` : ""}
+        {senders.length} senders
+        {ws.notWarming > 0 ? ` · ${ws.notWarming} not warming` : ""}
+        {ws.readyToRejoin > 0 ? ` · ${ws.readyToRejoin} ready to rejoin` : ""}
       </p>
 
       <div style={{ display: "flex", gap: 4, marginBottom: 10, borderBottom: "0.5px solid #ede9e3" }}>
         {([
-          { key: "all",          label: "All",            count: senders.length },
-          { key: "not_warming",  label: "Not warming",    count: ws.notWarming },
-          { key: "disconnected", label: "Disconnected",   count: ws.disconnected },
-          { key: "warming_only", label: "Warming only",   count: ws.warmingOnly },
-          { key: "ready",        label: "Ready to rejoin", count: ws.readyToRejoin },
-          { key: "idle",         label: "Idle",           count: ws.idle },
+          { key: "all",         label: "All",              count: senders.length },
+          { key: "not_warming", label: "Not warming",      count: ws.notWarming },
+          { key: "low_health",  label: "Low warmup health", count: ws.lowWarmupHealth },
+          { key: "ready",       label: "Ready to rejoin",  count: ws.readyToRejoin },
         ] as const).map(t => {
           const selected = tab === t.key;
           return (
@@ -264,12 +254,11 @@ function SenderTable({
           <thead>
             <tr style={{ background: "#f8f7f5", borderBottom: "0.5px solid #ede9e3" }}>
               {[
-                { h: "Sender",       w: "32%", align: "left" },
-                { h: "Connection",   w: "14%", align: "left" },
-                { h: "Warmup",       w: "14%", align: "left" },
-                { h: "Attached",     w: "10%", align: "right" },
-                { h: "Warming",      w: "10%", align: "right" },
-                { h: "Action",       w: "20%", align: "center" },
+                { h: "Sender",         w: "36%", align: "left" },
+                { h: "Warmup",         w: "14%", align: "left" },
+                { h: "Warmup health",  w: "14%", align: "right" },
+                { h: "Warming",        w: "12%", align: "right" },
+                { h: "Action",         w: "24%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -281,37 +270,28 @@ function SenderTable({
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+              <tr><td colSpan={5} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
                 No senders matching this filter.
               </td></tr>
             )}
             {filtered.map(s => {
               const acting = actionMap[s.sender_email];
-              const disconnected = s.conn_status === "Not connected";
-              const notWarming   = !s.warmup_enabled && !disconnected;
+              const notWarming = !s.warmup_enabled;
               return (
                 <tr key={s.sender_email} style={{ borderBottom: "0.5px solid #f3f4f6" }}>
                   <td style={{ padding: "9px 10px", color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sender_email}</td>
                   <td style={{ padding: "9px 10px" }}>
-                    {disconnected
-                      ? <PillBadge text="Disconnected" tone="indigo" />
-                      : <PillBadge text="Connected"    tone="green" />}
-                  </td>
-                  <td style={{ padding: "9px 10px" }}>
                     {notWarming
                       ? <PillBadge text="Not warming" tone="red" />
-                      : s.warmup_enabled
-                        ? <PillBadge text="Warming" tone="green" />
-                        : <PillBadge text="—" tone="grey" />}
+                      : <PillBadge text="Warming"     tone="green" />}
                   </td>
-                  <td style={{ padding: "9px 10px", textAlign: "right", color: (s.attached_campaigns_count ?? 0) === 0 ? "#6B7280" : "#111827" }}>
-                    {s.attached_campaigns_count ?? "—"}
-                  </td>
+                  {/* Warmup health % — no EB source yet, em-dash placeholder. */}
+                  <td style={{ padding: "9px 10px", textAlign: "right", color: "#9ca3af" }} title="Warmup health % requires an EB scrape or third-party warmup tool. Source not wired in yet.">—</td>
                   <td style={{ padding: "9px 10px", textAlign: "right", color: s.ready_to_rejoin ? "#15803D" : "#6B7280" }}>
                     {s.warming_days !== null ? `${s.warming_days}d` : "—"}
                   </td>
                   <td style={{ padding: "9px 10px", textAlign: "center" }}>
-                    {(s.attached_campaigns_count ?? 0) === 0 && !disconnected ? (
+                    {(s.attached_campaigns_count ?? 0) === 0 ? (
                       <button
                         onClick={() => runSenderAction(s, "attach_to_all")}
                         disabled={acting === "attach_to_all"}
@@ -324,7 +304,7 @@ function SenderTable({
                         {acting === "attach_to_all" ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
                         Attach to all
                       </button>
-                    ) : (s.attached_campaigns_count ?? 0) > 0 && !disconnected ? (
+                    ) : (
                       <button
                         onClick={() => runSenderAction(s, "remove_and_warmup")}
                         disabled={acting === "remove_and_warmup"}
@@ -337,7 +317,7 @@ function SenderTable({
                         {acting === "remove_and_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
                         Pause + warmup
                       </button>
-                    ) : null}
+                    )}
                   </td>
                 </tr>
               );
@@ -379,17 +359,6 @@ export function WarmupMonitor() {
     const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
   }, [toast]);
-
-  // Active senders per workspace = attached_campaigns_count > 0. Computed
-  // once here from the senders list and passed into each WorkspaceCard.
-  const attachedBySlug: Record<string, number> = {};
-  if (data) {
-    for (const s of data.senders) {
-      if ((s.attached_campaigns_count ?? 0) > 0) {
-        attachedBySlug[s.workspace_slug] = (attachedBySlug[s.workspace_slug] ?? 0) + 1;
-      }
-    }
-  }
 
   const selectedSenders = (data && selected)
     ? data.senders.filter(s => s.workspace_slug === selected.slug)
@@ -442,16 +411,20 @@ export function WarmupMonitor() {
 
       {!loading && data && !selected && (
         <>
-          {/* Summary metrics row: 4-col grid, 2 rows, matches AccountMonitor. */}
+          {/* Summary metrics: four cards. Warmup health % is em-dashed until
+              EB UI scrape or a third-party warmup tool is wired in. */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
             <SummaryCard label="Total senders"     value={data.summary.totalSenders} />
             <SummaryCard label="Not warming"       value={data.summary.notWarming}    color={data.summary.notWarming    > 0 ? "#B91C1C" : undefined} />
-            <SummaryCard label="Disconnected"      value={data.summary.disconnected}  color={data.summary.disconnected  > 0 ? "#3730A3" : undefined} />
+            <SummaryCard
+              label="Warmup health"
+              value={data.summary.warmupHealthAvg !== null ? `${data.summary.warmupHealthAvg}%` : "—"}
+              color={data.summary.warmupHealthAvg === null ? "#9ca3af" :
+                     data.summary.warmupHealthAvg >= 98 ? "#15803D" :
+                     data.summary.warmupHealthAvg >= 90 ? "#D97706" : "#B91C1C"}
+              sub={data.summary.warmupHealthAvg === null ? "source pending" : undefined}
+            />
             <SummaryCard label="Ready to rejoin"   value={data.summary.readyToRejoin} color={data.summary.readyToRejoin > 0 ? "#15803D" : undefined} />
-            <SummaryCard label="Warming-only"      value={data.summary.warmingOnly} />
-            <SummaryCard label="Idle (0 camps)"    value={data.summary.idle} />
-            <SummaryCard label="Workspaces"        value={data.workspaces.length} />
-            <SummaryCard label="Senders attached"  value={Object.values(attachedBySlug).reduce((s, n) => s + n, 0)} sub={`of ${data.summary.totalSenders}`} />
           </div>
 
           {data.workspaces.length === 0 ? (
@@ -464,7 +437,6 @@ export function WarmupMonitor() {
                 <WorkspaceCard
                   key={w.slug}
                   w={w}
-                  attachedCount={attachedBySlug[w.slug] ?? 0}
                   onClick={() => setSelected(w)}
                 />
               ))}

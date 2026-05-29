@@ -88,43 +88,40 @@ export async function GET() {
       };
     });
 
+    // Per-spec simplified summary. Warmup health % is intentionally not
+    // computed yet — EB exposes only warmup_enabled boolean, no health
+    // score. The card and column carry through as null/'—' until a source
+    // is wired in. lowWarmupHealth count placeholder = 0 for now.
     const summary = {
-      totalSenders:    senders.length,
-      notWarming:      senders.filter(s => !s.warmup_enabled && s.conn_status !== "Not connected").length,
-      disconnected:    senders.filter(s => s.conn_status === "Not connected").length,
-      warmingOnly:     senders.filter(s => s.warming_since !== null).length,
-      readyToRejoin:   senders.filter(s => s.ready_to_rejoin).length,
-      idle:            senders.filter(s => (s.attached_campaigns_count ?? 0) === 0 && s.warming_since === null && s.conn_status === "Connected").length,
+      totalSenders:     senders.length,
+      notWarming:       senders.filter(s => !s.warmup_enabled).length,
+      readyToRejoin:    senders.filter(s => s.ready_to_rejoin).length,
+      lowWarmupHealth:  0,            // placeholder until source plumbed
+      warmupHealthAvg:  null as number | null, // average % across all senders
     };
 
-    // Per-workspace breakdown so the UI can show counts on each workspace
-    // header without re-aggregating client-side.
     type WsAgg = {
-      slug:          string;
-      total:         number;
-      notWarming:    number;
-      disconnected:  number;
-      warmingOnly:   number;
-      readyToRejoin: number;
-      idle:          number;
+      slug:             string;
+      total:            number;
+      notWarming:       number;
+      readyToRejoin:    number;
+      lowWarmupHealth:  number;
+      warmupHealthAvg:  number | null;
     };
     const wsMap: Record<string, WsAgg> = {};
     for (const s of senders) {
       const w = wsMap[s.workspace_slug] ?? (wsMap[s.workspace_slug] = {
-        slug: s.workspace_slug, total: 0, notWarming: 0, disconnected: 0,
-        warmingOnly: 0, readyToRejoin: 0, idle: 0,
+        slug: s.workspace_slug, total: 0, notWarming: 0, readyToRejoin: 0,
+        lowWarmupHealth: 0, warmupHealthAvg: null,
       });
       w.total++;
-      if (s.conn_status === "Not connected")                                                w.disconnected++;
-      else if (!s.warmup_enabled)                                                           w.notWarming++;
-      if (s.warming_since !== null)                                                         w.warmingOnly++;
-      if (s.ready_to_rejoin)                                                                w.readyToRejoin++;
-      if ((s.attached_campaigns_count ?? 0) === 0 && s.warming_since === null
-          && s.conn_status === "Connected")                                                 w.idle++;
+      if (!s.warmup_enabled)  w.notWarming++;
+      if (s.ready_to_rejoin)  w.readyToRejoin++;
     }
     const workspaces = Object.values(wsMap).sort((a, b) =>
-      (b.notWarming + b.disconnected) - (a.notWarming + a.disconnected) ||
-      b.total - a.total
+      (b.notWarming - a.notWarming) ||
+      (b.readyToRejoin - a.readyToRejoin) ||
+      (b.total - a.total)
     );
 
     return NextResponse.json({
@@ -140,5 +137,5 @@ export async function GET() {
 }
 
 function emptySummary() {
-  return { totalSenders: 0, notWarming: 0, disconnected: 0, warmingOnly: 0, readyToRejoin: 0, idle: 0 };
+  return { totalSenders: 0, notWarming: 0, readyToRejoin: 0, lowWarmupHealth: 0, warmupHealthAvg: null };
 }
