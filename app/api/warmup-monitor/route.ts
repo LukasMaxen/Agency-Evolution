@@ -164,6 +164,7 @@ export async function GET() {
       slug:              string;
       total:             number;
       active:            number;
+      disconnected:      number;
       notWarming:        number;
       warmingOnly:       number;
       readyToRejoin:     number;
@@ -174,11 +175,12 @@ export async function GET() {
     const wsScoreSums: Record<string, { sum: number; count: number }> = {};
     for (const s of senders) {
       const w = wsMap[s.workspace_slug] ?? (wsMap[s.workspace_slug] = {
-        slug: s.workspace_slug, total: 0, active: 0, notWarming: 0, warmingOnly: 0,
+        slug: s.workspace_slug, total: 0, active: 0, disconnected: 0, notWarming: 0, warmingOnly: 0,
         readyToRejoin: 0, lowHealthDomains: 0, warmupHealthAvg: null,
       });
       w.total++;
       if ((s.attached_campaigns_count ?? 0) > 0) w.active++;
+      if (s.conn_status === "Not connected") w.disconnected++;
       if (!s.warmup_enabled)         w.notWarming++;
       if (isWarmingOnly(s))          w.warmingOnly++;
       if (s.ready_to_rejoin)         w.readyToRejoin++;
@@ -197,13 +199,15 @@ export async function GET() {
         wsMap[slug].warmupHealthAvg = Math.round(slot.sum / slot.count * 10) / 10;
       }
     }
-    // Priority sort: workspaces with not-warming senders first (most urgent),
-    // then workspaces with at least one low-health domain (domain avg below
-    // 98% — the planned Pause-outbound trigger), then everything else by
-    // average warmup health ascending so the workspaces closest to the
-    // threshold show before the fully healthy ones. Null avg (no senders
-    // scored yet) goes to the bottom.
+    // Priority sort:
+    //   1. disconnected senders (operator must reconnect in EB first)
+    //   2. not-warming senders (need warmup toggle)
+    //   3. low-health domains (need Pause-outbound)
+    //   4. then by avg warmup health ascending so workspaces closest to
+    //      threshold surface before fully healthy ones
+    // Null avg (no senders scored yet) goes to the bottom.
     const workspaces = Object.values(wsMap).sort((a, b) => {
+      if (b.disconnected !== a.disconnected) return b.disconnected - a.disconnected;
       if (b.notWarming !== a.notWarming) return b.notWarming - a.notWarming;
       if (b.lowHealthDomains !== a.lowHealthDomains) return b.lowHealthDomains - a.lowHealthDomains;
       const avgA = a.warmupHealthAvg ?? 101;

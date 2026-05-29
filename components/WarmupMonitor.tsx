@@ -34,6 +34,7 @@ interface WsAgg {
   slug:             string;
   total:            number;
   active:           number;
+  disconnected:     number;
   notWarming:       number;
   warmingOnly:      number;
   readyToRejoin:    number;
@@ -96,7 +97,11 @@ function WorkspaceCard({ w, onClick }: { w: WsAgg; onClick: () => void }) {
   //   red   if any sender is not warming or warmup health is below the cutoff
   //   amber if any sender is ready to rejoin (lifecycle action needed)
   //   green otherwise
+  // Severity ranking matches Domain Monitor: disconnected outranks every
+  // other state (mailbox is unreachable, warmup/health flags are moot
+  // until the operator reconnects in EmailBison).
   const accent =
+    w.disconnected > 0                      ? "#6366F1" :
     (w.notWarming + w.lowHealthDomains) > 0 ? "#E24B4A" :
     w.readyToRejoin > 0                     ? "#F59E0B" :
                                               "#84C56A";
@@ -117,10 +122,11 @@ function WorkspaceCard({ w, onClick }: { w: WsAgg; onClick: () => void }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 6, flexWrap: "wrap" }}>
         <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{name}</p>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {w.disconnected     > 0 && <PillBadge text={`${w.disconnected} disconnected`}                                                  tone="indigo" />}
           {w.notWarming       > 0 && <PillBadge text={`${w.notWarming} not warming`}                                                     tone="red" />}
           {w.lowHealthDomains > 0 && <PillBadge text={`${w.lowHealthDomains} low-health ${w.lowHealthDomains === 1 ? "domain" : "domains"}`} tone="red" />}
           {w.readyToRejoin    > 0 && <PillBadge text={`${w.readyToRejoin} ready`}                                                          tone="green" />}
-          {w.notWarming === 0 && w.lowHealthDomains === 0 && (
+          {w.disconnected === 0 && w.notWarming === 0 && w.lowHealthDomains === 0 && (
             <PillBadge text="All healthy" tone="green" />
           )}
         </div>
