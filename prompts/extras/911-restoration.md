@@ -47,6 +47,31 @@ Instead, the `{OPENING_HOOK}` should:
 
 The entire draft should feel written for one person. If a line could appear in any other email in the sequence unchanged, rewrite it.
 
+### Short "Yes" Response Rule (from Kasper Zacho send-time learning — refined by human review)
+When a lead replies with a simple "yes" or a short permission-giving response, the follow-up opening must feel like a real person reacting to what they actually said — not a canned line dropped in regardless of context.
+
+**Do not open with:**
+- "Thanks for saying yes" — sounds robotic and odd
+- "Appreciate you getting back to me" — generic and templated
+- Any phrase that could appear unchanged in any other email
+
+**Instead:**
+- React naturally to the fact that they said yes — the tone should feel warm, a little personal, and human, like you genuinely noticed they replied
+- Keep it brief — one short line is enough before moving into content
+- Use plain, conversational language — no complex vocabulary, no formal transitions
+
+**Examples of what works:**
+- "Glad you're open to hearing more — here's the quick version."
+- "Good to hear from you — let me give you the short version of how this actually works."
+- "Really glad you replied — here's what I wanted to share."
+
+**Examples of what doesn't work:**
+- "Thanks for saying yes to learning more." ❌
+- "Appreciate you getting back to me, {FIRST_NAME}." ❌
+- "Great to connect!" ❌
+
+The goal is simple: the lead should feel like a person wrote back to them, not like a sequence fired off the next email.
+
 ### {OPENING_HOOK} Examples
 | Lead type | Example hook |
 |---|---|
@@ -80,6 +105,28 @@ Fill this token with a specific, research-backed detail about the lead's existin
 > Per our 2024 FDD, the top 25% of franchisees average $2M+ in gross revenue. SBA financing is available.
 >
 > Our Franchise Developer Dre will follow up within 48 hours — or if you'd rather just grab a time directly: <https://calendly.com/dre-c-911restoration/quick-introduction-call-clone>
+>
+> {SENDER_EMAIL_SIGNATURE}
+
+### Worked Example — "Yes" Reply (Kasper Zacho / HVAC)
+
+This example shows how to handle a lead who replied with a simple "yes" or short opt-in. The opening reacts to what they said without sounding robotic or canned.
+
+> Hi Kasper,
+>
+> Good to hear from you — let me give you the quick version of how this actually works.
+>
+> Running an HVAC operation in {CITY} the way you have at {BUSINESS_NAME} takes real discipline, and that's exactly the kind of background that fits this well.
+>
+> A 911 Restoration franchise layers on top of what you already run. The work comes through insurance claim pipelines — water damage, fire, mold — so there's no cold outreach, no marketing budget to chase, and no disruption to {BUSINESS_NAME}. It keeps running exactly as it does today.
+>
+> The reason your profile stood out: you already manage crews and coordinate jobs under pressure — the operational side of restoration won't be unfamiliar ground.
+>
+> Two quick videos worth two minutes of your time: Chris's Story (3:00) <https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be> and The Power of the Network (1:30) <https://www.youtube.com/watch?v=JoPThufW1uc>
+>
+> Per our 2024 FDD, the top 25% of franchisees average $2M+ in gross revenue. SBA financing is available.
+>
+> Our Franchise Developer Dre will follow up within 48 hours — or grab a time directly here: <https://calendly.com/dre-c-911restoration/quick-introduction-call-clone>
 >
 > {SENDER_EMAIL_SIGNATURE}
 
