@@ -6,14 +6,14 @@
 ## REPLY QUICK REFERENCE
 campaign_type: agency_services
 sender: Nicklas Larsen, Founder, Larsen Digital
-offer: DTC brand growth and exit planning. M&A partners closed $1B+ in CPG transactions. Goal: 8-figure exit. 100% performance-based, no upfront fee. 250M+ in Shopify revenue managed.
+offer: DTC brand growth and exit planning. M&A partners closed $1B+ in CPG transactions. Goal: 8-figure exit. 250M+ in Shopify revenue managed.
 calendly: https://calendly.com/larsen-digital-marketing/intro
 always_send_calendly: true (LARSEN DIGITAL EXCEPTION: always send Calendly even when lead gives specific day/time. Find natural reason: "easiest to lock something in here", "calendar fills up fast")
 
 reply_rules:
 - Lead shows general interest (no specific timeframe): send Calendly. Use the live slots from LIVE CALENDAR AVAILABILITY block if present.
 - Lead asks for meeting in a specific human-stated timeframe ("next week", "this week", "Monday morning", "Tuesday afternoon"): route to manual. A human picks the actual slot and confirms.
-- Lead asks about fees: "Fully performance-based, no upfront fee or retainer. We earn when you grow."
+- Lead asks about fees: describe the engagement structure honestly based on what Nicklas has confirmed. Do NOT say "fully performance-based, no upfront fee or retainer" — this is factually inaccurate and must never appear in any reply.
 - Lead asks for case studies: mention Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days)
 - Lead already booked: confirm in 2 lines max. Flag meeting_booked = true. Stop FU sequence.
 - Lead asks what we do: explain the M&A angle, growth built toward a clean 8-figure exit, not just ads
@@ -42,6 +42,8 @@ reply_body_rules: |
 
   Do NOT dump our full value prop (dual-track, $850k/mo case, $1B+ M&A, structuring options). Save that for the call. The reply's job is to get the call booked, not pre-sell.
 
+  NEVER open a reply by leading with the commercial model. Never say "performance-based", "no upfront fee", or "no retainer" in any reply. These phrases are factually inaccurate for Larsen Digital and must not appear anywhere in reply copy.
+
 referral_handover_template: |
   Hi [NEW_PERSON_FIRST_NAME],
 
@@ -64,15 +66,15 @@ never:
 - Never guarantee exit valuations
 - Never use {COMPANY} — always "your brand"
 - Never mention pricing/fee unless asked
-- Never open a reply by leading with the commercial model ("performance-based", "no upfront fee", "no retainer"). Only bring it up if the lead specifically asks about cost.
+- Never open a reply by leading with the commercial model. Never say "performance-based", "no upfront fee", or "no retainer" in any reply — this is factually inaccurate for Larsen Digital and must not appear anywhere in reply copy.
 - No P.S. opt-out lines
 - Never confirm specific time slots ("next Friday works" = wrong)
 
 fu_context: |
-  Nicklas Larsen runs Larsen Digital — DTC brand growth with a built-in exit strategy. 250M+ in Shopify revenue managed. M&A partners have closed $1B+ in CPG transactions. 100% performance-based, no upfront fee.
+  Nicklas Larsen runs Larsen Digital — DTC brand growth with a built-in exit strategy. 250M+ in Shopify revenue managed. M&A partners have closed $1B+ in CPG transactions.
   Case studies (use exact numbers): Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days), Headwaters Studio (£60k/year to £1M+ in 24 months). $0 to $850k/month in 4 months is available for US brands.
   Key differentiator: "We only take on 15 brands at a time" — use this in FU2 to create genuine scarcity without pressure language. Always say "your brand," never {COMPANY}.
-  FU angle progression: FU2 = case study matched to their brand size/stage + performance-only framing. FU4 = the exit angle — brands that grow without an exit strategy often undervalue themselves when they eventually sell. Nicklas helps build toward a clean 8-figure exit from day one. Every FU must include the Calendly link: https://calendly.com/larsen-digital-marketing/intro
+  FU angle progression: FU2 = case study matched to their brand size/stage. FU4 = the exit angle — brands that grow without an exit strategy often undervalue themselves when they eventually sell. Nicklas helps build toward a clean 8-figure exit from day one. Every FU must include the Calendly link: https://calendly.com/larsen-digital-marketing/intro
 
 ---
 
@@ -104,10 +106,10 @@ Finding DTC/eCommerce brand owners who want a clear path from where their brand 
 Track record of 250M+ in Shopify revenue. Goal is an 8-figure exit. M&A partners have closed $1B+ in CPG transactions. Compensation is fully bespoke and aligned to the business's end goal (growth, profitability, or EV) so incentives stay aligned as we scale.
 
 **What makes them different:**
-Specific exit target (8-figure). Deep M&A network ($1B+ in CPG exits closed by partners). Compensation aligned to the client's outcome, not a fixed fee model.
+Specific exit target (8-figure). Deep M&A network ($1B+ in CPG exits closed by partners). Compensation aligned to the client's outcome.
 
 **What they can never say / promise:**
-Never guarantee exit outcomes or specific valuations. Never volunteer fee structure unprompted.
+Never guarantee exit outcomes or specific valuations. Never volunteer fee structure unprompted. Never describe the engagement as "performance-based", "no upfront fee", or "no retainer" — this is factually inaccurate.
 
 ---
 
@@ -165,7 +167,6 @@ _What's being pitched: Larsen Digital's M&A-focused growth and exit service for 
 
 **Key stats to reference:**
 - 250M+ in Shopify revenue managed
-- Performance-only model — no upfront cost (100% performance-based, no upfront fee)
 - 8-figure exit target
 - M&A partners: $1B+ in CPG transactions closed
 - Results: $0 → $850k/month in 4 months; $152k → $1.1M/month in 13 months
@@ -183,7 +184,6 @@ Do NOT include P.S. opt-out lines for Larsen Digital — consumer brand founders
 
 **What works:**
 - Specific exit target (8-figure) resonates with ambitious founders
-- Performance-only / no upfront cost removes the biggest objection
 - Case study CTA for step 3 outperforms call ask
 - "your brand" always — never {COMPANY}
 - M&A-focus angle outperforms performance-only angle by 5-6x on reply rate
@@ -204,7 +204,7 @@ Do NOT include P.S. opt-out lines for Larsen Digital — consumer brand founders
 Conversational and direct. DTC founders — keep it human, not corporate.
 
 **Interested signal:**
-Any reply showing curiosity about the model, the performance-only structure, exit path, or case studies.
+Any reply showing curiosity about the model, the exit path, or case studies.
 
 **Not interested signal:**
 Happy with current setup, not looking to scale or exit, B2B pivot.
@@ -213,6 +213,7 @@ Happy with current setup, not looking to scale or exit, B2B pivot.
 - Never guarantee exit valuations
 - Never mention pricing or compensation model unless the lead explicitly asks
 - Never use {COMPANY} — always "your brand"
+- Never describe the engagement as "performance-based", "no upfront fee", or "no retainer" — this is factually inaccurate for Larsen Digital
 
 **Calendly rule (Larsen Digital only):**
 Always send the Calendly link — even when the lead mentions specific availability or a preferred time. Never book manually. Instead, find a natural, valid reason to send the link anyway (e.g. "easiest way to lock something in", "calendar fills up fast", "grab whichever slot works on your end"). The excuse must feel genuine, not forced. If the lead says yes/interested/happy to chat, always close with the Calendly link.
@@ -360,4 +361,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-Similar model to Acceler8rs but different positioning (performance-only, 8-figure exit focus). Keep Larsen Digital and Acceler8rs messaging separate — different senders, different Calendly links.
+Similar model to Acceler8rs but different positioning (8-figure exit focus). Keep Larsen Digital and Acceler8rs messaging separate — different senders, different Calendly links.
