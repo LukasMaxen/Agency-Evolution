@@ -31,9 +31,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!["remove", "reattach", "remove_and_warmup", "attach_to_all"].includes(action)) {
+    if (!["remove", "reattach", "remove_and_warmup", "attach_to_all", "enable_warmup"].includes(action)) {
       return NextResponse.json(
-        { error: "action must be one of: remove, reattach, remove_and_warmup, attach_to_all" },
+        { error: "action must be one of: remove, reattach, remove_and_warmup, attach_to_all, enable_warmup" },
         { status: 400 }
       );
     }
@@ -106,7 +106,10 @@ export async function POST(req: NextRequest) {
     //    for the remove-style actions, where we need it to gate auto-pause.
     let campaigns: { id: number; name: string; status?: string }[] = [];
 
-    if (campaign_id) {
+    if (action === "enable_warmup") {
+      // No campaign work — just flip the warmup switch and return.
+      campaigns = [];
+    } else if (campaign_id) {
       // Single campaign — caller provided it, no need to fetch all
       campaigns = [{ id: campaign_id, name: "" }];
     } else if (action === "attach_to_all") {
@@ -254,14 +257,23 @@ export async function POST(req: NextRequest) {
 
     // 5. Enable warmup if requested
     let warmupResult: string | null = null;
-    if (action === "remove_and_warmup" && !warmupAlreadyEnabled) {
+    if ((action === "remove_and_warmup" || action === "enable_warmup") && !warmupAlreadyEnabled) {
       const warmupRes = await fetch(`${instanceUrl}/api/warmup/sender-emails/enable`, {
         method: "PATCH",
         headers,
         body: JSON.stringify({ sender_email_ids: [senderId] }),
       });
       warmupResult = warmupRes.ok ? "enabled" : `failed (${warmupRes.status})`;
-    } else if (action === "remove_and_warmup" && warmupAlreadyEnabled) {
+      // Mirror the new state into our local DB so the dashboard reflects
+      // it without waiting for the next sync.
+      if (warmupRes.ok) {
+        await pool.query(
+          `UPDATE sender_accounts SET warmup_enabled = TRUE
+           WHERE workspace_slug = $1 AND email = $2`,
+          [workspace_slug, sender_email.toLowerCase()]
+        );
+      }
+    } else if ((action === "remove_and_warmup" || action === "enable_warmup") && warmupAlreadyEnabled) {
       warmupResult = "already_enabled";
     }
 

@@ -159,9 +159,9 @@ function SenderTable({
   const workspaces = useWorkspaces();
   const name = resolveWsName(workspaces, ws.slug);
   const [tab, setTab] = useState<Tab>("all");
-  const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "remove_and_warmup" | null>>({});
+  const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "remove_and_warmup" | "enable_warmup" | null>>({});
 
-  async function runSenderAction(s: Sender, action: "attach_to_all" | "remove_and_warmup") {
+  async function runSenderAction(s: Sender, action: "attach_to_all" | "remove_and_warmup" | "enable_warmup") {
     setActionMap(prev => ({ ...prev, [s.sender_email]: action }));
     try {
       const res = await fetch("/api/account-monitor/action", {
@@ -197,13 +197,36 @@ function SenderTable({
   // just hasn't been put in a campaign yet, EB is treating it as warmup-only
   // traffic. "Ready for outbound" still requires the manual-pause path so
   // the 14-day clock has a real start.
-  const isWarmingOnly = (s: Sender) => (s.attached_campaigns_count ?? 0) === 0;
-  const filtered = senders.filter(s => {
-    switch (tab) {
-      case "warming_only": return isWarmingOnly(s);
-      default:             return true;
-    }
-  });
+  const isWarmingOnly  = (s: Sender) => (s.attached_campaigns_count ?? 0) === 0;
+  const isNotWarming   = (s: Sender) => !s.warmup_enabled;
+  const isLowHealth    = (s: Sender) => s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98;
+
+  // Severity bucket for row sort:
+  //   0  Not warming         (red, top — flag + enable warmup)
+  //   1  Low health (<98%)   (red, middle — flag + pause outbound)
+  //   2  Healthy / other     (green or amber, bottom)
+  const severity = (s: Sender) =>
+    isNotWarming(s) ? 0 :
+    isLowHealth(s)  ? 1 :
+                      2;
+
+  const filtered = senders
+    .filter(s => {
+      switch (tab) {
+        case "warming_only": return isWarmingOnly(s);
+        default:             return true;
+      }
+    })
+    .slice()
+    .sort((a, b) => {
+      if (severity(a) !== severity(b)) return severity(a) - severity(b);
+      // Within the same bucket, lower score first so the worst surface
+      // before the borderline ones.
+      const scoreA = a.warmup_score ?? 100;
+      const scoreB = b.warmup_score ?? 100;
+      if (scoreA !== scoreB) return scoreA - scoreB;
+      return a.sender_email.localeCompare(b.sender_email);
+    });
 
   return (
     <div>
@@ -321,11 +344,40 @@ function SenderTable({
                     {s.warmup_score === null ? "—" : `${Math.round(s.warmup_score)}%`}
                   </td>
                   <td style={{ padding: "9px 10px", textAlign: "center" }}>
-                    {/* Warmup Monitor is read-mostly. The only contextual
-                        action is putting a Ready-for-outbound sender back
-                        into rotation. Pause+warmup decisions live on Domain
-                        Monitor (driven by burn / list / low-reply signals). */}
-                    {s.ready_to_rejoin ? (
+                    {/* Contextual action per row severity:
+                          Not warming      -> Enable warmup
+                          Low health (<98) -> Pause outbound (auto-pause/remove/resume, keeps warmup on)
+                          Ready for outbound -> Add to campaigns
+                          Healthy in campaigns -> no action
+                        Pause+warmup decisions for burn / list / reply
+                        signals still live on Domain Monitor. */}
+                    {notWarming ? (
+                      <button
+                        onClick={() => runSenderAction(s, "enable_warmup")}
+                        disabled={acting === "enable_warmup"}
+                        style={{
+                          fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                          background: "#EAF3DE", color: "#15803D", border: "0.5px solid #C0DD97",
+                          cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                        }}>
+                        {acting === "enable_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
+                        Enable warmup
+                      </button>
+                    ) : isLowHealth(s) && !warmingOnly ? (
+                      <button
+                        onClick={() => runSenderAction(s, "remove_and_warmup")}
+                        disabled={acting === "remove_and_warmup"}
+                        style={{
+                          fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                          background: "#FCEBEB", color: "#B91C1C", border: "0.5px solid #F09595",
+                          cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                        }}>
+                        {acting === "remove_and_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
+                        Pause outbound
+                      </button>
+                    ) : s.ready_to_rejoin ? (
                       <button
                         onClick={() => runSenderAction(s, "attach_to_all")}
                         disabled={acting === "attach_to_all"}
