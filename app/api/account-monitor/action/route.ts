@@ -102,8 +102,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Build the list of campaigns to act on
-    let campaigns: { id: number; name: string }[] = [];
+    // 3. Build the list of campaigns to act on. status is filled in only
+    //    for the remove-style actions, where we need it to gate auto-pause.
+    let campaigns: { id: number; name: string; status?: string }[] = [];
 
     if (campaign_id) {
       // Single campaign — caller provided it, no need to fetch all
@@ -126,14 +127,23 @@ export async function POST(req: NextRequest) {
       campaigns = (campsData.data ?? [])
         .filter((c: any) => {
           const s = String(c.status ?? "").toLowerCase();
-          // Skip terminal states. Anything labelled active/draft/running
-          // is fair game (EB also uses "live" sometimes).
-          return s === "active" || s === "running" || s === "live" || s === "draft";
+          // Include all non-terminal states. EB campaigns cycle through
+          //   draft -> queued -> launching -> active (live/running)
+          // plus paused (manually paused). We attach to anything that
+          // is currently sending or about to send. Completed/archived
+          // are excluded.
+          return s === "active" || s === "running" || s === "live"
+              || s === "draft"  || s === "queued"  || s === "launching"
+              || s === "paused";
         })
         .map((c: any) => ({ id: c.id, name: c.name }));
     } else {
       // remove / remove_and_warmup / reattach — operate on campaigns this
-      // sender is currently attached to.
+      // sender is currently attached to. We also need each campaign's
+      // status because EB rejects DELETE on active campaigns
+      // ("The campaign must be in a draft or paused state to remove sender
+      // emails"). Active campaigns get an auto-pause / remove / resume
+      // round trip in step 4 below.
       const campsRes = await fetch(
         `${instanceUrl}/api/sender-emails/${senderId}/campaigns`,
         { headers }
@@ -146,17 +156,50 @@ export async function POST(req: NextRequest) {
         );
       }
       const campsData = await campsRes.json();
-      campaigns = (campsData.data ?? []).map((c: any) => ({ id: c.id, name: c.name }));
+      campaigns = (campsData.data ?? []).map((c: any) => ({
+        id: c.id, name: c.name, status: String(c.status ?? "").toLowerCase(),
+      }));
     }
 
-    const results: { campaign_id: number; campaign_name: string; status: string; error?: string }[] = [];
+    type ActionResult = { campaign_id: number; campaign_name: string; status: string; error?: string };
+    const results: ActionResult[] = [];
 
-    // 4. Remove or attach. EB's remove endpoint is async ("Sender emails
-    //    sent for deletion. This may take a moment.") and completes within a
-    //    few seconds; attach is synchronous. We treat a 200 from either as
-    //    success.
+    // Helper: pause / resume a campaign. Both endpoints are PATCH. Pause
+    // returns the campaign with status='paused'; resume goes to 'queued'
+    // and resumes sending on EB's own timer.
+    const setCampaignStatus = async (id: number, op: "pause" | "resume") => {
+      return fetch(`${instanceUrl}/api/campaigns/${id}/${op}`, {
+        method: "PATCH", headers, body: "{}",
+      });
+    };
+
+    // 4. Remove or attach. EB's DELETE is async ("Sender emails sent for
+    //    deletion. This may take a moment.") and completes within a few
+    //    seconds. EB rejects DELETE on active campaigns, so we pause first
+    //    and resume after.
+    const ACTIVE_STATES = new Set(["active", "running", "live"]);
+    // EB's DELETE on a paused campaign is async ("Sender emails sent for
+    // deletion. This may take a moment.") and completes in ~5s. If we
+    // PATCH /resume too early, EB cancels the queued deletion and the
+    // sender stays attached. 8s is the smallest wait observed to be
+    // reliable in live testing.
+    const REMOVE_WAIT_MS = 8000;
+
     for (const camp of campaigns) {
       if (action === "remove" || action === "remove_and_warmup") {
+        const wasActive = ACTIVE_STATES.has(camp.status ?? "");
+        let pausedByUs = false;
+
+        if (wasActive) {
+          const pauseRes = await setCampaignStatus(camp.id, "pause");
+          if (!pauseRes.ok) {
+            const err = await pauseRes.text();
+            results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "error", error: `pause failed: ${err}` });
+            continue;
+          }
+          pausedByUs = true;
+        }
+
         const removeRes = await fetch(
           `${instanceUrl}/api/campaigns/${camp.id}/remove-sender-emails`,
           {
@@ -165,11 +208,31 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({ sender_email_ids: [senderId] }),
           }
         );
-        if (removeRes.ok) {
+        const removeOk = removeRes.ok;
+        const removeErr = removeOk ? null : await removeRes.text();
+
+        if (pausedByUs) {
+          // EB DELETE is async. Give it a beat before resuming so the
+          // detach completes before sends fire again.
+          if (removeOk) await new Promise(r => setTimeout(r, REMOVE_WAIT_MS));
+          const resumeRes = await setCampaignStatus(camp.id, "resume");
+          if (!resumeRes.ok) {
+            // Resume failed — log loudly. Campaign will remain paused in
+            // EB until the user resumes it manually.
+            const err = await resumeRes.text();
+            results.push({
+              campaign_id: camp.id, campaign_name: camp.name,
+              status: removeOk ? "removed_but_resume_failed" : "error",
+              error: removeOk ? `RESUME FAILED — campaign left paused: ${err}` : `${removeErr}; resume also failed: ${err}`,
+            });
+            continue;
+          }
+        }
+
+        if (removeOk) {
           results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "removed" });
         } else {
-          const err = await removeRes.text();
-          results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "error", error: err });
+          results.push({ campaign_id: camp.id, campaign_name: camp.name, status: "error", error: removeErr ?? "remove failed" });
         }
       } else if (action === "reattach" || action === "attach_to_all") {
         const attachRes = await fetch(
