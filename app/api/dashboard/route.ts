@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
         COUNT(*) FILTER (WHERE interested = TRUE)::int                    AS interested
       FROM replies
       WHERE received_at BETWEEN $1 AND $2
-        AND tracked_reply = TRUE
+        AND tracked_reply IS NOT FALSE
       ${wsFilterSql}
     `, wsArgs);
 
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
              COUNT(*) FILTER (WHERE interested = TRUE)::int AS n
       FROM replies
       WHERE received_at BETWEEN $1 AND $2
-        AND tracked_reply = TRUE
+        AND tracked_reply IS NOT FALSE
       ${wsFilterSql}
       GROUP BY workspace_slug
     `, wsArgs);
@@ -247,7 +247,7 @@ export async function GET(req: NextRequest) {
         `, prevWsArgs),
         pool.query<{ replies: number; interested: number }>(`
           SELECT COUNT(*)::int AS replies, COUNT(*) FILTER (WHERE interested = TRUE)::int AS interested
-          FROM replies WHERE received_at BETWEEN $1 AND $2 AND tracked_reply = TRUE ${wsFilterSql}
+          FROM replies WHERE received_at BETWEEN $1 AND $2 AND tracked_reply IS NOT FALSE ${wsFilterSql}
         `, prevWsArgs),
         pool.query<{ bounced: number }>(`
           SELECT COUNT(*)::int AS bounced FROM email_bounces
@@ -255,7 +255,7 @@ export async function GET(req: NextRequest) {
         `, prevWsArgs),
         pool.query<{ slug: string; n: number }>(`
           SELECT workspace_slug AS slug, COUNT(*) FILTER (WHERE interested = TRUE)::int AS n
-          FROM replies WHERE received_at BETWEEN $1 AND $2 AND tracked_reply = TRUE ${wsFilterSql}
+          FROM replies WHERE received_at BETWEEN $1 AND $2 AND tracked_reply IS NOT FALSE ${wsFilterSql}
           GROUP BY workspace_slug
         `, prevWsArgs),
       ]);
@@ -319,7 +319,7 @@ export async function GET(req: NextRequest) {
         COUNT(*) FILTER (WHERE interested = TRUE)::int AS i
       FROM replies
       WHERE received_at BETWEEN $1 AND $2
-        AND tracked_reply = TRUE
+        AND tracked_reply IS NOT FALSE
       ${wsFilterSql}
       GROUP BY d
     `, wsArgs);
@@ -364,7 +364,7 @@ export async function GET(req: NextRequest) {
         pool.query<{ d: string; n: number; i: number }>(`
           SELECT to_char(received_at::date, 'YYYY-MM-DD') AS d, COUNT(*)::int AS n,
                  COUNT(*) FILTER (WHERE interested = TRUE)::int AS i
-          FROM replies WHERE received_at BETWEEN $1 AND $2 AND tracked_reply = TRUE ${wsFilterSql} GROUP BY d
+          FROM replies WHERE received_at BETWEEN $1 AND $2 AND tracked_reply IS NOT FALSE ${wsFilterSql} GROUP BY d
         `, prevWsArgs2),
         pool.query<{ d: string; n: number }>(`
           SELECT to_char(bounced_at::date, 'YYYY-MM-DD') AS d, COUNT(*)::int AS n
