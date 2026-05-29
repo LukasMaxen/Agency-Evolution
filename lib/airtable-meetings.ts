@@ -47,14 +47,17 @@ function isoDate(d: Date): string {
 
 /**
  * Build the filterByFormula clause for a date range.
- * Inclusive on both ends.
+ *
+ * Airtable IS_AFTER and IS_BEFORE are STRICTLY exclusive, so we shift both
+ * boundaries by one day to make the range inclusive on both ends.
+ * For a desired range [start, end]:
+ *   IS_AFTER(field, start - 1 day)  AND  IS_BEFORE(field, end + 1 day)
+ * gives every record where start <= field <= end.
  */
 function buildFilter(cfg: AirtableMeetingsConfig, start: Date, end: Date): string {
-  const startStr = isoDate(start);
-  const endStr   = isoDate(end);
-  const dateClause = `AND(IS_AFTER({${cfg.field}}, '${startStr}'), IS_BEFORE({${cfg.field}}, '${isoDate(new Date(end.getTime() + 24 * 60 * 60 * 1000))}'))`;
-  // ↑ Pushing end by +1 day so IS_BEFORE includes the end date itself.
-  // IS_SAME({field}, 'date', 'day') works too but doesn't compose into AND cleanly with the extra filter.
+  const startMinusOne = new Date(start.getTime() - 24 * 60 * 60 * 1000);
+  const endPlusOne    = new Date(end.getTime()   + 24 * 60 * 60 * 1000);
+  const dateClause = `AND(IS_AFTER({${cfg.field}}, '${isoDate(startMinusOne)}'), IS_BEFORE({${cfg.field}}, '${isoDate(endPlusOne)}'))`;
   if (cfg.filter) {
     return `AND(${dateClause}, ${cfg.filter})`;
   }

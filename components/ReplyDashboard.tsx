@@ -256,7 +256,7 @@ export function ReplyDashboard() {
               <KpiCard
                 label="Replies"
                 value={fmtInt(data.totals.replies)}
-                rate={{ value: fmtPct(data.rates.reply_rate), tone: rateTone(data.rates.reply_rate, 0.03, 0.01) }}
+                rate={{ value: fmtPct(data.rates.reply_rate), tone: rateTone(data.rates.reply_rate, 0.01, 0.005) }}
               />
               <KpiCard
                 label="Bounced"
@@ -269,13 +269,13 @@ export function ReplyDashboard() {
               <KpiCard
                 label="Positive replies"
                 value={fmtInt(data.totals.interested)}
-                rate={{ value: fmtPct(data.rates.interested_rate), tone: rateTone(data.rates.interested_rate, 0.3, 0.15) }}
+                rate={{ value: fmtPct(data.rates.interested_rate), tone: rateTone(data.rates.interested_rate, 0.20, 0.125) }}
                 sub="of total replies"
               />
               <KpiCard
                 label="Meetings booked"
                 value={fmtInt(data.totals.meetings)}
-                rate={{ value: fmtPct(data.rates.conv_rate), tone: rateTone(data.rates.conv_rate, 0.2, 0.1) }}
+                rate={{ value: fmtPct(data.rates.conv_rate), tone: rateTone(data.rates.conv_rate, 0.45, 0.30) }}
                 sub="conversion rate"
               />
               <KpiCard

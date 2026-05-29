@@ -267,28 +267,33 @@ export function KPITracker() {
                 </tr>
                 <tr className="border-b border-slate-100">
                   <td className="px-4 py-2 text-slate-700 sticky left-0 bg-white">Reply Rate %</td>
-                  {weekBuckets.map(b => renderRateCell(b.label, b.efficiency.reply_rate, 0.03, 0.01))}
-                  {mtdBucket && renderRateCell("mtd", mtdBucket.efficiency.reply_rate, 0.03, 0.01)}
+                  {/* GOOD ≥ 1%, OK 0.5-1%, BAD < 0.5% */}
+                  {weekBuckets.map(b => renderRateCell(b.label, b.efficiency.reply_rate, 0.01, 0.005))}
+                  {mtdBucket && renderRateCell("mtd", mtdBucket.efficiency.reply_rate, 0.01, 0.005)}
                 </tr>
                 <tr className="border-b border-slate-100">
                   <td className="px-4 py-2 text-slate-700 sticky left-0 bg-white">Positive Reply %</td>
-                  {weekBuckets.map(b => renderRateCell(b.label, b.efficiency.interested_rate, 0.4, 0.2))}
-                  {mtdBucket && renderRateCell("mtd", mtdBucket.efficiency.interested_rate, 0.4, 0.2)}
+                  {/* GOOD ≥ 20%, OK 12.5-20%, BAD < 12.5% */}
+                  {weekBuckets.map(b => renderRateCell(b.label, b.efficiency.interested_rate, 0.20, 0.125))}
+                  {mtdBucket && renderRateCell("mtd", mtdBucket.efficiency.interested_rate, 0.20, 0.125)}
                 </tr>
                 <tr className="border-b border-slate-100">
                   <td className="px-4 py-2 text-slate-700 sticky left-0 bg-white">Conversion Rate %</td>
-                  {weekBuckets.map(b => renderRateCell(b.label, b.efficiency.conv_rate, 0.2, 0.1))}
-                  {mtdBucket && renderRateCell("mtd", mtdBucket.efficiency.conv_rate, 0.2, 0.1)}
+                  {/* GOOD ≥ 45%, OK 30-45%, BAD < 30% */}
+                  {weekBuckets.map(b => renderRateCell(b.label, b.efficiency.conv_rate, 0.45, 0.30))}
+                  {mtdBucket && renderRateCell("mtd", mtdBucket.efficiency.conv_rate, 0.45, 0.30)}
                 </tr>
                 <tr className="border-b border-slate-100">
                   <td className="px-4 py-2 font-semibold text-slate-800 sticky left-0 bg-white">Email : Lead Ratio</td>
-                  {weekBuckets.map(b => renderRatioCell(b.label, b.efficiency.emails_per_lead, 200, 500))}
-                  {mtdBucket && renderRatioCell("mtd", mtdBucket.efficiency.emails_per_lead, 200, 500)}
+                  {/* Derived from rate thresholds, GOOD ≤ 500 (1% × 20%), OK ≤ 1600 (0.5% × 12.5%), BAD above */}
+                  {weekBuckets.map(b => renderRatioCell(b.label, b.efficiency.emails_per_lead, 500, 1600))}
+                  {mtdBucket && renderRatioCell("mtd", mtdBucket.efficiency.emails_per_lead, 500, 1600)}
                 </tr>
                 <tr>
                   <td className="px-4 py-2 font-semibold text-slate-800 sticky left-0 bg-white">Email : Meeting Ratio</td>
-                  {weekBuckets.map(b => renderRatioCell(b.label, b.efficiency.emails_per_meeting, 800, 1500))}
-                  {mtdBucket && renderRatioCell("mtd", mtdBucket.efficiency.emails_per_meeting, 800, 1500)}
+                  {/* Derived, GOOD ≤ 1111 (1% × 20% × 45%), OK ≤ 5333 (0.5% × 12.5% × 30%), BAD above */}
+                  {weekBuckets.map(b => renderRatioCell(b.label, b.efficiency.emails_per_meeting, 1111, 5333))}
+                  {mtdBucket && renderRatioCell("mtd", mtdBucket.efficiency.emails_per_meeting, 1111, 5333)}
                 </tr>
               </tbody>
             </table>
