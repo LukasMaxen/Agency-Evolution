@@ -261,12 +261,11 @@ function SenderTable({
           <thead>
             <tr style={{ background: "#f8f7f5", borderBottom: "0.5px solid #ede9e3" }}>
               {[
-                { h: "Sender",         w: "30%", align: "left" },
-                { h: "Status",         w: "14%", align: "left" },
+                { h: "Sender",         w: "38%", align: "left" },
+                { h: "Status",         w: "20%", align: "left" },
                 { h: "Warmup",         w: "12%", align: "left" },
                 { h: "Warmup health",  w: "12%", align: "right" },
-                { h: "Warming",        w: "10%", align: "right" },
-                { h: "Action",         w: "22%", align: "center" },
+                { h: "Action",         w: "18%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -278,7 +277,7 @@ function SenderTable({
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+              <tr><td colSpan={5} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
                 No senders matching this filter.
               </td></tr>
             )}
@@ -321,11 +320,12 @@ function SenderTable({
                   }}>
                     {s.warmup_score === null ? "—" : `${Math.round(s.warmup_score)}%`}
                   </td>
-                  <td style={{ padding: "9px 10px", textAlign: "right", color: s.ready_to_rejoin ? "#15803D" : "#6B7280" }}>
-                    {s.warming_days !== null ? `${s.warming_days}d` : "—"}
-                  </td>
                   <td style={{ padding: "9px 10px", textAlign: "center" }}>
-                    {(s.attached_campaigns_count ?? 0) === 0 ? (
+                    {/* Warmup Monitor is read-mostly. The only contextual
+                        action is putting a Ready-for-outbound sender back
+                        into rotation. Pause+warmup decisions live on Domain
+                        Monitor (driven by burn / list / low-reply signals). */}
+                    {s.ready_to_rejoin ? (
                       <button
                         onClick={() => runSenderAction(s, "attach_to_all")}
                         disabled={acting === "attach_to_all"}
@@ -336,21 +336,10 @@ function SenderTable({
                           display: "inline-flex", alignItems: "center", gap: 5,
                         }}>
                         {acting === "attach_to_all" ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
-                        Attach to all
+                        Add to campaigns
                       </button>
                     ) : (
-                      <button
-                        onClick={() => runSenderAction(s, "remove_and_warmup")}
-                        disabled={acting === "remove_and_warmup"}
-                        style={{
-                          fontSize: 11, padding: "4px 10px", borderRadius: 6,
-                          background: "#FAEEDA", color: "#D97706", border: "0.5px solid #FAC775",
-                          cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                        }}>
-                        {acting === "remove_and_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
-                        Pause + warmup
-                      </button>
+                      <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>
                     )}
                   </td>
                 </tr>
