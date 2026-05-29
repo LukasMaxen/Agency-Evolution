@@ -1027,9 +1027,11 @@ interface RegenResult {
   subject?: string;
 }
 
-async function regenerateViaClaude(systemPrompt: string, userMessage: string): Promise<RegenResult | null> {
+type RegenOutcome = { ok: true; result: RegenResult } | { ok: false; reason: string };
+
+async function regenerateViaClaude(systemPrompt: string, userMessage: string): Promise<RegenOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return { ok: false, reason: "ANTHROPIC_API_KEY not set" };
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 90_000);
@@ -1052,30 +1054,34 @@ async function regenerateViaClaude(systemPrompt: string, userMessage: string): P
       signal: controller.signal,
     });
   } catch (err: any) {
-    if (err?.name === "AbortError") console.error("[slack-events] Claude regenerate timed out after 90s");
-    else console.error("[slack-events] Claude regenerate fetch error:", err?.message);
-    return null;
+    if (err?.name === "AbortError") {
+      console.error("[slack-events] Claude regenerate timed out after 90s");
+      return { ok: false, reason: "timed out after 90s" };
+    }
+    console.error("[slack-events] Claude regenerate fetch error:", err?.message);
+    return { ok: false, reason: `fetch error: ${err?.message ?? "unknown"}` };
   } finally {
     clearTimeout(timeout);
   }
 
   if (!response.ok) {
-    console.error("[slack-events] Claude regenerate error:", response.status, await response.text());
-    return null;
+    const body = await response.text();
+    console.error("[slack-events] Claude regenerate error:", response.status, body);
+    return { ok: false, reason: `Anthropic HTTP ${response.status}: ${body.slice(0, 200)}` };
   }
   const data = await response.json();
   const raw = (data.content?.[0]?.text ?? "").replace(/```json|```/g, "").trim();
 
   // Tolerant parser: try strict JSON first, fall back to extracting the outermost {...}.
   try {
-    return JSON.parse(raw) as RegenResult;
+    return { ok: true, result: JSON.parse(raw) as RegenResult };
   } catch {
     // Find the first { and the matching closing } using a brace counter so we
     // ignore preamble like "Looking at the feedback:" or trailing prose.
     const firstBrace = raw.indexOf("{");
     if (firstBrace === -1) {
       console.error("[slack-events] regenerate: no JSON object found in response:", raw.slice(0, 300));
-      return null;
+      return { ok: false, reason: `no JSON in response: ${raw.slice(0, 120)}` };
     }
     let depth = 0;
     let lastBrace = -1;
@@ -1088,13 +1094,13 @@ async function regenerateViaClaude(systemPrompt: string, userMessage: string): P
     }
     if (lastBrace === -1) {
       console.error("[slack-events] regenerate: unbalanced JSON braces:", raw.slice(0, 300));
-      return null;
+      return { ok: false, reason: `unbalanced JSON braces: ${raw.slice(0, 120)}` };
     }
     try {
-      return JSON.parse(raw.slice(firstBrace, lastBrace + 1)) as RegenResult;
+      return { ok: true, result: JSON.parse(raw.slice(firstBrace, lastBrace + 1)) as RegenResult };
     } catch (err: any) {
       console.error("[slack-events] regenerate: JSON parse still failed after extraction:", err?.message, raw.slice(0, 300));
-      return null;
+      return { ok: false, reason: `JSON parse failed: ${err?.message ?? "unknown"}` };
     }
   }
 }
@@ -1179,17 +1185,18 @@ ${feedback.map((f, i) => `[${i + 1}] ${f}`).join("\n\n")}
 Produce the revised draft now.`;
 
   const regen = await regenerateViaClaude(systemPrompt, userMessage);
-  if (!regen?.body) {
+  if (!regen.ok || !regen.result.body) {
+    const reason = regen.ok ? "empty body from Claude" : regen.reason;
     await postToSlack({
       channel,
       threadTs: ts,
-      text: "Could not regenerate the draft (Claude error). Try again or paste the full revised email and react :pencil2:.",
+      text: `Could not regenerate the draft (Claude error: ${reason}). Try again or paste the full revised email and react :pencil2:.`,
     });
     return;
   }
 
-  const newBody = sanitizeDashes(regen.body);
-  const newSubject = regen.subject ? sanitizeDashes(regen.subject) : draft.subject;
+  const newBody = sanitizeDashes(regen.result.body);
+  const newSubject = regen.result.subject ? sanitizeDashes(regen.result.subject) : draft.subject;
 
   // Guard: reject a regenerated body that is too short — same truncation risk as the main processor.
   const bodyWithoutSignature = newBody.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
@@ -1305,17 +1312,18 @@ ${feedback.map((f, i) => `[${i + 1}] ${f}`).join("\n\n")}
 Produce the revised follow-up draft now.`;
 
   const regen = await regenerateViaClaude(systemPrompt, userMessage);
-  if (!regen?.body) {
+  if (!regen.ok || !regen.result.body) {
+    const reason = regen.ok ? "empty body from Claude" : regen.reason;
     await postToSlack({
       channel,
       threadTs: ts,
-      text: "Could not regenerate the FU draft (Claude error). Try again or paste the full revised email and react :pencil2:.",
+      text: `Could not regenerate the FU draft (Claude error: ${reason}). Try again or paste the full revised email and react :pencil2:.`,
     });
     return;
   }
 
-  const newBody = sanitizeDashes(regen.body);
-  const newSubject = regen.subject ? sanitizeDashes(regen.subject) : draft.subject;
+  const newBody = sanitizeDashes(regen.result.body);
+  const newSubject = regen.result.subject ? sanitizeDashes(regen.result.subject) : draft.subject;
 
   // Guard: reject a regenerated body that is too short.
   const bodyWithoutSignature = newBody.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
