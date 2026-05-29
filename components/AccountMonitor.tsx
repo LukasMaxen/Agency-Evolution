@@ -1191,10 +1191,16 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                     const isExpanded    = expandedEmail === acc.sender_email;
                     const loadingAction = loadingMap[acc.sender_email] ?? null;
                     const isLoading     = loadingAction !== null;
+                    // Account rows use a lighter tint of the same hue as
+                    // the domain header above, so visually it is obvious
+                    // which rows belong to which domain bundle and where
+                    // the next bundle starts.
                     const rowBg         = isRemoved ? "#f0fdf4" :
-                                          acc.status === "disconnected" ? "#EEF2FF" :
-                                          acc.status === "burned"     ? "#FCEBEB" :
-                                          acc.status === "list_issue" ? "#FFF7E6" :
+                                          acc.status === "disconnected"        ? "#F5F7FF" :  // lighter than domain indigo
+                                          acc.status === "burned"              ? "#FEF7F7" :  // lighter than domain red
+                                          acc.status === "critical_low_replies"? "#FEF7F7" :  // matches burned
+                                          acc.status === "list_issue"          ? "#FFFBEB" :  // lighter than domain amber
+                                          acc.status === "low_replies"         ? "#FFFBEB" :  // matches list_issue family
                                           "#ffffff";
                     const isLastAccount = aIdx === sortedAccounts.length - 1;
 

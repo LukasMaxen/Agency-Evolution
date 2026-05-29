@@ -533,15 +533,20 @@ function SenderTable({
                     </td>
                   </tr>
 
-                  {/* Expanded sender rows */}
+                  {/* Expanded sender rows. Background colours mirror the
+                      domain header in the same hue but two shades lighter,
+                      so visually you can tell at a glance which rows belong
+                      to which domain bundle and where the next bundle
+                      starts. */}
                   {isExpanded && d.senders.map(s => {
                     const acting       = actionMap[s.sender_email];
                     const disconnected = isDisconnected(s);
                     const notWarming   = isNotWarming(s);
                     const warmingOnly  = isWarmingOnly(s);
                     const senderBg     =
-                      disconnected                                ? "#EEF2FF" :
-                      notWarming                                  ? "#FEF2F2" :
+                      disconnected                                ? "#F5F7FF" :  // indigo-25 (lighter than domain #EEF2FF)
+                      notWarming                                  ? "#FEF7F7" :  // red-25  (lighter than domain #FCEBEB)
+                      isLowHealth(s)                              ? "#FFFBEB" :  // amber-25 (lighter than domain #FEF3C7)
                       tab === "warming_only" && s.ready_to_rejoin ? "#F0FDF4" :
                                                                     "#ffffff";
                     return (
