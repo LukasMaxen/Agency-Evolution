@@ -313,7 +313,14 @@ function SenderTable({
     warmingOnly:   number;
     avgScore:      number | null;
     lowHealth:     boolean;
-    totalAttached: number;
+    // Per-account campaign attachment. The invariant we expect: all
+    // reachable senders on a domain are attached to the same set of
+    // campaigns, so "5 senders × 1 campaign each" should display as
+    // "In 1 campaign", not as "5 campaign-slots". When the invariant
+    // is broken (one sender attached to more campaigns than its peers),
+    // expose the range so the operator can act.
+    attachedMin:   number;
+    attachedMax:   number;
     worstSev:      number;
     fullyDisconnected: boolean;
   };
@@ -347,6 +354,9 @@ function SenderTable({
     const hasActive    = list.some(s => (s.attached_campaigns_count ?? 0) > 0);
     const lowHealth    = hasActive && avg !== null && avg < 98;
     const worstSev     = disconnected > 0 ? 0 : notWarming > 0 ? 1 : lowHealth ? 2 : 3;
+    const attachedCounts = reachable.map(s => s.attached_campaigns_count ?? 0);
+    const attachedMin = attachedCounts.length > 0 ? Math.min(...attachedCounts) : 0;
+    const attachedMax = attachedCounts.length > 0 ? Math.max(...attachedCounts) : 0;
     return {
       domain:            dom,
       senders:           list,
@@ -355,7 +365,8 @@ function SenderTable({
       warmingOnly:       list.filter(isWarmingOnly).length,
       avgScore:          avg,
       lowHealth,
-      totalAttached:     reachable.reduce((a, s) => a + (s.attached_campaigns_count ?? 0), 0),
+      attachedMin,
+      attachedMax,
       worstSev,
       fullyDisconnected: disconnected === list.length && list.length > 0,
     };
@@ -479,7 +490,9 @@ function SenderTable({
                           ? <PillBadge text={`${d.disconnected} disconnected`} tone="indigo" />
                           : d.warmingOnly === d.senders.length
                             ? <PillBadge text="All warming only" tone="amber" />
-                            : <PillBadge text={`${d.totalAttached} campaign-slots`} tone="green" />}
+                            : d.attachedMin === d.attachedMax
+                              ? <PillBadge text={`In ${d.attachedMin} ${d.attachedMin === 1 ? "campaign" : "campaigns"}`} tone="green" />
+                              : <PillBadge text={`In ${d.attachedMin}-${d.attachedMax} campaigns`} tone="amber" />}
                     </td>
                     {/* Warmup column: hidden once anyone in the domain is
                         disconnected. The warmup_enabled flag is unreliable
@@ -723,6 +736,7 @@ export function WarmupMonitor() {
   const [error, setError]         = useState<string | null>(null);
   const [selected, setSelected]   = useState<WsAgg | null>(null);
   const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [syncing, setSyncing]     = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -739,6 +753,37 @@ export function WarmupMonitor() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // One-click "ensure every active sender is in every active campaign"
+  // for every workspace. The button confirms before running because it
+  // can attach hundreds of senders across the entire system.
+  const syncAllToCampaigns = useCallback(async () => {
+    if (syncing) return;
+    const ok = window.confirm(
+      "This will attach every active, warmup-enabled, connected sender to every active campaign across all workspaces. Warming-only senders are skipped. Continue?"
+    );
+    if (!ok) return;
+    setSyncing(true);
+    setToast({ msg: "Syncing active senders to active campaigns across all workspaces…", type: "success" });
+    try {
+      const res = await fetch("/api/warmup-monitor/sync-campaigns", { method: "POST" });
+      const j = await res.json();
+      if (!res.ok || !j.ok) {
+        setToast({ msg: j.error ?? "Sync failed", type: "error" });
+        return;
+      }
+      const errCount = (j.workspaces ?? []).reduce((acc: number, w: any) => acc + (w.errors?.length ?? 0), 0);
+      setToast({
+        msg: `Synced ${j.total_attached} new attachment(s) across ${j.workspaces?.length ?? 0} workspaces${errCount > 0 ? ` · ${errCount} error(s)` : ""}.`,
+        type: errCount > 0 ? "error" : "success",
+      });
+      load();
+    } catch (err: any) {
+      setToast({ msg: err.message ?? "Network error", type: "error" });
+    } finally {
+      setSyncing(false);
+    }
+  }, [syncing, load]);
 
   useEffect(() => {
     if (!toast) return;
@@ -759,17 +804,31 @@ export function WarmupMonitor() {
             Warmup status for every sender in active workspaces. "Ready" = warming for {data?.thresholds.readyDays ?? 14}+ days.
           </p>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151",
-            background: "#ffffff", border: "0.5px solid #d1d5db", borderRadius: 7,
-            padding: "6px 12px", cursor: "pointer", fontFamily: "inherit",
-          }}>
-          <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        <div style={{ display: "inline-flex", gap: 8 }}>
+          <button
+            onClick={syncAllToCampaigns}
+            disabled={syncing || loading}
+            title="Ensure every active sender is in every active campaign across all workspaces"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#15803D",
+              background: "#EAF3DE", border: "0.5px solid #C0DD97", borderRadius: 7,
+              padding: "6px 12px", cursor: syncing ? "wait" : "pointer", fontFamily: "inherit",
+            }}>
+            {syncing ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+            Sync all to campaigns
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151",
+              background: "#ffffff", border: "0.5px solid #d1d5db", borderRadius: 7,
+              padding: "6px 12px", cursor: "pointer", fontFamily: "inherit",
+            }}>
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {error && (
