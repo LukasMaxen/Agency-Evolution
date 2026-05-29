@@ -194,17 +194,23 @@ function SenderTable({
     // succeed at the API level but cannot actually run on a mailbox EB
     // can't reach. Skip them.
     //
-    // Target selection per action:
-    //   enable_warmup   senders whose warmup is off (turn it on)
-    //   pause_outbound  warming senders currently attached (pull into warmup)
-    //                   triggered by domain avg < 98%, not individual scores
-    //   attach_to_all   warming-only senders (no active campaign slots)
-    //                   reinstate them into the workspace's live campaigns
+    // For pause_outbound and attach_to_all the target is the WHOLE
+    // reachable domain, not only the senders whose state currently
+    // differs from the goal. Including the already-correct senders
+    // makes the action idempotent on a per-sender level and the atomic
+    // batch's post-condition verification ("every sender ended at
+    // attached_count = X") guarantees the domain ends in one consistent
+    // state. This is what prevents the "4 warming, 1 active" drift seen
+    // on gnmotioninfo.com — a previously-failed sender that did not
+    // clear the first time will be retried as part of the next batch.
+    //
+    // enable_warmup stays narrowly targeted (only off-senders) because
+    // there is no useful side-effect to firing it on already-warming
+    // mailboxes.
     const reachable = senders.filter(s => s.conn_status !== "Not connected");
     const targets =
       action === "enable_warmup"   ? reachable.filter(s => !s.warmup_enabled) :
-      action === "attach_to_all"   ? reachable.filter(s => (s.attached_campaigns_count ?? 0) === 0) :
-                                     reachable.filter(s => s.warmup_enabled && (s.attached_campaigns_count ?? 0) > 0);
+                                     reachable;
     if (targets.length === 0) {
       onActionDone(`No senders in ${domain} match this action.`, "error");
       setDomainAction(prev => ({ ...prev, [domain]: null }));
