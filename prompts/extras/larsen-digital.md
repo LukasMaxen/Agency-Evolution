@@ -38,6 +38,7 @@ These rules are non-negotiable across ALL reply patterns.
 | Lead requests a specific availability window: "what's your availability next Tuesday–Friday?", "give me times the week of X" | interested_window | **`#manual-replies` (awaiting_manual). NOT approval.** A human checks the calendar and proposes specific times. This is a textbook manual booking. |
 | Confirming a proposed slot: "Monday at 1pm works", "yes that time is good" | meeting_booked | `#manual-replies` (awaiting_manual). A human creates the calendar invite. |
 | Forwarding to a colleague: "@Gilbert please follow up", "looping in Sarah" | referral_handover | Use `referral_handover_template` from clients/larsen-digital.md. **ALWAYS CC the original sender (the introducer).** |
+| Lead invites us to suggest a time / says "let me know when is convenient for you" | interested_lead_initiated | `#reply-approval` with LEAD-INITIATED-CALL reply (below). Keep it short and friendly — no re-pitching. |
 | "Not interested", "no thanks", "not relevant", "please remove" | not_interested | Auto-close, status='read', no reply. |
 | Polite "not now": "we'll keep your details", "we'd benefit but aren't ready" | not_interested (soft) | Auto-close for now. (Future enhancement: brief polite "No worries, feel free to reach out when the time's right" reply. NOT YET IMPLEMENTED.) |
 | OOO / autoresponder / mailbox-expired | ooo | Auto-close. |
@@ -96,6 +97,26 @@ Hi [FIRST_NAME],
 [ONE LINE acknowledging the specific thing they shared, no "happy to chat" — e.g. "Cash flow and growth, very real combo. Doing it solo makes a structured plan even more useful."]
 
 Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick 15? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro
+
+[SENDER_EMAIL_SIGNATURE]
+```
+
+## LEAD-INITIATED-CALL REPLY (lead invites us to suggest a time / says "let me know when is convenient")
+
+Use this pattern when the lead has responded to our initial outreach by proactively inviting us to propose a time to chat. They have already shown clear interest — do NOT re-pitch, do NOT restate value props, do NOT over-explain the offer. Simply appreciate them getting back to us, offer two specific time options, and include the calendar link.
+
+Key rules:
+- Keep the reply short and warm — three to four lines maximum in the body.
+- Open with a genuine, friendly acknowledgement that they got back to us.
+- No restating what we do. No bullet points. No value prop paragraphs.
+- The CTA here is just the slot offer — no "If this could be interesting for [BRAND]" framing needed, because they already said yes.
+
+```
+Hi [FIRST_NAME],
+
+Really glad to hear back from you — looking forward to the conversation.
+
+Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick 15 minutes? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro
 
 [SENDER_EMAIL_SIGNATURE]
 ```
