@@ -1,0 +1,186 @@
+import { NextRequest, NextResponse } from "next/server";
+import pool from "@/lib/db";
+import { fetchAllWorkspacesMeetingsCount, fetchWorkspaceMeetingsCount } from "@/lib/airtable-meetings";
+
+// KPI Tracker — replaces the weekly performance Google Sheet.
+// Returns the calendar month split into 5 buckets:
+//   Week 1: day 1-7
+//   Week 2: day 8-14
+//   Week 3: day 15-21
+//   Week 4: day 22-28
+//   Week 5: day 29-end of month  (length varies, may be empty if month has <29 days)
+// Plus Month-To-Date totals.
+//
+// Query params:
+//   workspace = "all" | <slug>           default "all"
+//   year      = YYYY                     default current year
+//   month     = 1..12                    default current month (UTC)
+
+interface WeekBucket {
+  label: string;          // "Week 1" .. "Week 5", "MTD"
+  start: Date;
+  end: Date;              // inclusive end-of-day
+}
+
+interface WeekKPIs {
+  label: string;
+  start: string;          // YYYY-MM-DD
+  end:   string;          // YYYY-MM-DD
+  totals: {
+    sent: number;
+    replies: number;
+    interested: number;
+    meetings: number;
+  };
+  efficiency: {
+    reply_rate:        number; // replies / sent
+    interested_rate:   number; // interested / replies
+    conv_rate:         number; // meetings / interested
+    emails_per_lead:   number; // sent / interested
+    emails_per_meeting:number; // sent / meetings
+  };
+}
+
+function buildWeekBuckets(year: number, month1to12: number): WeekBucket[] {
+  // month1to12 is 1-indexed; JS Date month is 0-indexed
+  const monthIdx = month1to12 - 1;
+  const monthStart = new Date(Date.UTC(year, monthIdx, 1, 0, 0, 0, 0));
+  const monthEnd   = new Date(Date.UTC(year, monthIdx + 1, 0, 23, 59, 59, 999));
+  const lastDay = monthEnd.getUTCDate();
+
+  const mkBucket = (dayStart: number, dayEnd: number, label: string): WeekBucket | null => {
+    if (dayStart > lastDay) return null;
+    const start = new Date(Date.UTC(year, monthIdx, dayStart, 0, 0, 0, 0));
+    const end   = new Date(Date.UTC(year, monthIdx, Math.min(dayEnd, lastDay), 23, 59, 59, 999));
+    return { label, start, end };
+  };
+
+  const buckets: WeekBucket[] = [];
+  for (const [label, s, e] of [
+    ["Week 1", 1, 7],
+    ["Week 2", 8, 14],
+    ["Week 3", 15, 21],
+    ["Week 4", 22, 28],
+    ["Week 5", 29, lastDay],
+  ] as const) {
+    const b = mkBucket(s, e, label);
+    if (b) buckets.push(b);
+  }
+
+  // MTD covers the full month start through min(today, monthEnd)
+  const nowUtc = new Date();
+  const cappedEnd = nowUtc < monthEnd ? nowUtc : monthEnd;
+  buckets.push({ label: "MTD", start: monthStart, end: cappedEnd });
+
+  return buckets;
+}
+
+function safeRate(num: number, den: number): number {
+  return den > 0 ? num / den : 0;
+}
+function safeRatio(num: number, den: number): number {
+  return den > 0 ? num / den : 0;
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const workspaceParam = searchParams.get("workspace") ?? "all";
+  const now = new Date();
+  const year  = Number(searchParams.get("year")  ?? now.getUTCFullYear());
+  const month = Number(searchParams.get("month") ?? now.getUTCMonth() + 1);
+
+  if (!Number.isFinite(year)  || year  < 2024 || year  > 2100) {
+    return NextResponse.json({ error: "invalid year" }, { status: 400 });
+  }
+  if (!Number.isFinite(month) || month < 1    || month > 12) {
+    return NextResponse.json({ error: "invalid month" }, { status: 400 });
+  }
+
+  const buckets = buildWeekBuckets(year, month);
+  const isAll = workspaceParam === "all";
+  const apiKey = process.env.AIRTABLE_API_KEY;
+
+  try {
+    // Workspaces list, drives the dropdown (matches /api/dashboard).
+    const wsResult = await pool.query<{ slug: string; name: string }>(`
+      SELECT slug, name FROM workspaces
+      WHERE slug NOT IN ('itg-group', 'sonaro-ai', 'sro-consulting')
+      ORDER BY name ASC
+    `);
+    const workspaces = wsResult.rows;
+    const activeSlugs = workspaces.map(w => w.slug);
+
+    // For each bucket, run the four DB queries + one meetings fetch.
+    // Buckets typically = 6 (5 weeks + MTD). Parallel for speed.
+    const wsFilterSql = isAll ? "" : "AND workspace_slug = $3";
+
+    const bucketResults: WeekKPIs[] = await Promise.all(buckets.map(async (b) => {
+      const args = isAll ? [b.start, b.end] : [b.start, b.end, workspaceParam];
+
+      const [sentRes, replyRes] = await Promise.all([
+        pool.query<{ sent: number }>(`
+          SELECT COUNT(*)::int AS sent
+          FROM emails_sent
+          WHERE sent_at BETWEEN $1 AND $2
+          ${wsFilterSql}
+        `, args),
+        pool.query<{ replies: number; interested: number }>(`
+          SELECT COUNT(*)::int AS replies,
+                 COUNT(*) FILTER (WHERE interested = TRUE)::int AS interested
+          FROM replies
+          WHERE received_at BETWEEN $1 AND $2
+          ${wsFilterSql}
+        `, args),
+      ]);
+
+      let meetings = 0;
+      if (apiKey) {
+        try {
+          if (isAll) {
+            const r = await fetchAllWorkspacesMeetingsCount(b.start, b.end, apiKey, activeSlugs);
+            meetings = r.total;
+          } else {
+            const r = await fetchWorkspaceMeetingsCount(workspaceParam, b.start, b.end, apiKey);
+            meetings = r ?? 0;
+          }
+        } catch (err: any) {
+          console.error(`[kpi-tracker] meetings fetch failed for ${b.label}:`, err?.message ?? err);
+        }
+      }
+
+      const totals = {
+        sent: sentRes.rows[0]?.sent ?? 0,
+        replies: replyRes.rows[0]?.replies ?? 0,
+        interested: replyRes.rows[0]?.interested ?? 0,
+        meetings,
+      };
+
+      const efficiency = {
+        reply_rate:         safeRate(totals.replies, totals.sent),
+        interested_rate:    safeRate(totals.interested, totals.replies),
+        conv_rate:          safeRate(totals.meetings, totals.interested),
+        emails_per_lead:    safeRatio(totals.sent, totals.interested),
+        emails_per_meeting: safeRatio(totals.sent, totals.meetings),
+      };
+
+      return {
+        label: b.label,
+        start: b.start.toISOString().slice(0, 10),
+        end:   b.end.toISOString().slice(0, 10),
+        totals,
+        efficiency,
+      };
+    }));
+
+    return NextResponse.json({
+      workspaces,
+      workspace: workspaceParam,
+      year,
+      month,
+      buckets: bucketResults,
+    });
+  } catch (err: any) {
+    console.error("[kpi-tracker] error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}

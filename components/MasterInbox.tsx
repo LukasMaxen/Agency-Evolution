@@ -8,13 +8,14 @@ import { ReplyList } from "@/components/ReplyList";
 import { ReplyDetail } from "@/components/ReplyDetail";
 import { EmptyState } from "@/components/EmptyState";
 import { ReplyDashboard } from "@/components/ReplyDashboard";
+import { KPITracker } from "@/components/KPITracker";
 import { LeadMonitoring } from "@/components/LeadMonitoring";
 import { AccountMonitor } from "@/components/AccountMonitor";
 import { WarmupMonitor } from "@/components/WarmupMonitor";
 import { VariantRefresh } from "@/components/VariantRefresh";
-import { Inbox, BarChart2, RefreshCw, ShieldAlert, RotateCcw, Users, Flame } from "lucide-react";
+import { Inbox, BarChart2, RefreshCw, ShieldAlert, RotateCcw, Users, Flame, Target } from "lucide-react";
 
-type View = "inbox" | "dashboard" | "lead-monitoring" | "account-monitor" | "warmup-monitor" | "variant-refresh";
+type View = "inbox" | "dashboard" | "kpi-tracker" | "lead-monitoring" | "account-monitor" | "warmup-monitor" | "variant-refresh";
 
 function dbRowToReply(r: any, workspaces: ReturnType<typeof buildWorkspaceFromRow>[]): Reply {
   const workspace = findWorkspace(workspaces, r.workspaceSlug ?? r.workspaceId ?? "");
@@ -225,6 +226,7 @@ export function MasterInbox() {
   const NAV: { id: View; label: string; icon: React.ElementType; badge: number }[] = [
     { id: "inbox",           label: "Inbox",           icon: Inbox,       badge: newRepliesCount },
     { id: "dashboard",       label: "Dashboard",       icon: BarChart2,   badge: 0 },
+    { id: "kpi-tracker",     label: "KPI Tracker",     icon: Target,      badge: 0 },
     { id: "lead-monitoring", label: "Lead Monitoring", icon: Users,       badge: 0 },
     { id: "account-monitor", label: "Domain Monitor",  icon: ShieldAlert, badge: 0 },
     { id: "warmup-monitor",  label: "Warmup Monitor",  icon: Flame,       badge: 0 },
@@ -323,6 +325,7 @@ export function MasterInbox() {
           )}
 
           {view === "dashboard" && <ReplyDashboard />}
+          {view === "kpi-tracker" && <KPITracker />}
           {view === "lead-monitoring" && <LeadMonitoring />}
           {view === "account-monitor" && <AccountMonitor />}
           {view === "warmup-monitor" && <WarmupMonitor />}
