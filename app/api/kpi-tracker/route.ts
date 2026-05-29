@@ -48,23 +48,27 @@ function buildWeekBuckets(year: number, month1to12: number): WeekBucket[] {
   const monthEnd   = new Date(Date.UTC(year, monthIdx + 1, 0, 23, 59, 59, 999));
   const lastDay = monthEnd.getUTCDate();
 
-  const mkBucket = (dayStart: number, dayEnd: number, label: string): WeekBucket | null => {
-    if (dayStart > lastDay) return null;
-    const start = new Date(Date.UTC(year, monthIdx, dayStart, 0, 0, 0, 0));
-    const end   = new Date(Date.UTC(year, monthIdx, Math.min(dayEnd, lastDay), 23, 59, 59, 999));
-    return { label, start, end };
-  };
-
+  // Mon-Sun weeks, clipped to month boundaries.
+  // Week 1 = 1st of month through the first Sunday of that month.
+  //          If the 1st IS a Sunday, Week 1 is just that single day.
+  // Subsequent weeks = Mon-Sun. The final week may be partial if the
+  // month does not end on a Sunday.
   const buckets: WeekBucket[] = [];
-  for (const [label, s, e] of [
-    ["Week 1", 1, 7],
-    ["Week 2", 8, 14],
-    ["Week 3", 15, 21],
-    ["Week 4", 22, 28],
-    ["Week 5", 29, lastDay],
-  ] as const) {
-    const b = mkBucket(s, e, label);
-    if (b) buckets.push(b);
+  let day = 1;
+  let weekNumber = 0;
+  while (day <= lastDay) {
+    weekNumber++;
+    // JS getUTCDay: 0 = Sunday, 1 = Monday, ..., 6 = Saturday.
+    // For Mon-Sun weeks, we want to find the next Sunday from `day` (inclusive).
+    const dow = new Date(Date.UTC(year, monthIdx, day)).getUTCDay();
+    const daysUntilSunday = (7 - dow) % 7; // Sun (0) -> 0, Mon (1) -> 6, ..., Sat (6) -> 1
+    const endDay = Math.min(day + daysUntilSunday, lastDay);
+    buckets.push({
+      label: `Week ${weekNumber}`,
+      start: new Date(Date.UTC(year, monthIdx, day, 0, 0, 0, 0)),
+      end:   new Date(Date.UTC(year, monthIdx, endDay, 23, 59, 59, 999)),
+    });
+    day = endDay + 1;
   }
 
   // MTD covers the full month start through min(today, monthEnd)

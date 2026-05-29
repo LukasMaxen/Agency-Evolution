@@ -156,7 +156,7 @@ export function KPITracker() {
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">KPI Tracker</h1>
             <p className="text-sm text-slate-500 mt-1">
-              Weekly + month-to-date performance, calendar-month buckets (1-7, 8-14, 15-21, 22-28, 29-end)
+              Weekly + month-to-date performance, Mon-Sun weeks clipped to the calendar month
             </p>
           </div>
           <div className="flex items-center gap-3">
