@@ -178,6 +178,7 @@ export async function GET(req: NextRequest) {
       year,
       month,
       buckets: bucketResults,
+      meta: { key_present: Boolean(apiKey) },
     });
   } catch (err: any) {
     console.error("[kpi-tracker] error:", err);

@@ -133,12 +133,16 @@ export async function GET(req: NextRequest) {
 
     // ── Meetings (Airtable) ─────────────────────────────────────────────────
     let meetings = 0;
+    let meetingsDebug: { key_present: boolean; error: string | null; window: { start: string; end: string } } = {
+      key_present: false,
+      error: null,
+      window: { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) },
+    };
     const airtableKey = process.env.AIRTABLE_API_KEY;
+    meetingsDebug.key_present = Boolean(airtableKey);
     if (airtableKey) {
       try {
         if (isAll) {
-          // Only count meetings for workspaces in our active set (matches
-          // the workspaces filter above).
           const activeSlugs = workspaces.map(w => w.slug);
           const r = await fetchAllWorkspacesMeetingsCount(start, end, airtableKey, activeSlugs);
           meetings = r.total;
@@ -147,8 +151,11 @@ export async function GET(req: NextRequest) {
           meetings = r ?? 0;
         }
       } catch (err: any) {
+        meetingsDebug.error = err?.message ?? String(err);
         console.error("[dashboard] meetings fetch failed:", err?.message ?? err);
       }
+    } else {
+      console.error("[dashboard] AIRTABLE_API_KEY missing in env — meetings will report 0");
     }
 
     const t = {
@@ -227,6 +234,7 @@ export async function GET(req: NextRequest) {
       totals: t,
       rates,
       series,
+      meta: { meetings: meetingsDebug },
     });
   } catch (err: any) {
     console.error("[dashboard] error:", err);
