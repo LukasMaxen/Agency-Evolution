@@ -11,15 +11,17 @@ Follow-up email sequence for 911 Restoration franchise lead nurturing. Sent afte
 
 Hi {FIRST_NAME},
 
-Happy to explain. The idea is simple: layering a 911 Restoration franchise alongside what you already run at {BUSINESS_NAME}. Work comes through insurance claim pipelines so there is no cold outreach or marketing spend required to chase customers. Your {BUSINESS_TYPE} keeps running exactly as it does today.
+{OPENING_HOOK} — that's exactly the kind of operation this tends to work well alongside.
 
-Owners with an existing client base and operational experience tend to ramp the fastest, which is why your profile stood out — {PERSONALIZATION_LINE}.
+The short version: a 911 Restoration franchise layers on top of what you already run at {BUSINESS_NAME}. The work comes through insurance claim pipelines — water damage, fire, mold — so there's no cold outreach, no marketing budget to chase, and no disruption to what you've built. {BUSINESS_NAME} keeps running exactly as it does today.
 
-Two short videos that walk through how it works: Chris's Story (3:00) <https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be> and The Power of the Network (1:30) <https://www.youtube.com/watch?v=JoPThufW1uc>
+The reason your profile caught my attention: {PERSONALIZATION_LINE}. That's the profile that ramps fastest in our network.
 
-Per our 2024 FDD, top 25% of franchisees average $2M+ in gross revenue. SBA financing is available.
+Two quick videos that show how it actually works in practice: Chris's Story (3:00) <https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be> and The Power of the Network (1:30) <https://www.youtube.com/watch?v=JoPThufW1uc>
 
-Our Franchise Developer Dre will follow up within 48 hours. If you'd prefer to book directly: <https://calendly.com/dre-c-911restoration/quick-introduction-call-clone>
+Per our 2024 FDD, the top 25% of franchisees average $2M+ in gross revenue. SBA financing is available.
+
+Our Franchise Developer Dre will follow up within 48 hours — or if you'd rather just grab a time directly: <https://calendly.com/dre-c-911restoration/quick-introduction-call-clone>
 
 {SENDER_EMAIL_SIGNATURE}
 
@@ -35,6 +37,25 @@ Always lead with the **value proposition first**, then earn the personalization 
 
 This framing feels less like a pitch built around them and more like a genuine explanation that earns the personalization.
 
+### Opening Hook Rule (from Kasper Zacho send-time learning — reinforced by human review)
+When a lead replies with simple interest (e.g. "Yes, I would be interested"), **do not open with a generic validation line** like "HVAC is one of the best fits for this model" — it reads as templated and erodes trust at the most critical moment, right when the lead has said yes.
+
+Instead, the `{OPENING_HOOK}` should:
+- Reference something **specific and personal** about their business — the name, location, what they do, how they operate, their role
+- Feel like it was written for that one person, not lifted from a sequence
+- Make the lead feel seen before they've read a single word of pitch
+
+The entire draft should feel written for one person. If a line could appear in any other email in the sequence unchanged, rewrite it.
+
+### {OPENING_HOOK} Examples
+| Lead type | Example hook |
+|---|---|
+| HVAC owner, multi-crew | "Running multiple crews in {CITY} is no small thing" |
+| Solo plumber, tight operation | "Building real revenue with a lean crew — that's harder than most people give credit for" |
+| Wellness studio, loyal regulars | "What you've built at {BUSINESS_NAME} — that kind of community trust — is genuinely rare" |
+| Property manager | "Managing properties means you already see water and fire damage before most people even know to call" |
+| Multi-location operator | "Scaling to multiple locations once is the thing most operators never pull off" |
+
 ### {PERSONALIZATION_LINE} Examples
 Fill this token with a specific, research-backed detail about the lead's existing business or background. The personalization should feel earned and specific — never generic.
 
@@ -48,15 +69,17 @@ Fill this token with a specific, research-backed detail about the lead's existin
 
 > Hi Amanda,
 >
-> Happy to explain. The idea is simple: layering a 911 Restoration franchise alongside what you already run at Pure Glow. Work comes through insurance claim pipelines so there is no cold outreach or marketing spend required to chase customers. Your studio keeps running exactly as it does today.
+> What you've built at Pure Glow — a loyal local following in a space where most studios churn through clients — is genuinely not common.
 >
-> Owners with an existing client base and operational experience tend to ramp the fastest, which is why your profile stood out — you've already built a loyal local following at Pure Glow, and that kind of community trust is exactly what makes restoration clients refer neighbors and return after every claim.
+> Here's what I wanted to explain: a 911 Restoration franchise layers on top of what you already run. The work comes through insurance claim pipelines — water damage, fire, mold — so there's no cold outreach, no marketing budget to chase, and no disruption to Pure Glow. Your studio keeps running exactly as it does today.
 >
-> Two short videos that walk through how it works: Chris's Story (3:00) <https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be> and The Power of the Network (1:30) <https://www.youtube.com/watch?v=JoPThufW1uc>
+> The reason your profile caught my attention: your clients already trust you inside their routines, and that kind of community trust is exactly what makes restoration clients refer neighbors and return after every claim. It's the same relationship dynamic, different context.
 >
-> Per our 2024 FDD, top 25% of franchisees average $2M+ in gross revenue. SBA financing is available.
+> Two quick videos that show how it actually works in practice: Chris's Story (3:00) <https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be> and The Power of the Network (1:30) <https://www.youtube.com/watch?v=JoPThufW1uc>
 >
-> Our Franchise Developer Dre will follow up within 48 hours. If you'd prefer to book directly: <https://calendly.com/dre-c-911restoration/quick-introduction-call-clone>
+> Per our 2024 FDD, the top 25% of franchisees average $2M+ in gross revenue. SBA financing is available.
+>
+> Our Franchise Developer Dre will follow up within 48 hours — or if you'd rather just grab a time directly: <https://calendly.com/dre-c-911restoration/quick-introduction-call-clone>
 >
 > {SENDER_EMAIL_SIGNATURE}
 
