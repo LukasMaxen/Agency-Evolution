@@ -106,10 +106,16 @@ export async function GET() {
       ? Math.round(sendersWithScore.reduce((sum, s) => sum + (s.warmup_score as number), 0) / sendersWithScore.length * 10) / 10
       : null;
 
+    // "Warming only" = sender is not attached to any active outbound
+    // campaign (attached_campaigns_count = 0). This is the inverse of "in
+    // outbound campaigns" and is what the per-workspace Warming-only tab
+    // filters on. ready_to_rejoin is the stricter subset: 14+ days since
+    // warming_since was set by Remove + warmup.
+    const isWarmingOnly = (s: SenderRow) => (s.attached_campaigns_count ?? 0) === 0;
     const summary = {
       totalSenders:     senders.length,
       notWarming:       senders.filter(s => !s.warmup_enabled).length,
-      warmingOnly:      senders.filter(s => s.warming_since !== null).length,
+      warmingOnly:      senders.filter(isWarmingOnly).length,
       readyToRejoin:    senders.filter(s => s.ready_to_rejoin).length,
       lowWarmupHealth:  senders.filter(s => s.warmup_enabled && typeof s.warmup_score === "number" && (s.warmup_score as number) < LOW_HEALTH_THRESHOLD).length,
       warmupHealthAvg:  avgScore,
@@ -133,7 +139,7 @@ export async function GET() {
       });
       w.total++;
       if (!s.warmup_enabled)         w.notWarming++;
-      if (s.warming_since !== null)  w.warmingOnly++;
+      if (isWarmingOnly(s))          w.warmingOnly++;
       if (s.ready_to_rejoin)         w.readyToRejoin++;
       if (s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < LOW_HEALTH_THRESHOLD) {
         w.lowWarmupHealth++;
@@ -150,12 +156,19 @@ export async function GET() {
         wsMap[slug].warmupHealthAvg = Math.round(slot.sum / slot.count * 10) / 10;
       }
     }
-    const workspaces = Object.values(wsMap).sort((a, b) =>
-      (b.notWarming - a.notWarming) ||
-      (b.lowWarmupHealth - a.lowWarmupHealth) ||
-      (b.readyToRejoin - a.readyToRejoin) ||
-      (b.total - a.total)
-    );
+    // Priority sort: workspaces with not-warming senders first (most urgent),
+    // then low health (some senders below 90%), then everything else by
+    // average warmup health ascending so the workspaces closest to the
+    // threshold show before the fully healthy ones. Null avg (no senders
+    // scored yet) goes to the bottom.
+    const workspaces = Object.values(wsMap).sort((a, b) => {
+      if (b.notWarming !== a.notWarming) return b.notWarming - a.notWarming;
+      if (b.lowWarmupHealth !== a.lowWarmupHealth) return b.lowWarmupHealth - a.lowWarmupHealth;
+      const avgA = a.warmupHealthAvg ?? 101;
+      const avgB = b.warmupHealthAvg ?? 101;
+      if (avgA !== avgB) return avgA - avgB;
+      return b.total - a.total;
+    });
 
     return NextResponse.json({
       senders,

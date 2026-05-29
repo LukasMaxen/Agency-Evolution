@@ -192,9 +192,15 @@ function SenderTable({
     }
   }
 
+  // Warming-only = sender is currently not attached to any active outbound
+  // campaign. Whether it was manually paused (warming_since IS NOT NULL) or
+  // just hasn't been put in a campaign yet, EB is treating it as warmup-only
+  // traffic. "Ready for outbound" still requires the manual-pause path so
+  // the 14-day clock has a real start.
+  const isWarmingOnly = (s: Sender) => (s.attached_campaigns_count ?? 0) === 0;
   const filtered = senders.filter(s => {
     switch (tab) {
-      case "warming_only": return s.warming_since !== null;
+      case "warming_only": return isWarmingOnly(s);
       default:             return true;
     }
   });
@@ -255,11 +261,12 @@ function SenderTable({
           <thead>
             <tr style={{ background: "#f8f7f5", borderBottom: "0.5px solid #ede9e3" }}>
               {[
-                { h: "Sender",         w: "36%", align: "left" },
-                { h: "Warmup",         w: "14%", align: "left" },
-                { h: "Warmup health",  w: "14%", align: "right" },
-                { h: "Warming",        w: "12%", align: "right" },
-                { h: "Action",         w: "24%", align: "center" },
+                { h: "Sender",         w: "30%", align: "left" },
+                { h: "Status",         w: "14%", align: "left" },
+                { h: "Warmup",         w: "12%", align: "left" },
+                { h: "Warmup health",  w: "12%", align: "right" },
+                { h: "Warming",        w: "10%", align: "right" },
+                { h: "Action",         w: "22%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -271,30 +278,37 @@ function SenderTable({
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+              <tr><td colSpan={6} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
                 No senders matching this filter.
               </td></tr>
             )}
             {filtered.map(s => {
-              const acting     = actionMap[s.sender_email];
-              const notWarming = !s.warmup_enabled;
+              const acting       = actionMap[s.sender_email];
+              const notWarming   = !s.warmup_enabled;
+              const warmingOnly  = isWarmingOnly(s);
               // Row treatment mirrors Domain Monitor:
               //   not warming      -> red background (urgent)
-              //   ready for outbound (in Warming-only tab, >=14 days)
+              //   ready for outbound (warming-only tab, >=14 days)
               //                    -> green background (action available)
               const rowBg =
-                notWarming                                      ? "#FCEBEB" :
-                tab === "warming_only" && s.ready_to_rejoin     ? "#EAF3DE" :
-                                                                  "transparent";
+                notWarming                                  ? "#FCEBEB" :
+                tab === "warming_only" && s.ready_to_rejoin ? "#EAF3DE" :
+                                                              "transparent";
               return (
                 <tr key={s.sender_email} style={{ borderBottom: "0.5px solid #f3f4f6", background: rowBg }}>
                   <td style={{ padding: "9px 10px", color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sender_email}</td>
                   <td style={{ padding: "9px 10px" }}>
+                    {/* Status: in active campaigns vs warming-only (no attachments). */}
+                    {warmingOnly
+                      ? (s.ready_to_rejoin
+                          ? <PillBadge text="Ready for outbound" tone="green" />
+                          : <PillBadge text="Warming only"       tone="amber" />)
+                      : <PillBadge text={`In ${s.attached_campaigns_count} ${s.attached_campaigns_count === 1 ? "campaign" : "campaigns"}`} tone="green" />}
+                  </td>
+                  <td style={{ padding: "9px 10px" }}>
                     {notWarming
                       ? <PillBadge text="Not warming" tone="red" />
-                      : tab === "warming_only" && s.ready_to_rejoin
-                        ? <PillBadge text="Ready for outbound" tone="green" />
-                        : <PillBadge text="Warming"            tone="green" />}
+                      : <PillBadge text="Warming"     tone="green" />}
                   </td>
                   {/* Warmup health % from EB /api/warmup/sender-emails warmup_score */}
                   <td style={{
