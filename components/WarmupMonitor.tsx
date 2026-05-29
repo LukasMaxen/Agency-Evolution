@@ -168,9 +168,13 @@ function SenderTable({
   // be confusing for operators and may trip EB rate limits.
   async function runDomainBatch(domain: string, senders: Sender[], action: "enable_warmup" | "pause_outbound") {
     setDomainAction(prev => ({ ...prev, [domain]: action }));
+    // Disconnected senders are never valid targets — the action would
+    // succeed at the API level but cannot actually run on a mailbox EB
+    // can't reach. Skip them.
+    const reachable = senders.filter(s => s.conn_status !== "Not connected");
     const targets = action === "enable_warmup"
-      ? senders.filter(s => !s.warmup_enabled)
-      : senders.filter(s => s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98 && (s.attached_campaigns_count ?? 0) > 0);
+      ? reachable.filter(s => !s.warmup_enabled)
+      : reachable.filter(s => s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98 && (s.attached_campaigns_count ?? 0) > 0);
     if (targets.length === 0) {
       onActionDone(`No senders in ${domain} match this action.`, "error");
       setDomainAction(prev => ({ ...prev, [domain]: null }));
@@ -238,13 +242,14 @@ function SenderTable({
   // just hasn't been put in a campaign yet, EB is treating it as warmup-only
   // traffic. "Ready for outbound" still requires the manual-pause path so
   // the 14-day clock has a real start.
-  const isWarmingOnly  = (s: Sender) => (s.attached_campaigns_count ?? 0) === 0;
   const isDisconnected = (s: Sender) => s.conn_status === "Not connected";
-  // Not warming = warmup disabled AND the mailbox is actually reachable.
-  // A disconnected mailbox shows up here as warmup_enabled=false too, but
-  // the fix is reconnecting the mailbox in EB, not flipping warmup back on.
-  const isNotWarming   = (s: Sender) => !s.warmup_enabled && !isDisconnected(s);
-  const isLowHealth    = (s: Sender) => s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98;
+  // Disconnected ALWAYS overrides every other classification. The mailbox
+  // cannot send or warm up, so flagging it as not-warming or low-health is
+  // both misleading and actionable on the wrong axis. All downstream
+  // predicates exclude disconnected senders by construction.
+  const isWarmingOnly  = (s: Sender) => !isDisconnected(s) && (s.attached_campaigns_count ?? 0) === 0;
+  const isNotWarming   = (s: Sender) => !isDisconnected(s) && !s.warmup_enabled;
+  const isLowHealth    = (s: Sender) => !isDisconnected(s) && s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98;
 
   // Severity bucket for row sort:
   //   0  Disconnected        (indigo, top — fix in EB before warmup matters)
@@ -282,12 +287,14 @@ function SenderTable({
   type DomainGroup = {
     domain:        string;
     senders:       Sender[];
+    disconnected:  number;
     notWarming:    number;
     lowHealth:     number;
     warmingOnly:   number;
     avgScore:      number | null;
     totalAttached: number;
     worstSev:      number;
+    fullyDisconnected: boolean;
   };
   const domainMap: Record<string, Sender[]> = {};
   for (const s of filtered) {
@@ -296,27 +303,34 @@ function SenderTable({
     domainMap[d].push(s);
   }
   const domainGroups: DomainGroup[] = Object.entries(domainMap).map(([dom, list]) => {
-    const scored = list.filter(s => typeof s.warmup_score === "number");
+    // Health score only computed over connected senders. A disconnected
+    // mailbox's score is meaningless (or stale from before the disconnect).
+    const reachable = list.filter(s => !isDisconnected(s));
+    const scored = reachable.filter(s => typeof s.warmup_score === "number");
     const avg = scored.length > 0
       ? Math.round(scored.reduce((a, s) => a + (s.warmup_score as number), 0) / scored.length * 10) / 10
       : null;
+    const disconnected = list.filter(isDisconnected).length;
     return {
-      domain:        dom,
-      senders:       list,
-      notWarming:    list.filter(isNotWarming).length,
-      lowHealth:     list.filter(isLowHealth).length,
-      warmingOnly:   list.filter(isWarmingOnly).length,
-      avgScore:      avg,
-      totalAttached: list.reduce((a, s) => a + (s.attached_campaigns_count ?? 0), 0),
-      worstSev:      Math.min(...list.map(severity)),
+      domain:            dom,
+      senders:           list,
+      disconnected,
+      notWarming:        list.filter(isNotWarming).length,
+      lowHealth:         list.filter(isLowHealth).length,
+      warmingOnly:       list.filter(isWarmingOnly).length,
+      avgScore:          avg,
+      totalAttached:     reachable.reduce((a, s) => a + (s.attached_campaigns_count ?? 0), 0),
+      worstSev:          Math.min(...list.map(severity)),
+      fullyDisconnected: disconnected === list.length && list.length > 0,
     };
   }).sort((a, b) => {
-    if (a.worstSev !== b.worstSev)         return a.worstSev - b.worstSev;
-    if (b.notWarming !== a.notWarming)     return b.notWarming - a.notWarming;
-    if (b.lowHealth !== a.lowHealth)       return b.lowHealth - a.lowHealth;
+    if (a.worstSev !== b.worstSev)             return a.worstSev - b.worstSev;
+    if (b.disconnected !== a.disconnected)     return b.disconnected - a.disconnected;
+    if (b.notWarming !== a.notWarming)         return b.notWarming - a.notWarming;
+    if (b.lowHealth !== a.lowHealth)           return b.lowHealth - a.lowHealth;
     const avgA = a.avgScore ?? 101;
     const avgB = b.avgScore ?? 101;
-    if (avgA !== avgB)                     return avgA - avgB;
+    if (avgA !== avgB)                         return avgA - avgB;
     return a.domain.localeCompare(b.domain);
   });
 
@@ -399,8 +413,10 @@ function SenderTable({
             {domainGroups.map(d => {
               const isExpanded = expandedDomain === d.domain;
               // Domain row background tracks severity, same idea as the
-              // workspace card border.
+              // workspace card border. Disconnected outranks everything
+              // (mailbox unreachable, warmup state is moot).
               const domBg =
+                d.disconnected > 0  ? "#EEF2FF" :
                 d.notWarming > 0    ? "#FCEBEB" :
                 d.lowHealth  > 0    ? "#FEF3C7" :
                                       "#fafafa";
@@ -418,27 +434,41 @@ function SenderTable({
                         <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 400 }}>· {d.senders.length} {d.senders.length === 1 ? "sender" : "senders"}</span>
                       </span>
                     </td>
+                    {/* Status column: when fully disconnected, suppress
+                        campaign-slot / warming-only counts since they reflect
+                        a stale pre-disconnect state. */}
                     <td style={{ padding: "10px 10px" }}>
-                      {d.warmingOnly === d.senders.length
-                        ? <PillBadge text="All warming only" tone="amber" />
-                        : <PillBadge text={`${d.totalAttached} campaign-slots`} tone="green" />}
+                      {d.fullyDisconnected
+                        ? <PillBadge text="All disconnected" tone="indigo" />
+                        : d.disconnected > 0
+                          ? <PillBadge text={`${d.disconnected} disconnected`} tone="indigo" />
+                          : d.warmingOnly === d.senders.length
+                            ? <PillBadge text="All warming only" tone="amber" />
+                            : <PillBadge text={`${d.totalAttached} campaign-slots`} tone="green" />}
                     </td>
+                    {/* Warmup column: hidden once anyone in the domain is
+                        disconnected. The warmup_enabled flag is unreliable
+                        on disconnected mailboxes — EB will accept the toggle
+                        but warmup cannot actually run. */}
                     <td style={{ padding: "10px 10px" }}>
-                      {d.notWarming > 0
-                        ? <PillBadge text={`${d.notWarming} not warming`} tone="red" />
-                        : d.lowHealth > 0
-                          ? <PillBadge text={`${d.lowHealth} low health`} tone="red" />
-                          : <PillBadge text="All warming" tone="green" />}
+                      {d.fullyDisconnected
+                        ? <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>
+                        : d.notWarming > 0
+                          ? <PillBadge text={`${d.notWarming} not warming`} tone="red" />
+                          : d.lowHealth > 0
+                            ? <PillBadge text={`${d.lowHealth} low health`} tone="red" />
+                            : <PillBadge text="All warming" tone="green" />}
                     </td>
                     <td style={{
                       padding: "10px 10px", textAlign: "right",
-                      color: d.avgScore === null ? "#9ca3af"
-                           : d.avgScore >= 98    ? "#15803D"
-                           : d.avgScore >= 90    ? "#D97706"
-                                                 : "#B91C1C",
+                      color: d.fullyDisconnected ? "#9ca3af"
+                           : d.avgScore === null  ? "#9ca3af"
+                           : d.avgScore >= 98     ? "#15803D"
+                           : d.avgScore >= 90     ? "#D97706"
+                                                  : "#B91C1C",
                       fontWeight: 500,
                     }}>
-                      {d.avgScore === null ? "—" : `${d.avgScore}%`}
+                      {d.fullyDisconnected || d.avgScore === null ? "—" : `${d.avgScore}%`}
                     </td>
                     <td
                       style={{ padding: "10px 10px", textAlign: "center" }}
@@ -446,6 +476,25 @@ function SenderTable({
                     >
                       {(() => {
                         const acting = domainAction[d.domain];
+                        // Disconnected senders block everything else. Surface
+                        // a single Reconnect link instead of any warmup batch.
+                        if (d.disconnected > 0) {
+                          const wsInfo = findWorkspace(workspaces, ws.slug);
+                          const reconnectUrl = wsInfo.instanceUrl ? `${wsInfo.instanceUrl}/sender-emails` : null;
+                          return reconnectUrl ? (
+                            <a href={reconnectUrl} target="_blank" rel="noopener noreferrer"
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                background: "#EEF2FF", color: "#3730A3", border: "0.5px solid #A5B4FC",
+                                fontFamily: "inherit", textDecoration: "none",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                              }}>
+                              Reconnect in EmailBison ({d.disconnected})
+                            </a>
+                          ) : (
+                            <span style={{ color: "#3730A3", fontSize: 11, fontWeight: 500 }}>Reconnect in EmailBison</span>
+                          );
+                        }
                         if (d.notWarming > 0) {
                           return (
                             <button
@@ -462,7 +511,7 @@ function SenderTable({
                             </button>
                           );
                         }
-                        const eligibleForPause = d.senders.filter(s => s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98 && (s.attached_campaigns_count ?? 0) > 0).length;
+                        const eligibleForPause = d.senders.filter(s => !isDisconnected(s) && s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98 && (s.attached_campaigns_count ?? 0) > 0).length;
                         if (eligibleForPause > 0) {
                           return (
                             <button
