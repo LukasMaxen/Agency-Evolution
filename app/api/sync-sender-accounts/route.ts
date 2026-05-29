@@ -129,6 +129,41 @@ export async function POST(req: NextRequest) {
 
         const removed = deleteResult.rowCount ?? 0;
 
+        // 4b. Refresh warmup_score per sender from /api/warmup/sender-emails.
+        //     This endpoint returns warmup_score (0-100), warmup_enabled,
+        //     warmup_emails_sent, warmup_replies_received per row. EB caps
+        //     pagination at 15/page. Failures here are logged but do not
+        //     abort the whole sync.
+        try {
+          let wPage = 1;
+          let wHasMore = true;
+          let wupdated = 0;
+          while (wHasMore) {
+            const wRes = await fetch(`${instanceUrl}/api/warmup/sender-emails?per_page=250&page=${wPage}`, { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } });
+            if (!wRes.ok) break;
+            const wBody = await wRes.json();
+            for (const row of (wBody?.data ?? [])) {
+              if (!row?.id) continue;
+              const score = (typeof row.warmup_score === "number") ? row.warmup_score : null;
+              const enabled = row.warmup_enabled === true;
+              const res = await pool.query(
+                `UPDATE sender_accounts
+                   SET warmup_score   = $1,
+                       warmup_enabled = $2
+                 WHERE workspace_slug = $3 AND eb_sender_id = $4`,
+                [score, enabled, slug, row.id]
+              );
+              if (res.rowCount && res.rowCount > 0) wupdated++;
+            }
+            const last = wBody?.meta?.last_page ?? wPage;
+            wHasMore = wPage < last;
+            wPage++;
+          }
+          console.log(`[sync-sender-accounts] ${slug} warmup_score updated for ${wupdated} senders`);
+        } catch (wupErr: any) {
+          console.error(`[sync-sender-accounts] ${slug} warmup refresh failed:`, wupErr?.message);
+        }
+
         // 5. Refresh attached_campaigns_count per sender by walking all
         //    campaigns and counting how many list each sender_email_id.
         //    Paginated 15/page; only active-type campaigns count toward the

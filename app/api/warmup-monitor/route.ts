@@ -48,6 +48,7 @@ export async function GET() {
          eb_sender_id,
          status                   AS conn_status,
          warmup_enabled,
+         warmup_score,
          warming_since,
          attached_campaigns_count,
          provider_type
@@ -64,6 +65,7 @@ export async function GET() {
       eb_sender_id:             number | null;
       conn_status:              string;
       warmup_enabled:           boolean;
+      warmup_score:             number | null;
       warming_since:            string | null;
       warming_days:             number | null;
       ready_to_rejoin:          boolean;
@@ -75,12 +77,17 @@ export async function GET() {
       const warmingDays  = warmingSince
         ? Math.floor((Date.now() - warmingSince.getTime()) / (24 * 60 * 60 * 1000))
         : null;
+      // EB returns warmup_score as a numeric string sometimes; coerce.
+      const scoreNum = r.warmup_score === null || r.warmup_score === undefined
+        ? null
+        : Number(r.warmup_score);
       return {
         workspace_slug:           r.workspace_slug,
         sender_email:             r.sender_email,
         eb_sender_id:             r.eb_sender_id,
         conn_status:              r.conn_status ?? "Connected",
         warmup_enabled:           r.warmup_enabled === true,
+        warmup_score:             scoreNum,
         warming_since:            r.warming_since ?? null,
         warming_days:             warmingDays,
         ready_to_rejoin:          warmingDays !== null && warmingDays >= READY_DAYS,
@@ -88,38 +95,64 @@ export async function GET() {
       };
     });
 
-    // Per-spec simplified summary. Warmup health % is intentionally not
-    // computed yet — EB exposes only warmup_enabled boolean, no health
-    // score. The card and column carry through as null/'—' until a source
-    // is wired in. lowWarmupHealth count placeholder = 0 for now.
+    // Warmup health thresholds:
+    //   >= 98  healthy (green)
+    //   90-97  watch (amber)
+    //   < 90   problem (red) — counted into lowWarmupHealth
+    const LOW_HEALTH_THRESHOLD = 90;
+
+    const sendersWithScore = senders.filter(s => typeof s.warmup_score === "number");
+    const avgScore = sendersWithScore.length > 0
+      ? Math.round(sendersWithScore.reduce((sum, s) => sum + (s.warmup_score as number), 0) / sendersWithScore.length * 10) / 10
+      : null;
+
     const summary = {
       totalSenders:     senders.length,
       notWarming:       senders.filter(s => !s.warmup_enabled).length,
+      warmingOnly:      senders.filter(s => s.warming_since !== null).length,
       readyToRejoin:    senders.filter(s => s.ready_to_rejoin).length,
-      lowWarmupHealth:  0,            // placeholder until source plumbed
-      warmupHealthAvg:  null as number | null, // average % across all senders
+      lowWarmupHealth:  senders.filter(s => s.warmup_enabled && typeof s.warmup_score === "number" && (s.warmup_score as number) < LOW_HEALTH_THRESHOLD).length,
+      warmupHealthAvg:  avgScore,
     };
 
     type WsAgg = {
       slug:             string;
       total:            number;
       notWarming:       number;
+      warmingOnly:      number;
       readyToRejoin:    number;
       lowWarmupHealth:  number;
       warmupHealthAvg:  number | null;
     };
     const wsMap: Record<string, WsAgg> = {};
+    const wsScoreSums: Record<string, { sum: number; count: number }> = {};
     for (const s of senders) {
       const w = wsMap[s.workspace_slug] ?? (wsMap[s.workspace_slug] = {
-        slug: s.workspace_slug, total: 0, notWarming: 0, readyToRejoin: 0,
-        lowWarmupHealth: 0, warmupHealthAvg: null,
+        slug: s.workspace_slug, total: 0, notWarming: 0, warmingOnly: 0,
+        readyToRejoin: 0, lowWarmupHealth: 0, warmupHealthAvg: null,
       });
       w.total++;
-      if (!s.warmup_enabled)  w.notWarming++;
-      if (s.ready_to_rejoin)  w.readyToRejoin++;
+      if (!s.warmup_enabled)         w.notWarming++;
+      if (s.warming_since !== null)  w.warmingOnly++;
+      if (s.ready_to_rejoin)         w.readyToRejoin++;
+      if (s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < LOW_HEALTH_THRESHOLD) {
+        w.lowWarmupHealth++;
+      }
+      if (typeof s.warmup_score === "number") {
+        const slot = wsScoreSums[s.workspace_slug] ?? (wsScoreSums[s.workspace_slug] = { sum: 0, count: 0 });
+        slot.sum += s.warmup_score;
+        slot.count++;
+      }
+    }
+    for (const slug of Object.keys(wsMap)) {
+      const slot = wsScoreSums[slug];
+      if (slot && slot.count > 0) {
+        wsMap[slug].warmupHealthAvg = Math.round(slot.sum / slot.count * 10) / 10;
+      }
     }
     const workspaces = Object.values(wsMap).sort((a, b) =>
       (b.notWarming - a.notWarming) ||
+      (b.lowWarmupHealth - a.lowWarmupHealth) ||
       (b.readyToRejoin - a.readyToRejoin) ||
       (b.total - a.total)
     );
@@ -137,5 +170,5 @@ export async function GET() {
 }
 
 function emptySummary() {
-  return { totalSenders: 0, notWarming: 0, readyToRejoin: 0, lowWarmupHealth: 0, warmupHealthAvg: null };
+  return { totalSenders: 0, notWarming: 0, warmingOnly: 0, readyToRejoin: 0, lowWarmupHealth: 0, warmupHealthAvg: null };
 }
