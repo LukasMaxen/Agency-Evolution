@@ -95,11 +95,13 @@ export async function GET() {
       };
     });
 
-    // Warmup health thresholds:
-    //   >= 98  healthy (green)
-    //   90-97  watch (amber)
-    //   < 90   problem (red) — counted into lowWarmupHealth
-    const LOW_HEALTH_THRESHOLD = 90;
+    // Warmup health threshold for the lowWarmupHealth count and sort:
+    //   >= 98  healthy
+    //   <  98  flagged red — counted into lowWarmupHealth and pushed to
+    //          the top of the workspace list
+    // 98 is intentional: EB scores are tightly distributed in the high 90s
+    // for healthy mailboxes, so anything below 98 stands out.
+    const LOW_HEALTH_THRESHOLD = 98;
 
     const sendersWithScore = senders.filter(s => typeof s.warmup_score === "number");
     const avgScore = sendersWithScore.length > 0

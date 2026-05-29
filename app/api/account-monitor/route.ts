@@ -31,6 +31,11 @@ const ACCOUNT_MIN_SEND    = 50;
 const DOMAIN_MIN_PER_ACCOUNT = 20;
 const DOMAIN_MIN_FLOOR    = 50;
 const PROVISIONAL_FLOOR   = 20;
+// Minimum send volume before the RED critical_low_replies tag is allowed
+// to fire. Below this, a reply_rate < 0.5% downgrades to the yellow
+// low_replies tier instead. Prevents tagging fresh / low-volume senders
+// red just because their first 30 sends produced 0 replies.
+const CRITICAL_MIN_SEND   = 200;
 
 type Status =
   | "disconnected"
@@ -86,14 +91,18 @@ function classify(args: {
 
   // Priority cascade for the badge. Severity order:
   //   burned                -> reputation damaged, longest recovery
-  //   critical_low_replies  -> < 0.5% replies, pause + warmup 1-2 weeks
+  //   critical_low_replies  -> < 0.5% replies AND >= 200 sends; pause+warmup
   //   list_issue            -> bad list, fixable by data cleansing
   //   low_replies           -> 0.5-0.99%, monitor / tweak copy
-  // critical_low_replies ranks above list_issue because a broken angle is
-  // harder to fix and wastes more send budget than dirty data.
+  // The 200-send floor for the RED tier is intentional. Below that, a
+  // < 0.5% reading is too noisy to act on (a single dud campaign can
+  // produce zero replies in the first 30-100 sends without meaning the
+  // sender is broken). At < 200 sends, a < 0.5% reading downgrades to
+  // the yellow low_replies tier instead. All other tags use their own
+  // existing thresholds; this floor only gates critical_low_replies.
   let status: Status;
   if (signals.burn)                                   status = "burned";
-  else if (args.replyRate < REPLY_RATE_CRITICAL)      status = "critical_low_replies";
+  else if (args.replyRate < REPLY_RATE_CRITICAL && args.sent >= CRITICAL_MIN_SEND) status = "critical_low_replies";
   else if (signals.bounce)                            status = "list_issue";
   else if (signals.replies)                           status = "low_replies";
   else                                                status = "healthy";
