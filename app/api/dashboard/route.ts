@@ -5,6 +5,7 @@ import {
   getWorkspaceSuccess,
   getSuccessMetricConfig,
 } from "@/lib/airtable-meetings";
+import { fetchAggregateEBStats, fetchWorkspaceEBStats } from "@/lib/emailbison-stats";
 
 // Main dashboard data, mirrors EmailBison's snapshot view but tailored for
 // AI Reply Desk, no opens or unsubscribes tracked.
@@ -122,51 +123,31 @@ export async function GET(req: NextRequest) {
     const baseArgs: any[] = [start, end];
     const wsArgs:   any[] = isAll ? baseArgs : [...baseArgs, workspaceParam];
 
-    // ── Totals ──────────────────────────────────────────────────────────────
-    const sentTotal = await pool.query<{ sent: number; contacted: number }>(`
-      SELECT
-        COUNT(*)::int                              AS sent,
-        COUNT(DISTINCT lead_email)::int            AS contacted
+    // ── Totals (from EmailBison /api/workspaces/v1.1/stats) ─────────────────
+    // Switched from internal DB queries to EB's stats endpoint so the
+    // numbers reconcile with the CSM update and the EmailBison UI exactly.
+    // Internal DB still drives the time-series chart below (visual only).
+    const targetSlugs = isAll ? workspaces.map(w => w.slug) : [workspaceParam];
+    const ebStats = await fetchAggregateEBStats(targetSlugs, start, end);
+
+    // EB returns one stats blob per workspace; sum for the aggregate.
+    // For the workspace=single case the aggregate IS that single workspace.
+    const ebTotals = ebStats.total;
+    const intMap: Record<string, number> = {};
+    for (const slug of targetSlugs) {
+      intMap[slug] = ebStats.byWorkspace[slug]?.interested ?? 0;
+    }
+
+    // "contacted" is not exposed by EB stats endpoint, so we still pull it
+    // from our DB. This is the only KPI card derived from internal data;
+    // it represents unique lead emails we have on file as sent-to in the
+    // window. Acceptable divergence: it is for context, not reconciliation.
+    const contactedRes = await pool.query<{ contacted: number }>(`
+      SELECT COUNT(DISTINCT lead_email)::int AS contacted
       FROM emails_sent
       WHERE sent_at BETWEEN $1 AND $2
       ${wsFilterSql}
     `, wsArgs);
-
-    // Only tracked replies count toward KPIs. Untracked replies are
-    // promotional/newsletter inbox pollution that EmailBison flags via
-    // tracked_reply=false and that we should NOT count as cold-campaign
-    // responses. This matches EmailBison's own reply-rate definition.
-    const replyTotal = await pool.query<{ replies: number; interested: number }>(`
-      SELECT
-        COUNT(*)::int                                                     AS replies,
-        COUNT(*) FILTER (WHERE interested = TRUE)::int                    AS interested
-      FROM replies
-      WHERE received_at BETWEEN $1 AND $2
-        AND tracked_reply IS NOT FALSE
-      ${wsFilterSql}
-    `, wsArgs);
-
-    const bounceTotal = await pool.query<{ bounced: number }>(`
-      SELECT COUNT(*)::int AS bounced
-      FROM email_bounces
-      WHERE bounced_at BETWEEN $1 AND $2
-      ${wsFilterSql}
-    `, wsArgs);
-
-    // ── Per-workspace interested counts (for proxy-success workspaces) ──────
-    // Always grouped, even on per-workspace filter, so we can look up the
-    // interested count by slug uniformly. Tracked-only to match KPI semantics.
-    const interestedPerWs = await pool.query<{ slug: string; n: number }>(`
-      SELECT workspace_slug AS slug,
-             COUNT(*) FILTER (WHERE interested = TRUE)::int AS n
-      FROM replies
-      WHERE received_at BETWEEN $1 AND $2
-        AND tracked_reply IS NOT FALSE
-      ${wsFilterSql}
-      GROUP BY workspace_slug
-    `, wsArgs);
-    const intMap: Record<string, number> = {};
-    for (const row of interestedPerWs.rows) intMap[row.slug] = row.n;
 
     // ── Conversions ─────────────────────────────────────────────────────────
     // For each workspace, "success" is either (a) the count from its
@@ -205,11 +186,11 @@ export async function GET(req: NextRequest) {
     }
 
     const t = {
-      sent:        sentTotal.rows[0]?.sent       ?? 0,
-      contacted:   sentTotal.rows[0]?.contacted  ?? 0,
-      replies:     replyTotal.rows[0]?.replies   ?? 0,
-      interested:  replyTotal.rows[0]?.interested ?? 0,
-      bounced:     bounceTotal.rows[0]?.bounced  ?? 0,
+      sent:        ebTotals.emails_sent,
+      contacted:   contactedRes.rows[0]?.contacted ?? 0,
+      replies:     ebTotals.unique_replies_per_contact,
+      interested:  ebTotals.interested,
+      bounced:     ebTotals.bounced,
       // "meetings" kept as the legacy field name in the response for
       // backwards compat with anything that might still read it. The new
       // semantically-correct name is `conversions`.
@@ -243,27 +224,19 @@ export async function GET(req: NextRequest) {
     const prevBounds = resolvePreviousRange(rangeParam, { start, end });
     if (prevBounds) {
       const prevWsArgs = isAll ? [prevBounds.start, prevBounds.end] : [prevBounds.start, prevBounds.end, workspaceParam];
-      const [prevSentRes, prevReplyRes, prevBounceRes, prevIntPerWsRes] = await Promise.all([
-        pool.query<{ sent: number; contacted: number }>(`
-          SELECT COUNT(*)::int AS sent, COUNT(DISTINCT lead_email)::int AS contacted
+
+      // Previous-period EB stats + contacted (DB).
+      const [prevEbStats, prevContactedRes] = await Promise.all([
+        fetchAggregateEBStats(targetSlugs, prevBounds.start, prevBounds.end),
+        pool.query<{ contacted: number }>(`
+          SELECT COUNT(DISTINCT lead_email)::int AS contacted
           FROM emails_sent WHERE sent_at BETWEEN $1 AND $2 ${wsFilterSql}
-        `, prevWsArgs),
-        pool.query<{ replies: number; interested: number }>(`
-          SELECT COUNT(*)::int AS replies, COUNT(*) FILTER (WHERE interested = TRUE)::int AS interested
-          FROM replies WHERE received_at BETWEEN $1 AND $2 AND tracked_reply IS NOT FALSE ${wsFilterSql}
-        `, prevWsArgs),
-        pool.query<{ bounced: number }>(`
-          SELECT COUNT(*)::int AS bounced FROM email_bounces
-          WHERE bounced_at BETWEEN $1 AND $2 ${wsFilterSql}
-        `, prevWsArgs),
-        pool.query<{ slug: string; n: number }>(`
-          SELECT workspace_slug AS slug, COUNT(*) FILTER (WHERE interested = TRUE)::int AS n
-          FROM replies WHERE received_at BETWEEN $1 AND $2 AND tracked_reply IS NOT FALSE ${wsFilterSql}
-          GROUP BY workspace_slug
         `, prevWsArgs),
       ]);
       const prevIntMap: Record<string, number> = {};
-      for (const row of prevIntPerWsRes.rows) prevIntMap[row.slug] = row.n;
+      for (const slug of targetSlugs) {
+        prevIntMap[slug] = prevEbStats.byWorkspace[slug]?.interested ?? 0;
+      }
 
       let prevConversions = 0;
       try {
@@ -278,11 +251,11 @@ export async function GET(req: NextRequest) {
       }
 
       const pt = {
-        sent:        prevSentRes.rows[0]?.sent       ?? 0,
-        contacted:   prevSentRes.rows[0]?.contacted  ?? 0,
-        replies:     prevReplyRes.rows[0]?.replies   ?? 0,
-        interested:  prevReplyRes.rows[0]?.interested ?? 0,
-        bounced:     prevBounceRes.rows[0]?.bounced  ?? 0,
+        sent:        prevEbStats.total.emails_sent,
+        contacted:   prevContactedRes.rows[0]?.contacted ?? 0,
+        replies:     prevEbStats.total.unique_replies_per_contact,
+        interested:  prevEbStats.total.interested,
+        bounced:     prevEbStats.total.bounced,
         meetings:    prevConversions,
         conversions: prevConversions,
       };

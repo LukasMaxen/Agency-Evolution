@@ -327,6 +327,7 @@ export function ReplyDashboard() {
               {workspace === "all"
                 ? "Full overview across every active workspace"
                 : `Full overview of ${data?.workspaces.find(w => w.slug === workspace)?.name ?? workspace}`}
+              <span className="text-xs text-slate-400 ml-2">· Sent, replies, interested, bounced from EmailBison · meetings from Airtable</span>
             </p>
           </div>
           <div className="flex items-center gap-3">
