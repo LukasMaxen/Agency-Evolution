@@ -130,11 +130,12 @@ export async function POST(req: NextRequest) {
     // senders that EB actually has attached there. EB rejects the entire
     // batch if any sender_id is "invalid" for that campaign, so passing
     // the full batch when only one sender is attached blows up the call.
-    const campMap = new Map<number, { id: number; name: string; status: string; senderIds: number[] }>();
+    type CampSlot = { id: number; name: string; status: string; senderIds: number[] };
+    const campMap = new Map<number, CampSlot>();
     for (const { id: senderId, camps } of campaignsBySender) {
       for (const c of camps) {
         if (TERMINAL_STATES.has(c.status)) continue;
-        const slot = campMap.get(c.id) ?? { id: c.id, name: c.name, status: c.status, senderIds: [] };
+        const slot: CampSlot = campMap.get(c.id) ?? { id: c.id, name: c.name, status: c.status, senderIds: [] };
         slot.senderIds.push(senderId);
         campMap.set(c.id, slot);
       }
