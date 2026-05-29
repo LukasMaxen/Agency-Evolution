@@ -60,7 +60,7 @@ function fmtPct(n: number): string {
 
 function fmtRatio(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return "—";
-  return `${Math.round(n).toLocaleString()}:1`;
+  return Math.round(n).toLocaleString();
 }
 
 function fmtInt(n: number): string {
