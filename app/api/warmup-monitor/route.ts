@@ -95,10 +95,11 @@ export async function GET() {
       };
     });
 
-    // Warmup health threshold for the lowWarmupHealth count and sort:
-    //   >= 98  healthy
-    //   <  98  flagged red — counted into lowWarmupHealth and pushed to
-    //          the top of the workspace list
+    // Warmup health threshold. Health is judged at the DOMAIN level, not the
+    // individual mailbox level: if the domain average drops below 98% we
+    // treat the whole domain as unhealthy and push every reachable sender
+    // on it back to warmup. Individual outliers inside a healthy domain are
+    // left alone — they recover passively while peers carry the volume.
     // 98 is intentional: EB scores are tightly distributed in the high 90s
     // for healthy mailboxes, so anything below 98 stands out.
     const LOW_HEALTH_THRESHOLD = 98;
@@ -108,6 +109,34 @@ export async function GET() {
       ? Math.round(sendersWithScore.reduce((sum, s) => sum + (s.warmup_score as number), 0) / sendersWithScore.length * 10) / 10
       : null;
 
+    // Domain-level aggregation. A domain is "unhealthy" only when the avg
+    // of its connected, scored senders is below the threshold. The flag
+    // then propagates: all senders on the unhealthy domain are counted as
+    // low health, since the planned action (Pause outbound) operates on
+    // the whole domain.
+    const sendersByDomain: Record<string, SenderRow[]> = {};
+    for (const s of senders) {
+      const dom = s.sender_email.split("@")[1] ?? "unknown";
+      (sendersByDomain[dom] ??= []).push(s);
+    }
+    type DomainAgg = { workspace_slug: string; domain: string; avgScore: number | null; lowHealth: boolean; senders: number };
+    const domainAggs: DomainAgg[] = Object.entries(sendersByDomain).map(([dom, list]) => {
+      const reachableScored = list.filter(s => s.conn_status !== "Not connected" && typeof s.warmup_score === "number");
+      const avg = reachableScored.length > 0
+        ? Math.round(reachableScored.reduce((a, s) => a + (s.warmup_score as number), 0) / reachableScored.length * 10) / 10
+        : null;
+      return {
+        workspace_slug: list[0].workspace_slug,
+        domain:         dom,
+        avgScore:       avg,
+        lowHealth:      avg !== null && avg < LOW_HEALTH_THRESHOLD,
+        senders:        list.length,
+      };
+    });
+    const lowHealthDomainSet = new Set(domainAggs.filter(d => d.lowHealth).map(d => `${d.workspace_slug}::${d.domain}`));
+    const sendersInLowHealthDomain = (s: SenderRow) =>
+      lowHealthDomainSet.has(`${s.workspace_slug}::${s.sender_email.split("@")[1] ?? "unknown"}`);
+
     // "Warming only" = sender is not attached to any active outbound
     // campaign (attached_campaigns_count = 0). This is the inverse of "in
     // outbound campaigns" and is what the per-workspace Warming-only tab
@@ -115,42 +144,42 @@ export async function GET() {
     // warming_since was set by Remove + warmup.
     const isWarmingOnly = (s: SenderRow) => (s.attached_campaigns_count ?? 0) === 0;
     const summary = {
-      totalSenders:     senders.length,
-      notWarming:       senders.filter(s => !s.warmup_enabled).length,
-      warmingOnly:      senders.filter(isWarmingOnly).length,
-      readyToRejoin:    senders.filter(s => s.ready_to_rejoin).length,
-      lowWarmupHealth:  senders.filter(s => s.warmup_enabled && typeof s.warmup_score === "number" && (s.warmup_score as number) < LOW_HEALTH_THRESHOLD).length,
-      warmupHealthAvg:  avgScore,
+      totalSenders:      senders.length,
+      notWarming:        senders.filter(s => !s.warmup_enabled).length,
+      warmingOnly:       senders.filter(isWarmingOnly).length,
+      readyToRejoin:     senders.filter(s => s.ready_to_rejoin).length,
+      lowHealthDomains:  lowHealthDomainSet.size,
+      warmupHealthAvg:   avgScore,
     };
 
     type WsAgg = {
-      slug:             string;
-      total:            number;
-      notWarming:       number;
-      warmingOnly:      number;
-      readyToRejoin:    number;
-      lowWarmupHealth:  number;
-      warmupHealthAvg:  number | null;
+      slug:              string;
+      total:             number;
+      notWarming:        number;
+      warmingOnly:       number;
+      readyToRejoin:     number;
+      lowHealthDomains:  number;
+      warmupHealthAvg:   number | null;
     };
     const wsMap: Record<string, WsAgg> = {};
     const wsScoreSums: Record<string, { sum: number; count: number }> = {};
     for (const s of senders) {
       const w = wsMap[s.workspace_slug] ?? (wsMap[s.workspace_slug] = {
         slug: s.workspace_slug, total: 0, notWarming: 0, warmingOnly: 0,
-        readyToRejoin: 0, lowWarmupHealth: 0, warmupHealthAvg: null,
+        readyToRejoin: 0, lowHealthDomains: 0, warmupHealthAvg: null,
       });
       w.total++;
       if (!s.warmup_enabled)         w.notWarming++;
       if (isWarmingOnly(s))          w.warmingOnly++;
       if (s.ready_to_rejoin)         w.readyToRejoin++;
-      if (s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < LOW_HEALTH_THRESHOLD) {
-        w.lowWarmupHealth++;
-      }
       if (typeof s.warmup_score === "number") {
         const slot = wsScoreSums[s.workspace_slug] ?? (wsScoreSums[s.workspace_slug] = { sum: 0, count: 0 });
         slot.sum += s.warmup_score;
         slot.count++;
       }
+    }
+    for (const d of domainAggs) {
+      if (d.lowHealth) wsMap[d.workspace_slug].lowHealthDomains++;
     }
     for (const slug of Object.keys(wsMap)) {
       const slot = wsScoreSums[slug];
@@ -159,13 +188,14 @@ export async function GET() {
       }
     }
     // Priority sort: workspaces with not-warming senders first (most urgent),
-    // then low health (some senders below 90%), then everything else by
+    // then workspaces with at least one low-health domain (domain avg below
+    // 98% — the planned Pause-outbound trigger), then everything else by
     // average warmup health ascending so the workspaces closest to the
     // threshold show before the fully healthy ones. Null avg (no senders
     // scored yet) goes to the bottom.
     const workspaces = Object.values(wsMap).sort((a, b) => {
       if (b.notWarming !== a.notWarming) return b.notWarming - a.notWarming;
-      if (b.lowWarmupHealth !== a.lowWarmupHealth) return b.lowWarmupHealth - a.lowWarmupHealth;
+      if (b.lowHealthDomains !== a.lowHealthDomains) return b.lowHealthDomains - a.lowHealthDomains;
       const avgA = a.warmupHealthAvg ?? 101;
       const avgB = b.warmupHealthAvg ?? 101;
       if (avgA !== avgB) return avgA - avgB;
@@ -185,5 +215,5 @@ export async function GET() {
 }
 
 function emptySummary() {
-  return { totalSenders: 0, notWarming: 0, warmingOnly: 0, readyToRejoin: 0, lowWarmupHealth: 0, warmupHealthAvg: null };
+  return { totalSenders: 0, notWarming: 0, warmingOnly: 0, readyToRejoin: 0, lowHealthDomains: 0, warmupHealthAvg: null };
 }

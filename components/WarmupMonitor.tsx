@@ -22,22 +22,22 @@ interface Sender {
 }
 
 interface Summary {
-  totalSenders:    number;
-  notWarming:      number;
-  warmingOnly:     number;
-  readyToRejoin:   number;
-  lowWarmupHealth: number;
-  warmupHealthAvg: number | null;
+  totalSenders:     number;
+  notWarming:       number;
+  warmingOnly:      number;
+  readyToRejoin:    number;
+  lowHealthDomains: number;
+  warmupHealthAvg:  number | null;
 }
 
 interface WsAgg {
-  slug:            string;
-  total:           number;
-  notWarming:      number;
-  warmingOnly:     number;
-  readyToRejoin:   number;
-  lowWarmupHealth: number;
-  warmupHealthAvg: number | null;
+  slug:             string;
+  total:            number;
+  notWarming:       number;
+  warmingOnly:      number;
+  readyToRejoin:    number;
+  lowHealthDomains: number;
+  warmupHealthAvg:  number | null;
 }
 
 interface WarmupData {
@@ -96,9 +96,9 @@ function WorkspaceCard({ w, onClick }: { w: WsAgg; onClick: () => void }) {
   //   amber if any sender is ready to rejoin (lifecycle action needed)
   //   green otherwise
   const accent =
-    (w.notWarming + w.lowWarmupHealth) > 0 ? "#E24B4A" :
-    w.readyToRejoin > 0                    ? "#F59E0B" :
-                                             "#84C56A";
+    (w.notWarming + w.lowHealthDomains) > 0 ? "#E24B4A" :
+    w.readyToRejoin > 0                     ? "#F59E0B" :
+                                              "#84C56A";
 
   return (
     <div onClick={onClick}
@@ -116,20 +116,20 @@ function WorkspaceCard({ w, onClick }: { w: WsAgg; onClick: () => void }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 6, flexWrap: "wrap" }}>
         <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{name}</p>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {w.notWarming      > 0 && <PillBadge text={`${w.notWarming} not warming`}     tone="red" />}
-          {w.lowWarmupHealth > 0 && <PillBadge text={`${w.lowWarmupHealth} low health`} tone="red" />}
-          {w.readyToRejoin   > 0 && <PillBadge text={`${w.readyToRejoin} ready`}        tone="green" />}
-          {w.notWarming === 0 && w.lowWarmupHealth === 0 && (
+          {w.notWarming       > 0 && <PillBadge text={`${w.notWarming} not warming`}                                                     tone="red" />}
+          {w.lowHealthDomains > 0 && <PillBadge text={`${w.lowHealthDomains} low-health ${w.lowHealthDomains === 1 ? "domain" : "domains"}`} tone="red" />}
+          {w.readyToRejoin    > 0 && <PillBadge text={`${w.readyToRejoin} ready`}                                                          tone="green" />}
+          {w.notWarming === 0 && w.lowHealthDomains === 0 && (
             <PillBadge text="All healthy" tone="green" />
           )}
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {[
-          { label: "Total senders",  value: w.total,                                                    color: undefined },
-          { label: "Not warming",    value: w.notWarming,                                               color: w.notWarming   > 0 ? "#B91C1C" : undefined },
-          { label: "Warmup health",  value: w.warmupHealthAvg !== null ? `${w.warmupHealthAvg}%` : "—", color: w.warmupHealthAvg === null ? "#9ca3af" : w.warmupHealthAvg >= 98 ? "#15803D" : w.warmupHealthAvg >= 90 ? "#D97706" : "#B91C1C" },
-          { label: "Warming only",   value: w.warmingOnly,                                              color: w.warmingOnly > 0 ? "#D97706" : undefined },
+          { label: "Total senders",       value: w.total,                                                    color: undefined },
+          { label: "Not warming",         value: w.notWarming,                                               color: w.notWarming   > 0 ? "#B91C1C" : undefined },
+          { label: "Warmup health",       value: w.warmupHealthAvg !== null ? `${w.warmupHealthAvg}%` : "—", color: w.warmupHealthAvg === null ? "#9ca3af" : w.warmupHealthAvg >= 98 ? "#15803D" : w.warmupHealthAvg >= 90 ? "#D97706" : "#B91C1C" },
+          { label: "Low-health domains",  value: w.lowHealthDomains,                                         color: w.lowHealthDomains > 0 ? "#B91C1C" : undefined },
         ].map(s => (
           <div key={s.label}>
             <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{s.label}</p>
@@ -169,11 +169,15 @@ function SenderTable({
     setDomainAction(prev => ({ ...prev, [domain]: action }));
     // Disconnected senders are never valid targets — the action would
     // succeed at the API level but cannot actually run on a mailbox EB
-    // can't reach. Skip them.
+    // can't reach. Skip them. For pause_outbound we target every reachable
+    // sender currently attached to a campaign: the domain action is
+    // triggered by the *domain* avg falling under threshold, not by
+    // individual scores, so every account on the unhealthy domain gets
+    // pulled into warmup together.
     const reachable = senders.filter(s => s.conn_status !== "Not connected");
     const targets = action === "enable_warmup"
       ? reachable.filter(s => !s.warmup_enabled)
-      : reachable.filter(s => s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98 && (s.attached_campaigns_count ?? 0) > 0);
+      : reachable.filter(s => s.warmup_enabled && (s.attached_campaigns_count ?? 0) > 0);
     if (targets.length === 0) {
       onActionDone(`No senders in ${domain} match this action.`, "error");
       setDomainAction(prev => ({ ...prev, [domain]: null }));
@@ -246,20 +250,13 @@ function SenderTable({
   // cannot send or warm up, so flagging it as not-warming or low-health is
   // both misleading and actionable on the wrong axis. All downstream
   // predicates exclude disconnected senders by construction.
-  const isWarmingOnly  = (s: Sender) => !isDisconnected(s) && (s.attached_campaigns_count ?? 0) === 0;
-  const isNotWarming   = (s: Sender) => !isDisconnected(s) && !s.warmup_enabled;
-  const isLowHealth    = (s: Sender) => !isDisconnected(s) && s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98;
-
-  // Severity bucket for row sort:
-  //   0  Disconnected        (indigo, top — fix in EB before warmup matters)
-  //   1  Not warming         (red — flag + enable warmup)
-  //   2  Low health (<98%)   (red — flag + pause outbound)
-  //   3  Healthy / other     (green or amber, bottom)
-  const severity = (s: Sender) =>
-    isDisconnected(s) ? 0 :
-    isNotWarming(s)   ? 1 :
-    isLowHealth(s)    ? 2 :
-                        3;
+  const isWarmingOnly = (s: Sender) => !isDisconnected(s) && (s.attached_campaigns_count ?? 0) === 0;
+  const isNotWarming  = (s: Sender) => !isDisconnected(s) && !s.warmup_enabled;
+  // Low-health is judged per-domain (see DomainGroup.lowHealth below). The
+  // per-sender warmup score is still shown in the row, but it does not
+  // drive individual badges or actions — a single account at 95% in an
+  // otherwise-99% domain is left alone because the domain itself is healthy
+  // and the outlier recovers passively.
 
   const filtered = senders
     .filter(s => {
@@ -267,30 +264,23 @@ function SenderTable({
         case "warming_only": return isWarmingOnly(s);
         default:             return true;
       }
-    })
-    .slice()
-    .sort((a, b) => {
-      if (severity(a) !== severity(b)) return severity(a) - severity(b);
-      const scoreA = a.warmup_score ?? 100;
-      const scoreB = b.warmup_score ?? 100;
-      if (scoreA !== scoreB) return scoreA - scoreB;
-      return a.sender_email.localeCompare(b.sender_email);
     });
 
   // Group filtered senders by their email domain so the workspace drilldown
   // mirrors Domain Monitor: one row per domain, click to expand individual
   // senders. Domain-level row shows aggregated counts (not warming, low
-  // health, avg score) so the operator can act on whole sending domains
-  // when issues are systemic (which they usually are — 66% of low-health
-  // domains have >=50% of senders affected).
+  // health, avg score) so the operator can act on whole sending domains.
+  // The current model: only the DOMAIN avg drives Pause-outbound. Individual
+  // outliers in an otherwise-healthy domain are left alone — they recover
+  // passively while the rest of the domain carries the volume.
   type DomainGroup = {
     domain:        string;
     senders:       Sender[];
     disconnected:  number;
     notWarming:    number;
-    lowHealth:     number;
     warmingOnly:   number;
     avgScore:      number | null;
+    lowHealth:     boolean;
     totalAttached: number;
     worstSev:      number;
     fullyDisconnected: boolean;
@@ -301,6 +291,11 @@ function SenderTable({
     if (!domainMap[d]) domainMap[d] = [];
     domainMap[d].push(s);
   }
+  // Severity bucket for the domain sort:
+  //   0  Any sender disconnected   (indigo, top — fix in EB first)
+  //   1  Any sender not warming    (red — enable warmup batch)
+  //   2  Domain avg below 98%      (red — Pause-outbound batch)
+  //   3  Healthy / other           (green or amber, bottom)
   const domainGroups: DomainGroup[] = Object.entries(domainMap).map(([dom, list]) => {
     // Health score only computed over connected senders. A disconnected
     // mailbox's score is meaningless (or stale from before the disconnect).
@@ -310,23 +305,25 @@ function SenderTable({
       ? Math.round(scored.reduce((a, s) => a + (s.warmup_score as number), 0) / scored.length * 10) / 10
       : null;
     const disconnected = list.filter(isDisconnected).length;
+    const notWarming   = list.filter(isNotWarming).length;
+    const lowHealth    = avg !== null && avg < 98;
+    const worstSev     = disconnected > 0 ? 0 : notWarming > 0 ? 1 : lowHealth ? 2 : 3;
     return {
       domain:            dom,
       senders:           list,
       disconnected,
-      notWarming:        list.filter(isNotWarming).length,
-      lowHealth:         list.filter(isLowHealth).length,
+      notWarming,
       warmingOnly:       list.filter(isWarmingOnly).length,
       avgScore:          avg,
+      lowHealth,
       totalAttached:     reachable.reduce((a, s) => a + (s.attached_campaigns_count ?? 0), 0),
-      worstSev:          Math.min(...list.map(severity)),
+      worstSev,
       fullyDisconnected: disconnected === list.length && list.length > 0,
     };
   }).sort((a, b) => {
     if (a.worstSev !== b.worstSev)             return a.worstSev - b.worstSev;
     if (b.disconnected !== a.disconnected)     return b.disconnected - a.disconnected;
     if (b.notWarming !== a.notWarming)         return b.notWarming - a.notWarming;
-    if (b.lowHealth !== a.lowHealth)           return b.lowHealth - a.lowHealth;
     const avgA = a.avgScore ?? 101;
     const avgB = b.avgScore ?? 101;
     if (avgA !== avgB)                         return avgA - avgB;
@@ -417,7 +414,7 @@ function SenderTable({
               const domBg =
                 d.disconnected > 0  ? "#EEF2FF" :
                 d.notWarming > 0    ? "#FCEBEB" :
-                d.lowHealth  > 0    ? "#FEF3C7" :
+                d.lowHealth         ? "#FEF3C7" :
                                       "#fafafa";
               return (
                 <Fragment key={d.domain}>
@@ -454,8 +451,8 @@ function SenderTable({
                         ? <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>
                         : d.notWarming > 0
                           ? <PillBadge text={`${d.notWarming} not warming`} tone="red" />
-                          : d.lowHealth > 0
-                            ? <PillBadge text={`${d.lowHealth} low health`} tone="red" />
+                          : d.lowHealth
+                            ? <PillBadge text="Domain low health" tone="red" />
                             : <PillBadge text="All warming" tone="green" />}
                     </td>
                     <td style={{
@@ -510,7 +507,14 @@ function SenderTable({
                             </button>
                           );
                         }
-                        const eligibleForPause = d.senders.filter(s => !isDisconnected(s) && s.warmup_enabled && typeof s.warmup_score === "number" && s.warmup_score < 98 && (s.attached_campaigns_count ?? 0) > 0).length;
+                        // Pause-outbound fires at the DOMAIN level only: when
+                        // the domain avg drops under 98%, every reachable
+                        // warming sender currently in a campaign gets pulled.
+                        // A single low-score outlier inside an otherwise-
+                        // healthy domain is intentionally left alone.
+                        const eligibleForPause = d.lowHealth
+                          ? d.senders.filter(s => !isDisconnected(s) && s.warmup_enabled && (s.attached_campaigns_count ?? 0) > 0).length
+                          : 0;
                         if (eligibleForPause > 0) {
                           return (
                             <button
@@ -542,10 +546,15 @@ function SenderTable({
                     const disconnected = isDisconnected(s);
                     const notWarming   = isNotWarming(s);
                     const warmingOnly  = isWarmingOnly(s);
+                    // Per-row background follows the DOMAIN's classification,
+                    // not the individual sender's score. A 95% account inside
+                    // a 99%-avg domain is shown white — the domain is healthy,
+                    // the outlier recovers passively. If the domain itself is
+                    // low-health, every row inside gets the amber tint.
                     const senderBg     =
                       disconnected                                ? "#F5F7FF" :  // indigo-25 (lighter than domain #EEF2FF)
                       notWarming                                  ? "#FEF7F7" :  // red-25  (lighter than domain #FCEBEB)
-                      isLowHealth(s)                              ? "#FFFBEB" :  // amber-25 (lighter than domain #FEF3C7)
+                      d.lowHealth                                 ? "#FFFBEB" :  // amber-25 (lighter than domain #FEF3C7)
                       tab === "warming_only" && s.ready_to_rejoin ? "#F0FDF4" :
                                                                     "#ffffff";
                     return (
@@ -612,19 +621,6 @@ function SenderTable({
                               }}>
                               {acting === "enable_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
                               Enable warmup
-                            </button>
-                          ) : isLowHealth(s) && !warmingOnly ? (
-                            <button
-                              onClick={() => runSenderAction(s, "remove_and_warmup")}
-                              disabled={acting === "remove_and_warmup"}
-                              style={{
-                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
-                                background: "#FCEBEB", color: "#B91C1C", border: "0.5px solid #F09595",
-                                cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
-                                display: "inline-flex", alignItems: "center", gap: 5,
-                              }}>
-                              {acting === "remove_and_warmup" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
-                              Pause outbound
                             </button>
                           ) : s.ready_to_rejoin ? (
                             <button
@@ -754,10 +750,9 @@ export function WarmupMonitor() {
                      data.summary.warmupHealthAvg >= 90 ? "#D97706" : "#B91C1C"}
             />
             <SummaryCard
-              label="Warming only"
-              value={data.summary.warmingOnly}
-              color={data.summary.warmingOnly > 0 ? "#D97706" : undefined}
-              sub={data.summary.readyToRejoin > 0 ? `${data.summary.readyToRejoin} ready` : undefined}
+              label="Low-health domains"
+              value={data.summary.lowHealthDomains}
+              color={data.summary.lowHealthDomains > 0 ? "#B91C1C" : undefined}
             />
           </div>
 
