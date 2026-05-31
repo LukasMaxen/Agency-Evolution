@@ -134,8 +134,10 @@ interface Workspace {
   totalSent:        number;
   totalReplies:     number;
   totalBounces:     number;
+  totalBurns:       number;
   avgReplyRate:     number;
   bouncePct:        number;
+  burnPct:          number;
   // From account-monitor: count of domains in red-tier states (burned,
   // critical_low_replies, list_issue). These overlap conceptually with
   // lowHealthDomains from warmup-monitor; we keep both on the card so
@@ -143,6 +145,66 @@ interface Workspace {
   // as separate signals.
   burnedDomains:    number;
   criticalDomains:  number;
+}
+
+// Aggregated stats used by the SummaryPanel. Computed across all
+// workspaces for the index view, or scoped to a single workspace in
+// the drilldown.
+interface Totals {
+  total:           number;
+  active:          number;
+  warmingOnly:     number;
+  disconnected:    number;
+  totalSent:       number;
+  totalReplies:    number;
+  totalBounces:    number;
+  totalBurns:      number;
+  // Weighted by send volume so a workspace that sent 5k emails carries
+  // more weight in the reply / bounce / burn rate than one that sent 50.
+  replyRate:       number;
+  bounceRate:      number;
+  burnRate:        number;
+  // Weighted by sender count for warmup health (volume isn't the right
+  // axis for warmup; sender headcount is).
+  warmupHealthAvg: number | null;
+  burnedDomains:   number;
+  criticalDomains: number;
+  lowHealthDomains:number;
+  notWarming:      number;
+}
+
+function aggregateTotals(workspaces: Workspace[]): Totals {
+  const t: Totals = {
+    total: 0, active: 0, warmingOnly: 0, disconnected: 0,
+    totalSent: 0, totalReplies: 0, totalBounces: 0, totalBurns: 0,
+    replyRate: 0, bounceRate: 0, burnRate: 0, warmupHealthAvg: null,
+    burnedDomains: 0, criticalDomains: 0, lowHealthDomains: 0, notWarming: 0,
+  };
+  let warmupSum = 0;
+  let warmupCount = 0;
+  for (const w of workspaces) {
+    t.total            += w.total;
+    t.active           += w.active;
+    t.warmingOnly      += w.warmingOnly;
+    t.disconnected     += w.disconnected;
+    t.notWarming       += w.notWarming;
+    t.totalSent        += w.totalSent;
+    t.totalReplies     += w.totalReplies;
+    t.totalBounces     += w.totalBounces;
+    t.totalBurns       += w.totalBurns;
+    t.burnedDomains    += w.burnedDomains;
+    t.criticalDomains  += w.criticalDomains;
+    t.lowHealthDomains += w.lowHealthDomains;
+    if (w.warmupHealthAvg !== null) {
+      warmupSum += w.warmupHealthAvg * w.total;
+      warmupCount += w.total;
+    }
+  }
+  t.replyRate  = t.totalSent > 0 ? (t.totalReplies / t.totalSent) * 100 : 0;
+  t.bounceRate = t.totalSent > 0 ? (t.totalBounces / t.totalSent) * 100 : 0;
+  t.burnRate   = t.totalSent > 0 ? (t.totalBurns   / t.totalSent) * 100 : 0;
+  t.warmupHealthAvg = warmupCount > 0 ? Math.round(warmupSum / warmupCount * 10) / 10 : null;
+  return t;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -172,6 +234,79 @@ function pct(x: number) {
 
 function fmt(n: number) {
   return n.toLocaleString("en-US");
+}
+
+// Stat card used by the SummaryPanel. The colour band only fires when
+// the metric crosses an obvious bad threshold, so a panel that's mostly
+// neutral grey reads as "things are fine" at a glance.
+function Stat({
+  label, value, sub, color, accent,
+}: {
+  label: string; value: string | number; sub?: string;
+  color?: string; accent?: "good" | "warn" | "bad" | "info";
+}) {
+  const accentBg = accent === "good" ? "#15803D"
+                 : accent === "warn" ? "#D97706"
+                 : accent === "bad"  ? "#B91C1C"
+                 : accent === "info" ? "#3730A3"
+                 : undefined;
+  return (
+    <div style={{
+      background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 10,
+      padding: "10px 14px", position: "relative", overflow: "hidden",
+    }}>
+      {accentBg && (
+        <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: accentBg }} />
+      )}
+      <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 4, fontWeight: 500 }}>{label}</p>
+      <p style={{ fontSize: 18, fontWeight: 600, color: color ?? "#111827", fontVariantNumeric: "tabular-nums" }}>
+        {value}
+        {sub && <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400, marginLeft: 6 }}>{sub}</span>}
+      </p>
+    </div>
+  );
+}
+
+// SummaryPanel renders two stat rows on top of the index / drilldown
+// views. Row 1 = capacity (how many senders we run); Row 2 = 7-day
+// performance (the actual outcome of the sending).
+function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
+  // Thresholds match the same colour logic used in the action endpoints
+  // and individual cards, so the colour story is consistent.
+  const healthColor = totals.warmupHealthAvg === null ? "#9ca3af"
+                    : totals.warmupHealthAvg >= 98 ? "#15803D"
+                    : totals.warmupHealthAvg >= 90 ? "#D97706"
+                                                   : "#B91C1C";
+  const replyColor  = totals.totalSent === 0      ? "#9ca3af"
+                    : totals.replyRate >= 2       ? "#15803D"
+                    : totals.replyRate >= 1       ? "#D97706"
+                                                   : "#B91C1C";
+  const bounceColor = totals.totalSent === 0      ? "#9ca3af"
+                    : totals.bounceRate <= 1      ? "#15803D"
+                    : totals.bounceRate <= 2      ? "#D97706"
+                                                   : "#B91C1C";
+  const burnColor   = totals.totalSent === 0      ? "#9ca3af"
+                    : totals.burnRate <= 0.25     ? "#15803D"
+                    : totals.burnRate <= 0.5      ? "#D97706"
+                                                   : "#B91C1C";
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
+      <Stat label="Total senders" value={fmt(totals.total)} sub={totals.disconnected > 0 ? `${totals.disconnected} disconnected` : undefined} accent={totals.disconnected > 0 ? "info" : undefined} />
+      <Stat label="Active"        value={fmt(totals.active)} />
+      <Stat label="Warming only"  value={fmt(totals.warmingOnly)} color={totals.warmingOnly > 0 ? "#D97706" : undefined} />
+      <Stat label="Warmup health" value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"} color={healthColor}
+        sub={totals.lowHealthDomains > 0 ? `${totals.lowHealthDomains} low-health` : undefined}
+        accent={totals.lowHealthDomains > 0 ? "bad" : undefined} />
+      <Stat label={`${days}d sends`}  value={fmt(totals.totalSent)} sub={totals.totalSent > 0 ? `${fmt(totals.totalReplies)} replies` : undefined} />
+      <Stat label="Reply rate"    value={pct(totals.replyRate)}  color={replyColor} />
+      <Stat label="Bounce rate"   value={pct(totals.bounceRate)} color={bounceColor}
+        sub={totals.burnedDomains > 0 ? `${totals.burnedDomains} burned` : undefined}
+        accent={totals.burnedDomains > 0 ? "bad" : undefined} />
+      <Stat label="Burn rate"     value={pct(totals.burnRate)}   color={burnColor}
+        sub={totals.criticalDomains > 0 ? `${totals.criticalDomains} critical` : undefined}
+        accent={totals.criticalDomains > 0 ? "bad" : undefined} />
+    </div>
+  );
 }
 
 // ── Workspace card (level 1) ──────────────────────────────────────────
@@ -445,12 +580,10 @@ function SenderTable({
         <ChevronLeft size={13} /> All workspaces
       </button>
 
-      <p style={{ fontSize: 15, fontWeight: 500, color: "#111827", marginBottom: 4 }}>
+      <p style={{ fontSize: 15, fontWeight: 500, color: "#111827", marginBottom: 10 }}>
         {name}, mailbox status
       </p>
-      <p style={{ fontSize: 11, color: "#9ca3af", marginBottom: 14 }}>
-        {ws.total} senders · {ws.active} active · {ws.warmingOnly} warming only · 7d {fmt(ws.totalSent)} sent · {pct(ws.avgReplyRate)} reply · {pct(ws.bouncePct)} bounce
-      </p>
+      <SummaryPanel totals={aggregateTotals([ws])} days={7} />
 
       <div style={{ display: "flex", gap: 4, marginBottom: 10, borderBottom: "0.5px solid #ede9e3" }}>
         {([
@@ -863,8 +996,10 @@ export function MailboxMonitor() {
           totalSent:        a?.totalSent ?? 0,
           totalReplies:     a?.totalReplies ?? 0,
           totalBounces:     a?.totalBounces ?? 0,
+          totalBurns:       a?.totalBurns ?? 0,
           avgReplyRate:     a?.avgReplyRate ?? 0,
           bouncePct:        a?.bouncePct ?? 0,
+          burnPct:          a?.burnPct ?? 0,
           burnedDomains:    (sc.burned ?? 0),
           criticalDomains:  (sc.critical_low_replies ?? 0),
         };
@@ -973,11 +1108,14 @@ export function MailboxMonitor() {
       )}
 
       {!loading && data && !selected && data.workspaces.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-          {data.workspaces.map(w => (
-            <WorkspaceCard key={w.slug} w={w} onClick={() => setSelected(w)} />
-          ))}
-        </div>
+        <>
+          <SummaryPanel totals={aggregateTotals(data.workspaces)} days={7} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+            {data.workspaces.map(w => (
+              <WorkspaceCard key={w.slug} w={w} onClick={() => setSelected(w)} />
+            ))}
+          </div>
+        </>
       )}
 
       {toast && (
