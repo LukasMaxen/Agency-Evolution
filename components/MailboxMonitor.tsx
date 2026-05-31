@@ -145,6 +145,14 @@ interface Workspace {
   // as separate signals.
   burnedDomains:    number;
   criticalDomains:  number;
+  // Full per-tier domain counts from /api/account-monitor.statusCounts.
+  // Used by the third row of the SummaryPanel ("domain-status strip")
+  // so the operator can see at a glance how many domains are in each
+  // health tier across the whole org / for one workspace.
+  listIssueDomains:    number;
+  lowReplyDomains:     number;
+  insufficientDomains: number;
+  healthyDomains:      number;
 }
 
 // Aggregated stats used by the SummaryPanel. Computed across all
@@ -167,10 +175,14 @@ interface Totals {
   // Weighted by sender count for warmup health (volume isn't the right
   // axis for warmup; sender headcount is).
   warmupHealthAvg: number | null;
-  burnedDomains:   number;
-  criticalDomains: number;
-  lowHealthDomains:number;
-  notWarming:      number;
+  burnedDomains:       number;
+  criticalDomains:     number;
+  lowHealthDomains:    number;
+  notWarming:          number;
+  listIssueDomains:    number;
+  lowReplyDomains:     number;
+  insufficientDomains: number;
+  healthyDomains:      number;
 }
 
 function aggregateTotals(workspaces: Workspace[]): Totals {
@@ -179,6 +191,7 @@ function aggregateTotals(workspaces: Workspace[]): Totals {
     totalSent: 0, totalReplies: 0, totalBounces: 0, totalBurns: 0,
     replyRate: 0, bounceRate: 0, burnRate: 0, warmupHealthAvg: null,
     burnedDomains: 0, criticalDomains: 0, lowHealthDomains: 0, notWarming: 0,
+    listIssueDomains: 0, lowReplyDomains: 0, insufficientDomains: 0, healthyDomains: 0,
   };
   let warmupSum = 0;
   let warmupCount = 0;
@@ -192,9 +205,13 @@ function aggregateTotals(workspaces: Workspace[]): Totals {
     t.totalReplies     += w.totalReplies;
     t.totalBounces     += w.totalBounces;
     t.totalBurns       += w.totalBurns;
-    t.burnedDomains    += w.burnedDomains;
-    t.criticalDomains  += w.criticalDomains;
-    t.lowHealthDomains += w.lowHealthDomains;
+    t.burnedDomains       += w.burnedDomains;
+    t.criticalDomains     += w.criticalDomains;
+    t.lowHealthDomains    += w.lowHealthDomains;
+    t.listIssueDomains    += w.listIssueDomains;
+    t.lowReplyDomains     += w.lowReplyDomains;
+    t.insufficientDomains += w.insufficientDomains;
+    t.healthyDomains      += w.healthyDomains;
     if (w.warmupHealthAvg !== null) {
       warmupSum += w.warmupHealthAvg * w.total;
       warmupCount += w.total;
@@ -309,6 +326,38 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
   );
 }
 
+// Compact horizontal strip of domain-status counts. Mirrors the top
+// strip on the existing Domain Monitor so the operator can see the
+// shape of the portfolio at a glance: how many domains are red vs
+// amber vs green vs not-yet-measurable. Hides zero buckets so the
+// strip stays scannable.
+function DomainStatusStrip({ totals }: { totals: Totals }) {
+  const tiers: { label: string; count: number; tone: "red" | "amber" | "grey" | "green" | "indigo" }[] = [
+    { label: "Disconnected", count: totals.disconnected,        tone: "indigo" },
+    { label: "Burned",       count: totals.burnedDomains,       tone: "red"    },
+    { label: "Critical low", count: totals.criticalDomains,     tone: "red"    },
+    { label: "Low health",   count: totals.lowHealthDomains,    tone: "red"    },
+    { label: "List issue",   count: totals.listIssueDomains,    tone: "amber"  },
+    { label: "Low reply",    count: totals.lowReplyDomains,     tone: "amber"  },
+    { label: "Insufficient", count: totals.insufficientDomains, tone: "grey"   },
+    { label: "Healthy",      count: totals.healthyDomains,      tone: "green"  },
+  ];
+  const visible = tiers.filter(t => t.count > 0);
+  if (visible.length === 0) return null;
+  return (
+    <div style={{
+      display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14,
+      padding: "8px 10px", background: "#ffffff",
+      border: "0.5px solid #ede9e3", borderRadius: 10,
+    }}>
+      <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 500, alignSelf: "center", marginRight: 4 }}>DOMAIN STATUS</span>
+      {visible.map(t => (
+        <PillBadge key={t.label} text={`${t.count} ${t.label.toLowerCase()}`} tone={t.tone} />
+      ))}
+    </div>
+  );
+}
+
 // ── Workspace card (level 1) ──────────────────────────────────────────
 
 function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
@@ -404,10 +453,11 @@ interface DomainGroup {
 }
 
 function SenderTable({
-  ws, senders, onBack, onActionDone, refresh,
+  ws, senders, days, onBack, onActionDone, refresh,
 }: {
   ws: Workspace;
   senders: Sender[];
+  days: number;
   onBack: () => void;
   onActionDone: (msg: string, type: "success" | "error") => void;
   refresh: () => void;
@@ -583,7 +633,8 @@ function SenderTable({
       <p style={{ fontSize: 15, fontWeight: 500, color: "#111827", marginBottom: 10 }}>
         {name}, mailbox status
       </p>
-      <SummaryPanel totals={aggregateTotals([ws])} days={7} />
+      <SummaryPanel totals={aggregateTotals([ws])} days={days} />
+      <DomainStatusStrip totals={aggregateTotals([ws])} />
 
       <div style={{ display: "flex", gap: 4, marginBottom: 10, borderBottom: "0.5px solid #ede9e3" }}>
         {([
@@ -613,14 +664,14 @@ function SenderTable({
           <thead>
             <tr style={{ background: "#f8f7f5", borderBottom: "0.5px solid #ede9e3" }}>
               {tab === "active" ? [
-                { h: "Sender",        w: "26%", align: "left" },
-                { h: "Status",        w: "13%", align: "left" },
-                { h: "Sends 7d",      w: "9%",  align: "right" },
-                { h: "Reply",         w: "9%",  align: "right" },
-                { h: "Bounce",        w: "9%",  align: "right" },
-                { h: "Warmup",        w: "10%", align: "left" },
-                { h: "Health",        w: "9%",  align: "right" },
-                { h: "Action",        w: "15%", align: "center" },
+                { h: "Sender",          w: "26%", align: "left" },
+                { h: "Status",          w: "13%", align: "left" },
+                { h: `Sends ${days}d`,  w: "9%",  align: "right" },
+                { h: "Reply",           w: "9%",  align: "right" },
+                { h: "Bounce",          w: "9%",  align: "right" },
+                { h: "Warmup",          w: "10%", align: "left" },
+                { h: "Health",          w: "9%",  align: "right" },
+                { h: "Action",          w: "15%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -828,8 +879,18 @@ function SenderTable({
                         </td>
                         {tab === "active" ? (
                           <>
-                            <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>{fmt(s.emails_sent)}</td>
-                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.reply_rate < 1 ? "#B91C1C" : s.reply_rate < 2 ? "#D97706" : "#15803D", fontVariantNumeric: "tabular-nums" }}>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
+                              <div>{fmt(s.emails_sent)}</div>
+                              {/* Confidence indicator: full / provisional /
+                                  insufficient. A 3.0% reply rate on 12 sends
+                                  is noise; the badge tells you so. */}
+                              <div style={{ fontSize: 9, color: "#9ca3af", marginTop: 1 }}>
+                                {s.confidence === "full"        ? "full"
+                                 : s.confidence === "provisional" ? "provisional"
+                                 :                                  "insufficient"}
+                              </div>
+                            </td>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.reply_rate < 0.01 ? "#B91C1C" : s.reply_rate < 0.02 ? "#D97706" : "#15803D", fontVariantNumeric: "tabular-nums" }}>
                               {s.emails_sent === 0 ? "—" : pct(s.reply_rate * 100)}
                             </td>
                             <td style={{ padding: "8px 10px", textAlign: "right", color: s.bounce_rate * 100 > 2 ? "#B91C1C" : s.bounce_rate * 100 > 1 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
@@ -848,7 +909,14 @@ function SenderTable({
                                    : s.warmup_score >= 98 ? "#15803D"
                                    : s.warmup_score >= 90 ? "#D97706" : "#B91C1C",
                               fontWeight: 500,
-                            }}>{s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}</td>
+                            }}>
+                              <div>{s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}</div>
+                              {/* Per-sender account status (from /api/account-monitor):
+                                  Healthy / Burned / Critical / List issue / Low reply / No data.
+                                  Lets the operator spot the one bad sender in
+                                  a mostly-healthy domain bundle. */}
+                              <div style={{ marginTop: 2 }}>{accStatusBadge(s.acc_status)}</div>
+                            </td>
                           </>
                         ) : (
                           <>
@@ -923,19 +991,21 @@ function SenderTable({
 // ── Top-level component ──────────────────────────────────────────────
 
 export function MailboxMonitor() {
-  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[] } | null>(null);
+  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[]; lastSynced: string | null; days: number } | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [selected, setSelected]   = useState<Workspace | null>(null);
   const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [pulling, setPulling]     = useState(false);
+  const [syncing, setSyncing]     = useState(false);
+  const [days, setDays]           = useState<7 | 14 | 30>(7);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [accRes, warmRes] = await Promise.all([
-        fetch("/api/account-monitor", { cache: "no-store" }),
+        fetch(`/api/account-monitor?days=${days}`, { cache: "no-store" }),
         fetch("/api/warmup-monitor", { cache: "no-store" }),
       ]);
       if (!accRes.ok || !warmRes.ok) {
@@ -1000,8 +1070,12 @@ export function MailboxMonitor() {
           avgReplyRate:     a?.avgReplyRate ?? 0,
           bouncePct:        a?.bouncePct ?? 0,
           burnPct:          a?.burnPct ?? 0,
-          burnedDomains:    (sc.burned ?? 0),
-          criticalDomains:  (sc.critical_low_replies ?? 0),
+          burnedDomains:        (sc.burned ?? 0),
+          criticalDomains:      (sc.critical_low_replies ?? 0),
+          listIssueDomains:     (sc.list_issue ?? 0),
+          lowReplyDomains:      (sc.low_replies ?? 0),
+          insufficientDomains:  (sc.insufficient_data ?? 0),
+          healthyDomains:       (sc.healthy ?? 0),
         };
       }).sort((a, b) => {
         if (b.disconnected !== a.disconnected) return b.disconnected - a.disconnected;
@@ -1012,13 +1086,13 @@ export function MailboxMonitor() {
         return a.slug.localeCompare(b.slug);
       });
 
-      setData({ workspaces, senders });
+      setData({ workspaces, senders, lastSynced: acc.lastSynced, days: acc.days });
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [days]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -1026,6 +1100,38 @@ export function MailboxMonitor() {
     const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
   }, [toast]);
+
+  // One-click "ensure every active sender is in every active campaign".
+  // Same endpoint as the Warmup Monitor's "Sync all to campaigns" — the
+  // guard there skips senders on domains with a peer currently warming,
+  // so paused-on-purpose mailboxes are not re-attached.
+  const syncAllToCampaigns = useCallback(async () => {
+    if (syncing) return;
+    const ok = window.confirm(
+      "This will attach every active, warmup-enabled, connected sender to every active campaign across all workspaces. Warming-only senders are skipped. Continue?"
+    );
+    if (!ok) return;
+    setSyncing(true);
+    setToast({ msg: "Syncing active senders to active campaigns…", type: "success" });
+    try {
+      const res = await fetch("/api/warmup-monitor/sync-campaigns", { method: "POST" });
+      const j = await res.json();
+      if (!res.ok || !j.ok) {
+        setToast({ msg: j.error ?? "Sync failed", type: "error" });
+        return;
+      }
+      const errCount = (j.workspaces ?? []).reduce((acc: number, w: any) => acc + (w.errors?.length ?? 0), 0);
+      setToast({
+        msg: `Synced ${j.total_attached} new attachment(s) across ${j.workspaces?.length ?? 0} workspaces${errCount > 0 ? ` · ${errCount} error(s)` : ""}.`,
+        type: errCount > 0 ? "error" : "success",
+      });
+      load();
+    } catch (err: any) {
+      setToast({ msg: err.message ?? "Network error", type: "error" });
+    } finally {
+      setSyncing(false);
+    }
+  }, [syncing, load]);
 
   const pullFromEB = useCallback(async (slug?: string) => {
     if (pulling) return;
@@ -1051,14 +1157,48 @@ export function MailboxMonitor() {
 
   return (
     <div style={{ flex: 1, overflowY: "auto", padding: 20, fontFamily: "inherit", color: "#111827", background: "#f8f7f5" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
         <div>
           <p style={{ fontSize: 18, fontWeight: 600 }}>Account Monitor</p>
           <p style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
-            Merged sending + warmup view. Active accounts show send / reply / bounce; warming-only accounts show warmup health and days warming.
+            Merged sending + warmup view.
+            {data?.lastSynced && (
+              <span style={{ marginLeft: 8, color: "#9ca3af" }}>
+                Last synced {new Date(data.lastSynced).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
           </p>
         </div>
-        <div style={{ display: "inline-flex", gap: 8 }}>
+        <div style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {/* Days range toggle — affects sends/reply/bounce/burn windows
+              from /api/account-monitor only. Warmup health is a current
+              snapshot from EB so the toggle does not change it. */}
+          <div style={{ display: "inline-flex", border: "0.5px solid #d1d5db", borderRadius: 7, overflow: "hidden" }}>
+            {[7, 14, 30].map(d => (
+              <button key={d}
+                onClick={() => setDays(d as 7 | 14 | 30)}
+                disabled={loading}
+                style={{
+                  fontSize: 11, padding: "6px 10px", fontFamily: "inherit",
+                  background: days === d ? "#111827" : "#ffffff",
+                  color: days === d ? "#ffffff" : "#374151",
+                  border: "none", cursor: "pointer",
+                  borderRight: d === 30 ? "none" : "0.5px solid #d1d5db",
+                }}>
+                {d}d
+              </button>
+            ))}
+          </div>
+          <button onClick={syncAllToCampaigns} disabled={syncing || loading}
+            title="Ensure every active sender is in every active campaign across all workspaces"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#15803D",
+              background: "#EAF3DE", border: "0.5px solid #C0DD97", borderRadius: 7,
+              padding: "6px 12px", cursor: syncing ? "wait" : "pointer", fontFamily: "inherit",
+            }}>
+            {syncing ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+            Sync all to campaigns
+          </button>
           <button onClick={() => pullFromEB(selected?.slug)} disabled={pulling || loading}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#3730A3",
@@ -1095,6 +1235,7 @@ export function MailboxMonitor() {
         <SenderTable
           ws={selected}
           senders={selectedSenders}
+          days={data.days}
           onBack={() => setSelected(null)}
           onActionDone={(msg, type) => setToast({ msg, type })}
           refresh={load}
@@ -1109,7 +1250,8 @@ export function MailboxMonitor() {
 
       {!loading && data && !selected && data.workspaces.length > 0 && (
         <>
-          <SummaryPanel totals={aggregateTotals(data.workspaces)} days={7} />
+          <SummaryPanel totals={aggregateTotals(data.workspaces)} days={data.days} />
+          <DomainStatusStrip totals={aggregateTotals(data.workspaces)} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
             {data.workspaces.map(w => (
               <WorkspaceCard key={w.slug} w={w} onClick={() => setSelected(w)} />
