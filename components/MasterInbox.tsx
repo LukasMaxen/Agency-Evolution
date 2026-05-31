@@ -12,10 +12,11 @@ import { KPITracker } from "@/components/KPITracker";
 import { LeadMonitoring } from "@/components/LeadMonitoring";
 import { AccountMonitor } from "@/components/AccountMonitor";
 import { WarmupMonitor } from "@/components/WarmupMonitor";
+import { MailboxMonitor } from "@/components/MailboxMonitor";
 import { VariantRefresh } from "@/components/VariantRefresh";
 import { Inbox, BarChart2, RefreshCw, ShieldAlert, RotateCcw, Users, Flame, Target } from "lucide-react";
 
-type View = "inbox" | "dashboard" | "kpi-tracker" | "lead-monitoring" | "account-monitor" | "warmup-monitor" | "variant-refresh";
+type View = "inbox" | "dashboard" | "kpi-tracker" | "lead-monitoring" | "account-monitor" | "warmup-monitor" | "mailbox-monitor" | "variant-refresh";
 
 function dbRowToReply(r: any, workspaces: ReturnType<typeof buildWorkspaceFromRow>[]): Reply {
   const workspace = findWorkspace(workspaces, r.workspaceSlug ?? r.workspaceId ?? "");
@@ -228,6 +229,7 @@ export function MasterInbox() {
     { id: "dashboard",       label: "Dashboard",       icon: BarChart2,   badge: 0 },
     { id: "kpi-tracker",     label: "KPI Tracker",     icon: Target,      badge: 0 },
     { id: "lead-monitoring", label: "Lead Monitoring", icon: Users,       badge: 0 },
+    { id: "mailbox-monitor", label: "Account Monitor (new)", icon: ShieldAlert, badge: 0 },
     { id: "account-monitor", label: "Domain Monitor",  icon: ShieldAlert, badge: 0 },
     { id: "warmup-monitor",  label: "Warmup Monitor",  icon: Flame,       badge: 0 },
     { id: "variant-refresh", label: "Var Refresh",     icon: RotateCcw,   badge: 0 },
@@ -329,6 +331,7 @@ export function MasterInbox() {
           {view === "lead-monitoring" && <LeadMonitoring />}
           {view === "account-monitor" && <AccountMonitor />}
           {view === "warmup-monitor" && <WarmupMonitor />}
+          {view === "mailbox-monitor" && <MailboxMonitor />}
           {view === "variant-refresh" && <VariantRefresh />}
         </div>
       </div>
