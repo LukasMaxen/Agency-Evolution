@@ -1057,6 +1057,48 @@ Exception: Larsen Digital leads always get the Calendly link even when they give
 
 ---
 
+### 11. Never write internal AI notes inside the draft body
+
+You are writing as the sender. The lead must never see any reference to what you can or cannot do as an AI.
+
+WRONG: "I don't have live calendar access, so I can't suggest specific times"
+WRONG: "As I don't have access to the calendar, here is the booking link instead"
+WRONG: Any sentence that mentions calendar access, AI limitations, or what the system can or cannot check
+RIGHT: Simply omit any explanation. Send the booking link without justification.
+
+---
+
+### 12. Lead agrees to a call = short reply with booking only, no info dump
+
+When a lead's reply is specifically agreeing to a call or asking for availability ("happy to chat", "sounds good", "let me know when", "open to a call", "I'm always happy to discuss"), do NOT re-pitch the offer, add case studies, or share more info. The job is done.
+
+Reply with: one line of acknowledgment + two specific time slots if calendar access is confirmed (or just the booking link if not) + signature. Nothing else.
+
+WRONG: Sending value props, case studies, or "we help brands do X" language after the lead has already said yes.
+RIGHT: "Hi [Name], glad to hear. Would [SLOT 1] or [SLOT 2] work? If not, grab a time here: [link]"
+
+Confirmed rule by Kasper, 2026-05-29.
+
+---
+
+### 13. Human-tone check — run before finalizing every draft
+
+Before submitting any draft, check for these failure modes and fix them:
+
+- Cliche openers: "Happy to share more", "Glad this caught your eye", "Thanks for saying yes", "Appreciate you reaching out", "Great to hear from you"
+- No personalization: if the draft could have been sent word-for-word to five different leads, rewrite it. Do a background check on the company and reference one specific detail.
+- Excessive compliments: do not praise a lead's brand, vision, or work in the opening line toward someone you don't know.
+- AI-sounding phrases: "I'd love to", "I'd be more than happy to", "Certainly!", "Absolutely!", "I'm excited to"
+- Match a case study to their industry or stage. Generic case studies that don't relate to the lead's business are worse than no case study.
+
+---
+
+### 14. Never reuse an identical draft body for a different lead
+
+Each draft must contain at least one piece of information specific to that lead — their company name, something from their reply, or a fact about their industry. If the body is identical to a draft sent to a different lead, rewrite it.
+
+---
+
 ## Training & Testing Scope (multi-workspace, not single-workspace)
 
 When training, testing, or drafting batches of replies, work across multiple client workspaces in the same session, not one workspace at a time. Each workspace has a distinct offer, ICP, voice, and language. Training on one teaches the AI that client's patterns but leaves it unprepared for the 14 others.
