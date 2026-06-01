@@ -298,9 +298,11 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
                     : totals.replyRate >= 2       ? "#15803D"
                     : totals.replyRate >= 1       ? "#D97706"
                                                    : "#B91C1C";
+  // <2% bounce is healthy across the whole portfolio, ≥2% is the red
+  // threshold we already use in the per-sender Bounce column. No amber
+  // middle band on the headline metric — operators want a clear go/no-go.
   const bounceColor = totals.totalSent === 0      ? "#9ca3af"
-                    : totals.bounceRate <= 1      ? "#15803D"
-                    : totals.bounceRate <= 2      ? "#D97706"
+                    : totals.bounceRate < 2       ? "#15803D"
                                                    : "#B91C1C";
   const burnColor   = totals.totalSent === 0      ? "#9ca3af"
                     : totals.burnRate <= 0.25     ? "#15803D"
@@ -314,7 +316,7 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
       <Stat label="Total senders" value={fmt(totals.total)} />
       <Stat label="Active"        value={fmt(totals.active)} />
-      <Stat label="Warming only"  value={fmt(totals.warmingOnly)} color={totals.warmingOnly > 0 ? "#D97706" : undefined} />
+      <Stat label="Warming only"  value={fmt(totals.warmingOnly)} />
       <Stat label="Warmup health" value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"} color={healthColor} />
       <Stat label="Emails sent"   value={fmt(totals.totalSent)} />
       <Stat label="Reply rate"    value={pct(totals.replyRate)}  color={replyColor} sub={totals.totalSent > 0 ? `${fmt(totals.totalReplies)} replies` : undefined} />
