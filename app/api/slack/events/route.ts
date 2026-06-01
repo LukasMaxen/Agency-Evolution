@@ -20,6 +20,7 @@ import { daysUntilNextStep } from "@/lib/template-replies";
 import { readFileFromGitHub, commitFileToGitHub } from "@/lib/github-commit";
 import { suggestSlotsForClient } from "@/lib/calendly-slot-suggestions";
 import { CALENDLY_CLIENT_CONFIG } from "@/lib/calendly";
+import { inferLeadTimezone } from "@/lib/lead-timezone";
 
 interface ReplyDraftRow {
   id: string;
@@ -1144,9 +1145,17 @@ async function regenerateReplyDraft(draft: ReplyDraftRow, reviewerName: string, 
   let calendlyHint = "";
   let coldEmailBlock = "";
   const calendlyCfg = CALENDLY_CLIENT_CONFIG[draft.workspace_slug];
+  const inferredTz = calendlyCfg
+    ? inferLeadTimezone({
+        leadEmail: reply.lead_email,
+        leadCompany: reply.lead_company,
+        defaultTz: calendlyCfg.defaultTz,
+        defaultUsTz: "America/New_York",
+      }).tz
+    : "Europe/London";
   const [slotsResult, coldEmailResult] = await Promise.all([
     calendlyCfg
-      ? suggestSlotsForClient(draft.workspace_slug, calendlyCfg.defaultTz ?? "Europe/London")
+      ? suggestSlotsForClient(draft.workspace_slug, inferredTz)
       : Promise.resolve([]),
     pool.query(
       `SELECT email_body AS body FROM emails_sent
