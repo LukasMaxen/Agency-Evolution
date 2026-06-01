@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
+import { checkMxMissing } from "@/lib/dns-mx-cache";
 
 // GET /api/account-monitor?days=7&workspace=all
 //
@@ -600,6 +601,20 @@ export async function GET(req: NextRequest) {
     const avgBouncePct    = totalSent > 0 ? Math.round((totalBounces / totalSent) * 10000) / 100 : 0;
     const avgBurnPct      = totalSent > 0 ? Math.round((totalBurns   / totalSent) * 10000) / 100 : 0;
 
+    // ── MX check ───────────────────────────────────────────────────────────
+    // Resolve MX records for every unique sender domain we are still
+    // surfacing. Domains with no MX cannot receive bounces / replies and
+    // are usually a setup mistake (DNS not propagated, MX deleted by
+    // accident). Cached for 1h in-process; first cold load may be slow.
+    const uniqueDomains = Array.from(new Set(workspaces.flatMap(w => w.domains.map(d => d.domain))));
+    let mxMissingDomains: string[] = [];
+    try {
+      const missingSet = await checkMxMissing(uniqueDomains);
+      mxMissingDomains = Array.from(missingSet);
+    } catch (err) {
+      console.error("[account-monitor] MX check failed:", err);
+    }
+
     // Domain-level rollup counts for the global summary.
     const allDomains = workspaces.flatMap(w => w.domains);
     const summaryStatusCounts = {
@@ -626,7 +641,9 @@ export async function GET(req: NextRequest) {
         avgBouncePct,
         avgBurnPct,
         domainStatusCounts: summaryStatusCounts,
+        mxMissingCount: mxMissingDomains.length,
       },
+      mxMissingDomains,
       thresholds: {
         replyRateMin:  REPLY_RATE_MIN,
         bounceRateMax: BOUNCE_RATE_MAX,

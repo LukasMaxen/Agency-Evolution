@@ -355,16 +355,11 @@ export function ReplyDashboard() {
         {/* KPI Grid */}
         {data && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <KpiCard
                 label="Emails sent"
                 value={fmtInt(data.totals.sent)}
                 change={{ current: data.totals.sent, previous: data.previous?.totals.sent, goodDirection: "neutral" }}
-              />
-              <KpiCard
-                label="Total people contacted"
-                value={fmtInt(data.totals.contacted)}
-                change={{ current: data.totals.contacted, previous: data.previous?.totals.contacted, goodDirection: "neutral" }}
               />
               <KpiCard
                 label="Replies"

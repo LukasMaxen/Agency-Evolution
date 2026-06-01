@@ -154,6 +154,9 @@ interface Workspace {
   lowReplyDomains:     number;
   insufficientDomains: number;
   healthyDomains:      number;
+  // Count of unique sender domains in this workspace with no MX records
+  // resolvable via live DNS. Live-resolved server-side and cached 1h.
+  mxMissingDomains:    number;
   // Today's scheduled-emails total across all active campaigns in this
   // workspace, summed from EB's /api/campaigns/{id}/sending-schedule
   // (?day=today). Mirrors the "Emails Sent + Scheduled" column on the
@@ -189,6 +192,7 @@ interface Totals {
   lowReplyDomains:     number;
   insufficientDomains: number;
   healthyDomains:      number;
+  mxMissingDomains:    number;
   // Today's scheduled-emails total summed across workspaces. Null if
   // any workspace failed its EB fetch, so the UI surfaces "—" rather
   // than a misleadingly low number.
@@ -204,6 +208,7 @@ function aggregateTotals(workspaces: Workspace[]): Totals {
     replyRate: 0, bounceRate: 0, burnRate: 0, warmupHealthAvg: null,
     burnedDomains: 0, criticalDomains: 0, lowHealthDomains: 0, notWarming: 0,
     listIssueDomains: 0, lowReplyDomains: 0, insufficientDomains: 0, healthyDomains: 0,
+    mxMissingDomains: 0,
     scheduledToday: null,
   };
   let anySchedNull = false;
@@ -227,6 +232,7 @@ function aggregateTotals(workspaces: Workspace[]): Totals {
     t.lowReplyDomains     += w.lowReplyDomains;
     t.insufficientDomains += w.insufficientDomains;
     t.healthyDomains      += w.healthyDomains;
+    t.mxMissingDomains    += w.mxMissingDomains;
     if (w.scheduledToday === null) anySchedNull = true;
     else schedSum += w.scheduledToday;
     if (w.warmupHealthAvg !== null) {
@@ -393,6 +399,7 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
 // strip stays scannable.
 function DomainStatusStrip({ totals }: { totals: Totals }) {
   const tiers: { label: string; count: number; tone: "red" | "amber" | "grey" | "green" | "indigo" }[] = [
+    { label: "MX missing",   count: totals.mxMissingDomains,    tone: "red"    },
     { label: "Disconnected", count: totals.disconnected,        tone: "indigo" },
     { label: "Burned",       count: totals.burnedDomains,       tone: "red"    },
     { label: "Critical low", count: totals.criticalDomains,     tone: "red"    },
@@ -508,19 +515,28 @@ interface DomainGroup {
   totalSent:     number;
   totalReplies:  number;
   totalBounces:  number;
+  totalBurns:    number;
   replyRate:     number;
   bounceRate:    number;
+  burnRate:      number;
   accStatus:     string;
   worstSev:      number;
   fullyDisconnected: boolean;
+  mxMissing:     boolean;
+  // ANY sender on this domain has a burn rate at/above 0.5% or a recorded
+  // burn event. Per operator rule, one burned sender taints the domain,
+  // so this binary flag drives the domain badge and sort priority — it
+  // is NOT smoothed by the domain-aggregate burn rate.
+  anyBurnFlagged: boolean;
 }
 
 function SenderTable({
-  ws, senders, days, onBack, onActionDone, refresh,
+  ws, senders, days, mxMissingDomains, onBack, onActionDone, refresh,
 }: {
   ws: Workspace;
   senders: Sender[];
   days: number;
+  mxMissingDomains: Set<string>;
   onBack: () => void;
   onActionDone: (msg: string, type: "success" | "error") => void;
   refresh: () => void;
@@ -638,8 +654,10 @@ function SenderTable({
     const totalSent    = list.reduce((a, s) => a + (s.emails_sent || 0), 0);
     const totalReplies = list.reduce((a, s) => a + (s.replies || 0), 0);
     const totalBounces = list.reduce((a, s) => a + (s.bounces || 0), 0);
+    const totalBurns   = list.reduce((a, s) => a + (s.burns || 0), 0);
     const replyRate    = totalSent > 0 ? (totalReplies / totalSent) * 100 : 0;
     const bounceRate   = totalSent > 0 ? (totalBounces / totalSent) * 100 : 0;
+    const burnRate     = totalSent > 0 ? (totalBurns   / totalSent) * 100 : 0;
     // Domain accStatus picked from worst sender (account-monitor's tiers
     // are: disconnected > burned > critical_low_replies > list_issue >
     // low_replies > insufficient_data > healthy).
@@ -651,35 +669,77 @@ function SenderTable({
       .map(s => s.acc_status || "insufficient_data")
       .sort((a, b) => (tierRank[a] ?? 7) - (tierRank[b] ?? 7))[0] ?? "insufficient_data";
 
-    // Within a domain, surface the broken senders first so the operator
-    // doesn't have to scan past healthy peers to find the burned one.
-    // Order: disconnected > acc_status severity (burned/list_issue/etc) >
-    // emails_sent desc as tiebreaker.
+    // Sender severity tier — mirrors senderStatusBadge priority so the
+    // sort order matches the Status pill the operator sees. Lower = worse.
+    // Reply-rate problems rank above bounce/list_issue: reply rate is the
+    // metric we optimise for, so it triages ahead of list cleanliness.
+    //   0 Disconnected   1 MX missing      2 Burned
+    //   3 Not warming    4 Critical reply  5 Low reply
+    //   6 List issue     7 No data         8 Healthy
+    const senderSeverity = (s: Sender, mxMissing: boolean): number => {
+      if (isDisconnected(s))                       return 0;
+      if (mxMissing)                               return 1;
+      if (s.acc_status === "burned")               return 2;
+      if (isNotWarming(s))                         return 3;
+      if (s.acc_status === "critical_low_replies") return 4;
+      if (s.acc_status === "low_replies")          return 5;
+      if (s.acc_status === "list_issue")           return 6;
+      if (s.acc_status === "insufficient_data")    return 7;
+      return 8;
+    };
+    const domMxMissing = mxMissingDomains.has(dom);
     const sortedList = [...list].sort((a, b) => {
-      const aDis = isDisconnected(a) ? 0 : 1;
-      const bDis = isDisconnected(b) ? 0 : 1;
-      if (aDis !== bDis) return aDis - bDis;
-      const aRank = tierRank[a.acc_status ?? "insufficient_data"] ?? 7;
-      const bRank = tierRank[b.acc_status ?? "insufficient_data"] ?? 7;
-      if (aRank !== bRank) return aRank - bRank;
+      const sa = senderSeverity(a, domMxMissing);
+      const sb = senderSeverity(b, domMxMissing);
+      if (sa !== sb) return sa - sb;
+      // Within a tier, worst reply rate first — reply is the optimisation
+      // metric, so a Healthy sender at 1.1% should sit above one at 5%.
+      if ((a.reply_rate ?? 0) !== (b.reply_rate ?? 0)) {
+        return (a.reply_rate ?? 0) - (b.reply_rate ?? 0);
+      }
       return (b.emails_sent ?? 0) - (a.emails_sent ?? 0);
     });
+
+    const anyBurnFlagged = list.some(s => (s.burn_rate ?? 0) >= 0.5 || (s.burns ?? 0) > 0);
 
     return {
       domain: dom, senders: sortedList, disconnected, notWarming,
       warmingOnly: list.filter(isWarmingOnly).length,
       avgScore: avg, lowHealth, attachedMin, attachedMax,
-      totalSent, totalReplies, totalBounces, replyRate, bounceRate,
+      totalSent, totalReplies, totalBounces, totalBurns,
+      replyRate, bounceRate, burnRate,
       accStatus, worstSev,
       fullyDisconnected: disconnected === list.length && list.length > 0,
+      mxMissing: mxMissingDomains.has(dom),
+      anyBurnFlagged,
     };
   }).sort((a, b) => {
-    if (a.worstSev !== b.worstSev) return a.worstSev - b.worstSev;
-    if (b.disconnected !== a.disconnected) return b.disconnected - a.disconnected;
-    if (b.notWarming !== a.notWarming) return b.notWarming - a.notWarming;
-    const avgA = a.avgScore ?? 101;
-    const avgB = b.avgScore ?? 101;
-    if (avgA !== avgB) return avgA - avgB;
+    // Domain severity tier — mirrors domainStatusBadge so sort order
+    // matches the Status pill the operator sees. Lower = worse.
+    //   0 Disconnected     1 MX missing       2 Burned (any sender)
+    //   3 Not warming      4 Critical reply   5 Low reply
+    //   6 List issue       7 Low health       8 No data    9 Healthy
+    const domainSeverity = (d: DomainGroup): number => {
+      if (d.disconnected > 0)                      return 0;
+      if (d.mxMissing)                             return 1;
+      if (d.anyBurnFlagged)                        return 2;
+      if (d.notWarming > 0)                        return 3;
+      if (d.totalSent >= 200 && d.replyRate < 0.5) return 4;
+      if (d.totalSent >=  50 && d.replyRate < 1)   return 5;
+      if (d.bounceRate >= 2)                       return 6;
+      if (d.avgScore !== null && d.avgScore < 98)  return 7;
+      if (d.totalSent === 0)                       return 8;
+      return 9;
+    };
+    const sa = domainSeverity(a);
+    const sb = domainSeverity(b);
+    if (sa !== sb) return sa - sb;
+    // Within a tier, worst reply rate first — reply is the optimisation
+    // metric, so the lowest-reply Healthy domain leads the green block.
+    if (a.replyRate !== b.replyRate) return a.replyRate - b.replyRate;
+    // Volume as the next tiebreaker so equal-reply rows favour the
+    // higher-volume one.
+    if (b.totalSent !== a.totalSent) return b.totalSent - a.totalSent;
     return a.domain.localeCompare(b.domain);
   });
 
@@ -694,6 +754,46 @@ function SenderTable({
       case "healthy":              return <PillBadge text="Healthy"     tone="green" />;
       default:                     return <PillBadge text={status}      tone="grey" />;
     }
+  };
+
+  // Per-sender Status column. Priority (worst first):
+  //   Disconnected > MX missing > Burned > Not warming >
+  //   Critical reply > Low reply > List issue > No data > Healthy.
+  // Reply problems rank above bounce/list-issue per operator rule: a
+  // bad-angle script burns through send budget faster than a list-cleanse
+  // does, so it should surface first.
+  const senderStatusBadge = (s: Sender, mxMissing: boolean) => {
+    if (isDisconnected(s))                       return <PillBadge text="Disconnected" tone="indigo" />;
+    if (mxMissing)                               return <PillBadge text="MX missing"   tone="red" />;
+    if (s.acc_status === "burned")               return <PillBadge text="Burned"       tone="red" />;
+    if (isNotWarming(s))                         return <PillBadge text="Not warming"  tone="red" />;
+    if (s.acc_status === "critical_low_replies") return <PillBadge text="Critical reply" tone="red" />;
+    if (s.acc_status === "low_replies")          return <PillBadge text="Low reply"    tone="amber" />;
+    if (s.acc_status === "list_issue")           return <PillBadge text="List issue"   tone="amber" />;
+    if (s.acc_status === "insufficient_data")    return <PillBadge text="No data"      tone="grey" />;
+    return <PillBadge text="Healthy" tone="green" />;
+  };
+
+  // Domain-level Status column. Per-metric rules:
+  //   burn        → ANY sender at/above 0.5% taints the whole domain
+  //   bounce      → DOMAIN-AGGREGATE rate (>= 2% = list issue)
+  //   reply       → DOMAIN-AGGREGATE rate (main optimisation metric)
+  //   warmup      → DOMAIN-AGGREGATE avg score
+  // Disconnected / MX-missing / Not-warming remain binary-any-sender.
+  // Reply outranks bounce: reply is the optimisation metric, list-issue
+  // is amber even when it fires.
+  const domainStatusBadge = (d: DomainGroup) => {
+    if (d.fullyDisconnected)                     return <PillBadge text="All disconnected" tone="indigo" />;
+    if (d.disconnected > 0)                      return <PillBadge text={`${d.disconnected} disconnected`} tone="indigo" />;
+    if (d.mxMissing)                             return <PillBadge text="MX missing" tone="red" />;
+    if (d.anyBurnFlagged)                        return <PillBadge text="Burned" tone="red" />;
+    if (d.notWarming > 0)                        return <PillBadge text={`${d.notWarming} not warming`} tone="red" />;
+    if (d.totalSent >= 200 && d.replyRate < 0.5) return <PillBadge text="Critical reply" tone="red" />;
+    if (d.totalSent >=  50 && d.replyRate < 1)   return <PillBadge text="Low reply" tone="amber" />;
+    if (d.bounceRate >= 2)                       return <PillBadge text="List issue" tone="amber" />;
+    if (d.avgScore !== null && d.avgScore < 98)  return <PillBadge text="Low health" tone="amber" />;
+    if (d.totalSent === 0)                       return <PillBadge text="No data" tone="grey" />;
+    return <PillBadge text="Healthy" tone="green" />;
   };
 
   return (
@@ -745,14 +845,15 @@ function SenderTable({
           <thead>
             <tr style={{ background: "#f8f7f5", borderBottom: "0.5px solid #ede9e3" }}>
               {tab === "active" ? [
-                { h: "Sender",          w: "26%", align: "left" },
-                { h: "Status",          w: "13%", align: "left" },
-                { h: "Sends",           w: "9%",  align: "right" },
-                { h: "Reply",           w: "9%",  align: "right" },
-                { h: "Bounce",          w: "9%",  align: "right" },
-                { h: "Warmup",          w: "10%", align: "left" },
-                { h: "Health",          w: "9%",  align: "right" },
-                { h: "Action",          w: "15%", align: "center" },
+                { h: "Sender",         w: "21%", align: "left" },
+                { h: "Campaigns",      w: "11%", align: "left" },
+                { h: "Sends",          w: "7%",  align: "right" },
+                { h: "Reply",          w: "7%",  align: "right" },
+                { h: "Bounce",         w: "7%",  align: "right" },
+                { h: "Burn",           w: "7%",  align: "right" },
+                { h: "Warmup health",  w: "9%",  align: "right" },
+                { h: "Status",         w: "14%", align: "left" },
+                { h: "Action",         w: "17%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -783,13 +884,22 @@ function SenderTable({
             )}
             {domainGroups.map(d => {
               const isExpanded = expandedDomain === d.domain;
+              // Row tint follows the same per-metric rules as the Status
+              // pill: burn = any-sender, bounce/reply/warmup = domain-level.
+              const domCritReply = d.totalSent >= 200 && d.replyRate < 0.5;
+              const domLowReply  = d.totalSent >=  50 && d.replyRate < 1;
+              const domListIssue = d.bounceRate >= 2;
+              const domLowHealth = d.avgScore !== null && d.avgScore < 98;
               const domBg =
-                d.disconnected > 0          ? "#EEF2FF" :
-                d.notWarming > 0            ? "#FCEBEB" :
-                d.accStatus === "burned" || d.accStatus === "critical_low_replies" ? "#FCEBEB" :
-                d.lowHealth                  ? "#FEF3C7" :
-                d.accStatus === "list_issue" || d.accStatus === "low_replies" ? "#FEF3C7" :
-                                               "#fafafa";
+                d.disconnected > 0  ? "#EEF2FF" :
+                d.mxMissing         ? "#FCEBEB" :
+                d.anyBurnFlagged    ? "#FCEBEB" :
+                d.notWarming > 0    ? "#FCEBEB" :
+                domCritReply        ? "#FCEBEB" :
+                domLowReply         ? "#FEF3C7" :
+                domListIssue        ? "#FEF3C7" :
+                domLowHealth        ? "#FEF3C7" :
+                                      "#fafafa";
               return (
                 <Fragment key={d.domain}>
                   {/* Domain header row */}
@@ -804,7 +914,7 @@ function SenderTable({
                         <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 400 }}>· {d.senders.length} {d.senders.length === 1 ? "sender" : "senders"}</span>
                       </span>
                     </td>
-                    {/* Status column: same logic in both tabs. */}
+                    {/* Campaigns column. */}
                     <td style={{ padding: "10px 10px" }}>
                       {d.fullyDisconnected ? <PillBadge text="All disconnected" tone="indigo" />
                        : d.disconnected > 0 ? <PillBadge text={`${d.disconnected} disconnected`} tone="indigo" />
@@ -823,11 +933,8 @@ function SenderTable({
                         <td style={{ padding: "10px 10px", textAlign: "right", color: d.bounceRate > 2 ? "#B91C1C" : d.bounceRate > 1 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.bounceRate)}
                         </td>
-                        <td style={{ padding: "10px 10px" }}>
-                          {d.disconnected > 0 ? <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>
-                           : d.notWarming > 0 ? <PillBadge text={`${d.notWarming} not warming`} tone="red" />
-                           : d.lowHealth ? <PillBadge text="Low health" tone="red" />
-                           : <PillBadge text="Warming" tone="green" />}
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.burnRate > 0.5 ? "#B91C1C" : d.burnRate > 0.25 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                          {pct(d.burnRate)}
                         </td>
                         <td style={{
                           padding: "10px 10px", textAlign: "right",
@@ -836,6 +943,9 @@ function SenderTable({
                                : d.avgScore >= 90 ? "#D97706" : "#B91C1C",
                           fontWeight: 500,
                         }}>{d.disconnected > 0 || d.avgScore === null ? "—" : `${d.avgScore}%`}</td>
+                        <td style={{ padding: "10px 10px" }}>
+                          {domainStatusBadge(d)}
+                        </td>
                       </>
                     ) : (
                       <>
@@ -875,6 +985,19 @@ function SenderTable({
                             }}>Reconnect in EB ({d.disconnected})</a>
                           ) : <span style={{ color: "#3730A3", fontSize: 11, fontWeight: 500 }}>Reconnect in EB</span>;
                         }
+                        // MX missing is an operator-only fix (DNS provider),
+                        // so we surface a non-actionable label rather than a
+                        // button. The Status pill is what flags it; this is
+                        // just the matching action prompt.
+                        if (d.mxMissing) {
+                          return (
+                            <span style={{
+                              fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                              background: "#FEF2F2", color: "#B91C1C", border: "0.5px solid #FCA5A5",
+                              fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                            }}>Fix MX in DNS</span>
+                          );
+                        }
                         if (d.notWarming > 0) {
                           return (
                             <button onClick={() => runDomainBatch(d.domain, d.senders, "enable_warmup")} disabled={!!acting}
@@ -889,10 +1012,17 @@ function SenderTable({
                             </button>
                           );
                         }
-                        // Pause-outbound: triggers on domain low-health OR
-                        // burned / critical_low_replies account status.
-                        const shouldPause = tab === "active" && (d.lowHealth
-                          || d.accStatus === "burned" || d.accStatus === "critical_low_replies");
+                        // Pause-outbound (= remove_and_warmup on the backend):
+                        // detaches from campaigns AND enables warmup. Fires
+                        // when the domain is showing a red deliverability
+                        // signal: any-sender burn, any-sender not-warming,
+                        // or domain-aggregate Critical reply (<0.5% on >=200
+                        // sends). Low-health warmup also still triggers it.
+                        const domCritReplyAction = d.totalSent >= 200 && d.replyRate < 0.5;
+                        const shouldPause = tab === "active" && (
+                             d.anyBurnFlagged
+                          || domCritReplyAction
+                          || (d.avgScore !== null && d.avgScore < 98));
                         if (shouldPause) {
                           const eligible = d.senders.filter(s => !isDisconnected(s) && s.warmup_enabled && (s.attached_campaigns_count ?? 0) > 0).length;
                           if (eligible > 0) {
@@ -936,14 +1066,19 @@ function SenderTable({
                     const disconnected = isDisconnected(s);
                     const notWarming   = isNotWarming(s);
                     const warmingOnly  = isWarmingOnly(s);
+                    // Sender row tint follows the SENDER's own status, not
+                      // the domain's worst-sender. Same priority chain as the
+                      // Status pill so a healthy peer of a burned sender no
+                      // longer looks burned.
                     const senderBg =
-                      disconnected               ? "#F5F7FF" :
-                      notWarming                 ? "#FEF7F7" :
-                      d.lowHealth                ? "#FFFBEB" :
-                      d.accStatus === "burned" || d.accStatus === "critical_low_replies" ? "#FEF7F7" :
-                      d.accStatus === "list_issue" || d.accStatus === "low_replies" ? "#FFFBEB" :
-                      tab === "warming_only" && s.ready_to_rejoin ? "#F0FDF4" :
-                                                   "#ffffff";
+                      disconnected                                                    ? "#F5F7FF" :
+                      s.acc_status === "burned"                                       ? "#FEF7F7" :
+                      notWarming                                                      ? "#FEF7F7" :
+                      s.acc_status === "critical_low_replies"                         ? "#FEF7F7" :
+                      s.acc_status === "low_replies"                                  ? "#FFFBEB" :
+                      s.acc_status === "list_issue"                                   ? "#FFFBEB" :
+                      tab === "warming_only" && s.ready_to_rejoin                     ? "#F0FDF4" :
+                                                                                        "#ffffff";
                     return (
                       <tr key={d.domain + "::" + s.email} style={{ borderBottom: "0.5px solid #f3f4f6", background: senderBg }}>
                         <td style={{ padding: "8px 10px 8px 36px", color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>
@@ -977,12 +1112,8 @@ function SenderTable({
                             <td style={{ padding: "8px 10px", textAlign: "right", color: s.bounce_rate > 2 ? "#B91C1C" : s.bounce_rate > 1 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
                               {s.emails_sent === 0 ? "—" : pct(s.bounce_rate)}
                             </td>
-                            <td style={{ padding: "8px 10px" }}>
-                              {disconnected
-                                ? <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>
-                                : notWarming
-                                  ? <PillBadge text="Not warming" tone="red" />
-                                  : <PillBadge text="Warming" tone="green" />}
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.burn_rate > 0.5 ? "#B91C1C" : s.burn_rate > 0.25 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                              {s.emails_sent === 0 ? "—" : pct(s.burn_rate)}
                             </td>
                             <td style={{
                               padding: "8px 10px", textAlign: "right",
@@ -991,12 +1122,10 @@ function SenderTable({
                                    : s.warmup_score >= 90 ? "#D97706" : "#B91C1C",
                               fontWeight: 500,
                             }}>
-                              <div>{s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}</div>
-                              {/* Per-sender account status (from /api/account-monitor):
-                                  Healthy / Burned / Critical / List issue / Low reply / No data.
-                                  Lets the operator spot the one bad sender in
-                                  a mostly-healthy domain bundle. */}
-                              <div style={{ marginTop: 2 }}>{accStatusBadge(s.acc_status)}</div>
+                              {s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
+                            </td>
+                            <td style={{ padding: "8px 10px" }}>
+                              {senderStatusBadge(s, d.mxMissing)}
                             </td>
                           </>
                         ) : (
@@ -1030,7 +1159,13 @@ function SenderTable({
                                 display: "inline-flex", alignItems: "center", gap: 5,
                               }}>Reconnect in EB</a>
                             ) : <span style={{ color: "#3730A3", fontSize: 11, fontWeight: 500 }}>Reconnect in EB</span>;
-                          })() : notWarming ? (
+                          })() : d.mxMissing ? (
+                            <span style={{
+                              fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                              background: "#FEF2F2", color: "#B91C1C", border: "0.5px solid #FCA5A5",
+                              fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                            }}>Fix MX in DNS</span>
+                          ) : notWarming ? (
                             <button onClick={() => runSenderAction(s, "enable_warmup")} disabled={acting === "enable_warmup"}
                               style={{
                                 fontSize: 11, padding: "4px 10px", borderRadius: 6,
@@ -1138,6 +1273,22 @@ export function MailboxMonitor() {
       const accBySlug: Record<string, AccountMonitorWorkspace> = {};
       for (const ws of acc.workspaces) accBySlug[ws.slug] = ws;
 
+      const mxMissingDomains = new Set(acc.mxMissingDomains ?? []);
+
+      // For each workspace, count unique sender domains that are MX-missing.
+      const mxMissingCountBySlug: Record<string, number> = {};
+      const domainsBySlug: Record<string, Set<string>> = {};
+      for (const s of senders) {
+        const dom = s.email.split("@")[1];
+        if (!dom) continue;
+        (domainsBySlug[s.workspace_slug] ??= new Set()).add(dom);
+      }
+      for (const [slug, set] of Object.entries(domainsBySlug)) {
+        let c = 0;
+        for (const d of set) if (mxMissingDomains.has(d)) c++;
+        mxMissingCountBySlug[slug] = c;
+      }
+
       const workspaces: Workspace[] = warm.workspaces.map(w => {
         const a = accBySlug[w.slug];
         const sc = a?.statusCounts ?? {};
@@ -1164,10 +1315,12 @@ export function MailboxMonitor() {
           lowReplyDomains:      (sc.low_replies ?? 0),
           insufficientDomains:  (sc.insufficient_data ?? 0),
           healthyDomains:       (sc.healthy ?? 0),
+          mxMissingDomains:     mxMissingCountBySlug[w.slug] ?? 0,
           scheduledToday:       scheduledBySlug[w.slug] ?? null,
         };
       }).sort((a, b) => {
         if (b.disconnected !== a.disconnected) return b.disconnected - a.disconnected;
+        if (b.mxMissingDomains !== a.mxMissingDomains) return b.mxMissingDomains - a.mxMissingDomains;
         if (b.notWarming !== a.notWarming) return b.notWarming - a.notWarming;
         const aRed = a.burnedDomains + a.criticalDomains + a.lowHealthDomains;
         const bRed = b.burnedDomains + b.criticalDomains + b.lowHealthDomains;
@@ -1175,7 +1328,7 @@ export function MailboxMonitor() {
         return a.slug.localeCompare(b.slug);
       });
 
-      setData({ workspaces, senders, lastSynced: acc.lastSynced, days: acc.days });
+      setData({ workspaces, senders, lastSynced: acc.lastSynced, days: acc.days, mxMissingDomains });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -1322,6 +1475,7 @@ export function MailboxMonitor() {
           ws={selected}
           senders={selectedSenders}
           days={data.days}
+          mxMissingDomains={data.mxMissingDomains}
           onBack={() => setSelected(null)}
           onActionDone={(msg, type) => setToast({ msg, type })}
           refresh={load}
