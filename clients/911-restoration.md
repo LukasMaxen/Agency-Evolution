@@ -33,15 +33,15 @@ fu_context: |
 info_template: |
   Hi {FIRST_NAME},
 
-  Sending everything over now.
+  Here is how it works for operators in your position.
 
-  One of our operators, Chris, ran a window cleaning business in Reno. He layered a 911 Restoration franchise alongside it and scaled into plumbing and reconstruction through the 911 network. Work came through insurance-backed claim pipelines so he was not out chasing customers.
+  One of our operators, Chris, ran a window cleaning business in Reno. He layered a 911 Restoration franchise alongside it and scaled into plumbing and reconstruction through the 911 network. Work came through insurance-backed claim pipelines so he was not out chasing customers. His existing business kept running the same way.
 
-  Two short videos: Watch Chris's Story (3:00) https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be and The Power of the Network (1:30) https://www.youtube.com/watch?v=JoPThufW1uc.
+  Two short videos that walk through how it works: Watch Chris's Story (3:00) https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be and The Power of the Network (1:30) https://www.youtube.com/watch?v=JoPThufW1uc.
 
   Per our 2024 FDD, top 25% of franchisees average 2M+ in gross revenue. SBA financing is available.
 
-  Our Franchise Developer will follow up within 48 hours. If you would prefer to book a time directly: https://calendly.com/dre-c-911restoration/quick-introduction-call-clone
+  Jeff & Dre, our Franchise Developers, will follow up within 48 hours to answer any questions. The calendar link below is a direct booking link to Dre: https://calendly.com/dre-c-911restoration/quick-introduction-call-clone
 
   {SENDER_EMAIL_SIGNATURE}
 
@@ -78,7 +78,7 @@ Insurance-backed lead flow with no cold outreach required. Top 25% of franchisee
 The lead flow is insurance-driven — franchisees don't have to chase work. This is the #1 hook. It removes the biggest objection trade owners have to adding a new revenue stream.
 
 **What they receive after saying yes to more info:**
-Email with: (1) Chris from Reno story — layered restoration onto a window cleaning business, scaled into plumbing and reconstruction via the 911 network. (2) Two videos: "Watch Chris's Story" (3:00) and "The Power of the Network" (1:30). (3) Three value props: Fill the Gaps (restoration ramps when construction slows), Leverage Relationships (existing clients, more reasons to call), The Network (peer support — franchisees cite this as their biggest unexpected advantage). (4) Franchise Developer follows up within 48 hours or prospect can book directly. Leverage these hooks in step 3 CTAs and reply handling.
+Email with: (1) Chris from Reno story — layered restoration onto a window cleaning business, scaled into plumbing and reconstruction via the 911 network. (2) Two videos: "Watch Chris's Story" (3:00) and "The Power of the Network" (1:30). (3) Three value props: Fill the Gaps (restoration ramps when construction slows), Leverage Relationships (existing clients, more reasons to call), The Network (peer support — franchisees cite this as their biggest unexpected advantage). (4) Jeff & Dre, our Franchise Developers, follow up within 48 hours or prospect can book directly with Dre via the Calendly link. Leverage these hooks in step 3 CTAs and reply handling.
 
 **What they can never say / promise:**
 Do not promise specific revenue figures as guaranteed outcomes. Do not confirm territory availability without checking.
@@ -197,23 +197,27 @@ Happy with current business, not looking to expand, already a franchisee of anot
 
 _Sent when a lead replies yes to more information. This is the first reply back to an interested lead._
 
+_Personalization note: Before sending, do a quick background check on the lead — their business type, city, any existing franchise affiliation, size of operation. Use that context to add one personalized line between the opener and the Chris story that connects their specific situation to how restoration layers on top of it. Keep it to one or two sentences. The goal is for the lead to feel like this was written for them, not copied from a template. Keep the tone friendly and casual throughout._
+
 **Subject:** 911 Restoration Franchise Overview
 
 **Body:**
 
 Hi {FIRST_NAME},
 
-Sending everything over now.
+Here is how it works for operators in your position.
 
 One of our operators, Chris, ran a window cleaning business in Reno. He layered a 911 Restoration franchise alongside it and scaled into plumbing and reconstruction through the 911 network. Work came through insurance-backed claim pipelines so he was not out chasing customers. His existing business kept running the same way.
 
+[PERSONALIZED LINE: one or two sentences connecting the lead's specific business, market, or franchise background to how restoration layers on top of what they already do.]
+
 Two short videos that walk through how it works: [Watch Chris's Story (3:00)](https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be) and [The Power of the Network (1:30)](https://www.youtube.com/watch?v=JoPThufW1uc).
 
-Three things franchisees point to most often: restoration work ramps when trade work slows so it fills seasonal gaps, your existing client relationships become a natural referral base, and the franchisee network is something most operators say was the biggest unexpected advantage.
+Three things franchisees point to most often: restoration fills seasonal gaps when other work slows, existing client relationships become a natural referral pipeline, and the franchisee network is something most operators say was the biggest unexpected advantage.
 
 Per our 2024 FDD, top 25% of franchisees average 2M+ in gross revenue. SBA financing is available to get started.
 
-Our Franchise Developer will follow up within 48 hours to answer any questions. If you'd prefer to book a time directly: https://calendly.com/dre-c-911restoration/quick-introduction-call-clone
+Jeff & Dre, our Franchise Developers, will follow up within 48 hours to answer any questions. The calendar link below is a direct booking link to Dre: https://calendly.com/dre-c-911restoration/quick-introduction-call-clone
 
 Idan Shpizear
 Founder, 911 Restoration
@@ -285,7 +289,7 @@ Non-trade industries, outside USA, corporate employees without ownership.
 City ({CITY}) for step 2 personalization. Business type confirmation (trades only).
 
 **Personalisation approach:**
-{CITY} in step 2 is the primary personalisation. Keep it simple — don't over-personalize.
+{CITY} in step 2 is the primary personalisation. For info reply emails, do a quick background check on the lead before sending — look up their business type, any existing franchise affiliation, market size, and operation type. Use that context to add one personalized line that connects their specific situation to how restoration layers on top of it. Keep it short and casual. The goal is relatability, not research overload.
 
 ---
 
