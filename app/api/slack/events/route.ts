@@ -18,6 +18,8 @@ import {
 } from "@/lib/slack-approval";
 import { daysUntilNextStep } from "@/lib/template-replies";
 import { readFileFromGitHub, commitFileToGitHub } from "@/lib/github-commit";
+import { suggestSlotsForClient } from "@/lib/calendly-slot-suggestions";
+import { CALENDLY_CLIENT_CONFIG } from "@/lib/calendly";
 
 interface ReplyDraftRow {
   id: string;
