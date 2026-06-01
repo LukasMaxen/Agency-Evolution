@@ -1177,7 +1177,7 @@ Apply the human feedback as the priority. Keep what is already good in the origi
 
 HARD RULES (always apply, even during revision):
 - Write in first person always — never refer to the sender by name as the subject of a sentence
-- For time slots: if LIVE CALENDAR AVAILABILITY is present below, propose those exact slot strings. If not, use only the Calendly link from the client file. Never invent or fabricate times. Never leave [DATE 1], [DATE 2], or any bracket placeholder in the output.
+- SLOTS — ZERO TOLERANCE: The final body must contain zero square-bracket placeholders of any kind. [SLOT 1], [SLOT 2], [SLOT 1 NATURAL], [SLOT 2 NATURAL], [DATE 1], [DATE 2], [FIRST_NAME], [BRAND] — none of these may appear literally in the output. Fill every placeholder or remove the sentence containing it. If LIVE CALENDAR AVAILABILITY is present below, use those exact strings for times. If it is NOT present, drop the slot proposal entirely and use only the Calendly link with a natural lead-in.
 - Reference something specific from the lead's message — not generic
 - No AI filler phrases ("Sounds great", "I'd love to", "Excited to show you")
 - End with {SENDER_EMAIL_SIGNATURE} on its own line, nothing before it
