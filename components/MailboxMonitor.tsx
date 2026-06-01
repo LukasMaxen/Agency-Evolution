@@ -306,22 +306,20 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
                     : totals.burnRate <= 0.25     ? "#15803D"
                     : totals.burnRate <= 0.5      ? "#D97706"
                                                    : "#B91C1C";
+  // Sub-counts (disconnected, burned, critical, low-health) are deliberately
+  // omitted here — they all live in the DomainStatusStrip below. Each Stat
+  // card colours only on its own metric so a healthy warmup avg never shows
+  // a red accent because of an unrelated domain status count.
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
-      <Stat label="Total senders" value={fmt(totals.total)} sub={totals.disconnected > 0 ? `${totals.disconnected} disconnected` : undefined} accent={totals.disconnected > 0 ? "info" : undefined} />
+      <Stat label="Total senders" value={fmt(totals.total)} />
       <Stat label="Active"        value={fmt(totals.active)} />
       <Stat label="Warming only"  value={fmt(totals.warmingOnly)} color={totals.warmingOnly > 0 ? "#D97706" : undefined} />
-      <Stat label="Warmup health" value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"} color={healthColor}
-        sub={totals.lowHealthDomains > 0 ? `${totals.lowHealthDomains} low-health` : undefined}
-        accent={totals.lowHealthDomains > 0 ? "bad" : undefined} />
-      <Stat label={`${days}d sends`}  value={fmt(totals.totalSent)} sub={totals.totalSent > 0 ? `${fmt(totals.totalReplies)} replies` : undefined} />
-      <Stat label="Reply rate"    value={pct(totals.replyRate)}  color={replyColor} />
-      <Stat label="Bounce rate"   value={pct(totals.bounceRate)} color={bounceColor}
-        sub={totals.burnedDomains > 0 ? `${totals.burnedDomains} burned` : undefined}
-        accent={totals.burnedDomains > 0 ? "bad" : undefined} />
-      <Stat label="Burn rate"     value={pct(totals.burnRate)}   color={burnColor}
-        sub={totals.criticalDomains > 0 ? `${totals.criticalDomains} critical` : undefined}
-        accent={totals.criticalDomains > 0 ? "bad" : undefined} />
+      <Stat label="Warmup health" value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"} color={healthColor} />
+      <Stat label="Emails sent"   value={fmt(totals.totalSent)} sub={`${days}d`} />
+      <Stat label="Reply rate"    value={pct(totals.replyRate)}  color={replyColor} sub={totals.totalSent > 0 ? `${fmt(totals.totalReplies)} replies` : undefined} />
+      <Stat label="Bounce rate"   value={pct(totals.bounceRate)} color={bounceColor} sub={totals.totalSent > 0 ? `${fmt(totals.totalBounces)} bounces` : undefined} />
+      <Stat label="Burn rate"     value={pct(totals.burnRate)}   color={burnColor}   sub={totals.totalSent > 0 ? `${fmt(totals.totalBurns)} burns` : undefined} />
     </div>
   );
 }
@@ -419,9 +417,6 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
             <p style={{ fontSize: 14, fontWeight: 500, color: s.color ?? "#111827" }}>{s.value}</p>
           </div>
         ))}
-      </div>
-      <div style={{ marginTop: 10, fontSize: 10, color: "#9ca3af" }}>
-        7d: {fmt(w.totalSent)} sent · {pct(w.avgReplyRate)} reply · {pct(w.bouncePct)} bounce
       </div>
       <span style={{ position: "absolute", bottom: 12, right: 14, fontSize: 11, color: "#9ca3af" }}>→</span>
     </div>
@@ -1160,14 +1155,11 @@ export function MailboxMonitor() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
         <div>
           <p style={{ fontSize: 18, fontWeight: 600 }}>Account Monitor</p>
-          <p style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
-            Merged sending + warmup view.
-            {data?.lastSynced && (
-              <span style={{ marginLeft: 8, color: "#9ca3af" }}>
-                Last synced {new Date(data.lastSynced).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
-          </p>
+          {data?.lastSynced && (
+            <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+              Last synced {new Date(data.lastSynced).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+            </p>
+          )}
         </div>
         <div style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {/* Days range toggle — affects sends/reply/bounce/burn windows
