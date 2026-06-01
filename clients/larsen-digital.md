@@ -45,7 +45,11 @@ reply_body_rules: |
   NEVER open a reply by leading with the commercial model. Never say "performance-based", "no upfront fee", or "no retainer" in any reply. These phrases are factually inaccurate for Larsen Digital and must not appear anywhere in reply copy.
 
   PREFERRED CTA FORMAT (confirmed by Kasper, 2026-05-29):
-  "If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [DATE 1] or [DATE 2]? If not, here is my calendar: https://calendly.com/larsen-digital-marketing/intro"
+  WITH live slots (LIVE CALENDAR AVAILABILITY block is present with 2 slots):
+  "If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [SLOT 1 NATURAL] or [SLOT 2 NATURAL]? If not, here is my calendar: https://calendly.com/larsen-digital-marketing/intro"
+  WITHOUT live slots (no LIVE CALENDAR AVAILABILITY block):
+  "If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Feel free to grab a time here: https://calendly.com/larsen-digital-marketing/intro"
+  NEVER write [DATE 1], [DATE 2], or any placeholder text in the final reply. If no live slots are available, drop the slot proposal entirely and only include the Calendly link.
   The CTA must always include a reason for the call specific to the lead. Never end with a bare calendar link and nothing else.
 
 referral_handover_template: |
