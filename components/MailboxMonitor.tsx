@@ -65,6 +65,7 @@ interface AccountMonitorResponse {
   thresholds: any;
   days:       number;
   lastSynced: string | null;
+  mxMissingDomains?: string[];
 }
 
 interface WarmupSender {
@@ -242,45 +243,42 @@ function aggregateTotals(workspaces: Workspace[]): Totals {
 }
 
 // CapacityBar renders one tight horizontal bar:
-//   "Today  ████████░░  2,000 / 2,300  (87%)"
+//   "Sending Capacity  ████████░░  2,000 / 2,300  87%"
 // Active capacity = active × 20 (EB's safe per-mailbox cap). The fill
-// shows scheduled-today against that ceiling so the operator sees how
-// full the workspace is at a glance — green for headroom, amber close
-// to the cap, red past it. Used both per-card and as the page-level
-// summary so the same shape works everywhere.
+// shows scheduled-today against that ceiling. Utilisation bands:
+//   >= 80% green — we're using the capacity we have
+//   60-80% amber — meaningful headroom worth launching into
+//   <  60% red   — under-utilised, mailboxes are paying rent for nothing
+// Used both per-card and as the page-level summary.
 function CapacityBar({ active, scheduledToday, compact }: {
   active: number; scheduledToday: number | null; compact?: boolean;
 }) {
   const cap = active * DAILY_CAP_PER_SENDER;
   const sched = scheduledToday ?? 0;
-  const pct = cap > 0 && scheduledToday !== null ? Math.min(100, (sched / cap) * 100) : 0;
-  const over = scheduledToday !== null && sched > cap;
-  // Colour bands match the rest of the dashboard:
-  //   <80% room to grow      green
-  //   80-99% near capacity   amber
-  //   >=100% over capacity   red (senders carrying >20/day)
+  const utilPct = cap > 0 && scheduledToday !== null ? (sched / cap) * 100 : 0;
+  const fillPct = Math.min(100, utilPct);
   const fillColor = scheduledToday === null ? "#d1d5db"
-                  : over                    ? "#B91C1C"
-                  : pct >= 80               ? "#D97706"
-                  :                           "#15803D";
+                  : utilPct >= 80           ? "#15803D"  // green: well-used
+                  : utilPct >= 60           ? "#D97706"  // amber: room to grow
+                  :                           "#B91C1C"; // red: under-utilised
   return (
     <div style={{ display: "flex", alignItems: "center", gap: compact ? 8 : 10, fontSize: compact ? 10 : 11, color: "#6b7280" }}>
-      <span style={{ color: "#9ca3af", fontWeight: 500, minWidth: 38 }}>Today</span>
+      <span style={{ color: "#9ca3af", fontWeight: 500, whiteSpace: "nowrap" }}>Sending Capacity</span>
       <div style={{
         flex: 1, height: compact ? 5 : 6, background: "#f3f4f6",
         borderRadius: 99, overflow: "hidden", position: "relative",
       }}>
         <div style={{
-          width: `${pct}%`, height: "100%", background: fillColor,
+          width: `${fillPct}%`, height: "100%", background: fillColor,
           transition: "width 0.3s ease",
         }} />
       </div>
-      <span style={{ color: scheduledToday === null ? "#9ca3af" : over ? "#B91C1C" : "#111827", fontWeight: 500, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+      <span style={{ color: scheduledToday === null ? "#9ca3af" : "#111827", fontWeight: 500, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
         {scheduledToday === null ? "—" : fmt(sched)}
         <span style={{ color: "#9ca3af", fontWeight: 400 }}> / {fmt(cap)}</span>
       </span>
       <span style={{ color: "#9ca3af", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", minWidth: 36, textAlign: "right" }}>
-        {scheduledToday === null ? "" : `${Math.round((sched / Math.max(cap, 1)) * 100)}%`}
+        {scheduledToday === null ? "" : `${Math.round(utilPct)}%`}
       </span>
     </div>
   );
@@ -483,9 +481,9 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
         ))}
       </div>
       {/* Single horizontal bar = today's schedule vs active capacity.
-          Reads at-a-glance: green if there's headroom, amber near the
-          cap, red if scheduled > active × 20 (senders carrying too much). */}
-      <div style={{ marginTop: 12 }}>
+          paddingRight reserves space so the percent text doesn't run
+          under the absolutely-positioned "→" affordance bottom-right. */}
+      <div style={{ marginTop: 12, paddingRight: 18 }}>
         <CapacityBar active={w.active} scheduledToday={w.scheduledToday} compact />
       </div>
       <span style={{ position: "absolute", bottom: 12, right: 14, fontSize: 11, color: "#9ca3af" }}>→</span>
@@ -652,8 +650,23 @@ function SenderTable({
     const accStatus = list
       .map(s => s.acc_status || "insufficient_data")
       .sort((a, b) => (tierRank[a] ?? 7) - (tierRank[b] ?? 7))[0] ?? "insufficient_data";
+
+    // Within a domain, surface the broken senders first so the operator
+    // doesn't have to scan past healthy peers to find the burned one.
+    // Order: disconnected > acc_status severity (burned/list_issue/etc) >
+    // emails_sent desc as tiebreaker.
+    const sortedList = [...list].sort((a, b) => {
+      const aDis = isDisconnected(a) ? 0 : 1;
+      const bDis = isDisconnected(b) ? 0 : 1;
+      if (aDis !== bDis) return aDis - bDis;
+      const aRank = tierRank[a.acc_status ?? "insufficient_data"] ?? 7;
+      const bRank = tierRank[b.acc_status ?? "insufficient_data"] ?? 7;
+      if (aRank !== bRank) return aRank - bRank;
+      return (b.emails_sent ?? 0) - (a.emails_sent ?? 0);
+    });
+
     return {
-      domain: dom, senders: list, disconnected, notWarming,
+      domain: dom, senders: sortedList, disconnected, notWarming,
       warmingOnly: list.filter(isWarmingOnly).length,
       avgScore: avg, lowHealth, attachedMin, attachedMax,
       totalSent, totalReplies, totalBounces, replyRate, bounceRate,
@@ -1059,7 +1072,7 @@ function SenderTable({
 // ── Top-level component ──────────────────────────────────────────────
 
 export function MailboxMonitor() {
-  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[]; lastSynced: string | null; days: number } | null>(null);
+  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[]; lastSynced: string | null; days: number; mxMissingDomains: Set<string> } | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [selected, setSelected]   = useState<Workspace | null>(null);
