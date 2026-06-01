@@ -153,6 +153,11 @@ interface Workspace {
   lowReplyDomains:     number;
   insufficientDomains: number;
   healthyDomains:      number;
+  // Today's scheduled-emails total across all active campaigns in this
+  // workspace, summed from EB's /api/campaigns/{id}/sending-schedule
+  // (?day=today). Mirrors the "Emails Sent + Scheduled" column on the
+  // EB Sending Schedule page. Null while loading or on fetch failure.
+  scheduledToday:      number | null;
 }
 
 // Aggregated stats used by the SummaryPanel. Computed across all
@@ -183,7 +188,13 @@ interface Totals {
   lowReplyDomains:     number;
   insufficientDomains: number;
   healthyDomains:      number;
+  // Today's scheduled-emails total summed across workspaces. Null if
+  // any workspace failed its EB fetch, so the UI surfaces "—" rather
+  // than a misleadingly low number.
+  scheduledToday:      number | null;
 }
+
+const DAILY_CAP_PER_SENDER = 20;
 
 function aggregateTotals(workspaces: Workspace[]): Totals {
   const t: Totals = {
@@ -192,7 +203,10 @@ function aggregateTotals(workspaces: Workspace[]): Totals {
     replyRate: 0, bounceRate: 0, burnRate: 0, warmupHealthAvg: null,
     burnedDomains: 0, criticalDomains: 0, lowHealthDomains: 0, notWarming: 0,
     listIssueDomains: 0, lowReplyDomains: 0, insufficientDomains: 0, healthyDomains: 0,
+    scheduledToday: null,
   };
+  let anySchedNull = false;
+  let schedSum = 0;
   let warmupSum = 0;
   let warmupCount = 0;
   for (const w of workspaces) {
@@ -212,6 +226,8 @@ function aggregateTotals(workspaces: Workspace[]): Totals {
     t.lowReplyDomains     += w.lowReplyDomains;
     t.insufficientDomains += w.insufficientDomains;
     t.healthyDomains      += w.healthyDomains;
+    if (w.scheduledToday === null) anySchedNull = true;
+    else schedSum += w.scheduledToday;
     if (w.warmupHealthAvg !== null) {
       warmupSum += w.warmupHealthAvg * w.total;
       warmupCount += w.total;
@@ -221,7 +237,53 @@ function aggregateTotals(workspaces: Workspace[]): Totals {
   t.bounceRate = t.totalSent > 0 ? (t.totalBounces / t.totalSent) * 100 : 0;
   t.burnRate   = t.totalSent > 0 ? (t.totalBurns   / t.totalSent) * 100 : 0;
   t.warmupHealthAvg = warmupCount > 0 ? Math.round(warmupSum / warmupCount * 10) / 10 : null;
+  t.scheduledToday = anySchedNull ? null : schedSum;
   return t;
+}
+
+// CapacityBar renders one tight horizontal bar:
+//   "Today  ████████░░  2,000 / 2,300  (87%)"
+// Active capacity = active × 20 (EB's safe per-mailbox cap). The fill
+// shows scheduled-today against that ceiling so the operator sees how
+// full the workspace is at a glance — green for headroom, amber close
+// to the cap, red past it. Used both per-card and as the page-level
+// summary so the same shape works everywhere.
+function CapacityBar({ active, scheduledToday, compact }: {
+  active: number; scheduledToday: number | null; compact?: boolean;
+}) {
+  const cap = active * DAILY_CAP_PER_SENDER;
+  const sched = scheduledToday ?? 0;
+  const pct = cap > 0 && scheduledToday !== null ? Math.min(100, (sched / cap) * 100) : 0;
+  const over = scheduledToday !== null && sched > cap;
+  // Colour bands match the rest of the dashboard:
+  //   <80% room to grow      green
+  //   80-99% near capacity   amber
+  //   >=100% over capacity   red (senders carrying >20/day)
+  const fillColor = scheduledToday === null ? "#d1d5db"
+                  : over                    ? "#B91C1C"
+                  : pct >= 80               ? "#D97706"
+                  :                           "#15803D";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: compact ? 8 : 10, fontSize: compact ? 10 : 11, color: "#6b7280" }}>
+      <span style={{ color: "#9ca3af", fontWeight: 500, minWidth: 38 }}>Today</span>
+      <div style={{
+        flex: 1, height: compact ? 5 : 6, background: "#f3f4f6",
+        borderRadius: 99, overflow: "hidden", position: "relative",
+      }}>
+        <div style={{
+          width: `${pct}%`, height: "100%", background: fillColor,
+          transition: "width 0.3s ease",
+        }} />
+      </div>
+      <span style={{ color: scheduledToday === null ? "#9ca3af" : over ? "#B91C1C" : "#111827", fontWeight: 500, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+        {scheduledToday === null ? "—" : fmt(sched)}
+        <span style={{ color: "#9ca3af", fontWeight: 400 }}> / {fmt(cap)}</span>
+      </span>
+      <span style={{ color: "#9ca3af", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", minWidth: 36, textAlign: "right" }}>
+        {scheduledToday === null ? "" : `${Math.round((sched / Math.max(cap, 1)) * 100)}%`}
+      </span>
+    </div>
+  );
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -314,11 +376,11 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
   // a red accent because of an unrelated domain status count.
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
-      <Stat label="Total senders" value={fmt(totals.total)} />
-      <Stat label="Active"        value={fmt(totals.active)} />
-      <Stat label="Warming only"  value={fmt(totals.warmingOnly)} />
-      <Stat label="Warmup health" value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"} color={healthColor} />
       <Stat label="Emails sent"   value={fmt(totals.totalSent)} />
+      <Stat label="Total senders" value={fmt(totals.total)}       sub={`(${fmt(totals.total * 20)}/day capacity)`} />
+      <Stat label="Active"        value={fmt(totals.active)}      sub={`(${fmt(totals.active * 20)}/day capacity)`} />
+      <Stat label="Warming only"  value={fmt(totals.warmingOnly)} sub={`(${fmt(totals.warmingOnly * 20)}/day capacity)`} />
+      <Stat label="Warmup health" value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"} color={healthColor} />
       <Stat label="Reply rate"    value={pct(totals.replyRate)}  color={replyColor} sub={totals.totalSent > 0 ? `${fmt(totals.totalReplies)} replies` : undefined} />
       <Stat label="Bounce rate"   value={pct(totals.bounceRate)} color={bounceColor} sub={totals.totalSent > 0 ? `${fmt(totals.totalBounces)} bounces` : undefined} />
       <Stat label="Burn rate"     value={pct(totals.burnRate)}   color={burnColor}   sub={totals.totalSent > 0 ? `${fmt(totals.totalBurns)} burns` : undefined} />
@@ -410,7 +472,7 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
         {[
           { label: "Total senders", value: fmt(w.total) },
           { label: "Active",        value: fmt(w.active) },
-          { label: "Warming only",  value: fmt(w.warmingOnly), color: w.warmingOnly > 0 ? "#D97706" : undefined },
+          { label: "Warming only",  value: fmt(w.warmingOnly) },
           { label: "Warmup health", value: w.warmupHealthAvg !== null ? `${w.warmupHealthAvg}%` : "—",
             color: w.warmupHealthAvg === null ? "#9ca3af" : w.warmupHealthAvg >= 98 ? "#15803D" : w.warmupHealthAvg >= 90 ? "#D97706" : "#B91C1C" },
         ].map(s => (
@@ -420,11 +482,11 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
           </div>
         ))}
       </div>
-      {/* Daily send capacity: active senders × 20 emails/day per sender
-          (EB's per-mailbox safe daily cap). This is the headline number
-          for planning campaign volume — if active drops, capacity drops. */}
-      <div style={{ marginTop: 10, fontSize: 10, color: "#6b7280" }}>
-        Daily capacity: <span style={{ color: "#111827", fontWeight: 500 }}>{fmt(w.active * 20)}</span> emails per day
+      {/* Single horizontal bar = today's schedule vs active capacity.
+          Reads at-a-glance: green if there's headroom, amber near the
+          cap, red if scheduled > active × 20 (senders carrying too much). */}
+      <div style={{ marginTop: 12 }}>
+        <CapacityBar active={w.active} scheduledToday={w.scheduledToday} compact />
       </div>
       <span style={{ position: "absolute", bottom: 12, right: 14, fontSize: 11, color: "#9ca3af" }}>→</span>
     </div>
@@ -637,6 +699,9 @@ function SenderTable({
         {name}, mailbox status
       </p>
       <SummaryPanel totals={aggregateTotals([ws])} days={days} />
+      <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 10, padding: "10px 14px", marginBottom: 10 }}>
+        <CapacityBar active={ws.active} scheduledToday={ws.scheduledToday} />
+      </div>
       <DomainStatusStrip totals={aggregateTotals([ws])} />
 
       <div style={{ display: "flex", gap: 4, marginBottom: 10, borderBottom: "0.5px solid #ede9e3" }}>
@@ -893,11 +958,11 @@ function SenderTable({
                                  :                                  "insufficient"}
                               </div>
                             </td>
-                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.reply_rate < 0.01 ? "#B91C1C" : s.reply_rate < 0.02 ? "#D97706" : "#15803D", fontVariantNumeric: "tabular-nums" }}>
-                              {s.emails_sent === 0 ? "—" : pct(s.reply_rate * 100)}
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.reply_rate < 1 ? "#B91C1C" : s.reply_rate < 2 ? "#D97706" : "#15803D", fontVariantNumeric: "tabular-nums" }}>
+                              {s.emails_sent === 0 ? "—" : pct(s.reply_rate)}
                             </td>
-                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.bounce_rate * 100 > 2 ? "#B91C1C" : s.bounce_rate * 100 > 1 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
-                              {s.emails_sent === 0 ? "—" : pct(s.bounce_rate * 100)}
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.bounce_rate > 2 ? "#B91C1C" : s.bounce_rate > 1 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                              {s.emails_sent === 0 ? "—" : pct(s.bounce_rate)}
                             </td>
                             <td style={{ padding: "8px 10px" }}>
                               {disconnected
@@ -1007,9 +1072,10 @@ export function MailboxMonitor() {
     setLoading(true);
     setError(null);
     try {
-      const [accRes, warmRes] = await Promise.all([
+      const [accRes, warmRes, dailyRes] = await Promise.all([
         fetch(`/api/account-monitor?days=${days}`, { cache: "no-store" }),
         fetch("/api/warmup-monitor", { cache: "no-store" }),
+        fetch("/api/mailbox-monitor/daily-sends", { cache: "no-store" }),
       ]);
       if (!accRes.ok || !warmRes.ok) {
         const errBody = !accRes.ok ? await accRes.json() : await warmRes.json();
@@ -1017,6 +1083,12 @@ export function MailboxMonitor() {
       }
       const acc: AccountMonitorResponse = await accRes.json();
       const warm: WarmupResponse        = await warmRes.json();
+      // Daily-sends is non-fatal: a slow EB instance can time out without
+      // breaking the rest of the dashboard. Missing values render as "—".
+      const daily: { workspaces: { slug: string; scheduled_today: number }[] } | null =
+        dailyRes.ok ? await dailyRes.json() : null;
+      const scheduledBySlug: Record<string, number> = {};
+      for (const r of (daily?.workspaces ?? [])) scheduledBySlug[r.slug] = r.scheduled_today;
 
       // Merge: index account data by sender_email, then walk the
       // warmup-monitor sender list (which is the canonical "every
@@ -1079,6 +1151,7 @@ export function MailboxMonitor() {
           lowReplyDomains:      (sc.low_replies ?? 0),
           insufficientDomains:  (sc.insufficient_data ?? 0),
           healthyDomains:       (sc.healthy ?? 0),
+          scheduledToday:       scheduledBySlug[w.slug] ?? null,
         };
       }).sort((a, b) => {
         if (b.disconnected !== a.disconnected) return b.disconnected - a.disconnected;
@@ -1251,6 +1324,12 @@ export function MailboxMonitor() {
       {!loading && data && !selected && data.workspaces.length > 0 && (
         <>
           <SummaryPanel totals={aggregateTotals(data.workspaces)} days={data.days} />
+          <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 10, padding: "10px 14px", marginBottom: 10 }}>
+            <CapacityBar
+              active={aggregateTotals(data.workspaces).active}
+              scheduledToday={aggregateTotals(data.workspaces).scheduledToday}
+            />
+          </div>
           <DomainStatusStrip totals={aggregateTotals(data.workspaces)} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
             {data.workspaces.map(w => (
