@@ -420,6 +420,12 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
           </div>
         ))}
       </div>
+      {/* Daily send capacity: active senders × 20 emails/day per sender
+          (EB's per-mailbox safe daily cap). This is the headline number
+          for planning campaign volume — if active drops, capacity drops. */}
+      <div style={{ marginTop: 10, fontSize: 10, color: "#6b7280" }}>
+        Daily capacity: <span style={{ color: "#111827", fontWeight: 500 }}>{fmt(w.active * 20)}</span> emails per day
+      </div>
       <span style={{ position: "absolute", bottom: 12, right: 14, fontSize: 11, color: "#9ca3af" }}>→</span>
     </div>
   );
