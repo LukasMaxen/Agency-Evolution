@@ -1,0 +1,5 @@
+prompts/extras/statera-capital.md
+
+When a lead has already expressed clear intent to review materials (e.g. 'please send it', 'I'm interested to review'), do not include a pitch line selling them on why the deal is worth looking at (e.g. 'X's background in OSS/BSS makes this worth a close look'). They are already sold. Drop the persuasion layer entirely and keep the reply transactional: deliver the links, add a light personal touch if relevant context exists, and move straight to the call CTA. Why: redundant pitch lines make the reply feel AI-generated and patronizing to a lead who has already committed to reviewing.
+
+For personalization, only use contextual details that feel natural and specific — avoid generic geographic references like "Given [Company]'s presence in [City]" as openers or softeners. These feel templated and hollow. If there's a genuine connection (shared city, known relationship, specific event), use it briefly and naturally. If not, skip it entirely.
