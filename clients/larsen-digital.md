@@ -69,8 +69,7 @@ template_personalization_rules:
 never:
 - Never guarantee exit valuations
 - Never use {COMPANY} — always "your brand"
-- Never mention pricing/fee unless asked. If asked, reply: "Happy to walk you through the details on a quick call." Do not describe the model as "performance-based", "no upfront fee", or "no retainer" — this is factually inaccurate for Larsen Digital and must not appear anywhere in reply copy.
-- Never open a reply by leading with the commercial model. Never say "performance-based", "no upfront fee", or "no retainer" in any reply — this is factually inaccurate for Larsen Digital and must not appear anywhere in reply copy.
+- Never mention pricing/fee unless asked. If asked, reply: "Happy to walk you through the details on a quick call." Never say "performance-based", "no upfront fee", or "no retainer" — factually inaccurate for Larsen Digital.
 - No P.S. opt-out lines
 - Never confirm specific time slots ("next Friday works" = wrong)
 
@@ -170,9 +169,6 @@ _What's being pitched: Larsen Digital's M&A-focused growth and exit service for 
 - Step 1: "Got 15 minutes this week or next?"
 - Step 2: "Any interest in a clear path from where your brand is now to a profitable 7-figure exit?"
 - Step 3: "Want me to send over the case study?"
-
-**CTA format (preferred):**
-"If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [DATE 1] or [DATE 2]? If not, grab a slot here: https://calendly.com/larsen-digital-marketing/intro"
 
 **Variable rules:**
 - Always use "your brand" — NEVER use {COMPANY} variable
