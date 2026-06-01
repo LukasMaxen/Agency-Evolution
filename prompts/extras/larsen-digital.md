@@ -60,6 +60,27 @@ Key rules for this shape:
 - Keep the whole reply to four short paragraphs maximum. No bullet points, no sub-headers.
 - The CTA is direct and conversational — no "If this could be interesting for [BRAND]" preamble needed here; the lead already asked.
 
+## TONE & LANGUAGE RULES (apply to EVERY reply)
+
+- **Write how a smart, friendly founder would actually talk.** Not how a consultant pitches. Not how a template sounds. Read the draft back out loud — if it sounds like a deck, rewrite it.
+- **Ban list — never use these phrases or constructions:**
+  - "genuinely differentiated"
+  - "IP-backed positioning"
+  - "strategic acquirers pay a premium for"
+  - "best-in-class"
+  - "value proposition"
+  - Any phrase that sounds like it belongs in a pitch deck or investor memo
+- **Buzzword-heavy language kills trust.** If a sentence reads as corporate or over-polished, cut it and say the same thing in plain English.
+- Warm, natural, specific beats impressive, formal, generic — every time.
+
+## BACKGROUND RESEARCH RULES (apply before drafting ANY reply)
+
+- **Always do real background research on the lead and their brand before drafting.** Check their website, Instagram, product angle, founder story, about page, and any press. Do not draft blind.
+- Weave specific, accurate observations naturally into the copy — the goal is for it to feel like Nicklas actually looked them up, because he would have.
+- If research turns up something genuinely interesting about the brand (a specific product angle, a founder backstory, a community they've built), reference it naturally — one line, in passing, not as a sales point.
+- **Only use details you can verify.** If you can't confirm something, leave it out. Accurate + sparse beats detailed + wrong.
+- Use case studies that genuinely mirror the lead's category or stage — not the nearest available case study regardless of fit. If the lead is in skincare, use a skincare-adjacent result. If the lead is in food & beverage, find the closest match.
+
 ## INTENT CLASSIFICATION → ROUTING
 
 | Lead's message shape | Intent | Route |
@@ -109,6 +130,8 @@ CTA line wording: `If this could be interesting for [BRAND], I'd be happy to hav
 OPTIONAL ADDITION (when the lead's brand looks ready to exit RIGHT NOW — mature scale, clear operations, explicit exit interest): after the "M&A co-advisors..." paragraph, add a single sentence: `We typically come in as a growth partner first before taking the brand to market, but if you're ready to go to market now, we can run the process directly.` Use sparingly — only when the lead is clearly already exit-stage.
 
 **When background research on the brand is limited or uncertain, use the leaner PREFERRED MORE INFO REPLY SHAPE from the PERSONALIZATION ACCURACY RULES section above instead of the full canonical template.** Category-level relevance + a verified case study result outperforms over-personalized claims that could be wrong.
+
+**Tone reminder for Pattern B drafts:** The opener should feel like a real person who looked the brand up and has something specific and genuine to say about it — not a pitch block dropped on top of a name. See TONE & LANGUAGE RULES and BACKGROUND RESEARCH RULES above. If the draft reads as corporate or template-heavy, it is not ready to send.
 
 ## SHORT-INTERESTED REPLY (lead just says "sure", "yes", "happy to chat")
 
@@ -245,3 +268,22 @@ If that sounds relevant, worth 15 minutes to talk through it. Would Monday at 1p
 ```
 
 **Why this shape was used:** Brand details were unverified — the full canonical template with brand-specific personalization risked including wrong assumptions, which reads as AI-generated. Category-level insight + verified case study result is the correct fallback.
+
+## Reference Example — WHAT NOT TO DO (Kasper @ Sel:pH)
+
+This is a negative reference. The draft below was rejected. Do not replicate this approach.
+
+**What went wrong:**
+- The opener jumped straight into a pitch block with no warmth or human connection.
+- Language like "genuinely differentiated", "IP-backed positioning", and "strategic acquirers pay a premium for" is corporate buzzword filler — it sounds like it was written by a template, not a person.
+- No evidence that Nicklas actually looked the brand up. Real background research (product angle, founder story, what makes the brand actually interesting) was absent.
+- The tone was over-polished and mechanical — zero personality, zero warmth.
+
+**Rejected draft (do not replicate):**
+> Sel:pH caught our eye straight away. The pH-balancing angle in skincare is genuinely differentiated, and brands built around a specific formulation philosophy tend to attract serious buyer interest when the time comes to exit. That kind of IP-backed positioning is exactly what strategic acquirers pay a premium for.
+
+**What should have happened instead:**
+- Do real background research first. Look at their website, Instagram, product story, founder background.
+- Open with a warm, natural line that shows genuine familiarity with what they've built — one specific, accurate observation, written like a human made it.
+- Use a case study that mirrors their category or stage.
+- Keep the language plain and direct. If it sounds like a pitch deck, rewrite it.
