@@ -1140,6 +1140,21 @@ async function regenerateReplyDraft(draft: ReplyDraftRow, reviewerName: string, 
   ) ?? "";
   const leadIntelNote = [leadDomain, selfDesc ? `Lead described: ${selfDesc}` : ""].filter(Boolean).join("\n");
 
+  // Fetch live Calendly slots for clients that have a Calendly config (e.g. Larsen Digital).
+  // Uses the client's defaultTz as a fallback since we don't have full TZ inference here.
+  let calendlyHint = "";
+  const calendlyCfg = CALENDLY_CLIENT_CONFIG[draft.workspace_slug];
+  if (calendlyCfg) {
+    const tz = calendlyCfg.defaultTz ?? "Europe/London";
+    const slots = await suggestSlotsForClient(draft.workspace_slug, tz);
+    if (slots.length >= 2) {
+      calendlyHint = `\nLIVE CALENDAR AVAILABILITY (use these exact strings when proposing times):
+Slot 1 NATURAL: ${slots[0].natural}
+Slot 2 NATURAL: ${slots[1].natural}
+Always pair with the Calendly link as a fallback. Do not reformat the slot strings.\n`;
+    }
+  }
+
   const systemPrompt = `You are revising a drafted first-response email for Maxen Partners based on human feedback. Apply the feedback to produce a new draft.
 
 OUTPUT FORMAT (CRITICAL): The very first character of your response MUST be "{" and the very last character MUST be "}". No preamble, no "Looking at...", no markdown fences, no analysis, no commentary, no thinking out loud. Just the JSON. Shape:
@@ -1152,7 +1167,7 @@ Apply the human feedback as the priority. Keep what is already good in the origi
 
 HARD RULES (always apply, even during revision):
 - Write in first person always — never refer to the sender by name as the subject of a sentence
-- Never confirm availability or suggest specific time slots
+- For time slots: if LIVE CALENDAR AVAILABILITY is present below, propose those exact slot strings. If not, use only the Calendly link from the client file. Never invent or fabricate times. Never leave [DATE 1], [DATE 2], or any bracket placeholder in the output.
 - Reference something specific from the lead's message — not generic
 - No AI filler phrases ("Sounds great", "I'd love to", "Excited to show you")
 - End with {SENDER_EMAIL_SIGNATURE} on its own line, nothing before it
@@ -1169,7 +1184,7 @@ ${skillFile}`;
 
 CLIENT FILE:
 ${clientFile}
-
+${calendlyHint}
 LEAD:
 Name: ${reply.lead_name}
 Company: ${reply.lead_company ?? "unknown"}
