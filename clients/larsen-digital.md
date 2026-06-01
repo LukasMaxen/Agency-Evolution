@@ -13,7 +13,7 @@ always_send_calendly: true (LARSEN DIGITAL EXCEPTION: always send Calendly even 
 reply_rules:
 - Lead shows general interest (no specific timeframe): send Calendly. Use the live slots from LIVE CALENDAR AVAILABILITY block if present.
 - Lead asks for meeting in a specific human-stated timeframe ("next week", "this week", "Monday morning", "Tuesday afternoon"): route to manual. A human picks the actual slot and confirms.
-- Lead asks about fees: describe the engagement structure honestly based on what Nicklas has confirmed. Do NOT say "fully performance-based, no upfront fee or retainer" — this is factually inaccurate and must never appear in any reply.
+- Lead asks about fees: do not volunteer pricing or fee structure. Reply: "Happy to walk you through the details on a quick call." Do NOT say "fully performance-based, no upfront fee or retainer" — this is factually inaccurate and must never appear in any reply.
 - Lead asks for case studies: mention Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days)
 - Lead already booked: confirm in 2 lines max. Flag meeting_booked = true. Stop FU sequence.
 - Lead asks what we do: explain the M&A angle, growth built toward a clean 8-figure exit, not just ads
@@ -65,7 +65,7 @@ template_personalization_rules:
 never:
 - Never guarantee exit valuations
 - Never use {COMPANY} — always "your brand"
-- Never mention pricing/fee unless asked
+- Never mention pricing/fee unless asked. If asked, reply: "Happy to walk you through the details on a quick call." Do not describe the model as "performance-based", "no upfront fee", or "no retainer" — this is factually inaccurate for Larsen Digital and must not appear anywhere in reply copy.
 - Never open a reply by leading with the commercial model. Never say "performance-based", "no upfront fee", or "no retainer" in any reply — this is factually inaccurate for Larsen Digital and must not appear anywhere in reply copy.
 - No P.S. opt-out lines
 - Never confirm specific time slots ("next Friday works" = wrong)
@@ -109,7 +109,13 @@ Track record of 250M+ in Shopify revenue. Goal is an 8-figure exit. M&A partners
 Specific exit target (8-figure). Deep M&A network ($1B+ in CPG exits closed by partners). Compensation aligned to the client's outcome.
 
 **What they can never say / promise:**
-Never guarantee exit outcomes or specific valuations. Never volunteer fee structure unprompted. Never describe the engagement as "performance-based", "no upfront fee", or "no retainer" — this is factually inaccurate.
+Never guarantee exit outcomes or specific valuations. Never volunteer fee structure unprompted. Never describe the engagement as "performance-based", "no upfront fee", or "no retainer" — this is factually inaccurate. If a lead asks about fees, reply: "Happy to walk you through the details on a quick call."
+
+---
+
+## Pricing / Model
+
+Do not reference pricing or fee structure unless the lead explicitly asks. Never state the model is "performance-based only, no upfront fee, no retainer." This is factually incorrect. If a lead asks about fees, reply: "Happy to walk you through the details on a quick call." No other fee language should appear in any reply copy.
 
 ---
 
@@ -161,6 +167,9 @@ _What's being pitched: Larsen Digital's M&A-focused growth and exit service for 
 - Step 2: "Any interest in a clear path from where your brand is now to a profitable 7-figure exit?"
 - Step 3: "Want me to send over the case study?"
 
+**CTA format (preferred):**
+"If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [DATE 1] or [DATE 2]? If not, grab a slot here: https://calendly.com/larsen-digital-marketing/intro"
+
 **Variable rules:**
 - Always use "your brand" — NEVER use {COMPANY} variable
 - This is non-negotiable across all Larsen Digital scripts
@@ -211,7 +220,7 @@ Happy with current setup, not looking to scale or exit, B2B pivot.
 
 **Things to never say:**
 - Never guarantee exit valuations
-- Never mention pricing or compensation model unless the lead explicitly asks
+- Never mention pricing or compensation model unless the lead explicitly asks. If asked, reply: "Happy to walk you through the details on a quick call."
 - Never use {COMPANY} — always "your brand"
 - Never describe the engagement as "performance-based", "no upfront fee", or "no retainer" — this is factually inaccurate for Larsen Digital
 
@@ -239,9 +248,7 @@ We run a model built around one outcome, maximizing the value of your brand when
 
 We take over multi-channel growth and retention. For context on velocity, last year we took 2 brands past 8 figure run rates. One went from $0 to $850k/mo in 4 months, a global brand you would recognize instantly. Our M&A co-advisors have closed $1B+ in consumer transactions, giving us a clear read on what strategic and PE buyers pay a premium for and how to position your brand for the best possible exit.
 
-If this aligns with your goals for [BRAND], let's grab 15 minutes to map the current EV multiple range for [CATEGORY] brands, the main operational levers that will move your valuation most over the next couple of years, and the deal structures that best fit your personal goals. Whether exiting is on the immediate horizon or not, you would leave with a clearer read on your valuation and exit options.
-
-Would [DAY at TIME, their TZ] or [DAY at TIME, their TZ] work? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro
+If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [DAY at TIME, their TZ] or [DAY at TIME, their TZ]? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro
 
 Looking forward to connecting,
 
