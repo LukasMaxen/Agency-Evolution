@@ -659,6 +659,20 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     return;
   }
 
+  // ── Pre-filter 2: Own outbound email echoed back ──────────────────────────────
+  // EmailBison occasionally fires a LEAD_REPLIED webhook whose body is our own
+  // outbound cold email (the "From:" header matches our sender, not the lead).
+  // Catching this here costs zero tokens — Claude is never called.
+  if (reply.sender_email) {
+    const senderEmailLower = (reply.sender_email as string).toLowerCase();
+    const escaped = senderEmailLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`from:[^\\n]*${escaped}`).test(messageText.toLowerCase())) {
+      await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ intent: "no_action", skipped_reason: "own_outbound_echoed" }), replyId]);
+      return;
+    }
+  }
+
   // ── Forwarding path ───────────────────────────────────────────────────────────
   const fileSlug = CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
   const clientFileRaw = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
