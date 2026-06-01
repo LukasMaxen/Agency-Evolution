@@ -78,6 +78,15 @@ Never guarantee specific revenue outcomes. Never volunteer pricing unprompted.
 
 ---
 
+## Pricing / Model
+
+**Actual pricing:** $3,500/month retainer + 10% of profitable ad spend. This is the correct fee structure when pricing is raised by a lead.
+
+**Important — do not misrepresent the model:**
+Never state the model is "performance-based only, no upfront fee, no retainer." This is factually incorrect. Do not reference pricing or fee structure unless the lead asks, and when they do, use only the approved language above. Do not characterise the engagement as having no upfront fee or no retainer.
+
+---
+
 ## Target Audience (ICP)
 
 | Field | Detail |
