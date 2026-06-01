@@ -12,6 +12,11 @@ export const CALENDLY_CLIENT_CONFIG: Record<string, CalendlyClientConfig> = {
     eventTypeUrl: "https://calendly.com/larsen-digital-marketing/intro",
     defaultTz: "Europe/London",
   },
+  "acceler8rs": {
+    tokenEnv: "ACCELER8RS_CALENDLY_TOKEN",
+    eventTypeUrl: "https://calendly.com/lukasm-acceler8rs/intro-meeting",
+    defaultTz: "Europe/London",
+  },
 };
 
 export function resolveCalendlyToken(client?: string | null): string | undefined {
