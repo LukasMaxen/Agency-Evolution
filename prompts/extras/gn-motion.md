@@ -58,6 +58,19 @@ When moving a lead toward a meeting or next step, use the following CTA pattern:
 - Do not write long paragraphs — keep it scannable
 - Do not include a calendar link if you have not confirmed access to Romain's calendar
 
+## Complimentary Sample — Call First, Always
+
+Never offer to produce a complimentary sample before a call. The sample is only meaningful after we understand the lead's product, creative direction, and goals — which requires a call.
+
+Correct flow:
+1. Share the portfolio
+2. Ask for a call to align on direction and creative
+3. Only after the call is booked: "After we align on direction on our call, I will put together a sample matched to your product"
+
+WRONG: "What I can do in the meantime is put together a complimentary sample matched to one of your products"
+WRONG: Offering the sample as a pre-call incentive to avoid the meeting
+RIGHT: The call IS the next step. The sample is what happens after the call.
+
 ---
 
 ## Example CTA (use as template)

@@ -44,6 +44,8 @@ never (all types):
 - Never send Sell Side Advisory leads a teaser (there is no teaser for that campaign)
 - Never mix campaign type language across campaigns
 - Never add anything beyond the three links when sending the teaser. No personal hook, no deal summary, no extra lines.
+- Never include specific deal metrics (operator client names, engineer counts, revenue figures, EBITDA margins, team size) in a reply body unless the lead explicitly asked and the metric is in the approved teaser. If you are unsure, send only the teaser link and let them read it. Do not add context or commentary beyond what was in the original cold email.
+- Never apologize for an email landing in spam. Simply follow up as normal.
 
 fu_context: |
   TYPE 1 (Sell Side Advisory) FU angles: the buyer Svetlin represents has committed capital and a clear brief — most owners they approach weren't actively looking but took the call out of curiosity. A follow-up call is low commitment and confidential. Re-engagement: "the buyer is still actively looking in your sector."

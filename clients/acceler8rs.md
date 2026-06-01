@@ -6,14 +6,15 @@
 ## REPLY QUICK REFERENCE
 campaign_type: agency_services
 sender: Lukas Maxen, Co-founder, Acceler8rs
-offer: 3-phase DTC brand growth system — grow profitably, scale with operating partnership, exit at 8 figures. Performance-based, no upfront fee.
+offer: 3-phase DTC brand growth system — grow profitably, scale with operating partnership, exit at 8 figures.
 calendly: https://calendly.com/lukasm-acceler8rs/intro-meeting
 always_send_calendly: false
 
 reply_rules:
 - Always say "your brand" never the company name variable
-- Lead asks about cost/fee: "Performance-based only, no upfront fee. We earn when you grow."
+- Lead asks about cost/fee: redirect to a call — "Happy to walk through the structure on a quick call, it depends on where your brand is and what the goal is." Do NOT say "performance-based only, no upfront fee" — this is factually incorrect. Actual pricing is $3,500/month retainer + 10% of profitable ad spend, with a 90-day profitable-on-Meta guarantee.
 - Lead interested in a call: send Calendly
+- Lead asks for "more info" / "send me details" / CTA was to send more info: use the approved more_info_template below. Do not send a booking link only — the CTA was to send information.
 - Lead asks for case studies: send https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
 - Lead gives specific day/time: post to #manual-replies
 
@@ -21,14 +22,32 @@ never:
 - Never guarantee specific revenue outcomes
 - Never use {COMPANY} — always "your brand"
 - Never mention pricing before they ask
-- Never open a reply by leading with the commercial model ("performance-based", "no upfront fee", "no retainer"). Only bring it up if the lead specifically asks about cost.
+- Never say "performance-based only, no upfront fee, no retainer" — this is factually incorrect for Acceler8rs. The model has a retainer. Do not say this even if the lead asks; redirect to a call instead.
+- Never open a reply by leading with the commercial model
 - No P.S. opt-out lines
 
+more_info_template: |
+  Hi {FIRST_NAME},
+
+  Sounds great!
+
+  To give you some more details, we run a 3-phase system for consumer brands:
+
+  1: Grow (Acceler8rs.com) — Our goal is to find PMF and build a profitable acquisition engine, to start generating strong cash flow.
+  2: Scale (LarsenDigitalMarketing.com) — Operating partner for brands above 7 figures/year (P&L + forecasting, growth execution, KPI refinement + weekly growth management, often with equity).
+  3: Exit — M&A planning and transaction execution through our investment banking partners.
+
+  Here's an example of what 4 months in our Grow phase looked like for a brand we took from $6.3k/mo to $93.2k/mo in DTC sales: https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
+
+  If this seems like a fit, I'd love to learn more about your plans with the brand. Here is my calendar if you'd like to explore further: https://calendly.com/lukasm-acceler8rs/intro-meeting
+
+  {SENDER_EMAIL_SIGNATURE}
+
 fu_context: |
-  Acceler8rs is a 3-phase DTC brand growth system: grow profitably, scale with an operating partner, then exit at 8 figures. Performance-based only — no upfront fee, no retainer.
+  Acceler8rs is a 3-phase DTC brand growth system: grow profitably, scale with an operating partner, then exit at 8 figures.
   Case studies (use exact numbers — specificity builds trust): Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days), Headwaters Studio (£60k/year to £1M+ in 24 months). UK campaigns use £, US use $.
   Strongest differentiator line: "Most agencies help you grow OR help you sell. We do both." Use this in FU2 if the brand seems at a growth stage with no exit plan yet.
-  FU angles: FU2 = case study most relevant to their brand type + "no upfront fee" angle. FU4 = the exit angle — "brands that focus only on growth often leave significant value on the table when they eventually sell." Always say "your brand," never the company variable. Case study link: https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
+  FU angles: FU2 = case study most relevant to their brand type. FU4 = the exit angle — "brands that focus only on growth often leave significant value on the table when they eventually sell." Always say "your brand," never the company variable. Case study link: https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
 
 ---
 
