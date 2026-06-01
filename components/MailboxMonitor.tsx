@@ -316,7 +316,7 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
       <Stat label="Active"        value={fmt(totals.active)} />
       <Stat label="Warming only"  value={fmt(totals.warmingOnly)} color={totals.warmingOnly > 0 ? "#D97706" : undefined} />
       <Stat label="Warmup health" value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"} color={healthColor} />
-      <Stat label="Emails sent"   value={fmt(totals.totalSent)} sub={`${days}d`} />
+      <Stat label="Emails sent"   value={fmt(totals.totalSent)} />
       <Stat label="Reply rate"    value={pct(totals.replyRate)}  color={replyColor} sub={totals.totalSent > 0 ? `${fmt(totals.totalReplies)} replies` : undefined} />
       <Stat label="Bounce rate"   value={pct(totals.bounceRate)} color={bounceColor} sub={totals.totalSent > 0 ? `${fmt(totals.totalBounces)} bounces` : undefined} />
       <Stat label="Burn rate"     value={pct(totals.burnRate)}   color={burnColor}   sub={totals.totalSent > 0 ? `${fmt(totals.totalBurns)} burns` : undefined} />
@@ -661,7 +661,7 @@ function SenderTable({
               {tab === "active" ? [
                 { h: "Sender",          w: "26%", align: "left" },
                 { h: "Status",          w: "13%", align: "left" },
-                { h: `Sends ${days}d`,  w: "9%",  align: "right" },
+                { h: "Sends",           w: "9%",  align: "right" },
                 { h: "Reply",           w: "9%",  align: "right" },
                 { h: "Bounce",          w: "9%",  align: "right" },
                 { h: "Warmup",          w: "10%", align: "left" },
