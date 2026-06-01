@@ -21,7 +21,7 @@ TYPE 2 — TelcoLab (campaign names contain "TelcoLab"):
   goal: Send teaser + NDA + Calendly. Always include both links in the same reply.
   teaser: https://drive.google.com/file/d/1xehkwXNsLErIqOvvA-l9bY2FZGRQ4E0z/view?usp=sharing
   nda: https://docsend.com/view/c6ctbjq7aru85f3y
-  calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate
+  calendly: https://calendar.app.google/4FDNviVwZBCwcnzm6
   reply: Send teaser + NDA + Calendly. Nothing else. No personal hook, no deal summary, no extra lines. They read the cold email — that is why they are asking for the teaser.
   if teaser already sent: skip teaser, send NDA only + Calendly. Example: "Here is the NDA: [nda]. Once executed we will share the full CIM. Feel free to grab a time: [calendly]"
 
@@ -67,6 +67,7 @@ fu_context: |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
 | **Calendly link (M&A)** | https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate |
+| **Calendly link (TelcoLab)** | https://calendar.app.google/4FDNviVwZBCwcnzm6 |
 | **Calendly link (ZEBS)** | https://calendly.com/d/ct3h-sbj-xmb/zebs-s-seed-round-intro |
 | **Monthly retainer** | [amount] |
 
@@ -125,7 +126,7 @@ _What's being pitched: Exclusive sell-side mandate for a specialized telecom sof
 
 _Teaser: https://drive.google.com/file/d/1xehkwXNsLErIqOvvA-l9bY2FZGRQ4E0z/view?usp=sharing_
 
-_Calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate_
+_Calendly: https://calendar.app.google/4FDNviVwZBCwcnzm6_
 
 | ICP | Status |
 |---|---|
@@ -185,7 +186,7 @@ _What's being pitched: Same mandate as above, positioned toward strategic acquir
 
 _Teaser: https://drive.google.com/file/d/1xehkwXNsLErIqOvvA-l9bY2FZGRQ4E0z/view?usp=sharing_
 
-_Calendly: https://calendly.com/d/cvb5-pf9-d4b/sell-side-mandate_
+_Calendly: https://calendar.app.google/4FDNviVwZBCwcnzm6_
 
 | ICP | Status |
 |---|---|
