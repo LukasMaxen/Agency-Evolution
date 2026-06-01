@@ -1140,19 +1140,29 @@ async function regenerateReplyDraft(draft: ReplyDraftRow, reviewerName: string, 
   ) ?? "";
   const leadIntelNote = [leadDomain, selfDesc ? `Lead described: ${selfDesc}` : ""].filter(Boolean).join("\n");
 
-  // Fetch live Calendly slots for clients that have a Calendly config (e.g. Larsen Digital).
-  // Uses the client's defaultTz as a fallback since we don't have full TZ inference here.
+  // Fetch Calendly slots + original cold email in parallel — no added latency.
   let calendlyHint = "";
+  let coldEmailBlock = "";
   const calendlyCfg = CALENDLY_CLIENT_CONFIG[draft.workspace_slug];
-  if (calendlyCfg) {
-    const tz = calendlyCfg.defaultTz ?? "Europe/London";
-    const slots = await suggestSlotsForClient(draft.workspace_slug, tz);
-    if (slots.length >= 2) {
-      calendlyHint = `\nLIVE CALENDAR AVAILABILITY (use these exact strings when proposing times):
-Slot 1 NATURAL: ${slots[0].natural}
-Slot 2 NATURAL: ${slots[1].natural}
+  const [slotsResult, coldEmailResult] = await Promise.all([
+    calendlyCfg
+      ? suggestSlotsForClient(draft.workspace_slug, calendlyCfg.defaultTz ?? "Europe/London")
+      : Promise.resolve([]),
+    pool.query(
+      `SELECT email_body AS body FROM emails_sent
+       WHERE workspace_slug=$1 AND lead_email=$2 AND email_body IS NOT NULL
+       ORDER BY sent_at ASC LIMIT 1`,
+      [draft.workspace_slug, reply.lead_email]
+    ),
+  ]);
+  if (slotsResult.length >= 2) {
+    calendlyHint = `\nLIVE CALENDAR AVAILABILITY (use these exact strings when proposing times):
+Slot 1 NATURAL: ${slotsResult[0].natural}
+Slot 2 NATURAL: ${slotsResult[1].natural}
 Always pair with the Calendly link as a fallback. Do not reformat the slot strings.\n`;
-    }
+  }
+  if (coldEmailResult.rows[0]?.body) {
+    coldEmailBlock = `\nORIGINAL COLD EMAIL SENT TO THIS LEAD (what they are responding to — read the CTA to determine the correct reply type):\n${coldEmailResult.rows[0].body.slice(0, 600)}\n`;
   }
 
   const systemPrompt = `You are revising a drafted first-response email for Maxen Partners based on human feedback. Apply the feedback to produce a new draft.
@@ -1184,7 +1194,7 @@ ${skillFile}`;
 
 CLIENT FILE:
 ${clientFile}
-${calendlyHint}
+${calendlyHint}${coldEmailBlock}
 LEAD:
 Name: ${reply.lead_name}
 Company: ${reply.lead_company ?? "unknown"}
