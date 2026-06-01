@@ -72,6 +72,27 @@ When a lead replies with a simple "yes" or a short permission-giving response, t
 
 The goal is simple: the lead should feel like a person wrote back to them, not like a sequence fired off the next email.
 
+### Original Voice Rule (from Kasper Zacho send-time learning — reinforced by human review)
+When drafting or generating a reply, **avoid templated or formulaic body copy**. Write in an original, personal voice — tailor the framing to the specific person and context rather than dropping in a pre-built pitch block.
+
+The goal is for the email to feel like Idan wrote it for this person specifically, not like a sequence email.
+
+**In practice, this means:**
+- Don't assemble the email from interchangeable parts — the structure itself should flex to fit the person
+- If the lead's business, background, or reply suggests a natural angle, lead with that angle rather than defaulting to the standard flow
+- Read the whole context before writing — what they said, what they do, what's specific about their situation — and let that shape how the email is built, not just which tokens get filled in
+- The core facts (FDD stats, Calendly link, videos) stay consistent, but everything around them should feel freshly written for that one person
+
+**What to avoid:**
+- Emails where only the name and one personalization line change and the rest is identical to every other send ❌
+- Transitions or phrases that sound like they belong in a sales sequence ("I wanted to reach out because...", "As I mentioned...") ❌
+- Compliments that could apply to any business owner ("You've clearly worked hard to build something great") ❌
+
+**What to aim for:**
+- A draft that, if you removed the name, would still be clearly written for this specific person based on the content alone ✓
+- Language that sounds like how Idan actually talks — direct, warm, no fluff ✓
+- Structure that follows the logic of the conversation, not the logic of the template ✓
+
 ### {OPENING_HOOK} Examples
 | Lead type | Example hook |
 |---|---|
