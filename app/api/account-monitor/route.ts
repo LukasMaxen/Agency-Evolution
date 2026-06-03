@@ -24,19 +24,33 @@ import { checkMxMissing } from "@/lib/dns-mx-cache";
 // Domain full threshold:   max(50, 20 * accounts)
 // Provisional floor:       20 sends (both levels)
 
+// Rate-based thresholds are time-independent (a 2% bounce is a 2% bounce
+// whether measured over a day or a month) so these stay constant.
 const REPLY_RATE_CRITICAL = 0.5;   // < this is critical_low_replies (red)
 const REPLY_RATE_MIN      = 1.0;   // < this is low_replies (yellow); >= is healthy
 const BOUNCE_RATE_MAX     = 2.0;
 const BURN_RATE_MAX       = 0.5;
-const ACCOUNT_MIN_SEND    = 50;
-const DOMAIN_MIN_PER_ACCOUNT = 20;
-const DOMAIN_MIN_FLOOR    = 50;
-const PROVISIONAL_FLOOR   = 20;
-// Minimum send volume before the RED critical_low_replies tag is allowed
-// to fire. Below this, a reply_rate < 0.5% downgrades to the yellow
-// low_replies tier instead. Prevents tagging fresh / low-volume senders
-// red just because their first 30 sends produced 0 replies.
-const CRITICAL_MIN_SEND   = 200;
+
+// Volume thresholds are calibrated against a 7-day window. For shorter
+// or longer windows we scale by days/7 so a 24h view has tight-but-not-
+// absurd minimums (e.g. 50 sends in 7d → 7 sends in 24h) and a 30d view
+// uses proportionally larger numbers before we trust the read. Each one
+// has a hard floor so 24h still has enough mass to suppress noise on
+// the red critical tier.
+const BASELINE_DAYS = 7;
+function volumeThresholds(days: number) {
+  const scale = Math.max(0.01, days / BASELINE_DAYS);
+  return {
+    ACCOUNT_MIN_SEND:        Math.max(5,  Math.round(50  * scale)),
+    DOMAIN_MIN_PER_ACCOUNT:  Math.max(3,  Math.round(20  * scale)),
+    DOMAIN_MIN_FLOOR:        Math.max(5,  Math.round(50  * scale)),
+    PROVISIONAL_FLOOR:       Math.max(3,  Math.round(20  * scale)),
+    // Floor stays at 30 even on 24h: the RED critical_low_replies tag
+    // demands enough mass to suppress single-campaign noise, and a 24h
+    // window with <30 sends just doesn't have signal yet.
+    CRITICAL_MIN_SEND:       Math.max(30, Math.round(200 * scale)),
+  };
+}
 
 type Status =
   | "disconnected"
@@ -56,7 +70,9 @@ interface SignalFlags {
 
 function classify(args: {
   sent: number;
-  fullMinSends: number;
+  fullMinSends:     number;
+  provisionalFloor: number;
+  criticalMinSend:  number;
   burnCount: number;
   burnRate: number;
   bounceRate: number;
@@ -76,7 +92,7 @@ function classify(args: {
   const burnFires = args.burnCount > 0 || args.burnRate >= BURN_RATE_MAX;
 
   // Below the provisional floor and no burn event: truly no signal.
-  if (args.sent < PROVISIONAL_FLOOR && !burnFires) {
+  if (args.sent < args.provisionalFloor && !burnFires) {
     return {
       status:     "insufficient_data",
       confidence: "full",
@@ -103,7 +119,7 @@ function classify(args: {
   // existing thresholds; this floor only gates critical_low_replies.
   let status: Status;
   if (signals.burn)                                   status = "burned";
-  else if (args.replyRate < REPLY_RATE_CRITICAL && args.sent >= CRITICAL_MIN_SEND) status = "critical_low_replies";
+  else if (args.replyRate < REPLY_RATE_CRITICAL && args.sent >= args.criticalMinSend) status = "critical_low_replies";
   else if (signals.bounce)                            status = "list_issue";
   else if (signals.replies)                           status = "low_replies";
   else                                                status = "healthy";
@@ -135,6 +151,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const days      = parseInt(searchParams.get("days") ?? "7");
   const workspace = searchParams.get("workspace") ?? "all";
+  const T = volumeThresholds(days);
 
   try {
     const wsFilter   = workspace !== "all" ? "AND es.workspace_slug = $2" : "";
@@ -337,7 +354,9 @@ export async function GET(req: NextRequest) {
 
       const { status, confidence, signals } = classify({
         sent,
-        fullMinSends: ACCOUNT_MIN_SEND,
+        fullMinSends:     T.ACCOUNT_MIN_SEND,
+        provisionalFloor: T.PROVISIONAL_FLOOR,
+        criticalMinSend:  T.CRITICAL_MIN_SEND,
         burnCount: burns,
         burnRate,
         bounceRate,
@@ -412,7 +431,7 @@ export async function GET(req: NextRequest) {
         const burnRate   = sent > 0 ? Math.round((d.totalBurns   / sent) * 10000) / 100 : 0;
         const replyRate  = sent > 0 ? Math.round((d.totalReplies / sent) * 10000) / 100 : 0;
 
-        const fullMinSends = Math.max(DOMAIN_MIN_FLOOR, DOMAIN_MIN_PER_ACCOUNT * d.accounts.length);
+        const fullMinSends = Math.max(T.DOMAIN_MIN_FLOOR, T.DOMAIN_MIN_PER_ACCOUNT * d.accounts.length);
         // Domain rolls up to "disconnected" if ANY account in it is
         // disconnected — one broken sender means the domain cannot send
         // at full capacity and needs operator attention.
@@ -420,6 +439,8 @@ export async function GET(req: NextRequest) {
         const { status, confidence, signals } = classify({
           sent,
           fullMinSends,
+          provisionalFloor: T.PROVISIONAL_FLOOR,
+          criticalMinSend:  T.CRITICAL_MIN_SEND,
           burnCount: d.totalBurns,
           burnRate,
           bounceRate,
@@ -448,7 +469,7 @@ export async function GET(req: NextRequest) {
           burnPct:       burnRate,
           avgReplyRate:  replyRate,
           minSends:      fullMinSends,
-          provisionalMinSends: PROVISIONAL_FLOOR,
+          provisionalMinSends: T.PROVISIONAL_FLOOR,
           status, confidence, signals,
           statusCounts,
         };
@@ -648,9 +669,11 @@ export async function GET(req: NextRequest) {
         replyRateMin:  REPLY_RATE_MIN,
         bounceRateMax: BOUNCE_RATE_MAX,
         burnRateMax:   BURN_RATE_MAX,
-        accountMinSend: ACCOUNT_MIN_SEND,
-        domainMinPerAccount: DOMAIN_MIN_PER_ACCOUNT,
-        domainMinFloor: DOMAIN_MIN_FLOOR,
+        accountMinSend:      T.ACCOUNT_MIN_SEND,
+        domainMinPerAccount: T.DOMAIN_MIN_PER_ACCOUNT,
+        domainMinFloor:      T.DOMAIN_MIN_FLOOR,
+        provisionalFloor:    T.PROVISIONAL_FLOOR,
+        criticalMinSend:     T.CRITICAL_MIN_SEND,
       },
       days,
       lastSynced,

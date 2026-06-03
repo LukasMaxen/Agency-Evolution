@@ -1214,7 +1214,7 @@ export function MailboxMonitor() {
   const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [pulling, setPulling]     = useState(false);
   const [syncing, setSyncing]     = useState(false);
-  const [days, setDays]           = useState<7 | 14 | 30>(7);
+  const [days, setDays]           = useState<1 | 7 | 14 | 30>(7);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1413,18 +1413,27 @@ export function MailboxMonitor() {
               from /api/account-monitor only. Warmup health is a current
               snapshot from EB so the toggle does not change it. */}
           <div style={{ display: "inline-flex", border: "0.5px solid #d1d5db", borderRadius: 7, overflow: "hidden" }}>
-            {[7, 14, 30].map(d => (
-              <button key={d}
-                onClick={() => setDays(d as 7 | 14 | 30)}
+            {/* 24h sits on the left as the freshest read; useful for
+                pattern / trajectory checks day over day. The route
+                scales its volume thresholds by days/7 so a 24h view
+                has tighter minimums before flagging tiers. */}
+            {([
+              { v: 1,  label: "24h" },
+              { v: 7,  label: "7d"  },
+              { v: 14, label: "14d" },
+              { v: 30, label: "30d" },
+            ] as const).map((opt, i, arr) => (
+              <button key={opt.v}
+                onClick={() => setDays(opt.v)}
                 disabled={loading}
                 style={{
                   fontSize: 11, padding: "6px 10px", fontFamily: "inherit",
-                  background: days === d ? "#111827" : "#ffffff",
-                  color: days === d ? "#ffffff" : "#374151",
+                  background: days === opt.v ? "#111827" : "#ffffff",
+                  color: days === opt.v ? "#ffffff" : "#374151",
                   border: "none", cursor: "pointer",
-                  borderRight: d === 30 ? "none" : "0.5px solid #d1d5db",
+                  borderRight: i === arr.length - 1 ? "none" : "0.5px solid #d1d5db",
                 }}>
-                {d}d
+                {opt.label}
               </button>
             ))}
           </div>
