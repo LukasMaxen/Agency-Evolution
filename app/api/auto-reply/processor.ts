@@ -197,7 +197,8 @@ async function callClaudeCritique(
   leadMessage: string,
   draft: string,
   leadEnrichment: string,
-  questionsToAnswer: string[]
+  questionsToAnswer: string[],
+  workspaceExtras?: string
 ): Promise<string | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
@@ -206,30 +207,37 @@ async function callClaudeCritique(
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 60_000);
 
-  const systemPrompt = `You are a reply quality reviewer. Read the lead's message and the drafted reply, then score it against three criteria.
+  const hasBanList = !!workspaceExtras;
+  const systemPrompt = `You are a reply quality reviewer. Read the lead's message and the drafted reply, then score it against ${hasBanList ? "four" : "three"} criteria.
 
 CRITERIA:
 1. answered_question: Did the reply directly address every specific question or request in the lead's message? If the lead asked something specific (a question, a request for info, a scheduling preference), it must be answered.
 2. has_personal_hook: Does the reply reference something concrete and specific to this lead or their company — from their message, their company name, their location, or the LEAD CONTEXT block? Generic replies that could go to anyone fail this. Only mark false if enrichment data was provided in the LEAD CONTEXT block and the reply ignores it entirely.
-3. clean_opener: Does the reply avoid banned openers? Banned: "Great", "Sounds great", "Thanks for", "Hope this", "I'd love to", "Excited to", "I appreciate", any variation of these as the first word or first sentence.
+3. clean_opener: Does the reply avoid banned openers? Banned: "Great", "Sounds great", "Thanks for", "Hope this", "I'd love to", "Excited to", "I appreciate", any variation of these as the first word or first sentence.${hasBanList ? `
+4. no_banned_phrases: Does the reply avoid all phrases and constructions explicitly listed as banned in the WORKSPACE EXTRAS block in the user message? Check for exact matches and close paraphrases.` : ""}
 
 VERDICT LOGIC:
 - "rewrite" if answered_question is false
 - "rewrite" if has_personal_hook is false AND a LEAD CONTEXT block was provided with usable data
-- "rewrite" if clean_opener is false
-- "approved" if all three pass
+- "rewrite" if clean_opener is false${hasBanList ? `
+- "rewrite" if no_banned_phrases is false` : ""}
+- "approved" if all ${hasBanList ? "four" : "three"} pass
 
 If verdict is "rewrite": fix only what failed. Do not change the substance, the Calendly link, the case studies, or the overall structure unless answered_question failed. Keep it tight. End with {SENDER_EMAIL_SIGNATURE}.
 If verdict is "approved": reply_body must be an empty string.
 
 OUTPUT — JSON only, no preamble, no fences:
-{"answered_question":true,"has_personal_hook":true,"clean_opener":true,"verdict":"approved","reply_body":""}`;
+{"answered_question":true,"has_personal_hook":true,"clean_opener":true${hasBanList ? `,"no_banned_phrases":true` : ""},"verdict":"approved","reply_body":""}`;
+
+  const extrasBlock = workspaceExtras
+    ? `\n\nWORKSPACE EXTRAS — BAN LIST ONLY (do not apply drafting instructions; only check whether banned phrases appear in the draft):\n${workspaceExtras}`
+    : "";
 
   const userMessage = `LEAD'S MESSAGE:
 ${leadMessage.slice(0, 1000)}
 
 ${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${questionsToAnswer.length > 0 ? `SPECIFIC QUESTIONS THAT MUST BE ANSWERED:\n${questionsToAnswer.map(q => `- ${q}`).join("\n")}\n\n` : ""}DRAFT REPLY TO REVIEW:
-${draft}`;
+${draft}${extrasBlock}`;
 
   let response: Response;
   try {
@@ -265,7 +273,7 @@ ${draft}`;
   try {
     const c = JSON.parse(raw);
     if (c.verdict === "rewrite" && c.reply_body && c.reply_body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim().length > 80) {
-      console.log(`[auto-reply] Critique rewrote draft (answered:${c.answered_question} hook:${c.has_personal_hook} opener:${c.clean_opener})`);
+      console.log(`[auto-reply] Critique rewrote draft (answered:${c.answered_question} hook:${c.has_personal_hook} opener:${c.clean_opener} banned:${c.no_banned_phrases ?? "n/a"})`);
       return c.reply_body as string;
     }
     return null;
@@ -752,7 +760,7 @@ Every reply is sent AS the client's sender (e.g. Jeff Zanardi from ACT Capital, 
 
 5. USE THE LEAD COMPANY CONTEXT BLOCK. This is the most important personalization input. The block gives you EXIT SIGNALS, the attributes that make this brand attractive to a strategic or PE buyer (own manufacturing, consumable LTV, patented IP, premium pricing, category buyer interest, etc.). You MUST reference at least ONE specific exit signal from this block in the opener of the reply. The reference must be concrete, drawn from a visible detail on their site.
 
-CRITICAL FRAMING. The reason we reach out to a brand is because something about THEIR brand makes us think they could exit well. NEVER frame it as "we focus on [category] brands" or "we work with [category]". We do NOT focus on categories, we focus on brands that look exit-worthy. The right framing is "what made [BRAND] stand out" or "what caught our eye about [BRAND]" followed by the specific exit signal. The signal can be one of:
+CRITICAL FRAMING. The reason we reach out to a brand is because something about THEIR brand makes us think they could exit well. NEVER frame it as "we focus on [category] brands" or "we work with [category]". We do NOT focus on categories, we focus on brands that look exit-worthy. The right framing is "what made [BRAND] stand out" or "what stood out about [BRAND]" followed by the specific exit signal. The signal can be one of:
    - their product is consumable / generates repeat purchase / strong LTV
    - they have proprietary IP, a patent, or a defensible formula
    - premium positioning suggests strong margins
@@ -1210,7 +1218,8 @@ ${messageText.slice(0, 3000)}`;
       messageText,
       result.reply_body,
       leadEnrichment,
-      result.questions_to_answer ?? []
+      result.questions_to_answer ?? [],
+      workspaceExtras || undefined
     );
     if (revised) result.reply_body = sanitizeDashes(revised);
   }
