@@ -475,44 +475,38 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
           )}
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      {/* 3-column stat grid. Row 1 = capacity counts, row 2 = the
+          performance triple (Warmup health, Reply, Burn). Each cell
+          uses identical typography so the eye can compare straight
+          across. Colour bands match the SummaryPanel up top:
+            warmup  >=98 green, >=90 amber, else red
+            reply   >=1  green, >=0.5 amber, else red
+            burn    <=0.25 green, <=0.5 amber, else red                  */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
         {[
           { label: "Total senders", value: fmt(w.total) },
           { label: "Active",        value: fmt(w.active) },
           { label: "Warming only",  value: fmt(w.warmingOnly) },
           { label: "Warmup health", value: w.warmupHealthAvg !== null ? `${w.warmupHealthAvg}%` : "—",
             color: w.warmupHealthAvg === null ? "#9ca3af" : w.warmupHealthAvg >= 98 ? "#15803D" : w.warmupHealthAvg >= 90 ? "#D97706" : "#B91C1C" },
+          { label: "Reply rate",
+            value: w.totalSent === 0 ? "—" : `${w.avgReplyRate.toFixed(1)}%`,
+            color: w.totalSent === 0      ? "#9ca3af"
+                 : w.avgReplyRate >= 1    ? "#15803D"
+                 : w.avgReplyRate >= 0.5  ? "#D97706"
+                                          : "#B91C1C" },
+          { label: "Burn rate",
+            value: w.totalSent === 0 ? "—" : `${w.burnPct.toFixed(1)}%`,
+            color: w.totalSent === 0   ? "#9ca3af"
+                 : w.burnPct <= 0.25   ? "#15803D"
+                 : w.burnPct <= 0.5    ? "#D97706"
+                                       : "#B91C1C" },
         ].map(s => (
           <div key={s.label}>
             <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{s.label}</p>
             <p style={{ fontSize: 14, fontWeight: 500, color: s.color ?? "#111827" }}>{s.value}</p>
           </div>
         ))}
-      </div>
-      {/* Reply + Burn per workspace so the operator can spot which
-          client is dragging the portfolio average on the SummaryPanel.
-          Same colour bands as the SummaryPanel cards above:
-            reply  >=1 green, >=0.5 amber, else red
-            burn   <=0.25 green, <=0.5 amber, else red                */}
-      <div style={{ marginTop: 10, display: "flex", gap: 12, fontSize: 10, color: "#6b7280" }}>
-        <div>
-          Reply <span style={{
-            fontWeight: 500,
-            color: w.totalSent === 0      ? "#9ca3af"
-                 : w.avgReplyRate >= 1    ? "#15803D"
-                 : w.avgReplyRate >= 0.5  ? "#D97706"
-                                          : "#B91C1C",
-          }}>{w.totalSent === 0 ? "—" : `${w.avgReplyRate.toFixed(1)}%`}</span>
-        </div>
-        <div>
-          Burn <span style={{
-            fontWeight: 500,
-            color: w.totalSent === 0   ? "#9ca3af"
-                 : w.burnPct <= 0.25   ? "#15803D"
-                 : w.burnPct <= 0.5    ? "#D97706"
-                                       : "#B91C1C",
-          }}>{w.totalSent === 0 ? "—" : `${w.burnPct.toFixed(1)}%`}</span>
-        </div>
       </div>
       {/* Single horizontal bar = today's schedule vs active capacity.
           paddingRight reserves space so the percent text doesn't run
