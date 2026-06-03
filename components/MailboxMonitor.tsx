@@ -531,12 +531,13 @@ interface DomainGroup {
 }
 
 function SenderTable({
-  ws, senders, days, mxMissingDomains, onBack, onActionDone, refresh,
+  ws, senders, days, mxMissingDomains, thresholds, onBack, onActionDone, refresh,
 }: {
   ws: Workspace;
   senders: Sender[];
   days: number;
   mxMissingDomains: Set<string>;
+  thresholds: { criticalMinSend: number; provisionalFloor: number };
   onBack: () => void;
   onActionDone: (msg: string, type: "success" | "error") => void;
   refresh: () => void;
@@ -788,11 +789,16 @@ function SenderTable({
     if (d.mxMissing)                             return <PillBadge text="MX missing" tone="red" />;
     if (d.anyBurnFlagged)                        return <PillBadge text="Burned" tone="red" />;
     if (d.notWarming > 0)                        return <PillBadge text={`${d.notWarming} not warming`} tone="red" />;
-    if (d.totalSent >= 200 && d.replyRate < 0.5) return <PillBadge text="Critical reply" tone="red" />;
-    if (d.totalSent >=  50 && d.replyRate < 1)   return <PillBadge text="Low reply" tone="amber" />;
-    if (d.bounceRate >= 2)                       return <PillBadge text="List issue" tone="amber" />;
-    if (d.avgScore !== null && d.avgScore < 98)  return <PillBadge text="Low health" tone="amber" />;
-    if (d.totalSent === 0)                       return <PillBadge text="No data" tone="grey" />;
+    // Reply-rate thresholds use the route's scaled minimum sends so the
+    // badge behaves consistently across the 24h / 7d / 14d / 30d toggle.
+    // Hardcoded 200/50 used to be 7d-only: at 24h a 59-send domain with
+    // 0 replies would tip Low reply while a 49-send domain with 0 replies
+    // (genuinely the same signal) would fall through to Healthy.
+    if (d.totalSent >= thresholds.criticalMinSend  && d.replyRate < 0.5) return <PillBadge text="Critical reply" tone="red" />;
+    if (d.totalSent >= thresholds.provisionalFloor && d.replyRate < 1)   return <PillBadge text="Low reply" tone="amber" />;
+    if (d.bounceRate >= 2)                                               return <PillBadge text="List issue" tone="amber" />;
+    if (d.avgScore !== null && d.avgScore < 98)                          return <PillBadge text="Low health" tone="amber" />;
+    if (d.totalSent < thresholds.provisionalFloor)                       return <PillBadge text="No data" tone="grey" />;
     return <PillBadge text="Healthy" tone="green" />;
   };
 
@@ -1207,7 +1213,7 @@ function SenderTable({
 // ── Top-level component ──────────────────────────────────────────────
 
 export function MailboxMonitor() {
-  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[]; lastSynced: string | null; days: number; mxMissingDomains: Set<string> } | null>(null);
+  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[]; lastSynced: string | null; days: number; mxMissingDomains: Set<string>; thresholds: { criticalMinSend: number; provisionalFloor: number } } | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [selected, setSelected]   = useState<Workspace | null>(null);
@@ -1328,7 +1334,17 @@ export function MailboxMonitor() {
         return a.slug.localeCompare(b.slug);
       });
 
-      setData({ workspaces, senders, lastSynced: acc.lastSynced, days: acc.days, mxMissingDomains });
+      // Pluck the scaled volume thresholds the route already computed for
+      // this window. The client uses them to gate Low/Critical-reply
+      // domain badges so the badges scale with the days toggle instead of
+      // sitting on hardcoded 7d numbers (50 / 200) that mis-flag 24h /
+      // misses on 30d.
+      const th = acc.thresholds ?? {};
+      const thresholds = {
+        criticalMinSend:  Number(th.criticalMinSend  ?? 200),
+        provisionalFloor: Number(th.provisionalFloor ?? 20),
+      };
+      setData({ workspaces, senders, lastSynced: acc.lastSynced, days: acc.days, mxMissingDomains, thresholds });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -1485,6 +1501,7 @@ export function MailboxMonitor() {
           senders={selectedSenders}
           days={data.days}
           mxMissingDomains={data.mxMissingDomains}
+          thresholds={data.thresholds}
           onBack={() => setSelected(null)}
           onActionDone={(msg, type) => setToast({ msg, type })}
           refresh={load}
