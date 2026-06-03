@@ -23,6 +23,27 @@ const TERMINAL_STATES = new Set(["completed", "archived", "finished", "ended"]);
 const PAUSABLE_STATES = new Set(["draft", "paused"]);
 const REMOVE_WAIT_MS  = 8000;
 
+// Concurrency cap for per-sender / per-campaign EB+DB bursts. The previous
+// Promise.all(items.map(...)) pattern fired all in parallel which, when the
+// operator triggered 7 domain-batches at once, exhausted the pg pool and
+// surfaced as "timeout exceeded when trying to connect". 8 keeps each
+// invocation's burst small enough that the pool can serve concurrent
+// dashboard reads at the same time.
+const EB_CHUNK = 8;
+async function pMap<T, R>(items: T[], limit: number, fn: (item: T, idx: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let i = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const idx = i++;
+      if (idx >= items.length) return;
+      out[idx] = await fn(items[idx], idx);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
 type Body = {
   workspace_slug: string;
   sender_ids:     number[];
@@ -119,12 +140,12 @@ export async function POST(req: NextRequest) {
     // in parallel and stitch the result. status is captured per campaign;
     // PAUSABLE_STATES (draft/paused) are left as-is, everything else gets
     // a pause before DELETE.
-    const campaignsBySender = await Promise.all(sender_ids.map(async id => {
+    const campaignsBySender = await pMap(sender_ids, EB_CHUNK, async id => {
       const r = await fetch(`${instanceUrl}/api/sender-emails/${id}/campaigns`, { headers });
       if (!r.ok) return { id, camps: [] as { id: number; name: string; status: string }[] };
       const j = await r.json();
       return { id, camps: (j.data ?? []).map((c: any) => ({ id: c.id, name: c.name, status: String(c.status ?? "").toLowerCase() })) };
-    }));
+    });
     // campaign id -> { meta, senders-actually-attached-to-this-campaign }
     // We need the per-campaign sender list so the DELETE only targets
     // senders that EB actually has attached there. EB rejects the entire
@@ -156,7 +177,7 @@ export async function POST(req: NextRequest) {
     // sender_email_ids[] so the whole sender list comes off in one call
     // per campaign.
     const removeTargets = campaigns.filter(c => !pauseFailedIds.has(c.id));
-    const removeResults = await Promise.all(removeTargets.map(async c => {
+    const removeResults = await pMap(removeTargets, EB_CHUNK, async c => {
       // Only DELETE the senders EB actually has attached to THIS campaign.
       // Passing the full batch would trip "sender_email_ids.N is invalid"
       // on EB for any sender not currently attached, which fails the
@@ -166,7 +187,7 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ sender_email_ids: c.senderIds }),
       });
       return { id: c.id, name: c.name, ok: r.ok, err: r.ok ? null : await r.text() };
-    }));
+    });
 
     // Step c: single 8s wait for EB to drain the async deletion queue.
     if (removeResults.some(r => r.ok)) await new Promise(r => setTimeout(r, REMOVE_WAIT_MS));
@@ -205,7 +226,7 @@ export async function POST(req: NextRequest) {
 
     let retried: { sender_id: number; before: number | null; after: number | null }[] = [];
     if (stragglers.length > 0) {
-      retried = await Promise.all(stragglers.map(async id => {
+      retried = await pMap(stragglers, EB_CHUNK, async id => {
         const before = finalCounts[id] ?? null;
         // Re-list and re-remove the straggler's remaining campaigns.
         const r = await fetch(`${instanceUrl}/api/sender-emails/${id}/campaigns`, { headers });
@@ -229,7 +250,7 @@ export async function POST(req: NextRequest) {
         await Promise.all(pausedThisRetry.map(cid => setCampaignStatus(cid, "resume")));
         const after = (await refreshAttachedCounts(instanceUrl, headers, workspace_slug, [id]))[id] ?? null;
         return { sender_id: id, before, after };
-      }));
+      });
     }
 
     const finalAfterRetry = await refreshAttachedCounts(instanceUrl, headers, workspace_slug, sender_ids);
@@ -265,7 +286,7 @@ async function refreshAttachedCounts(
 ): Promise<Record<number, number>> {
   const out: Record<number, number> = {};
   const TERMINAL = new Set(["completed", "archived", "finished", "ended"]);
-  await Promise.all(sender_ids.map(async id => {
+  await pMap(sender_ids, EB_CHUNK, async id => {
     try {
       const r = await fetch(`${instanceUrl}/api/sender-emails/${id}/campaigns`, { headers });
       if (!r.ok) return;
@@ -278,6 +299,6 @@ async function refreshAttachedCounts(
         [live, workspace_slug, id]
       );
     } catch { /* non-fatal */ }
-  }));
+  });
   return out;
 }
