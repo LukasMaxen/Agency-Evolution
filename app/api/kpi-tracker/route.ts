@@ -113,7 +113,15 @@ export async function GET(req: NextRequest) {
     // Workspaces list, drives the dropdown (matches /api/dashboard).
     const wsResult = await pool.query<{ slug: string; name: string }>(`
       SELECT slug, name FROM workspaces
-      WHERE slug NOT IN ('sro-consulting')
+      WHERE slug NOT IN (
+        'sro-consulting',
+        'itg-group',
+        'micro-nordic',
+        'venture-exits',
+        'wrobel-capital',
+        'zebs-ibs',
+        'zenith-global'
+      )
       ORDER BY name ASC
     `);
     const workspaces = wsResult.rows;

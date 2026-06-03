@@ -102,7 +102,15 @@ export async function GET(req: NextRequest) {
     }>(`
       SELECT id::text AS id, slug, name, email_bison_instance_url AS "instanceUrl"
       FROM workspaces
-      WHERE slug NOT IN ('sro-consulting')
+      WHERE slug NOT IN (
+        'sro-consulting',
+        'itg-group',
+        'micro-nordic',
+        'venture-exits',
+        'wrobel-capital',
+        'zebs-ibs',
+        'zenith-global'
+      )
       ORDER BY name ASC
     `);
     const workspaces = wsResult.rows.map((row, i) => {
