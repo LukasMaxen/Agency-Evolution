@@ -266,18 +266,25 @@ export async function GET(req: NextRequest) {
         -- This matches EmailBison's "unique_replies_per_contact" metric:
         -- subsequent messages in the same thread don't inflate the count.
         --
-        -- tracked_reply = TRUE drops EB-classified "Untracked Reply" rows
-        -- (newsletters, fresh cold outreach landing in a sender mailbox,
-        -- transactional). Webhook LEAD_REPLIED rows are always tracked;
-        -- inbox-sync rows carry the EB-supplied flag; older rows are
-        -- backfilled by scripts/backfill-tracked-reply.js.
+        -- COALESCE(tracked_reply, TRUE) accepts:
+        --   tracked_reply = TRUE   webhook/sync said this is a real reply
+        --   tracked_reply IS NULL  not yet backfilled by the
+        --     scripts/backfill-tracked-reply.js job (new rows usually sit
+        --     here for a while). Treating NULL as untracked dropped 17
+        --     of 17 last-24h Larsen rows from the per-domain breakdown
+        --     even though they were real replies to outbound — the
+        --     webhook isnt setting the flag on insert today, so NULL is
+        --     the modal state for fresh rows and excluding them makes
+        --     the dashboard read 0 for any short window. Only an explicit
+        --     FALSE (EB classified it as "Untracked Reply": newsletter,
+        --     transactional, cold inbound) still excludes the row.
         SELECT
           sender_email,
           workspace_slug,
           COUNT(DISTINCT lead_email)::int AS replies
         FROM replies
         WHERE received_at >= NOW() - ($1 || ' days')::interval
-          AND tracked_reply = TRUE
+          AND COALESCE(tracked_reply, TRUE) = TRUE
           AND sender_email IS NOT NULL AND sender_email != ''
           AND lead_email   IS NOT NULL AND lead_email   != ''
           AND lower(lead_email) !~ '^(postmaster|mailer-daemon|noreply|no-reply|bounce|bounces|bounce-handler)@'
