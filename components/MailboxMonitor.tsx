@@ -487,6 +487,31 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
           </div>
         ))}
       </div>
+      {/* Reply + Burn per workspace so the operator can spot which
+          client is dragging the portfolio average on the SummaryPanel.
+          Same colour bands as the SummaryPanel cards above:
+            reply  >=2 green, >=1 amber, else red
+            burn   <=0.25 green, <=0.5 amber, else red                */}
+      <div style={{ marginTop: 10, display: "flex", gap: 12, fontSize: 10, color: "#6b7280" }}>
+        <div>
+          Reply <span style={{
+            fontWeight: 500,
+            color: w.totalSent === 0      ? "#9ca3af"
+                 : w.avgReplyRate >= 2    ? "#15803D"
+                 : w.avgReplyRate >= 1    ? "#D97706"
+                                          : "#B91C1C",
+          }}>{w.totalSent === 0 ? "—" : `${w.avgReplyRate.toFixed(1)}%`}</span>
+        </div>
+        <div>
+          Burn <span style={{
+            fontWeight: 500,
+            color: w.totalSent === 0   ? "#9ca3af"
+                 : w.burnPct <= 0.25   ? "#15803D"
+                 : w.burnPct <= 0.5    ? "#D97706"
+                                       : "#B91C1C",
+          }}>{w.totalSent === 0 ? "—" : `${w.burnPct.toFixed(1)}%`}</span>
+        </div>
+      </div>
       {/* Single horizontal bar = today's schedule vs active capacity.
           paddingRight reserves space so the percent text doesn't run
           under the absolutely-positioned "→" affordance bottom-right. */}
