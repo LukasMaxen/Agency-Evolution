@@ -501,14 +501,20 @@ export async function GET(req: NextRequest) {
       const wsBurnRate   = wsSent > 0 ? Math.round((ws.totalBurns   / wsSent) * 10000) / 100 : 0;
       const wsReplyRate  = wsSent > 0 ? Math.round((ws.totalReplies / wsSent) * 10000) / 100 : 0;
 
+      // Badge counts reflect only domains that still have at least one
+      // actively sending sender. Once every sender on a domain has been
+      // moved to warmup-only (attached_campaigns_count = 0), the operator
+      // has already taken action; we should not keep flagging it as
+      // burned / low reply on the workspace card.
+      const activeDomains = domains.filter(d => d.accounts.some(a => (a.attached_campaigns_count ?? 0) > 0));
       const statusCounts = {
-        disconnected:        domains.filter(d => d.status === "disconnected").length,
-        burned:              domains.filter(d => d.status === "burned").length,
-        list_issue:          domains.filter(d => d.status === "list_issue").length,
-        critical_low_replies: domains.filter(d => d.status === "critical_low_replies").length,
-        low_replies:         domains.filter(d => d.status === "low_replies").length,
-        insufficient_data:   domains.filter(d => d.status === "insufficient_data").length,
-        healthy:             domains.filter(d => d.status === "healthy").length,
+        disconnected:        activeDomains.filter(d => d.status === "disconnected").length,
+        burned:              activeDomains.filter(d => d.status === "burned").length,
+        list_issue:          activeDomains.filter(d => d.status === "list_issue").length,
+        critical_low_replies: activeDomains.filter(d => d.status === "critical_low_replies").length,
+        low_replies:         activeDomains.filter(d => d.status === "low_replies").length,
+        insufficient_data:   activeDomains.filter(d => d.status === "insufficient_data").length,
+        healthy:             activeDomains.filter(d => d.status === "healthy").length,
       };
 
       return {
@@ -643,8 +649,13 @@ export async function GET(req: NextRequest) {
       console.error("[account-monitor] MX check failed:", err);
     }
 
-    // Domain-level rollup counts for the global summary.
-    const allDomains = workspaces.flatMap(w => w.domains);
+    // Domain-level rollup counts for the global summary. Same active-sending
+    // filter as the per-workspace card pills: a domain whose senders have
+    // all been moved to warmup-only no longer counts toward burned / low
+    // reply totals.
+    const allDomains = workspaces.flatMap(w => w.domains).filter(d =>
+      d.accounts.some(a => (a.attached_campaigns_count ?? 0) > 0)
+    );
     const summaryStatusCounts = {
       disconnected:        allDomains.filter(d => d.status === "disconnected").length,
       burned:              allDomains.filter(d => d.status === "burned").length,
