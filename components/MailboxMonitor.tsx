@@ -360,9 +360,11 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
                     : totals.warmupHealthAvg >= 98 ? "#15803D"
                     : totals.warmupHealthAvg >= 90 ? "#D97706"
                                                    : "#B91C1C";
+  // Reply: ≥1% is the operator target (green), 0.5-1% is the watch
+  // band (amber), anything under 0.5% is a red flag.
   const replyColor  = totals.totalSent === 0      ? "#9ca3af"
-                    : totals.replyRate >= 2       ? "#15803D"
-                    : totals.replyRate >= 1       ? "#D97706"
+                    : totals.replyRate >= 1       ? "#15803D"
+                    : totals.replyRate >= 0.5     ? "#D97706"
                                                    : "#B91C1C";
   // <2% bounce is healthy across the whole portfolio, ≥2% is the red
   // threshold we already use in the per-sender Bounce column. No amber
@@ -490,15 +492,15 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
       {/* Reply + Burn per workspace so the operator can spot which
           client is dragging the portfolio average on the SummaryPanel.
           Same colour bands as the SummaryPanel cards above:
-            reply  >=2 green, >=1 amber, else red
+            reply  >=1 green, >=0.5 amber, else red
             burn   <=0.25 green, <=0.5 amber, else red                */}
       <div style={{ marginTop: 10, display: "flex", gap: 12, fontSize: 10, color: "#6b7280" }}>
         <div>
           Reply <span style={{
             fontWeight: 500,
             color: w.totalSent === 0      ? "#9ca3af"
-                 : w.avgReplyRate >= 2    ? "#15803D"
-                 : w.avgReplyRate >= 1    ? "#D97706"
+                 : w.avgReplyRate >= 1    ? "#15803D"
+                 : w.avgReplyRate >= 0.5  ? "#D97706"
                                           : "#B91C1C",
           }}>{w.totalSent === 0 ? "—" : `${w.avgReplyRate.toFixed(1)}%`}</span>
         </div>
