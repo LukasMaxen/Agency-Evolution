@@ -90,7 +90,7 @@ export async function POST(
       // LEAD_REPLIED only fires for tracked replies (real responses to campaign
       // sends), so we mark these as tracked unconditionally. Untracked replies
       // land via the inbox-sync poller, which carries the EB-supplied flag.
-      await pool.query(
+      const insertResult = await pool.query(
   `INSERT INTO replies (
     id, workspace_id, workspace_slug, email_bison_id,
     email_bison_reply_id, email_bison_lead_id,
@@ -117,6 +117,7 @@ export async function POST(
     preferredRecipientEmail, preferredRecipientName,
   ]
 );
+      const isNewReply = (insertResult.rowCount ?? 0) > 0;
 
       // If this lead is already in an active FU sequence, record the conversion
       // and stop the sequence — they re-engaged, no more automated FUs needed.
@@ -139,44 +140,50 @@ export async function POST(
         );
       }
 
-      // Trigger processAutoReply via a self-fetch to /api/auto-reply/run so it
-      // executes as its own real HTTP request with full request lifetime, instead
-      // of an in-process callback. Prior attempts:
-      //   - inline await: EmailBison webhook timed out before Sonnet finished
-      //   - fire-and-forget Promise: killed by Coolify when the response closed
-      //   - Next 16 after(): worked for ~2 weeks, then started getting silently
-      //     dropped (replies stalled at status='new' with no #reply-approval card)
-      // The follow_ups row for new leads is still created inside processAutoReply.
-      const origin = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
-      const runUrl = `${origin}/api/auto-reply/run?id=${encodeURIComponent(replyUuid)}&workspace=${encodeURIComponent(slug)}`;
-      fetch(runUrl, {
-        method: "POST",
-        headers: { "x-internal-token": process.env.AUTO_REPLY_RUN_TOKEN ?? "" },
-      }).catch(err => console.error(`[webhook] /run dispatch failed for ${replyUuid} (${slug}):`, err?.message));
+      // Only dispatch the auto-reply processor and Slack notification for new
+      // inserts. EmailBison occasionally fires LEAD_REPLIED twice for the same
+      // reply — ON CONFLICT DO NOTHING deduplicates the DB row, but without
+      // this guard both callbacks would fire twice (duplicate Slack cards).
+      if (isNewReply) {
+        // Trigger processAutoReply via a self-fetch to /api/auto-reply/run so it
+        // executes as its own real HTTP request with full request lifetime, instead
+        // of an in-process callback. Prior attempts:
+        //   - inline await: EmailBison webhook timed out before Sonnet finished
+        //   - fire-and-forget Promise: killed by Coolify when the response closed
+        //   - Next 16 after(): worked for ~2 weeks, then started getting silently
+        //     dropped (replies stalled at status='new' with no #reply-approval card)
+        // The follow_ups row for new leads is still created inside processAutoReply.
+        const origin = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+        const runUrl = `${origin}/api/auto-reply/run?id=${encodeURIComponent(replyUuid)}&workspace=${encodeURIComponent(slug)}`;
+        fetch(runUrl, {
+          method: "POST",
+          headers: { "x-internal-token": process.env.AUTO_REPLY_RUN_TOKEN ?? "" },
+        }).catch(err => console.error(`[webhook] /run dispatch failed for ${replyUuid} (${slug}):`, err?.message));
 
-      // Slack notification to the client's [client]-replies channel.
-      // Replaces the Make.com "Email Reply Notifications" scenario for this workspace.
-      if (workspace.slack_channel_replies) {
-        const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
-        const channel = workspace.slack_channel_replies as string;
-        const workspaceName = (workspace.name ?? slug) as string;
-        after(async () => {
-          try {
-            await notifyReply({
-              channel,
-              workspaceName,
-              leadName,
-              leadEmail,
-              leadCompany: lead.company ?? null,
-              campaign: campaign?.name ?? "",
-              subject: reply.email_subject ?? "",
-              message,
-              replyUrl: appUrl ? `${appUrl}/replies/${replyUuid}` : undefined,
-            });
-          } catch (err: any) {
-            console.error(`[webhook] notifyReply (after) failure for ${replyUuid} (${slug}):`, err);
-          }
-        });
+        // Slack notification to the client's [client]-replies channel.
+        // Replaces the Make.com "Email Reply Notifications" scenario for this workspace.
+        if (workspace.slack_channel_replies) {
+          const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+          const channel = workspace.slack_channel_replies as string;
+          const workspaceName = (workspace.name ?? slug) as string;
+          after(async () => {
+            try {
+              await notifyReply({
+                channel,
+                workspaceName,
+                leadName,
+                leadEmail,
+                leadCompany: lead.company ?? null,
+                campaign: campaign?.name ?? "",
+                subject: reply.email_subject ?? "",
+                message,
+                replyUrl: appUrl ? `${appUrl}/replies/${replyUuid}` : undefined,
+              });
+            } catch (err: any) {
+              console.error(`[webhook] notifyReply (after) failure for ${replyUuid} (${slug}):`, err);
+            }
+          });
+        }
       }
 
       return NextResponse.json({ ok: true, event: "LEAD_REPLIED", id: replyUuid });
