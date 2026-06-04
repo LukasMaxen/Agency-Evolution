@@ -1033,32 +1033,6 @@ interface RegenResult {
 
 type RegenOutcome = { ok: true; result: RegenResult } | { ok: false; reason: string };
 
-// Escapes literal control characters (0x00-0x1f) that appear inside JSON string
-// values. Claude occasionally emits bare newlines inside reply_body instead of \n,
-// which causes JSON.parse to throw "Bad control character in string literal".
-// Only characters inside strings are touched — structural whitespace is left alone.
-function sanitizeJsonControlChars(str: string): string {
-  let out = "";
-  let inString = false;
-  let escaped = false;
-  for (let i = 0; i < str.length; i++) {
-    const c = str[i];
-    const code = str.charCodeAt(i);
-    if (escaped) { out += c; escaped = false; continue; }
-    if (c === "\\" && inString) { out += c; escaped = true; continue; }
-    if (c === '"') { inString = !inString; out += c; continue; }
-    if (inString && code <= 0x1f) {
-      if (c === "\n") out += "\\n";
-      else if (c === "\r") out += "\\r";
-      else if (c === "\t") out += "\\t";
-      else out += `\\u${code.toString(16).padStart(4, "0")}`;
-      continue;
-    }
-    out += c;
-  }
-  return out;
-}
-
 async function regenerateViaClaude(systemPrompt: string, userMessage: string): Promise<RegenOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { ok: false, reason: "ANTHROPIC_API_KEY not set" };

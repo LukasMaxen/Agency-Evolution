@@ -16,6 +16,7 @@ import { CALENDLY_CLIENT_CONFIG } from "@/lib/calendly";
 import { inferLeadTimezone, lookupCategoryForDomain } from "@/lib/lead-timezone";
 import { suggestSlotsForClient } from "@/lib/calendly-slot-suggestions";
 import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
+import { sanitizeJsonControlChars } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -380,7 +381,9 @@ async function callClaude(systemPrompt: string, userMessage: string): Promise<Au
   }
 
   const data = await response.json();
-  const raw = (data.content?.[0]?.text ?? "").replace(/```json|```/g, "").trim();
+  const raw = sanitizeJsonControlChars(
+    (data.content?.[0]?.text ?? "").replace(/```json|```/g, "").trim()
+  );
 
   // Tolerant parse
   try { return JSON.parse(raw) as AutoReplyResult; }
