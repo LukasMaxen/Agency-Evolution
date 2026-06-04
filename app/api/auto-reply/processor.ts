@@ -674,10 +674,15 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // EmailBison occasionally fires a LEAD_REPLIED webhook whose body is our own
   // outbound cold email (the "From:" header matches our sender, not the lead).
   // Catching this here costs zero tokens — Claude is never called.
+  // Important: only flag as echo if the "From: [our_sender]" appears near the top
+  // of the message (index < 200). Replies that forward or quote our thread have our
+  // sender email buried in the quoted section — those are genuine replies.
   if (reply.sender_email) {
     const senderEmailLower = (reply.sender_email as string).toLowerCase();
     const escaped = senderEmailLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (new RegExp(`from:[^\\n]*${escaped}`).test(messageText.toLowerCase())) {
+    const msgLower = messageText.toLowerCase();
+    const match = new RegExp(`from:[^\\n]*${escaped}`).exec(msgLower);
+    if (match && match.index < 200) {
       await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
         [JSON.stringify({ intent: "no_action", skipped_reason: "own_outbound_echoed" }), replyId]);
       return;
