@@ -28,6 +28,22 @@ export async function backsyncInterestedToEmailBison(
   if (!row.email_bison_reply_id) return { skipped: "no_email_bison_reply_id" };
   if (!row.email_bison_api_key || !row.email_bison_instance_url) return { skipped: "no_workspace_creds" };
 
+  // Check EmailBison's own state before marking. If EB already has this reply
+  // as interested (e.g. it auto-detected interest and fired CONTACT_INTERESTED
+  // before our LEAD_REPLIED insert landed), calling mark-as-interested again
+  // would create a 2nd interested event in EB and corrupt its stats.
+  const checkRes = await fetch(
+    `${row.email_bison_instance_url}/api/replies/${row.email_bison_reply_id}`,
+    { headers: { Authorization: `Bearer ${row.email_bison_api_key}` } }
+  );
+  if (checkRes.ok) {
+    const checkData = await checkRes.json().catch(() => null);
+    if (checkData?.data?.interested === true) {
+      await pool.query("UPDATE replies SET interested = TRUE WHERE id = $1", [replyId]);
+      return { skipped: "already_interested_in_eb" };
+    }
+  }
+
   const url = `${row.email_bison_instance_url}/api/replies/${row.email_bison_reply_id}/mark-as-interested`;
   const res = await fetch(url, {
     method: "PATCH",
