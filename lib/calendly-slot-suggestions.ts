@@ -30,8 +30,13 @@ export async function suggestSlotsForClient(
   try {
     const user = await getCalendlyUser(token);
     const eventTypes = await getEventTypes(token, user.uri);
-    const eventType = eventTypes.find((e: any) => e.scheduling_url === config.eventTypeUrl);
+    const normalize = (url: string) => url.toLowerCase().replace(/\/+$/, "");
+    const targetUrl = normalize(config.eventTypeUrl);
+    const eventType = eventTypes.find((e: any) => normalize(e.scheduling_url ?? "") === targetUrl)
+      ?? eventTypes.find((e: any) => normalize(e.scheduling_url ?? "").includes(targetUrl.split("/").pop() ?? ""))
+      ?? eventTypes[0];
     if (!eventType) return [];
+    console.log(`[calendly-slots] matched event type: ${eventType.scheduling_url} for ${clientSlug}`);
 
     const start = new Date(Date.now() + 60 * 1000);
     const end = new Date(Date.now() + 6 * 24 * 3600 * 1000);
