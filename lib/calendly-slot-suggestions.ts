@@ -58,8 +58,7 @@ export async function suggestSlotsForClient(
       return h >= BUSINESS_START_HOUR && h < BUSINESS_END_HOUR;
     });
     if (businessHoursSlots.length === 0) {
-      // No slots overlap the lead's working day. Caller should fall back to a
-      // Calendly-link-only CTA rather than proposing late-night times.
+      console.log(`[calendly-slots] ${clientSlug}: ${slots.length} raw slots all outside business hours (8-18 ${tz})`);
       return [];
     }
 
