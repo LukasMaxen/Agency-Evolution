@@ -1167,11 +1167,9 @@ async function regenerateReplyDraft(draft: ReplyDraftRow, reviewerName: string, 
       [draft.workspace_slug, reply.lead_email]
     ),
   ]);
-  if (slotsResult.length >= 2) {
-    calendlyHint = `\nLIVE CALENDAR AVAILABILITY (use these exact strings when proposing times):
-Slot 1 NATURAL: ${slotsResult[0].natural}
-Slot 2 NATURAL: ${slotsResult[1].natural}
-Always pair with the Calendly link as a fallback. Do not reformat the slot strings.\n`;
+  if (slotsResult.length >= 1) {
+    const slotLines = slotsResult.map((s, i) => `Slot ${i + 1} NATURAL: ${s.natural}`).join("\n");
+    calendlyHint = `\nLIVE CALENDAR AVAILABILITY (use these exact strings when proposing times):\n${slotLines}\nAlways pair with the Calendly link as a fallback. Do not reformat the slot strings.\n`;
   }
   if (coldEmailResult.rows[0]?.body) {
     coldEmailBlock = `\nORIGINAL COLD EMAIL SENT TO THIS LEAD (what they are responding to — read the CTA to determine the correct reply type):\n${coldEmailResult.rows[0].body.slice(0, 600)}\n`;
