@@ -3,7 +3,7 @@ import { resolveCalendlyToken, getCalendlyUser, getEventTypes, getAvailableSlots
 import { suggestSlotsForClient } from "@/lib/calendly-slot-suggestions";
 
 export async function GET(req: NextRequest) {
-  const client = req.nextUrl.searchParams.get("client") ?? "larsen-digital";
+  const client = req.nextUrl.searchParams.get("client") ?? "";
   const tz = req.nextUrl.searchParams.get("tz") ?? "Europe/London";
 
   const token = resolveCalendlyToken(client);

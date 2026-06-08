@@ -112,12 +112,12 @@ The count of meetings is `len(response.data.records)`. Note the field name varie
 |---|---|---|---|
 | 911 Restoration | appGTy1rR6eZjKu62 | tblVEhq27whUNk4KY | Meeting booked date |
 | ACT Capital | appECObQrdSRjeXeM | tblTnxArHDVMNOxSI | Meeting Booked Date |
-| Acceler8rs | appV8wpBdqTgCi4Ws | tblCATnaPTV9fb2Ab | Meeting booked date | filter: `{Deal Source} = "Cold email (Acceler8rs)"` |
+| Acceler8rs | appV8wpBdqTgCi4Ws | Meetings | Meeting booked date | no Deal Source filter needed — dedicated Meetings table |
 | GN Motion | appL5fZEyULdqpyx5 | tblTnxArHDVMNOxSI | Meeting Booked Date | |
 | Hahnbeck | appUZr45I0MK7uv3w | tbl9KatGYqPFB45Hs | Meeting booked date | |
 | Internal Campaigns | app9rWZ2iE4eWECEN | tblCATnaPTV9fb2Ab | Meeting booked date | |
 | ITG Group | appajhv22WuCEw7Aa | tblTnxArHDVMNOxSI | Meeting Booked Date | |
-| Larsen Digital | appV8wpBdqTgCi4Ws | tblCATnaPTV9fb2Ab | Meeting booked date | filter: `{Deal Source} = "Cold email (LD)"` — shares table with Acceler8rs |
+| Larsen Digital | appmixoDAnp7FicCS | tblB3gNeQNs29SMgO | Meeting booked date | no filter needed — dedicated base and Meetings table |
 | Sonaro AI | appNMGCTwXVOLLzmA | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Statera Capital | app0EI3nqT3ScUJOf | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Venture Exits | appA3W783M4v9IShx | tblTnxArHDVMNOxSI | Meeting Booked Date |
