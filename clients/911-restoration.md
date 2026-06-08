@@ -7,7 +7,7 @@
 campaign_type: franchise
 sender: Idan Shpizear, Founder, 911 Restoration
 offer: Insurance-backed restoration franchise alongside existing trade business. No cold outreach — work comes through insurance claim pipelines. Top 25% average 2M+ gross revenue. SBA financing available.
-calendly: https://calendly.com/dre-c-911restoration/quick-introduction-call-clone
+calendly: https://calendly.com/jeff-y-911restoration/quick-connect
 always_send_calendly: false
 teaser: none
 
@@ -28,7 +28,7 @@ fu_context: |
   Core hook for every FU: insurance-backed lead flow. Work comes through claim pipelines, not cold outreach. Franchise operators do not have to chase customers — they receive work automatically through 911 Restoration's insurance network.
   Case study: Chris ran a window cleaning business in Reno. He layered the 911 Restoration franchise alongside it, scaled into plumbing and reconstruction through the insurance network, and now does significant volume without any marketing spend. The key insight: it layers on top of an existing trade business, it doesn't replace it.
   FDD proof point: top 25% of franchisees average 2M+ in gross revenue. SBA financing is available. These are FDD-disclosed numbers, not promises.
-  FU angle progression: FU1 = nudge, FU2 = reframe as adding a revenue stream (not replacing current business), FU3/FU4 = the insurance network differentiator in more depth + Chris story. Never use territory scarcity. Never guarantee revenue. Idan Shpizear is the sender — the Franchise Developer (Dre) follows up after the intro call.
+  FU angle progression: FU1 = nudge, FU2 = reframe as adding a revenue stream (not replacing current business), FU3/FU4 = the insurance network differentiator in more depth + Chris story. Never use territory scarcity. Never guarantee revenue. Idan Shpizear is the sender — the Franchise Developer (Jeff) follows up after the intro call.
 
 info_template: |
   Hi {FIRST_NAME},
@@ -41,7 +41,7 @@ info_template: |
 
   Per our 2024 FDD, top 25% of franchisees average 2M+ in gross revenue. SBA financing is available.
 
-  Jeff & Dre, our Franchise Developers, will follow up within 48 hours to answer any questions. The calendar link below is a direct booking link to Dre: https://calendly.com/dre-c-911restoration/quick-introduction-call-clone
+  Jeff, our Franchise Developer, will follow up within 48 hours to answer any questions. The calendar link below is a direct booking link to Jeff: https://calendly.com/jeff-y-911restoration/quick-connect
 
   {SENDER_EMAIL_SIGNATURE}
 
@@ -55,10 +55,10 @@ info_template: |
 | **EmailBison slug** | `911-restoration` |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | Dre C |
+| **Primary contact** | Jeff |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | https://calendly.com/dre-c-911restoration/quick-introduction-call-clone |
+| **Calendly link** | https://calendly.com/jeff-y-911restoration/quick-connect |
 | **Monthly retainer** | [amount] |
 
 ---
@@ -78,7 +78,7 @@ Insurance-backed lead flow with no cold outreach required. Top 25% of franchisee
 The lead flow is insurance-driven — franchisees don't have to chase work. This is the #1 hook. It removes the biggest objection trade owners have to adding a new revenue stream.
 
 **What they receive after saying yes to more info:**
-Email with: (1) Chris from Reno story — layered restoration onto a window cleaning business, scaled into plumbing and reconstruction via the 911 network. (2) Two videos: "Watch Chris's Story" (3:00) and "The Power of the Network" (1:30). (3) Three value props: Fill the Gaps (restoration ramps when construction slows), Leverage Relationships (existing clients, more reasons to call), The Network (peer support — franchisees cite this as their biggest unexpected advantage). (4) Jeff & Dre, our Franchise Developers, follow up within 48 hours or prospect can book directly with Dre via the Calendly link. Leverage these hooks in step 3 CTAs and reply handling.
+Email with: (1) Chris from Reno story — layered restoration onto a window cleaning business, scaled into plumbing and reconstruction via the 911 network. (2) Two videos: "Watch Chris's Story" (3:00) and "The Power of the Network" (1:30). (3) Three value props: Fill the Gaps (restoration ramps when construction slows), Leverage Relationships (existing clients, more reasons to call), The Network (peer support — franchisees cite this as their biggest unexpected advantage). (4) Jeff, our Franchise Developer, follows up within 48 hours or prospect can book directly with Jeff via the Calendly link. Leverage these hooks in step 3 CTAs and reply handling.
 
 **What they can never say / promise:**
 Do not promise specific revenue figures as guaranteed outcomes. Do not confirm territory availability without checking.
@@ -217,7 +217,7 @@ Three things franchisees point to most often: restoration fills seasonal gaps wh
 
 Per our 2024 FDD, top 25% of franchisees average 2M+ in gross revenue. SBA financing is available to get started.
 
-Jeff & Dre, our Franchise Developers, will follow up within 48 hours to answer any questions. The calendar link below is a direct booking link to Dre: https://calendly.com/dre-c-911restoration/quick-introduction-call-clone
+Jeff, our Franchise Developer, will follow up within 48 hours to answer any questions. The calendar link below is a direct booking link to Jeff: https://calendly.com/jeff-y-911restoration/quick-connect
 
 Idan Shpizear
 Founder, 911 Restoration
