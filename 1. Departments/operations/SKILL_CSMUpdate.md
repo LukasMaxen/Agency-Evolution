@@ -94,7 +94,7 @@ EmailBison interprets `start_date` and `end_date` as inclusive day-bounded range
 
 ## Airtable meetings config
 
-For each client, query their Meetings table with `IS_SAME({Meeting Booked Date}, 'YYYY-MM-DD', 'day')` for daily, or a date range for 7d/30d.
+For each client, query their Meetings table filtered on **"Meeting booked date"** (when the meeting was scheduled), NOT "Date Of Meeting" (when it takes place). Each Meetings table has both fields — always use the booking date field.
 
 Working curl example (replace base + table + date):
 
