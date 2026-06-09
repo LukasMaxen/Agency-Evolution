@@ -64,6 +64,24 @@ Give a concise, human overview:
 - Never make assumptions about the lead's business, positioning, or market focus. Only reference what they have shared directly or what is clearly visible on their website.
 - Do not translate or reference Spanish taglines, brand positioning language, or marketing copy back to the lead as a reason they are a fit.
 
+**When a lead asks "why us" or "what do you know about us":**
+
+- Never describe their business back to them using details found on their website. They know their own business.
+- Give a short, honest answer: we research businesses in the region that fit the buyer's profile and this company came up as a strong match.
+- Keep buyer specifics vague but reassure them the interest is genuine.
+- Redirect to a call quickly — the call is the place to go deeper, not the email.
+- Keep the reply to no more than three to four lines total.
+
+Example of correct behavior for this scenario:
+
+> *"Hi Chris,*
+>
+> *Fair questions. We research construction businesses in the region that fit our buyer's profile and GVC came up as a strong match. The buyer is a PE firm with committed capital actively looking to acquire in the civil construction space, and your profile ticked the right boxes.*
+>
+> *I would rather give you the full picture on a call than try to do it justice in an email. Feel free to grab a time here: https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting*
+>
+> *Best regards, Jeffery Zanardi Managing Director, ACT Capital Advisors"*
+
 ### Patterns to avoid
 
 | Phrase or behavior | Why it fails |
@@ -79,6 +97,7 @@ Give a concise, human overview:
 | Referencing years in business, locations, team size, revenue, certifications looked up externally | Only reference what the lead has told you directly |
 | Referencing Spanish taglines or marketing copy | Comes across as research theater, not genuine outreach |
 | Writing sentences no real person would say in a casual email | Breaks trust and sounds automated |
+| Describing the lead's business back to them when they ask "why us" | They know their own business — it reads as hollow and evasive |
 
 ### The test
 
