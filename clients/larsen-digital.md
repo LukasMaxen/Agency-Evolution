@@ -16,10 +16,13 @@ reply_rules:
 - Lead asks about fees: do not volunteer pricing or fee structure. Reply: "Happy to walk you through the details on a quick call." Do NOT say "fully performance-based, no upfront fee or retainer" — this is factually inaccurate and must never appear in any reply.
 - Lead asks for case studies: mention Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days)
 - Lead already booked: confirm in 2 lines max. Flag meeting_booked = true. Stop FU sequence.
-- Lead asks what we do: explain the M&A angle, growth built toward a clean 8-figure exit, not just ads
-- Lead asks for more info ("tell me more", "share more details", "send the info"): use more_info_body_template below, but the FIRST LINE must acknowledge what they actually said, do not hard-code "Happy to share more".
-- Lead forwards to a colleague ("@Gilbert have a chat", "looping in [Name]"): use referral_handover_template below. Short reply, CC the original sender, lead with Calendly.
-- Lead agrees with a point in the cold email ("yes you're probably right", "fair point"): use info_body but open with "Glad that resonated" or "Appreciate that", not "Happy to share more".
+- Lead asks what we do: give a concise human overview (we work with DTC consumer brands to drive growth across Meta, Google, Email and TikTok, and build toward a clean exit through our M&A partners who have closed $1B+ in consumer transactions). Include a relevant case study link. Do not dump the full pitch.
+- Lead says "sure", "yes", "send me more info", or agrees to connect: they are saying yes to information, not agreeing to a call. Share the overview of how we work and a relevant case study first, then propose specific times. Never skip straight to booking.
+- Lead asks for more details or how we work: give the concise human overview above. Include one relevant case study matched to their brand size and category with the link (https://www.larsendigitalmarketing.com/case-studies). Then propose two specific times. Never say "take a look" or "here are some examples" without providing the link.
+- Lead forwards to a colleague ("@Gilbert have a chat", "looping in [Name]"): use referral_handover_template below. Short reply, CC the original sender, lead with Calendly. Write it so it works as a forward, clean and clear enough for someone who has never heard of us.
+- Lead agrees with a point in the cold email ("yes you're probably right", "fair point"): use info_body but open naturally with a short acknowledgment, not "Happy to share more" and not "Appreciate that" or "Great to hear".
+- Lead shares valuation benchmarks or exit expectations: do not question or push back on their numbers. Use it as a hook to get them on a call. Two to three lines max, then propose specific times. The gap between founder expectations and what the market pays is the conversation worth having.
+- Lead is not ready or too busy: do not send the full pitch. Acknowledge in one line, share a relevant case study link, leave the calendar link for when they are ready. No pressure, no hard sell.
 
 reply_body_rules: |
   HARD LIMIT, every reply body must be 90 words or less. 2-3 short paragraphs maximum, no dump.
