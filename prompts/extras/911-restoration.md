@@ -98,6 +98,33 @@ When a lead signals they are not ready, too busy, or unlikely to act right now, 
 >
 > {SENDER_EMAIL_SIGNATURE}
 
+### "Already a Franchise in My Area" Response Rule (from Kasper Zacho send-time learning — refined by human review)
+
+When a lead says there is already a franchise in their area, **do not assume or reference any city or region they have not mentioned themselves**. Treat this as a common, easily addressed objection and respond like a real person brushing it off — not a formal rebuttal.
+
+**What to do:**
+- Explain simply and casually that territories are mapped by zip code, so one nearby franchise does not mean their area is taken
+- Invite them to connect with Jeff to find out what is available
+- Keep it to **2–3 lines maximum** — no lists, no headers, no formal language
+
+**Do not include:**
+- Any assumed or guessed location details ❌
+- Formal or brochure-style language ❌
+- The phrase "Jeff will check" or "Jeff can research" — say "Jeff can walk you through what is available" or similar ❌
+- A full pitch or any pressure to act ❌
+
+**The test:** Would you say this in a text message? If not, loosen it up.
+
+**Worked Example — "Already a Franchise" Reply:**
+
+> Hi Darrell,
+>
+> Worth knowing that one franchise in the area does not mean your territory is taken. They are mapped by zip code so there could still be open ground near you.
+>
+> If that changes things, Jeff can walk you through what is available: <https://calendly.com/jeff-y-911restoration/quick-connect>
+>
+> {SENDER_EMAIL_SIGNATURE}
+
 ### Original Voice Rule (from Kasper Zacho send-time learning — reinforced by human review)
 When drafting or generating a reply, **avoid templated or formulaic body copy**. Write in an original, personal voice — tailor the framing to the specific person and context rather than dropping in a pre-built pitch block.
 
@@ -123,19 +150,24 @@ The goal is for the email to feel like Idan wrote it for this person specificall
 
 These rules apply to every 911 Restoration reply draft, regardless of trigger or context:
 
-1. **Write like a real person** — warm and conversational, not a brochure or pitch deck
-2. **Never open with** "Here is how it works for operators in your position" or any similar robotic opener — lead with something natural
-3. **When referencing the lead's existing business to show fit, keep it to one short observation** — do not write a paragraph explaining their own business back to them
-4. **The Chris story (or any operator story) is a reference point, not the centrepiece** — keep it to two to three sentences max
-5. **Always include both video links and the FDD stat** when sharing details, but weave them in naturally rather than listing them as bullet points
-6. **Always end with Jeff's calendar link:** `https://calendly.com/jeff-y-911restoration/quick-connect`
-7. **Keep the full email to no more than 150 words**
+1. **Write like a real person texting a colleague** — warm, direct, no fluff. Not a brochure or pitch deck.
+2. **Never open with** "Here is how it works for operators in your position", "That's actually pretty common", "Happy to help", "Good to know", or any phrase that sounds like a call centre script — lead with something natural.
+3. **No lists, no headers, no bullet points** — prose only.
+4. **Keep it short** — under 100 words in most cases.
+5. **Never add time estimates** like "in a few minutes" or "within 48 hours" unless it is the standard FDD follow-up line.
+6. **Never assume the lead's location, city, or region** unless they have told you directly.
+7. **Never assume the lead is interested** unless they have explicitly said so. If they raise an objection or share information without expressing interest, acknowledge it neutrally and leave the door open without pushing.
+8. **When referencing the lead's existing business to show fit, keep it to one short observation** — do not write a paragraph explaining their own business back to them.
+9. **The Chris story (or any operator story) is a reference point, not the centrepiece** — keep it to two to three sentences max.
+10. **Always include both video links and the FDD stat** when sharing details, but weave them in naturally rather than listing them as bullet points.
+11. **Always end with Jeff's calendar link:** `https://calendly.com/jeff-y-911restoration/quick-connect`
+12. **Keep the full email to no more than 150 words.**
+
+**The self-check:** Read it out loud. If it sounds like a sales brochure or a call centre script, rewrite it. Would you send this as a text message to someone you know? If not, rewrite it.
 
 **When the lead says "send over the details":**
 - Do not start with "Here is how it works" — open naturally, add one short personalisation line connecting their business to restoration, then go straight into the model and the videos
 - Close with Jeff's details and calendar link
-
-**The self-check:** Read it out loud. If it sounds like a sales brochure, rewrite it.
 
 ### {OPENING_HOOK} Examples
 | Lead type | Example hook |
