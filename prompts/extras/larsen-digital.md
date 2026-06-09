@@ -87,7 +87,8 @@ Key rules for this shape:
 |---|---|---|
 | "Send me more info", "tell me more", "share details", "yes please share" | needs_info (Pattern B) | `#reply-approval` with canonical More Info template (from clients/larsen-digital.md) |
 | "Why are you interested in MY company", "what caught your eye", "what makes us a fit" | needs_info (Pattern A) | `#reply-approval` with "what caught my eye" template (Pattern A below) |
-| Short positive: "sure", "yes", "happy to chat", "let me know when you're free" | interested | `#reply-approval` with SHORT-INTERESTED reply (below). Acknowledge if there's prior thread context. |
+| Short positive: "sure", "yes", "happy to chat", "let me know when you're free" — BUT ONLY when the cold email CTA was a direct meeting ask | interested | `#reply-approval` with SHORT-INTERESTED reply (below). Acknowledge if there's prior thread context. |
+| "Sure", "yes", "please", "of course" when the cold email CTA was a permission-ask ("Mind if I share some more info?", "Want me to send details?") | needs_info (Pattern B) | `#reply-approval` with Pattern B lean More Info shape. The lead agreed to receive info, not to book a call. |
 | Specific clarifying question: "are you marketing or M&A?", "where are you based?" | needs_info (specific) | `#reply-approval` with CLARIFYING-QUESTION reply (below). Confident "We do both"-style framing. |
 | Lead requests a specific availability window: "what's your availability next Tuesday–Friday?", "give me times the week of X" | interested_window | **`#manual-replies` (awaiting_manual). NOT approval.** A human checks the calendar and proposes specific times. This is a textbook manual booking. |
 | Confirming a proposed slot: "Monday at 1pm works", "yes that time is good" | meeting_booked | `#manual-replies` (awaiting_manual). A human creates the calendar invite. |
