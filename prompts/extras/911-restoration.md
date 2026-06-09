@@ -93,6 +93,24 @@ The goal is for the email to feel like Idan wrote it for this person specificall
 - Language that sounds like how Idan actually talks — direct, warm, no fluff ✓
 - Structure that follows the logic of the conversation, not the logic of the template ✓
 
+### Tone and Style Rules for All Reply Drafts (from Kasper Zacho send-time learning — reinforced by human review)
+
+These rules apply to every 911 Restoration reply draft, regardless of trigger or context:
+
+1. **Write like a real person** — warm and conversational, not a brochure or pitch deck
+2. **Never open with** "Here is how it works for operators in your position" or any similar robotic opener — lead with something natural
+3. **When referencing the lead's existing business to show fit, keep it to one short observation** — do not write a paragraph explaining their own business back to them
+4. **The Chris story (or any operator story) is a reference point, not the centrepiece** — keep it to two to three sentences max
+5. **Always include both video links and the FDD stat** when sharing details, but weave them in naturally rather than listing them as bullet points
+6. **Always end with Jeff's calendar link:** `https://calendly.com/jeff-y-911restoration/quick-connect`
+7. **Keep the full email to no more than 150 words**
+
+**When the lead says "send over the details":**
+- Do not start with "Here is how it works" — open naturally, add one short personalisation line connecting their business to restoration, then go straight into the model and the videos
+- Close with Jeff's details and calendar link
+
+**The self-check:** Read it out loud. If it sounds like a sales brochure, rewrite it.
+
 ### {OPENING_HOOK} Examples
 | Lead type | Example hook |
 |---|---|
@@ -159,6 +177,8 @@ Every variant of this email must close with **both**:
 2. The `{SENDER_EMAIL_SIGNATURE}` placeholder
 
 Do not end on the Calendly link alone.
+
+> **Note:** When drafting replies for Jeff specifically, use Jeff's calendar link instead: `https://calendly.com/jeff-y-911restoration/quick-connect`
 
 ---
 
