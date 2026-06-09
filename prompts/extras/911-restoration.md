@@ -72,6 +72,32 @@ When a lead replies with a simple "yes" or a short permission-giving response, t
 
 The goal is simple: the lead should feel like a person wrote back to them, not like a sequence fired off the next email.
 
+### "Not Ready / Too Busy" Response Rule (from Kasper Zacho send-time learning — refined by human review)
+
+When a lead signals they are not ready, too busy, or unlikely to act right now, **do not send the full pitch**. They have told you they cannot act — a full pitch ignores their stated position and creates unwanted pressure.
+
+**What to do instead:**
+- Acknowledge their situation briefly and without pressure — one short line
+- Share the two video links so they have something to look at when the timing is right
+- Include the calendar link for when they are ready
+- Keep the entire reply to **2–3 lines maximum**
+
+**Do not include:**
+- The Chris Story video framing or any operator story ❌
+- FDD stats or revenue figures ❌
+- Any mention of Dre or Jeff following up ❌
+- Any language that implies urgency or pushes them to act now ❌
+
+**Worked Example — "Not Ready" Reply:**
+
+> Hi {FIRST_NAME},
+>
+> Completely understand — no pressure at all. When the timing is better, these two short videos are worth a few minutes: Chris's Story (3:00) <https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be> and The Power of the Network (1:30) <https://www.youtube.com/watch?v=JoPThufW1uc>
+>
+> Grab a time here whenever it makes sense: <https://calendly.com/dre-c-911restoration/quick-introduction-call-clone>
+>
+> {SENDER_EMAIL_SIGNATURE}
+
 ### Original Voice Rule (from Kasper Zacho send-time learning — reinforced by human review)
 When drafting or generating a reply, **avoid templated or formulaic body copy**. Write in an original, personal voice — tailor the framing to the specific person and context rather than dropping in a pre-built pitch block.
 
