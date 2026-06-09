@@ -682,7 +682,8 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     const escaped = senderEmailLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const msgLower = messageText.toLowerCase();
     const match = new RegExp(`from:[^\\n]*${escaped}`).exec(msgLower);
-    if (match && match.index < 200) {
+    const textBeforeMatch = match ? msgLower.slice(0, match.index).trim() : "";
+    if (match && match.index < 200 && textBeforeMatch.length < 10) {
       await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
         [JSON.stringify({ intent: "no_action", skipped_reason: "own_outbound_echoed" }), replyId]);
       return;
