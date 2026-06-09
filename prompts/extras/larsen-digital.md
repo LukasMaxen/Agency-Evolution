@@ -135,6 +135,11 @@ OPTIONAL ADDITION (when the lead's brand looks ready to exit RIGHT NOW — matur
 
 ## SHORT-INTERESTED REPLY (lead just says "sure", "yes", "happy to chat")
 
+CRITICAL EXCEPTION — CHECK THE COLD EMAIL CTA FIRST:
+If the original cold email ended with a permission-ask ("Mind if I share some more info?", "Mind if I send you some details?", "Would it be okay to share how we work?", or any variant asking permission to share info), and the lead said "Sure" / "Yes" / "Please" — they agreed to RECEIVE INFORMATION, not to book a call. Use Pattern B (lean More Info shape from PERSONALIZATION ACCURACY RULES), not this template. Do NOT skip straight to a Calendly link.
+
+Only use the SHORT-INTERESTED template below when the cold email CTA was a direct meeting ask ("worth a quick call?", "want to grab 15 minutes?", "happy to jump on a call?") and the lead said yes.
+
 Do NOT use the long More Info template here. Keep it short.
 
 If this is the FIRST response after the cold email:
