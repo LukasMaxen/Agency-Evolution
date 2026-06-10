@@ -23,6 +23,7 @@ never:
 - Never confirm territory availability without checking
 - Never use "Your background in the trades is why I reached out"
 - Never use territory scarcity angle
+- Never describe the lead's existing business model, work type, revenue structure, or operations using details inferred from their website or any source other than what the lead has told you directly. Even a single sentence of website research ruins trust. If the lead did not volunteer the information themselves, leave it out entirely.
 
 fu_context: |
   Core hook for every FU: insurance-backed lead flow. Work comes through claim pipelines, not cold outreach. Franchise operators do not have to chase customers — they receive work automatically through 911 Restoration's insurance network.
@@ -186,6 +187,7 @@ Happy with current business, not looking to expand, already a franchisee of anot
 - Never guarantee revenue outcomes
 - Never confirm territory availability without checking
 - Never make it sound like a distressed investment
+- Never describe the lead's existing business model, work type, revenue structure, or operations using details inferred from their website or any source other than what the lead has told you directly. Even a single sentence of website research ruins trust. If the lead did not volunteer the information themselves, leave it out entirely.
 
 ---
 
@@ -197,7 +199,7 @@ Happy with current business, not looking to expand, already a franchisee of anot
 
 _Sent when a lead replies yes to more information. This is the first reply back to an interested lead._
 
-_Personalization note: Before sending, do a quick background check on the lead — their business type, city, any existing franchise affiliation, size of operation. Use that context to add one personalized line between the opener and the Chris story that connects their specific situation to how restoration layers on top of it. Keep it to one or two sentences. The goal is for the lead to feel like this was written for them, not copied from a template. Keep the tone friendly and casual throughout._
+_Personalization note: Only personalize using information the lead has volunteered directly in their reply. Do NOT look up their website, research their business, or infer anything about their operations, work type, or revenue from external sources. Even one sentence of website research ruins trust. Keep the tone friendly and casual throughout. If the lead has not shared anything about their specific situation, skip the personalized line entirely and go straight from the Chris story into the videos._
 
 **Subject:** 911 Restoration Franchise Overview
 
@@ -209,7 +211,7 @@ Here is how it works for operators in your position.
 
 One of our operators, Chris, ran a window cleaning business in Reno. He layered a 911 Restoration franchise alongside it and scaled into plumbing and reconstruction through the 911 network. Work came through insurance-backed claim pipelines so he was not out chasing customers. His existing business kept running the same way.
 
-[PERSONALIZED LINE: one or two sentences connecting the lead's specific business, market, or franchise background to how restoration layers on top of what they already do.]
+[PERSONALIZED LINE: only if the lead has volunteered details about their own business or situation in their reply — one or two sentences connecting what they told you to how restoration layers on top of it. If they have not shared anything about their business, leave this out entirely. Do not infer from their website or any external source.]
 
 Two short videos that walk through how it works: [Watch Chris's Story (3:00)](https://www.youtube.com/watch?v=TQVUORpK35M&feature=youtu.be) and [The Power of the Network (1:30)](https://www.youtube.com/watch?v=JoPThufW1uc).
 
@@ -221,6 +223,26 @@ Jeff, our Franchise Developer, will follow up within 48 hours to answer any ques
 
 Idan Shpizear
 Founder, 911 Restoration
+
+---
+
+## Approved Reply Example (Kasper Zacho pattern — learned May 2026)
+
+_Use this as the reference model for info replies when the lead has not shared details about their own business. Notice: no website research, no assumptions about their operation. The franchise just "layers on top of whatever you are already running."_
+
+Hi {FIRST_NAME},
+
+Happy to share more. A 911 Restoration franchise layers on top of whatever you are already running. Work comes through insurance claim pipelines — water damage, fire, mold — so there is no cold outreach and no marketing spend needed.
+
+One of our operators ran a service business in Reno and scaled into plumbing and reconstruction through the network without chasing a single customer.
+
+Two short videos worth a few minutes: [Chris's Story (3:00)](https://www.youtube.com/watch?v=TQVUORpK35M) and [The Power of the Network (1:30)](https://www.youtube.com/watch?v=JoPThufW1uc)
+
+Top 25% of franchisees average $2M+ in gross revenue per our 2024 FDD. SBA financing available.
+
+Jeff can walk you through the rest: https://calendly.com/jeff-y-911restoration/quick-connect
+
+{SENDER_EMAIL_SIGNATURE}
 
 ---
 
@@ -289,7 +311,7 @@ Non-trade industries, outside USA, corporate employees without ownership.
 City ({CITY}) for step 2 personalization. Business type confirmation (trades only).
 
 **Personalisation approach:**
-{CITY} in step 2 is the primary personalisation. For info reply emails, do a quick background check on the lead before sending — look up their business type, any existing franchise affiliation, market size, and operation type. Use that context to add one personalized line that connects their specific situation to how restoration layers on top of it. Keep it short and casual. The goal is relatability, not research overload.
+{CITY} in step 2 is the primary personalisation. For info reply emails, only personalize using details the lead has shared directly in their reply — their business type, market, or situation as they described it. Do not look up their website, research their operation, or infer anything from external sources. Even one sentence of website research ruins trust. If the lead has not volunteered information about their business, skip the personalized line entirely.
 
 ---
 
@@ -322,4 +344,5 @@ Subject: [subject]
 
 ## Internal Notes
 
-[Anything that doesn't fit above — quirks, sensitivities, context that helps when working on this account]
+**May 2026 — website research rule (from Kasper Zacho reply review):**
+A reply was sent that described the lead's existing business using details pulled from their website. The client flagged this immediately — it came across as surveillance, not personalization, and damaged trust. Rule established: never describe a lead's business model, work type, revenue structure, or operations using anything other than what they have told you directly. If they did not say it themselves, leave it out. This applies to info replies, follow-ups, and any direct reply handling. When in doubt, use the approved reply example above as the model — keep it generic ("whatever you are already running") and let the lead fill in their own context.
