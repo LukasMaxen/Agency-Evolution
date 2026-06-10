@@ -38,6 +38,39 @@ Once interest is confirmed → send the links, nothing more.
 
 ---
 
+## Rule: Sign-off and calendar link formatting
+
+**Source:** Kasper Zacho review thread
+**Confidence:** High
+
+### The rule
+
+**Always close every reply with the literal sign-off — never use a placeholder:**
+
+> *Best regards,*
+> *Jeffery Zanardi*
+> *Managing Director, ACT Capital Advisors*
+
+Do not use `{SENDER_EMAIL_SIGNATURE}` or any other placeholder. The sign-off must always be written out in full exactly as above.
+
+**Always wrap the Calendly link in angle brackets**, not as plain text:
+
+> `<https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting>`
+
+### Correct behavior
+
+The correct closing pattern for any reply where a call is being scheduled or offered looks like this:
+
+> *Hi Mike,*
+>
+> *How does Thursday at 1pm EST or Friday at 12pm EST work for you? If neither fits, feel free to grab a time directly here: <https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting>*
+>
+> *Best regards,*
+> *Jeffery Zanardi*
+> *Managing Director, ACT Capital Advisors*
+
+---
+
 ## Rule: Tone and style for all reply drafts
 
 **Source:** Kasper Zacho review thread
@@ -53,8 +86,10 @@ Once interest is confirmed → send the links, nothing more.
 - Avoid phrases like "caught our eye", "strong platform", "committed to excellence", "exactly what buyers look for", "genuine buyer interest", "strong foundation", "clear path to scale", "tick the right boxes", and any other language that sounds like it came from a pitch deck or CIM.
 - Do not write sentences that a real person would never say in a casual email.
 - Keep it short. Acknowledge what they said, address it directly, then move to the call.
-- Always end with the calendar link: https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting
+- Always end with the calendar link: <https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting>
 - When referencing the calendar link, always describe it as a **quick call** — never specify the duration. Use language like "grab a time for a quick call here" regardless of what the Calendly URL says.
+- Always wrap the Calendly link in angle brackets, not as plain text.
+- Always close with the literal sign-off: *Best regards, / Jeffery Zanardi / Managing Director, ACT Capital Advisors* — never use a placeholder.
 
 **When a lead asks for more details or how we work:**
 
@@ -98,7 +133,7 @@ Example of correct behavior for this scenario:
 >
 > *Fair questions. We research construction businesses in the region that fit our buyer's profile and GVC came up as a strong match. The buyer is a PE firm with committed capital actively looking to acquire in the civil construction space.*
 >
-> *I would rather give you the full picture on a call than try to do it justice in an email. Feel free to grab a time for a quick call here: https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting*
+> *I would rather give you the full picture on a call than try to do it justice in an email. Feel free to grab a time for a quick call here: <https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting>*
 >
 > *Best regards, Jeffery Zanardi Managing Director, ACT Capital Advisors"*
 
@@ -120,6 +155,8 @@ Example of correct behavior for this scenario:
 | Writing sentences no real person would say in a casual email | Breaks trust and sounds automated |
 | Describing the lead's business back to them when they ask "why us" | They know their own business — it reads as hollow and evasive |
 | Specifying the call duration (e.g. "45-minute call") | Always say "quick call" — never reference the duration |
+| Using `{SENDER_EMAIL_SIGNATURE}` or any placeholder for the sign-off | Always write out the full sign-off literally |
+| Pasting the Calendly link as plain text without angle brackets | Always wrap in angle brackets: `<https://...>` |
 
 ### The test
 
@@ -127,4 +164,4 @@ Before finalizing any reply, ask: **would a real person actually say this in a c
 
 ### Correct behavior
 
-One or two lines of real context → the ask → the calendar link. Nothing more.
+One or two lines of real context → the ask → the calendar link → the literal sign-off. Nothing more.
