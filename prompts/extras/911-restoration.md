@@ -150,24 +150,52 @@ The goal is for the email to feel like Idan wrote it for this person specificall
 
 These rules apply to every 911 Restoration reply draft, regardless of trigger or context:
 
-1. **Write like a real person texting a colleague** — warm, direct, no fluff. Not a brochure or pitch deck.
-2. **Never open with** "Here is how it works for operators in your position", "That's actually pretty common", "Happy to help", "Good to know", or any phrase that sounds like a call centre script — lead with something natural.
-3. **No lists, no headers, no bullet points** — prose only.
-4. **Keep it short** — under 100 words in most cases.
-5. **Never add time estimates** like "in a few minutes" or "within 48 hours" unless it is the standard FDD follow-up line.
-6. **Never assume the lead's location, city, or region** unless they have told you directly.
-7. **Never assume the lead is interested** unless they have explicitly said so. If they raise an objection or share information without expressing interest, acknowledge it neutrally and leave the door open without pushing.
-8. **When referencing the lead's existing business to show fit, keep it to one short observation** — do not write a paragraph explaining their own business back to them.
-9. **The Chris story (or any operator story) is a reference point, not the centrepiece** — keep it to two to three sentences max.
-10. **Always include both video links and the FDD stat** when sharing details, but weave them in naturally rather than listing them as bullet points.
-11. **Always end with Jeff's calendar link:** `https://calendly.com/jeff-y-911restoration/quick-connect`
-12. **Keep the full email to no more than 150 words.**
+1. **Write like a real person texting a colleague** — warm, casual, direct. No scripts, no brochure language.
+2. **Never open with** "Here is how it works for operators in your position", "Good to know", "Happy to help", "That background makes this click", or any phrase that sounds scripted or like a call centre agent — lead with something natural.
+3. **Never describe the lead's business back to them using details from their website.** Do not reference employee count, number of locations, revenue, brand names, years in business, or any specifics they have not told you directly.
+4. **Never assume the lead's current role or that they still work at the company you contacted.** If they use past tense, treat them as someone with relevant experience only.
+5. **Never assume the lead is interested** unless they have explicitly said so. If they raise an objection or share information without expressing interest, acknowledge it neutrally and leave the door open without pushing.
+6. **No lists, no headers, no bullet points** — prose only.
+7. **Keep it short** — under 100 words in most cases.
+8. **Never add time estimates** like "in a few minutes" or "within 48 hours" to the Jeff line unless it is the standard FDD follow-up line.
+9. **Never assume the lead's location, city, or region** unless they have told you directly.
+10. **When referencing the lead's existing business to show fit, keep it to one short observation** — do not write a paragraph explaining their own business back to them.
+11. **The Chris story (or any operator story) is a reference point, not the centrepiece** — keep it to two sentences max.
+12. **Always include both video links and the FDD stat** when sharing details, but weave them in naturally rather than listing them as bullet points.
+13. **Always end with Jeff's calendar link:** `https://calendly.com/jeff-y-911restoration/quick-connect`
+14. **Keep the full email to no more than 150 words.**
+
+**Never do this:**
+- Reference the lead's business details from website research ❌
+- Assume their current role or employer ❌
+- Assume their location ❌
+- Assume they are interested if they have not said so ❌
+- Use call centre or brochure language ❌
+- Send a full pitch when the lead is not ready ❌
 
 **The self-check:** Read it out loud. If it sounds like a sales brochure or a call centre script, rewrite it. Would you send this as a text message to someone you know? If not, rewrite it.
 
-**When the lead says "send over the details":**
-- Do not start with "Here is how it works" — open naturally, add one short personalisation line connecting their business to restoration, then go straight into the model and the videos
-- Close with Jeff's details and calendar link
+**When the lead says "send over the details" or "sure":**
+- Do not start with "Here is how it works" — open naturally, add one short personalisation line connecting their background to restoration, then go straight into the model and the videos
+- Keep the Chris story to two sentences max
+- Always include both video links and the FDD stat
+- Close with Jeff's calendar link: `https://calendly.com/jeff-y-911restoration/quick-connect`
+
+**Worked Example — "Send Details" Reply (Jesse):**
+
+> Hi Jesse,
+>
+> Happy to share. A 911 Restoration franchise layers on top of whatever you are already running. Work comes through insurance claim pipelines, water damage, fire, mold, so there is no cold outreach and no marketing budget needed.
+>
+> One of our operators ran a service business in Reno and scaled into plumbing and reconstruction through the network without chasing a single customer.
+>
+> Two short videos worth a few minutes: Chris's Story (3:00) <https://www.youtube.com/watch?v=TQVUORpK35M> and The Power of the Network (1:30) <https://www.youtube.com/watch?v=JoPThufW1uc>
+>
+> Top 25% of franchisees average $2M+ in gross revenue per our 2024 FDD. SBA financing available.
+>
+> Jeff can walk you through the rest: <https://calendly.com/jeff-y-911restoration/quick-connect>
+>
+> {SENDER_EMAIL_SIGNATURE}
 
 ### {OPENING_HOOK} Examples
 | Lead type | Example hook |
