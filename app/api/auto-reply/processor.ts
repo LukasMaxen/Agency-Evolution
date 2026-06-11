@@ -14,7 +14,11 @@ import { checkRateLimit } from "@/lib/rate-limiter";
 import { backsyncInterestedToEmailBison } from "@/lib/emailbison-backsync";
 import { CALENDLY_CLIENT_CONFIG } from "@/lib/calendly";
 import { inferLeadTimezone, lookupCategoryForDomain } from "@/lib/lead-timezone";
-import { suggestSlotsForClient } from "@/lib/calendly-slot-suggestions";
+import {
+  suggestSlotsForClient,
+  buildLiveCalendarBlock,
+  CALENDLY_SLOT_PROMPT_RULE,
+} from "@/lib/calendly-slot-suggestions";
 import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
 import { sanitizeJsonControlChars } from "@/lib/utils";
 
@@ -826,7 +830,7 @@ If they said no: stop. No reply at all. Not even an acknowledgment unless they a
 
 Never confirm specific times. Never say "Thursday works" or "I have availability." Always use the Calendly link from the REPLY QUICK REFERENCE with a natural line: "Feel free to grab a time here: [link]"
 
-CRITICAL — SLOT PLACEHOLDERS: If LIVE CALENDAR AVAILABILITY is NOT present in this prompt, you must NOT write [DATE 1], [DATE 2], [SLOT 1], [SLOT 2], or any unfilled date/time placeholder in the reply body. Drop the slot proposal entirely and send only the Calendly link. Never leave bracket placeholders as literal text in the output.
+${CALENDLY_SLOT_PROMPT_RULE}
 
 Exception: if the REPLY QUICK REFERENCE says always_send_calendly:true (Larsen Digital), always send Calendly even when the lead gives a specific day or time.
 
@@ -1017,13 +1021,11 @@ ${ctx.summary}
       defaultUsTz: "America/New_York",
     });
     const slots = await suggestSlotsForClient(workspaceSlug, inferred.tz);
-    if (slots.length >= 2) {
-      calendlyHint = `LIVE CALENDAR AVAILABILITY (use these natural-language slot strings exactly as written when proposing times):
-Slot 1 NATURAL: ${slots[0].natural}
-Slot 2 NATURAL: ${slots[1].natural}
+    const liveBlock = buildLiveCalendarBlock(slots);
+    if (liveBlock) {
+      calendlyHint = `${liveBlock}
 Lead's inferred timezone: ${inferred.tz} (${inferred.reason})
-
-Use exactly the slot strings above when proposing times in the reply, do not reformat them, do not add the date back in, do not switch to 24-hour. The format is intentionally "Day at time TZ" (e.g. "Monday at 1pm BST"). Always pair with the Calendly link as the fallback. Do not confirm a single slot, always offer both.
+Do not confirm a single slot, always offer both.
 
 `;
     }

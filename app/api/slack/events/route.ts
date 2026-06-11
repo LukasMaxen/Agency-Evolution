@@ -19,7 +19,11 @@ import {
 import { daysUntilNextStep } from "@/lib/template-replies";
 import { sanitizeJsonControlChars } from "@/lib/utils";
 import { readFileFromGitHub, commitFileToGitHub } from "@/lib/github-commit";
-import { suggestSlotsForClient } from "@/lib/calendly-slot-suggestions";
+import {
+  suggestSlotsForClient,
+  buildLiveCalendarBlock,
+  CALENDLY_SLOT_PROMPT_RULE,
+} from "@/lib/calendly-slot-suggestions";
 import { CALENDLY_CLIENT_CONFIG } from "@/lib/calendly";
 import { inferLeadTimezone } from "@/lib/lead-timezone";
 
@@ -1167,10 +1171,8 @@ async function regenerateReplyDraft(draft: ReplyDraftRow, reviewerName: string, 
       [draft.workspace_slug, reply.lead_email]
     ),
   ]);
-  if (slotsResult.length >= 1) {
-    const slotLines = slotsResult.map((s, i) => `Slot ${i + 1} NATURAL: ${s.natural}`).join("\n");
-    calendlyHint = `\nLIVE CALENDAR AVAILABILITY (use these exact strings when proposing times):\n${slotLines}\nAlways pair with the Calendly link as a fallback. Do not reformat the slot strings.\n`;
-  }
+  const liveBlock = buildLiveCalendarBlock(slotsResult);
+  if (liveBlock) calendlyHint = `\n${liveBlock}\n`;
   if (coldEmailResult.rows[0]?.body) {
     coldEmailBlock = `\nORIGINAL COLD EMAIL SENT TO THIS LEAD (what they are responding to — read the CTA to determine the correct reply type):\n${coldEmailResult.rows[0].body.slice(0, 600)}\n`;
   }
@@ -1187,8 +1189,7 @@ Apply the human feedback as the priority. Keep what is already good in the origi
 
 HARD RULES (always apply, even during revision):
 - Write in first person always — never refer to the sender by name as the subject of a sentence
-- SLOTS — ZERO TOLERANCE: The final body must contain zero square-bracket placeholders of any kind. [SLOT 1], [SLOT 2], [SLOT 1 NATURAL], [SLOT 2 NATURAL], [DATE 1], [DATE 2], [FIRST_NAME], [BRAND] — none of these may appear literally in the output. Fill every placeholder or remove the sentence containing it. If LIVE CALENDAR AVAILABILITY is present below, use those exact strings for times. If it is NOT present, drop the slot proposal entirely and use only the Calendly link with a natural lead-in.
-- NEVER write that live slots are unavailable, not confirmed, or that you cannot check the calendar. If no LIVE CALENDAR AVAILABILITY is provided in this prompt, propose a time only via the Calendly link. Never mention the absence of slots.
+- ${CALENDLY_SLOT_PROMPT_RULE}
 - Reference something specific from the lead's message — not generic
 - No AI filler phrases ("Sounds great", "I'd love to", "Excited to show you")
 - End with {SENDER_EMAIL_SIGNATURE} on its own line, nothing before it

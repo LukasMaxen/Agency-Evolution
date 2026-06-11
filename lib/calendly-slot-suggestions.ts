@@ -14,6 +14,24 @@ export type SuggestedSlot = {
   natural: string;
 };
 
+// Single source of truth for the "use the live slots" instruction.
+// Inline this string into every system prompt that may have a LIVE CALENDAR
+// AVAILABILITY block injected, so the model treats slot proposal as mandatory
+// (not optional) whenever the block is present. Add new prompt sites by
+// inlining `${CALENDLY_SLOT_PROMPT_RULE}` instead of writing fresh language.
+export const CALENDLY_SLOT_PROMPT_RULE = `SLOTS — MANDATORY WHEN AVAILABLE: If a "LIVE CALENDAR AVAILABILITY" section is present in this prompt, the reply body MUST include a single sentence proposing BOTH slots verbatim (e.g. "Would Tuesday at 1pm BST or Wednesday at 2:30pm BST work?") immediately before the Calendly link, even if the current draft does not have one. Use the slot strings exactly as given. Do not reformat, do not switch to 24-hour, do not add the date back in. The Calendly link still goes after as a fallback ("If not, grab a slot here: <link>"). Drop the slot proposal ONLY if no LIVE CALENDAR AVAILABILITY section is present. The body must never contain unfilled square-bracket placeholders like [SLOT 1], [SLOT 2], [SLOT 1 NATURAL], [SLOT 2 NATURAL], [DATE 1], [DATE 2] — fill them or remove the sentence.`;
+
+// Single source of truth for the "use these strings, do not reformat" header
+// printed inside the LIVE CALENDAR AVAILABILITY block itself. Use this so the
+// block looks identical at every injection site.
+export function buildLiveCalendarBlock(slots: SuggestedSlot[]): string {
+  if (slots.length < 2) return "";
+  return `LIVE CALENDAR AVAILABILITY (use these natural-language slot strings exactly as written when proposing times):
+Slot 1 NATURAL: ${slots[0].natural}
+Slot 2 NATURAL: ${slots[1].natural}
+Always pair with the Calendly link as a fallback. Do not reformat the slot strings, do not switch to 24-hour, do not add the date back in.`;
+}
+
 /**
  * Pulls live Calendly availability for a client and returns up to 2 well-spaced slots
  * formatted in the lead's timezone, ready to drop into a draft reply prompt.
