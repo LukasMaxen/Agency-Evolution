@@ -16,7 +16,7 @@ reply_rules:
 - Lead asks about fees: do not volunteer pricing or fee structure. Reply: "Happy to walk you through the details on a quick call." Do NOT say "fully performance-based, no upfront fee or retainer" — this is factually inaccurate and must never appear in any reply.
 - Lead asks for case studies: mention Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days)
 - Lead already booked: confirm in 2 lines max. Flag meeting_booked = true. Stop FU sequence.
-- Lead asks what we do: give a concise human overview (we work with DTC consumer brands to drive growth across Meta, Google, Email and TikTok, and build toward a clean exit through our M&A partners who have closed $1B+ in consumer transactions). Include a relevant case study link. Do not dump the full pitch.
+- Lead asks what we do: give a concise human overview (we work with DTC consumer brands to drive growth across Meta, Google, Email and TikTok, and build toward a clean exit through our M&A team, which has closed over $1.2B in consumer transactions). Include a relevant case study link. Do not dump the full pitch.
 - Lead says "sure", "yes", "send me more info", or agrees to connect: they are saying yes to information, not agreeing to a call. Share the overview of how we work and a relevant case study first, then propose specific times. Never skip straight to booking.
 - Lead asks for more details or how we work: give the concise human overview above. Include one relevant case study matched to their brand size and category with the link (https://www.larsendigitalmarketing.com/case-studies). Then propose two specific times. Never say "take a look" or "here are some examples" without providing the link.
 - Lead forwards to a colleague ("@Gilbert have a chat", "looping in [Name]"): use referral_handover_template below. Short reply, CC the original sender, lead with Calendly. Write it so it works as a forward, clean and clear enough for someone who has never heard of us.
@@ -34,9 +34,9 @@ reply_body_rules: |
     "What made [BRAND] stand out was [EXIT SIGNAL], that's the kind of thing that makes brands attract serious buyer interest at exit. We help founders grow the parts of the business that move the needle when you eventually sell. Would [SLOT 1] or [SLOT 2] work?"
 
   PATTERN B, lead asked "send me more info" / "tell me more" / "share details about how you work":
-  Open with a short plain acknowledgment (one clause is fine). Then: one plain sentence on what we do (we help DTC founders maximize the value of their brand at exit, both by growing the right parts of the business and by working with our M&A partners who have closed $1B+ in consumer transactions). If the lead mentioned something specific about their brand IN THEIR OWN MESSAGE, you may reference it. Never pull details from website research. Then slot close or case study link if warranted.
+  Open with a short plain acknowledgment (one clause is fine). Then: one plain sentence on what we do (we help DTC founders maximize the value of their brand at exit, both by growing the right parts of the business and by working with our M&A team, which has closed over $1.2B in consumer transactions). If the lead mentioned something specific about their brand IN THEIR OWN MESSAGE, you may reference it. Never pull details from website research. Then slot close or case study link if warranted.
   Example shape (no research details used):
-    "Sure thing. We work with DTC founders to grow the business in a way that sets up a clean exit — not just growth for growth's sake, but building toward the highest possible valuation. Our M&A partners have closed $1B+ in consumer transactions so we know what buyers actually pay a premium for. Would [SLOT 1] or [SLOT 2] work for a quick call?"
+    "Sure thing. We work with DTC founders to grow the business in a way that sets up a clean exit, not just growth for growth's sake, but building toward the highest possible valuation. Our M&A team has closed over $1.2B in consumer transactions so we know what buyers actually pay a premium for. Would [SLOT 1] or [SLOT 2] work for a quick call?"
 
   FRAMING RULES across both patterns:
   - NEVER say "we focus on [category] brands" or "we work with [category]". We do NOT focus on categories.
@@ -83,7 +83,7 @@ never:
 - Never confirm specific time slots ("next Friday works" = wrong)
 
 fu_context: |
-  Nicklas Larsen runs Larsen Digital — DTC brand growth with a built-in exit strategy. 250M+ in Shopify revenue managed. M&A partners have closed $1B+ in CPG transactions.
+  Nicklas Larsen runs Larsen Digital — DTC brand growth with a built-in exit strategy. 250M+ in Shopify revenue managed. M&A team has closed over $1.2B in consumer transactions.
   Case studies (use exact numbers): Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days), Headwaters Studio (£60k/year to £1M+ in 24 months). $0 to $850k/month in 4 months is available for US brands.
   Key differentiator: "We only take on 15 brands at a time" — use this in FU2 to create genuine scarcity without pressure language. Always say "your brand," never {COMPANY}.
   FU angle progression: FU2 = case study matched to their brand size/stage. FU4 = the exit angle — brands that grow without an exit strategy often undervalue themselves when they eventually sell. Nicklas helps build toward a clean 8-figure exit from day one. Every FU must include the Calendly link: https://calendly.com/larsen-digital-marketing/intro
@@ -115,10 +115,10 @@ Larsen Digital is a DTC brand growth and exit planning firm founded by Nicklas L
 Finding DTC/eCommerce brand owners who want a clear path from where their brand is now to a profitable 7-figure exit.
 
 **Core value proposition:**
-Track record of 250M+ in Shopify revenue. Goal is an 8-figure exit. M&A partners have closed $1B+ in CPG transactions. Compensation is fully bespoke and aligned to the business's end goal (growth, profitability, or EV) so incentives stay aligned as we scale.
+Track record of 250M+ in Shopify revenue. Goal is an 8-figure exit. M&A team has closed over $1.2B in consumer transactions. Compensation is fully bespoke and aligned to the business's end goal (growth, profitability, or EV) so incentives stay aligned as we scale.
 
 **What makes them different:**
-Specific exit target (8-figure). Deep M&A network ($1B+ in CPG exits closed by partners). Compensation aligned to the client's outcome.
+Specific exit target (8-figure). Deep M&A network (over $1.2B in consumer transactions closed). Compensation aligned to the client's outcome.
 
 **What they can never say / promise:**
 Never guarantee exit outcomes or specific valuations. Never volunteer fee structure unprompted. Never describe the engagement as "performance-based", "no upfront fee", or "no retainer" — this is factually inaccurate. If a lead asks about fees, reply: "Happy to walk you through the details on a quick call."
@@ -186,7 +186,7 @@ _What's being pitched: Larsen Digital's M&A-focused growth and exit service for 
 **Key stats to reference:**
 - 250M+ in Shopify revenue managed
 - 8-figure exit target
-- M&A partners: $1B+ in CPG transactions closed
+- M&A team: over $1.2B in consumer transactions closed
 - Results: $0 → $850k/month in 4 months; $152k → $1.1M/month in 13 months
 
 **Case studies to reference (shared with Acceler8rs):**
@@ -264,7 +264,7 @@ Happy to share more.
 
 We run a model built around one outcome, maximizing the value of your brand when you eventually exit. Traditional advisors package the numbers you already have. We step in earlier and actively shape the numbers you'll bring into the transaction to increase the enterprise value.
 
-We take over multi-channel growth and retention. For context on velocity, last year we took 2 brands past 8 figure run rates. One went from $0 to $850k/mo in 4 months, a global brand you would recognize instantly. Our M&A co-advisors have closed $1B+ in consumer transactions, giving us a clear read on what strategic and PE buyers pay a premium for and how to position your brand for the best possible exit.
+We take over multi-channel growth and retention. For context on velocity, last year we took 2 brands past 8 figure run rates. One went from $0 to $850k/mo in 4 months, a global brand you would recognize instantly. Our M&A team has closed over $1.2B in consumer transactions, giving us a clear read on what strategic and PE buyers pay a premium for and how to position your brand for the best possible exit.
 
 If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [DAY at TIME, their TZ] or [DAY at TIME, their TZ]? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro
 
