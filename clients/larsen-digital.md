@@ -6,7 +6,7 @@
 ## REPLY QUICK REFERENCE
 campaign_type: agency_services
 sender: Nicklas Larsen, Founder, Larsen Digital
-offer: DTC brand growth and exit planning. M&A partners closed $1B+ in CPG transactions. Goal: 8-figure exit. 250M+ in Shopify revenue managed.
+offer: DTC brand growth and exit planning. M&A team has closed over $1.2B in consumer transactions. Goal: 8-figure exit. 250M+ in Shopify revenue managed.
 calendly: https://calendly.com/larsen-digital-marketing/intro
 always_send_calendly: true (LARSEN DIGITAL EXCEPTION: always send Calendly even when lead gives specific day/time. Find natural reason: "easiest to lock something in here", "calendar fills up fast")
 
