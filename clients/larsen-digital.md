@@ -44,6 +44,11 @@ reply_body_rules: |
   - NEVER describe the lead's business back to them using details from their website, revenue figures, product details, brand structure, sustainability claims, scent profiles, ingredients, store locations, customer base descriptions, or any detail they did not mention directly in the conversation.
   - If the lead mentioned something specific about their brand IN THE CONVERSATION (not from your research), you may reference it.
   - If LIVE CALENDAR AVAILABILITY has 2 slots, propose them: "Are you free [SLOT 1 NATURAL] or [SLOT 2 NATURAL]?" + Calendly fallback. If no slots, just send Calendly link.
+  - NEVER use vague pronouns like "it" without a clear antecedent. If you mean the call, say "the call". If you mean the exit, say "the exit". Always be specific.
+  - NEVER say "taking the brand to market" without context. Be specific: "positioning the brand for a clean exit" or "running the exit process when the numbers are ready."
+  - The exit conversation must always be framed as a choice, not a push: "whether that is an exit or continuing to scale, the goal is to make sure you have the right options."
+  - M&A track record: always say "our M&A team, which has closed over $1.2B in consumer transactions." Never use "$1B+" or "M&A partners" in any reply copy.
+  - The CTA must always reference the correct brand name from the current conversation. Never carry over a brand name from a previous reply or thread.
 
   Do NOT dump our full value prop (dual-track, $850k/mo case, $1B+ M&A, structuring options). Save that for the call. The reply's job is to get the call booked, not pre-sell.
 
@@ -81,6 +86,10 @@ never:
 - Never mention pricing/fee unless asked. If asked, reply: "Happy to walk you through the details on a quick call." Never say "performance-based", "no upfront fee", or "no retainer" — factually inaccurate for Larsen Digital.
 - No P.S. opt-out lines
 - Never confirm specific time slots ("next Friday works" = wrong)
+- Never use "$1B+" or "M&A partners" in reply copy. Always use "our M&A team, which has closed over $1.2B in consumer transactions."
+- Never use vague pronouns like "it" without a specific antecedent in the same sentence.
+- Never say "taking the brand to market" — say "positioning the brand for a clean exit" or be specific about what step is happening.
+- Never carry a brand name from a previous reply into the CTA. Always verify the brand name matches the current conversation.
 
 fu_context: |
   Nicklas Larsen runs Larsen Digital — DTC brand growth with a built-in exit strategy. 250M+ in Shopify revenue managed. M&A team has closed over $1.2B in consumer transactions.
@@ -280,7 +289,7 @@ Founder, Larsen Digital
 - BRAND = the actual, correctly formatted brand name (from email signature, website, or LinkedIn). Never use the {COMPANY} merge variable
 - CATEGORY = the lead's actual product category, plural (e.g. "apparel", "beauty", "supplements", "footwear", "home & living", "food & beverage", "skincare", "sportswear"). Infer from the brand's website, product line, or LinkedIn industry. Avoid generic terms like "DTC" or "consumer", be specific to what they sell
 - Two time slot placeholders = pulled live from Nicklas's Calendly, converted into the lead's timezone. Pick one mid-morning and one early-afternoon slot in their TZ for best conversion
-- Lead's timezone = inferred from country/city in signature, LinkedIn location, or email domain. If unknown, default to UK time and note it in the line (e.g. "10am UK")
+- Lead's timezone = inferred from country/city in signature, LinkedIn location, or email domain. Always verify before proposing times. Default to the lead's country timezone, not BST or CET, unless they are clearly based in Europe. If genuinely unknown, note the assumed timezone explicitly (e.g. "10am UK time").
 - Keep the Calendly link as the fallback even when proposing times
 
 **Open workflow items (unblock live slot pulling):**
