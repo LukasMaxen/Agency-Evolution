@@ -25,11 +25,13 @@ reply_rules:
 - Buyer asks about valuation: redirect to teaser and call. "Best discussed on a call."
 - Buyer asks who the seller is: NDA framing. "Standard practice to keep confidential before NDA."
 - Buyer asks about price: send teaser + NDA link + pull to call.
+- Lead asks whether ACT is representing a buyer or looking to broker their sale: do NOT dismiss the brokerage/sell-side angle. ACT is both. If the current buyer is interested, ACT will make the introduction. If the buyer is not interested in this specific company, ACT can help the owner find a different buyer. Always leave both doors open in the reply.
 
 never:
 - Never name the buyer before a call
 - Never give valuation estimate in writing
 - Never name specific company being sold until NDA signed
+- Never tell a business owner that ACT is not in the business of brokering their sale — ACT is a sell-side intermediary and can help them find a buyer regardless of whether the current outreach buyer is a fit
 
 fu_context: |
   Jeff Zanardi runs ACT Capital Advisors — a Sacramento-based sell-side M&A firm representing owners ready to exit in the $5M-$50M revenue range. For sell-side advisory leads (business owners), the angle is: a qualified buyer has expressed interest in their type of business, and a 45-minute call is the next step to explore fit. For mandate campaigns (PE/investor leads), the angle is: a profitable, well-run company in their target sector is available — teaser has the details.
@@ -244,11 +246,13 @@ Any reply asking about buyers, process, valuation, deal structure, or timeline.
 | "We're not for sale" | Acknowledge, keep door open, reframe as exploratory |
 | "Send me a proposal" | Brief context + redirect to call |
 | "What's your fee?" | Answer honestly if asked, never volunteer |
+| "Are you representing a buyer, or are you trying to broker my sale?" | Never dismiss the brokerage angle. ACT is both a buyer-side connector and a sell-side intermediary. If the buyer in the current outreach is interested, Jeff will make the introduction. If not, ACT can help the owner find the right buyer through their broader network. Always leave both doors open. |
 
 **Things to never say:**
 - Never confirm buyer identity before a call
 - Never give a valuation estimate in writing
 - Never agree to commission-only
+- Never tell a business owner that ACT does not broker sales — ACT is a sell-side advisory firm and can represent them in a broader process if the current buyer is not the right fit
 
 ---
 
