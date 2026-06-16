@@ -224,7 +224,7 @@ function SenderTable({
     const senderAction =
       action === "enable_warmup"  ? "enable_warmup" :
       action === "attach_to_all"  ? "attach_to_all" :
-                                    "remove_and_warmup";
+                                    "pause_outbound_and_warmup";
     const senderIds = targets
       .map(s => s.eb_sender_id)
       .filter((n): n is number => typeof n === "number");
@@ -285,11 +285,11 @@ function SenderTable({
         onActionDone(j.error ?? "Action failed", "error");
         return;
       }
-      const verb = action === "attach_to_all" ? "attached to" : "removed from";
-      onActionDone(
-        `${s.sender_email} ${verb} ${j.campaigns_affected} campaigns. Refreshing…`,
-        j.failed > 0 ? "error" : "success",
-      );
+      const verb =
+        action === "attach_to_all"             ? `attached to ${j.campaigns_affected} campaigns` :
+        action === "pause_outbound_and_warmup" ? "throttled to 1/day + warmup enabled" :
+                                                  "warmup enabled";
+      onActionDone(`${s.sender_email} ${verb}. Refreshing…`, j.failed > 0 ? "error" : "success");
       setTimeout(() => refresh(), 4000);
     } catch (err: any) {
       onActionDone(err.message ?? "Network error", "error");

@@ -229,9 +229,16 @@ export function MasterInbox() {
     { id: "dashboard",       label: "Dashboard",       icon: BarChart2,   badge: 0 },
     { id: "kpi-tracker",     label: "KPI Tracker",     icon: Target,      badge: 0 },
     { id: "lead-monitoring", label: "Lead Monitoring", icon: Users,       badge: 0 },
-    { id: "mailbox-monitor", label: "Account Monitor (new)", icon: ShieldAlert, badge: 0 },
-    { id: "account-monitor", label: "Domain Monitor",  icon: ShieldAlert, badge: 0 },
-    { id: "warmup-monitor",  label: "Warmup Monitor",  icon: Flame,       badge: 0 },
+    { id: "mailbox-monitor", label: "Account Monitor", icon: ShieldAlert, badge: 0 },
+    // Legacy Domain Monitor + Warmup Monitor are hidden because their
+    // remove-from-campaign buttons would strand mid-sequence follow-ups in
+    // EmailBison. The merged Account Monitor (above) uses the safe
+    // throttle-to-1/day flow instead. Components are kept in the repo
+    // (AccountMonitor.tsx, WarmupMonitor.tsx) so they can be reverted, but
+    // they are not reachable from the sidebar. See feedback memory:
+    //   feedback-never-remove-sender-from-campaign
+    // { id: "account-monitor", label: "Domain Monitor",  icon: ShieldAlert, badge: 0 },
+    // { id: "warmup-monitor",  label: "Warmup Monitor",  icon: Flame,       badge: 0 },
     { id: "variant-refresh", label: "Var Refresh",     icon: RotateCcw,   badge: 0 },
   ];
 
