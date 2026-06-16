@@ -1434,6 +1434,18 @@ export function MailboxMonitor() {
     ? data.senders.filter(s => s.workspace_slug === selected.slug)
     : [];
 
+  // When days changes (or refresh fires), `data` updates but `selected`
+  // still points at the Workspace object captured at click time. Re-sync
+  // it from the fresh `data.workspaces` so the drill-down SummaryPanel /
+  // CapacityBar / DomainStatusStrip reflect the new window's totals.
+  // Without this, switching 7d → 24h leaves the top stats stuck on the
+  // 7d snapshot while only the per-domain rows update.
+  useEffect(() => {
+    if (!data || !selected) return;
+    const fresh = data.workspaces.find(w => w.slug === selected.slug);
+    if (fresh && fresh !== selected) setSelected(fresh);
+  }, [data, selected]);
+
   return (
     <div style={{ flex: 1, overflowY: "auto", padding: 20, fontFamily: "inherit", color: "#111827", background: "#f8f7f5" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
