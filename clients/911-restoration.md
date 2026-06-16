@@ -42,7 +42,7 @@ info_template: |
 
   Per our 2024 FDD, top 25% of franchisees average 2M+ in gross revenue. SBA financing is available.
 
-  Jeff, our Franchise Developer, will follow up within 48 hours to answer any questions. The calendar link below is a direct booking link to Jeff: https://calendly.com/jeff-y-911restoration/quick-connect
+  Jeff Yosha, our Head of Franchise Development, can go through the details with you if you'd like. Here's a direct link to his calendar: https://calendly.com/jeff-y-911restoration/quick-connect
 
   {SENDER_EMAIL_SIGNATURE}
 
@@ -79,7 +79,7 @@ Insurance-backed lead flow with no cold outreach required. Top 25% of franchisee
 The lead flow is insurance-driven — franchisees don't have to chase work. This is the #1 hook. It removes the biggest objection trade owners have to adding a new revenue stream.
 
 **What they receive after saying yes to more info:**
-Email with: (1) Chris from Reno story — layered restoration onto a window cleaning business, scaled into plumbing and reconstruction via the 911 network. (2) Two videos: "Watch Chris's Story" (3:00) and "The Power of the Network" (1:30). (3) Three value props: Fill the Gaps (restoration ramps when construction slows), Leverage Relationships (existing clients, more reasons to call), The Network (peer support — franchisees cite this as their biggest unexpected advantage). (4) Jeff, our Franchise Developer, follows up within 48 hours or prospect can book directly with Jeff via the Calendly link. Leverage these hooks in step 3 CTAs and reply handling.
+Email with: (1) Chris from Reno story — layered restoration onto a window cleaning business, scaled into plumbing and reconstruction via the 911 network. (2) Two videos: "Watch Chris's Story" (3:00) and "The Power of the Network" (1:30). (3) Three value props: Fill the Gaps (restoration ramps when construction slows), Leverage Relationships (existing clients, more reasons to call), The Network (peer support — franchisees cite this as their biggest unexpected advantage). (4) Jeff Yosha, Head of Franchise Development, can go through the details with the prospect directly — include his Calendly link for direct booking. Leverage these hooks in step 3 CTAs and reply handling.
 
 **What they can never say / promise:**
 Do not promise specific revenue figures as guaranteed outcomes. Do not confirm territory availability without checking.
@@ -219,7 +219,7 @@ Three things franchisees point to most often: restoration fills seasonal gaps wh
 
 Per our 2024 FDD, top 25% of franchisees average 2M+ in gross revenue. SBA financing is available to get started.
 
-Jeff, our Franchise Developer, will follow up within 48 hours to answer any questions. The calendar link below is a direct booking link to Jeff: https://calendly.com/jeff-y-911restoration/quick-connect
+Jeff Yosha, our Head of Franchise Development, can go through the details with you if you'd like. Here's a direct link to his calendar: https://calendly.com/jeff-y-911restoration/quick-connect
 
 Idan Shpizear
 Founder, 911 Restoration
@@ -240,7 +240,7 @@ Two short videos worth a few minutes: [Chris's Story (3:00)](https://www.youtube
 
 Top 25% of franchisees average $2M+ in gross revenue per our 2024 FDD. SBA financing available.
 
-Jeff can walk you through the rest: https://calendly.com/jeff-y-911restoration/quick-connect
+Jeff Yosha, our Head of Franchise Development, can go through the details with you if you'd like. Here's a direct link to his calendar: https://calendly.com/jeff-y-911restoration/quick-connect
 
 {SENDER_EMAIL_SIGNATURE}
 
@@ -346,3 +346,6 @@ Subject: [subject]
 
 **May 2026 — website research rule (from Kasper Zacho reply review):**
 A reply was sent that described the lead's existing business using details pulled from their website. The client flagged this immediately — it came across as surveillance, not personalization, and damaged trust. Rule established: never describe a lead's business model, work type, revenue structure, or operations using anything other than what they have told you directly. If they did not say it themselves, leave it out. This applies to info replies, follow-ups, and any direct reply handling. When in doubt, use the approved reply example above as the model — keep it generic ("whatever you are already running") and let the lead fill in their own context.
+
+**May 2026 — Jeff Yosha title and follow-up framing (from Lukas Maxen reply review):**
+Jeff Yosha should always be presented as Head of Franchise Development (or Franchise Development Leader) at 911 Restoration. Do not say he will reach out in the next 48 hours. Instead, frame it as: he can go through the details with you if you'd like, and provide a direct link to his calendar. This applies to all reply templates, the info template, and the approved reply example.
