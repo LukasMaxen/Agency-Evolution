@@ -7,7 +7,7 @@
 campaign_type: cgi
 sender: Romain Guillon, Owner, GN Motion
 offer: Premium CGI/3D video production for product brands. Complimentary sample matched to their specific product — zero commitment. Reference clients: L'Oreal (Revitalift), Audemars Piguet, Bang & Olufsen, Samsung.
-calendly: https://app.iclosed.io/e/GNMOTION/30min
+calendly: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
 portfolio: https://www.canva.com/design/DAHCb_CiXzA/UA6aPIn-u-MAXQiuuanQAQ/view?utm_content=DAHCb_CiXzA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h6402713df7
 jewelry_portfolio: https://canva.link/hs3uwg2520jllvs
 always_send_calendly: false
@@ -39,7 +39,7 @@ sample_request_template: |
 
   That is great to hear. To make sure the sample really hits the mark, let us chat for a few minutes about your creative goals and which product would be best to showcase.
 
-  Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/30min
+  Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
 
   {SENDER_EMAIL_SIGNATURE}
 
@@ -56,7 +56,7 @@ sample_request_template: |
 | **Primary contact** | Romain Guillon, Founder/Owner |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | https://app.iclosed.io/e/GNMOTION/30min |
+| **Calendly link** | https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email |
 | **Monthly retainer** | [amount] |
 
 ---
@@ -192,7 +192,7 @@ When a lead asks to see a sample, use this:
 >
 > To make sure the sample really hits the mark, let's chat for a few minutes about your creative goals. I want to make sure the direction we take feels like a perfect extension of your brand.
 >
-> You can grab a spot on my calendar here: https://app.iclosed.io/e/GNMOTION/30min
+> You can grab a spot on my calendar here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
 >
 > Looking forward to it!
 >
