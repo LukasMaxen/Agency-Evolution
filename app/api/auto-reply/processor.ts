@@ -4,6 +4,7 @@ import path from "path";
 import {
   REPLY_APPROVAL_CHANNEL,
   MANUAL_REPLIES_CHANNEL,
+  approvalChannelFor,
   postToSlack as postToSlackShared,
   approvalFooterBlock,
   quoteForSlack,
@@ -499,8 +500,12 @@ async function forwardToClient(reply: Record<string, any>, forwardTo: string, cc
 
 // ─── Slack helpers ─────────────────────────────────────────────────────────────
 
-async function postManual(payload: { blocks: object[]; text: string }): Promise<void> {
-  await postToSlackShared({ channel: MANUAL_REPLIES_CHANNEL, ...payload });
+async function postManual(workspaceSlug: string, payload: { blocks: object[]; text: string }): Promise<void> {
+  // Per-workspace override routes manual-replies to the same channel as that workspace's
+  // approval cards (e.g. Sonaro's #reply-management). NULL override → global #manual-replies.
+  const overrideChannel = await approvalChannelFor(workspaceSlug);
+  const channel = overrideChannel === REPLY_APPROVAL_CHANNEL ? MANUAL_REPLIES_CHANNEL : overrideChannel;
+  await postToSlackShared({ channel, ...payload });
 }
 
 function buildCard(header: string, workspaceSlug: string, reply: Record<string, any>, instanceUrl: string, extra?: { reason?: string; intent?: string; sendingTo?: string }): object[] {
@@ -560,7 +565,7 @@ async function postApprovalCard(opts: {
   blocks.push(approvalFooterBlock());
 
   return postToSlackShared({
-    channel: REPLY_APPROVAL_CHANNEL,
+    channel: await approvalChannelFor(workspaceSlug),
     text: `Auto-reply draft, ${workspaceSlug}, ${reply.lead_name}`,
     blocks,
   });
@@ -597,7 +602,7 @@ export async function processAutoReply(replyId: string, workspaceSlug: string): 
     try {
       const r = await pool.query(`SELECT r.lead_name, r.lead_email, r.subject, r.message, r.campaign, w.email_bison_instance_url FROM replies r LEFT JOIN workspaces w ON w.slug = r.workspace_slug WHERE r.id = $1`, [replyId]);
       const reply = r.rows[0] ?? {};
-      await postManual({
+      await postManual(workspaceSlug, {
         text: `Auto-reply crashed, ${workspaceSlug} / ${reply.lead_name ?? replyId}`,
         blocks: buildCard("Auto-reply processor crashed", workspaceSlug, { id: replyId, ...reply }, reply.email_bison_instance_url ?? "", {
           reason: `${((err?.message ?? String(err)) || "unknown").slice(0, 400)}\n\nTo re-queue: UPDATE replies SET status='new' WHERE id='${replyId}'`,
@@ -1129,7 +1134,7 @@ ${messageText.slice(0, 3000)}`;
         console.log(`[auto-reply] back-sync skipped for ${replyId}: ${bs.skipped}`);
         if (bs.skipped.startsWith("emailbison_refused:")) {
           const reason = bs.skipped.replace(/^emailbison_refused:\s*/, "");
-          await postManual({
+          await postManual(workspaceSlug, {
             text: `EmailBison refused mark-as-interested, ${workspaceSlug} / ${reply.lead_name}`,
             blocks: buildCard(
               "EmailBison can't mark this reply as interested",
@@ -1310,7 +1315,7 @@ ${messageText.slice(0, 3000)}`;
 
   } else if (result.action === "manual") {
     await pool.query(`UPDATE replies SET status = 'awaiting_manual', auto_reply_processed_at = NOW() WHERE id = $1`, [replyId]);
-    await postManual({ text: `Manual handling needed, ${workspaceSlug} / ${reply.lead_name}`,
+    await postManual(workspaceSlug, { text: `Manual handling needed, ${workspaceSlug} / ${reply.lead_name}`,
       blocks: buildCard("Manual handling needed", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", { reason: result.manual_reason ?? "Needs human attention.", intent: result.intent }) });
     await createFuRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
 
@@ -1326,7 +1331,7 @@ ${messageText.slice(0, 3000)}`;
     // send to #manual-replies so a human can handle it.
     const hardCloses = new Set(["not_interested", "hard_no", "unsubscribe", "wrong_target", "hostile"]);
     if (!hardCloses.has(result.intent)) {
-      await postManual({
+      await postManual(workspaceSlug, {
         text: `Interested reply needs human review, ${workspaceSlug} / ${reply.lead_name}`,
         blocks: buildCard("Couldn't draft a reply — needs human", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", {
           reason: result.manual_reason ?? "Automation returned do_nothing for an interested-looking reply.",

@@ -231,7 +231,8 @@ async function learnFromSendApproval(
       return;
     }
 
-    const commitMessage = `Send-time learning by ${reviewerName}, ${decision.rule.slice(0, 80)}\n\nApplied from #reply-approval card thread.`;
+    const sourceChannelName = (await getChannelName(channel)) ?? channel;
+    const commitMessage = `Send-time learning by ${reviewerName}, ${decision.rule.slice(0, 80)}\n\nApplied from #${sourceChannelName} card thread.`;
     const commitUrl = await commitFileToGitHub(targetPath, newContent, commitMessage, file.sha);
     if (!commitUrl) {
       await postToSlack({

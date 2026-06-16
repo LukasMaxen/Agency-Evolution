@@ -181,7 +181,7 @@ function SenderTable({
   const workspaces = useWorkspaces();
   const name = resolveWsName(workspaces, ws.slug);
   const [tab, setTab] = useState<Tab>("active");
-  const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "remove_and_warmup" | "enable_warmup" | null>>({});
+  const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "pause_outbound_and_warmup" | "enable_warmup" | null>>({});
   const [domainAction, setDomainAction] = useState<Record<string, "enable_warmup" | "pause_outbound" | "attach_to_all" | null>>({});
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
 
@@ -267,7 +267,7 @@ function SenderTable({
     setTimeout(() => refresh(), 1500);
   }
 
-  async function runSenderAction(s: Sender, action: "attach_to_all" | "remove_and_warmup" | "enable_warmup") {
+  async function runSenderAction(s: Sender, action: "attach_to_all" | "pause_outbound_and_warmup" | "enable_warmup") {
     setActionMap(prev => ({ ...prev, [s.sender_email]: action }));
     try {
       const res = await fetch("/api/account-monitor/action", {

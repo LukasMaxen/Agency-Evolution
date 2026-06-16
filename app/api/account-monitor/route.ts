@@ -502,11 +502,14 @@ export async function GET(req: NextRequest) {
       const wsReplyRate  = wsSent > 0 ? Math.round((ws.totalReplies / wsSent) * 10000) / 100 : 0;
 
       // Badge counts reflect only domains that still have at least one
-      // actively sending sender. Once every sender on a domain has been
-      // moved to warmup-only (attached_campaigns_count = 0), the operator
-      // has already taken action; we should not keep flagging it as
-      // burned / low reply on the workspace card.
-      const activeDomains = domains.filter(d => d.accounts.some(a => (a.attached_campaigns_count ?? 0) > 0));
+      // actively sending sender. A sender counts as "actively sending" iff
+      // it is attached to at least one campaign AND has not been paused
+      // (warming_since IS NULL). Pause-outbound + warmup keeps the sender
+      // attached for follow-up continuity, so attached_campaigns_count
+      // alone no longer disqualifies a paused sender; warming_since does.
+      const activeDomains = domains.filter(d => d.accounts.some(a =>
+        (a.attached_campaigns_count ?? 0) > 0 && a.warming_since == null
+      ));
       const statusCounts = {
         disconnected:        activeDomains.filter(d => d.status === "disconnected").length,
         burned:              activeDomains.filter(d => d.status === "burned").length,
@@ -650,11 +653,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Domain-level rollup counts for the global summary. Same active-sending
-    // filter as the per-workspace card pills: a domain whose senders have
-    // all been moved to warmup-only no longer counts toward burned / low
-    // reply totals.
+    // filter as the per-workspace card pills: a domain whose senders are
+    // all paused (warming_since IS NOT NULL) or all unattached no longer
+    // counts toward burned / low reply totals.
     const allDomains = workspaces.flatMap(w => w.domains).filter(d =>
-      d.accounts.some(a => (a.attached_campaigns_count ?? 0) > 0)
+      d.accounts.some(a => (a.attached_campaigns_count ?? 0) > 0 && a.warming_since == null)
     );
     const summaryStatusCounts = {
       disconnected:        allDomains.filter(d => d.status === "disconnected").length,

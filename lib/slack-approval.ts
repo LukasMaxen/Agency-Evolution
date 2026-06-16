@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import pool from "@/lib/db";
 
 // Approval channels. Override per env var if needed.
 export const REPLY_APPROVAL_CHANNEL =
@@ -9,6 +10,31 @@ export const MANUAL_REPLIES_CHANNEL =
   process.env.MANUAL_REPLIES_SLACK_CHANNEL ?? "#manual-replies";
 export const FEEDBACK_REVIEW_CHANNEL =
   process.env.FEEDBACK_REVIEW_SLACK_CHANNEL ?? "#feedback-review";
+
+// Per-workspace override for the reply-approval + manual-replies channels.
+// Reads workspaces.slack_approval_channel (set per workspace, NULL falls back to global).
+// Used for client-managed approval (e.g. Sonaro reacts ✅/✏️/❌ in their own channel).
+// Universal-rule escalations and feedback-review STILL go to the global FEEDBACK_REVIEW_CHANNEL,
+// so a client can't accidentally write a company-wide rule.
+const approvalChannelCache = new Map<string, string | null>();
+export async function approvalChannelFor(workspaceSlug: string): Promise<string> {
+  if (approvalChannelCache.has(workspaceSlug)) {
+    return approvalChannelCache.get(workspaceSlug) ?? REPLY_APPROVAL_CHANNEL;
+  }
+  try {
+    const r = await pool.query<{ slack_approval_channel: string | null }>(
+      `SELECT slack_approval_channel FROM workspaces WHERE slug = $1`,
+      [workspaceSlug]
+    );
+    const override = r.rows[0]?.slack_approval_channel ?? null;
+    approvalChannelCache.set(workspaceSlug, override);
+    return override ?? REPLY_APPROVAL_CHANNEL;
+  } catch (err: any) {
+    // Pre-migration safety net: if the column doesn't exist yet, fall back silently.
+    if (err?.code === "42703") return REPLY_APPROVAL_CHANNEL;
+    throw err;
+  }
+}
 
 export const APPROVE_REACTIONS = new Set([
   "white_check_mark",

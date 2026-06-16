@@ -568,12 +568,16 @@ function SenderTable({
     ? findWorkspace(workspaces, ws.slug).name
     : ws.slug;
   const [tab, setTab] = useState<Tab>("active");
-  const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "remove_and_warmup" | "enable_warmup" | null>>({});
+  const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "pause_outbound_and_warmup" | "enable_warmup" | null>>({});
   const [domainAction, setDomainAction] = useState<Record<string, "enable_warmup" | "pause_outbound" | "attach_to_all" | null>>({});
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
 
   const isDisconnected = (s: Sender) => s.conn_status === "Not connected";
-  const isWarmingOnly  = (s: Sender) => !isDisconnected(s) && (s.attached_campaigns_count ?? 0) === 0;
+  // Warming-only includes senders that are unattached (attached=0) AND
+  // senders we've paused via the throttle action (warming_since != null).
+  // The latter stay attached for follow-up continuity but should not show
+  // up as "Active".
+  const isWarmingOnly  = (s: Sender) => !isDisconnected(s) && ((s.attached_campaigns_count ?? 0) === 0 || s.warming_since != null);
   const isNotWarming   = (s: Sender) => !isDisconnected(s) && !s.warmup_enabled;
 
   // Domain-level batch (calls the atomic /api/account-monitor/domain-batch).
@@ -581,7 +585,9 @@ function SenderTable({
     setDomainAction(prev => ({ ...prev, [domain]: action }));
     const reachable = dSenders.filter(s => s.conn_status !== "Not connected");
     const targets =
-      action === "enable_warmup" ? reachable.filter(s => !s.warmup_enabled) : reachable;
+      action === "enable_warmup" ? reachable.filter(s => !s.warmup_enabled) :
+      action === "pause_outbound" ? reachable.filter(s => (s.attached_campaigns_count ?? 0) > 0 && s.warming_since == null) :
+                                     reachable;
     if (targets.length === 0) {
       onActionDone(`No senders in ${domain} match this action.`, "error");
       setDomainAction(prev => ({ ...prev, [domain]: null }));
@@ -596,7 +602,7 @@ function SenderTable({
     const senderAction =
       action === "enable_warmup" ? "enable_warmup" :
       action === "attach_to_all" ? "attach_to_all" :
-                                    "remove_and_warmup";
+                                    "pause_outbound_and_warmup";
     const verb =
       action === "enable_warmup" ? "Enabling warmup" :
       action === "attach_to_all" ? "Adding to campaigns" :
@@ -623,7 +629,7 @@ function SenderTable({
     setTimeout(() => refresh(), 1500);
   }
 
-  async function runSenderAction(s: Sender, action: "attach_to_all" | "remove_and_warmup" | "enable_warmup") {
+  async function runSenderAction(s: Sender, action: "attach_to_all" | "pause_outbound_and_warmup" | "enable_warmup") {
     setActionMap(prev => ({ ...prev, [s.email]: action }));
     try {
       const res = await fetch("/api/account-monitor/action", {
@@ -638,7 +644,13 @@ function SenderTable({
       });
       const j = await res.json();
       if (!res.ok || !j.ok) onActionDone(j.error ?? "Action failed", "error");
-      else onActionDone(`${s.email}: ${j.campaigns_affected ?? 0} campaign(s) ${action === "attach_to_all" ? "attached" : "removed"}.`, j.failed > 0 ? "error" : "success");
+      else {
+        const verb =
+          action === "attach_to_all"            ? `${j.campaigns_affected ?? 0} campaign(s) attached` :
+          action === "pause_outbound_and_warmup" ? "throttled to 1/day + warmup" :
+                                                    "warmup enabled";
+        onActionDone(`${s.email}: ${verb}.`, j.failed > 0 ? "error" : "success");
+      }
       setTimeout(() => refresh(), 4000);
     } catch (err: any) {
       onActionDone(err.message ?? "Network error", "error");
@@ -647,10 +659,13 @@ function SenderTable({
     }
   }
 
-  // Tab filter: Active = attached>0, Warming-only = attached=0.
+  // Tab filter: Active = attached>0 AND not paused. Warming-only = either
+  // unattached or paused (warming_since != null) via the throttle action.
   const filtered = senders.filter(s => {
-    if (tab === "warming_only") return (s.attached_campaigns_count ?? 0) === 0;
-    return (s.attached_campaigns_count ?? 0) > 0;
+    const paused = s.warming_since != null;
+    const attached = (s.attached_campaigns_count ?? 0) > 0;
+    if (tab === "warming_only") return !attached || paused;
+    return attached && !paused;
   });
 
   // Domain grouping.
@@ -1039,19 +1054,25 @@ function SenderTable({
                             </button>
                           );
                         }
-                        // Pause-outbound (= remove_and_warmup on the backend):
-                        // detaches from campaigns AND enables warmup. Fires
-                        // when the domain is showing a red deliverability
-                        // signal: any-sender burn, any-sender not-warming,
-                        // or domain-aggregate Critical reply (<0.5% on >=200
-                        // sends). Low-health warmup also still triggers it.
+                        // Pause-outbound (= pause_outbound_and_warmup on the
+                        // backend): throttles each sender's daily_limit to 1
+                        // AND enables warmup. Senders STAY attached so any
+                        // mid-sequence leads keep getting their follow-ups.
+                        // Fires when the domain is showing a red
+                        // deliverability signal: any-sender burn, any-sender
+                        // not-warming, or domain-aggregate Critical reply
+                        // (<0.5% on >=200 sends). Low-health warmup also
+                        // still triggers it.
+                        // NEVER swap this back to a DELETE-from-campaign
+                        // action; EB strands lead follow-ups otherwise. See
+                        // feedback-never-remove-sender-from-campaign.
                         const domCritReplyAction = d.totalSent >= 200 && d.replyRate < 0.5;
                         const shouldPause = tab === "active" && (
                              d.anyBurnFlagged
                           || domCritReplyAction
                           || (d.avgScore !== null && d.avgScore < 98));
                         if (shouldPause) {
-                          const eligible = d.senders.filter(s => !isDisconnected(s) && s.warmup_enabled && (s.attached_campaigns_count ?? 0) > 0).length;
+                          const eligible = d.senders.filter(s => !isDisconnected(s) && s.warmup_enabled && (s.attached_campaigns_count ?? 0) > 0 && s.warming_since == null).length;
                           if (eligible > 0) {
                             return (
                               <button onClick={() => runDomainBatch(d.domain, d.senders, "pause_outbound")} disabled={!!acting}
@@ -1067,7 +1088,7 @@ function SenderTable({
                             );
                           }
                         }
-                        const warmingOnlyCount = d.senders.filter(s => !isDisconnected(s) && (s.attached_campaigns_count ?? 0) === 0).length;
+                        const warmingOnlyCount = d.senders.filter(s => !isDisconnected(s) && ((s.attached_campaigns_count ?? 0) === 0 || s.warming_since != null)).length;
                         if (warmingOnlyCount > 0 && tab === "warming_only") {
                           return (
                             <button onClick={() => runDomainBatch(d.domain, d.senders, "attach_to_all")} disabled={!!acting}

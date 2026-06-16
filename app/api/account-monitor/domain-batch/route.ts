@@ -4,24 +4,21 @@ import pool from "@/lib/db";
 // POST /api/account-monitor/domain-batch
 //
 // Atomic domain-level batch. Operates on a list of EmailBison sender_ids
-// in a single workspace and supports the three domain-level Warmup-Monitor
-// actions: remove_and_warmup, enable_warmup, attach_to_all.
+// in a single workspace and supports three domain-level actions:
+// pause_outbound_and_warmup, enable_warmup, attach_to_all.
 //
-// Why this exists: the per-sender route iterates pause / DELETE / resume
-// for each sender independently. If one sender fails mid-batch the
-// remaining senders never get touched, leaving the domain in a partial
-// state (some moved to warming, some still active). The atomic version
-// pauses every unique campaign once, removes ALL sender_ids per campaign
-// in a single EB call, waits once, and resumes once. Then verifies every
-// sender ended at attached_count = 0; any straggler gets a one-shot retry.
-//
-// EB only allows DELETE in "draft" or "paused" states, so anything else
-// gets paused first. Completed/archived campaigns are skipped — DELETE
-// rejects there and they are not sending anyway.
+// IMPORTANT: this route MUST NEVER call /api/campaigns/{id}/remove-sender-emails
+// or any other endpoint that unattaches senders from campaigns. EB keeps the
+// lead-sender pairing for follow-up steps; if a sender is unattached while
+// leads are mid-sequence, those leads' follow-ups stop firing entirely.
+// Operator lost prospects to this in May/June 2026; the pause-outbound flow
+// throttles daily_limit to 1 instead, which keeps follow-ups alive while
+// effectively stopping new sends. See feedback memory:
+//   feedback-never-remove-sender-from-campaign.md
 
+const ATTACH_STATES = new Set(["active", "running", "live", "draft", "queued", "launching", "paused"]);
 const TERMINAL_STATES = new Set(["completed", "archived", "finished", "ended"]);
-const PAUSABLE_STATES = new Set(["draft", "paused"]);
-const REMOVE_WAIT_MS  = 8000;
+const PAUSE_DAILY_LIMIT = 1;
 
 // Concurrency cap for per-sender / per-campaign EB+DB bursts. The previous
 // Promise.all(items.map(...)) pattern fired all in parallel which, when the
@@ -44,10 +41,11 @@ async function pMap<T, R>(items: T[], limit: number, fn: (item: T, idx: number) 
   return out;
 }
 
+type Action = "pause_outbound_and_warmup" | "enable_warmup" | "attach_to_all";
 type Body = {
   workspace_slug: string;
   sender_ids:     number[];
-  action:         "remove_and_warmup" | "enable_warmup" | "attach_to_all";
+  action:         Action;
 };
 
 export async function POST(req: NextRequest) {
@@ -57,8 +55,8 @@ export async function POST(req: NextRequest) {
     if (!workspace_slug || !Array.isArray(sender_ids) || sender_ids.length === 0 || !action) {
       return NextResponse.json({ error: "workspace_slug, sender_ids[] and action are required" }, { status: 400 });
     }
-    if (!["remove_and_warmup", "enable_warmup", "attach_to_all"].includes(action)) {
-      return NextResponse.json({ error: "action must be remove_and_warmup, enable_warmup, or attach_to_all" }, { status: 400 });
+    if (!["pause_outbound_and_warmup", "enable_warmup", "attach_to_all"].includes(action)) {
+      return NextResponse.json({ error: "action must be pause_outbound_and_warmup, enable_warmup, or attach_to_all" }, { status: 400 });
     }
 
     const wsRes = await pool.query(
@@ -68,9 +66,6 @@ export async function POST(req: NextRequest) {
     if (wsRes.rows.length === 0) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
     const { email_bison_api_key: apiKey, email_bison_instance_url: instanceUrl } = wsRes.rows[0];
     const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", Accept: "application/json" };
-
-    const setCampaignStatus = (id: number, op: "pause" | "resume") =>
-      fetch(`${instanceUrl}/api/campaigns/${id}/${op}`, { method: "PATCH", headers, body: "{}" });
 
     // ── enable_warmup ────────────────────────────────────────────────────
     if (action === "enable_warmup") {
@@ -101,18 +96,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Failed to list campaigns (${campsRes.status})` }, { status: 502 });
       }
       const campsJson = await campsRes.json();
-      const ATTACH_STATES = new Set(["active", "running", "live", "draft", "queued", "launching", "paused"]);
       const campaigns: { id: number; name: string }[] = (campsJson.data ?? [])
         .filter((c: any) => ATTACH_STATES.has(String(c.status ?? "").toLowerCase()))
         .map((c: any) => ({ id: c.id, name: c.name }));
 
-      const results = await Promise.all(campaigns.map(async c => {
+      const results = await pMap(campaigns, EB_CHUNK, async c => {
         const r = await fetch(`${instanceUrl}/api/campaigns/${c.id}/attach-sender-emails`, {
           method: "POST", headers,
           body: JSON.stringify({ sender_email_ids: sender_ids }),
         });
         return { id: c.id, name: c.name, ok: r.ok, err: r.ok ? null : await r.text() };
-      }));
+      });
 
       await pool.query(
         `UPDATE sender_accounts SET warming_since = NULL
@@ -134,74 +128,30 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── remove_and_warmup (atomic) ───────────────────────────────────────
-    // Build the union of campaigns across the sender batch. EB doesn't
-    // expose a "campaigns for many senders" endpoint, so walk per-sender
-    // in parallel and stitch the result. status is captured per campaign;
-    // PAUSABLE_STATES (draft/paused) are left as-is, everything else gets
-    // a pause before DELETE.
-    const campaignsBySender = await pMap(sender_ids, EB_CHUNK, async id => {
-      const r = await fetch(`${instanceUrl}/api/sender-emails/${id}/campaigns`, { headers });
-      if (!r.ok) return { id, camps: [] as { id: number; name: string; status: string }[] };
-      const j = await r.json();
-      return { id, camps: (j.data ?? []).map((c: any) => ({ id: c.id, name: c.name, status: String(c.status ?? "").toLowerCase() })) };
-    });
-    // campaign id -> { meta, senders-actually-attached-to-this-campaign }
-    // We need the per-campaign sender list so the DELETE only targets
-    // senders that EB actually has attached there. EB rejects the entire
-    // batch if any sender_id is "invalid" for that campaign, so passing
-    // the full batch when only one sender is attached blows up the call.
-    type CampSlot = { id: number; name: string; status: string; senderIds: number[] };
-    const campMap = new Map<number, CampSlot>();
-    for (const { id: senderId, camps } of campaignsBySender) {
-      for (const c of camps) {
-        if (TERMINAL_STATES.has(c.status)) continue;
-        const slot: CampSlot = campMap.get(c.id) ?? { id: c.id, name: c.name, status: c.status, senderIds: [] };
-        slot.senderIds.push(senderId);
-        campMap.set(c.id, slot);
-      }
-    }
-    const campaigns = Array.from(campMap.values());
-
-    // Step a: pause anything not already in a pausable state, in parallel.
-    const pausedCamps: number[] = [];
-    const pauseErrors: { id: number; err: string }[] = [];
-    await Promise.all(campaigns.filter(c => !PAUSABLE_STATES.has(c.status)).map(async c => {
-      const r = await setCampaignStatus(c.id, "pause");
-      if (r.ok) pausedCamps.push(c.id);
-      else pauseErrors.push({ id: c.id, err: `pause ${r.status}` });
-    }));
-    const pauseFailedIds = new Set(pauseErrors.map(e => e.id));
-
-    // Step b: DELETE the batch from every campaign in parallel. EB takes
-    // sender_email_ids[] so the whole sender list comes off in one call
-    // per campaign.
-    const removeTargets = campaigns.filter(c => !pauseFailedIds.has(c.id));
-    const removeResults = await pMap(removeTargets, EB_CHUNK, async c => {
-      // Only DELETE the senders EB actually has attached to THIS campaign.
-      // Passing the full batch would trip "sender_email_ids.N is invalid"
-      // on EB for any sender not currently attached, which fails the
-      // entire call instead of just skipping the missing ones.
-      const r = await fetch(`${instanceUrl}/api/campaigns/${c.id}/remove-sender-emails`, {
-        method: "DELETE", headers,
-        body: JSON.stringify({ sender_email_ids: c.senderIds }),
+    // ── pause_outbound_and_warmup ────────────────────────────────────────
+    // Throttle the sender's daily volume to 1/day and turn warmup on. The
+    // sender STAYS attached to its campaigns so any leads mid-follow-up
+    // keep getting their next step. EB's PATCH /api/sender-emails/{id} with
+    // { daily_limit: N } is the only call needed; campaigns themselves are
+    // not touched.
+    const throttleResults = await pMap(sender_ids, EB_CHUNK, async id => {
+      const r = await fetch(`${instanceUrl}/api/sender-emails/${id}`, {
+        method: "PATCH", headers,
+        body: JSON.stringify({ daily_limit: PAUSE_DAILY_LIMIT }),
       });
-      return { id: c.id, name: c.name, ok: r.ok, err: r.ok ? null : await r.text() };
+      return { id, ok: r.ok, err: r.ok ? null : await r.text() };
     });
+    const throttleFailed = throttleResults.filter(r => !r.ok);
 
-    // Step c: single 8s wait for EB to drain the async deletion queue.
-    if (removeResults.some(r => r.ok)) await new Promise(r => setTimeout(r, REMOVE_WAIT_MS));
-
-    // Step d: resume the campaigns we paused.
-    await Promise.all(pausedCamps.map(id => setCampaignStatus(id, "resume")));
-
-    // Step e: enable warmup for any senders whose flag is off in DB.
-    // We always hit EB rather than trusting the cached flag because the
-    // operator's intent is explicit ("move to warmup").
+    // Enable warmup batch. EB accepts the full sender_email_ids[] in one
+    // call so this is a single request regardless of batch size.
     const warmupRes = await fetch(`${instanceUrl}/api/warmup/sender-emails/enable`, {
       method: "PATCH", headers,
       body: JSON.stringify({ sender_email_ids: sender_ids }),
     });
+
+    // Mirror the new state into our local DB. warming_since starts the
+    // "warming for X days" clock; warmup_enabled mirrors EB.
     if (warmupRes.ok) {
       await pool.query(
         `UPDATE sender_accounts SET warmup_enabled = TRUE
@@ -209,64 +159,19 @@ export async function POST(req: NextRequest) {
         [workspace_slug, sender_ids]
       );
     }
-
-    // Step f: stamp warming_since on every sender in the batch.
     await pool.query(
       `UPDATE sender_accounts SET warming_since = NOW()
         WHERE workspace_slug = $1 AND eb_sender_id = ANY($2::int[])`,
       [workspace_slug, sender_ids]
     );
 
-    // Step g: refresh attached_campaigns_count from EB and verify every
-    // sender ended at 0. Any straggler gets a one-shot retry — pause-and-
-    // DELETE just its remaining campaigns. This is the safety net that
-    // prevents the half-paused-domain bug.
-    const finalCounts = await refreshAttachedCounts(instanceUrl, headers, workspace_slug, sender_ids);
-    const stragglers = Object.entries(finalCounts).filter(([_, n]) => (n ?? 0) > 0).map(([id]) => Number(id));
-
-    let retried: { sender_id: number; before: number | null; after: number | null }[] = [];
-    if (stragglers.length > 0) {
-      retried = await pMap(stragglers, EB_CHUNK, async id => {
-        const before = finalCounts[id] ?? null;
-        // Re-list and re-remove the straggler's remaining campaigns.
-        const r = await fetch(`${instanceUrl}/api/sender-emails/${id}/campaigns`, { headers });
-        if (!r.ok) return { sender_id: id, before, after: before };
-        const j = await r.json();
-        const camps = (j.data ?? [])
-          .map((c: any) => ({ id: c.id, name: c.name, status: String(c.status ?? "").toLowerCase() }))
-          .filter((c: any) => !TERMINAL_STATES.has(c.status));
-        const pausedThisRetry: number[] = [];
-        await Promise.all(camps.filter((c: any) => !PAUSABLE_STATES.has(c.status)).map(async (c: any) => {
-          const pr = await setCampaignStatus(c.id, "pause");
-          if (pr.ok) pausedThisRetry.push(c.id);
-        }));
-        await Promise.all(camps.map((c: any) =>
-          fetch(`${instanceUrl}/api/campaigns/${c.id}/remove-sender-emails`, {
-            method: "DELETE", headers,
-            body: JSON.stringify({ sender_email_ids: [id] }),
-          })
-        ));
-        await new Promise(r => setTimeout(r, REMOVE_WAIT_MS));
-        await Promise.all(pausedThisRetry.map(cid => setCampaignStatus(cid, "resume")));
-        const after = (await refreshAttachedCounts(instanceUrl, headers, workspace_slug, [id]))[id] ?? null;
-        return { sender_id: id, before, after };
-      });
-    }
-
-    const finalAfterRetry = await refreshAttachedCounts(instanceUrl, headers, workspace_slug, sender_ids);
-    const allCleared = sender_ids.every(id => (finalAfterRetry[id] ?? 0) === 0);
-
     return NextResponse.json({
-      ok: allCleared,
+      ok:                throttleFailed.length === 0 && warmupRes.ok,
       action,
-      sender_count:    sender_ids.length,
-      campaigns:       campaigns.length,
-      pause_errors:    pauseErrors,
-      remove_errors:   removeResults.filter(r => !r.ok).map(r => ({ id: r.id, err: r.err })),
-      stragglers:      stragglers.length,
-      retried,
-      final_counts:    finalAfterRetry,
-      warmup:          warmupRes.ok ? "enabled" : `failed (${warmupRes.status})`,
+      sender_count:      sender_ids.length,
+      daily_limit_set:   PAUSE_DAILY_LIMIT,
+      throttle_failed:   throttleFailed.map(r => ({ id: r.id, err: r.err })),
+      warmup:            warmupRes.ok ? "enabled" : `failed (${warmupRes.status})`,
     });
 
   } catch (err: any) {
@@ -276,8 +181,8 @@ export async function POST(req: NextRequest) {
 }
 
 // Refresh the cached attached_campaigns_count from EB for each sender in
-// the batch and write it back to sender_accounts. Returns a map of
-// sender_id -> live count so the caller can verify the action took.
+// the batch and write it back to sender_accounts. Used by attach_to_all so
+// the dashboard reflects the new attach without waiting for the next sync.
 async function refreshAttachedCounts(
   instanceUrl: string,
   headers: Record<string, string>,
@@ -285,13 +190,12 @@ async function refreshAttachedCounts(
   sender_ids: number[],
 ): Promise<Record<number, number>> {
   const out: Record<number, number> = {};
-  const TERMINAL = new Set(["completed", "archived", "finished", "ended"]);
   await pMap(sender_ids, EB_CHUNK, async id => {
     try {
       const r = await fetch(`${instanceUrl}/api/sender-emails/${id}/campaigns`, { headers });
       if (!r.ok) return;
       const body = await r.json();
-      const live = (body?.data ?? []).filter((c: any) => !TERMINAL.has(String(c.status ?? "").toLowerCase())).length;
+      const live = (body?.data ?? []).filter((c: any) => !TERMINAL_STATES.has(String(c.status ?? "").toLowerCase())).length;
       out[id] = live;
       await pool.query(
         `UPDATE sender_accounts SET attached_campaigns_count = $1
