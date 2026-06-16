@@ -19,6 +19,11 @@ import pool from "@/lib/db";
 const ATTACH_STATES = new Set(["active", "running", "live", "draft", "queued", "launching", "paused"]);
 const TERMINAL_STATES = new Set(["completed", "archived", "finished", "ended"]);
 const PAUSE_DAILY_LIMIT = 1;
+// Restored on attach_to_all so a previously paused sender is not silently
+// left at 1/day after being re-added to campaigns. 20 matches EB's default
+// for our workspaces (CLAUDE.md / SKILL_LeadMonitoring say 25 but live EB
+// inspection of Sonaro and others shows 20 is the active default).
+const RESUME_DAILY_LIMIT = 20;
 
 // Concurrency cap for per-sender / per-campaign EB+DB bursts. The previous
 // Promise.all(items.map(...)) pattern fired all in parallel which, when the
@@ -108,6 +113,18 @@ export async function POST(req: NextRequest) {
         return { id: c.id, name: c.name, ok: r.ok, err: r.ok ? null : await r.text() };
       });
 
+      // Restore daily sending volume. A sender that was previously paused
+      // (daily_limit=1) would otherwise be re-attached but still throttled
+      // at 1/day, which silently keeps the domain near-idle.
+      const resumeResults = await pMap(sender_ids, EB_CHUNK, async id => {
+        const r = await fetch(`${instanceUrl}/api/sender-emails/${id}`, {
+          method: "PATCH", headers,
+          body: JSON.stringify({ daily_limit: RESUME_DAILY_LIMIT }),
+        });
+        return { id, ok: r.ok, err: r.ok ? null : await r.text() };
+      });
+      const resumeFailed = resumeResults.filter(r => !r.ok);
+
       await pool.query(
         `UPDATE sender_accounts SET warming_since = NULL
           WHERE workspace_slug = $1 AND eb_sender_id = ANY($2::int[]) AND warming_since IS NOT NULL`,
@@ -118,13 +135,15 @@ export async function POST(req: NextRequest) {
       const succeeded = results.filter(r => r.ok).length;
       const failed    = results.filter(r => !r.ok).length;
       return NextResponse.json({
-        ok: failed === 0,
+        ok: failed === 0 && resumeFailed.length === 0,
         action,
-        sender_count: sender_ids.length,
-        campaigns:    campaigns.length,
+        sender_count:    sender_ids.length,
+        campaigns:       campaigns.length,
         succeeded,
         failed,
-        errors:       results.filter(r => !r.ok).map(r => ({ id: r.id, name: r.name, err: r.err })),
+        daily_limit_set: RESUME_DAILY_LIMIT,
+        resume_failed:   resumeFailed.map(r => ({ id: r.id, err: r.err })),
+        errors:          results.filter(r => !r.ok).map(r => ({ id: r.id, name: r.name, err: r.err })),
       });
     }
 

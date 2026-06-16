@@ -29,6 +29,10 @@ import pool from "@/lib/db";
 //     Just flip the warmup switch on.
 
 const PAUSE_DAILY_LIMIT = 1;
+// Restored on attach_to_all so a previously paused sender is not silently
+// left at 1/day after being re-added to campaigns. 20 matches EB's active
+// default for our workspaces.
+const RESUME_DAILY_LIMIT = 20;
 const TERMINAL_STATES = new Set(["completed", "archived", "finished", "ended"]);
 const ATTACH_STATES = new Set(["active", "running", "live", "draft", "queued", "launching", "paused"]);
 
@@ -214,6 +218,16 @@ export async function POST(req: NextRequest) {
       }
     }));
 
+    // Restore daily sending volume. A sender that was previously paused
+    // (daily_limit=1) would otherwise be re-attached but still throttled
+    // at 1/day, which silently keeps it near-idle.
+    const resumeRes = await fetch(`${instanceUrl}/api/sender-emails/${senderId}`, {
+      method: "PATCH", headers,
+      body: JSON.stringify({ daily_limit: RESUME_DAILY_LIMIT }),
+    });
+    const resumeOk  = resumeRes.ok;
+    const resumeErr = resumeOk ? null : await resumeRes.text();
+
     await pool.query(
       `UPDATE sender_accounts SET warming_since = NULL
        WHERE workspace_slug = $1 AND email = $2 AND warming_since IS NOT NULL`,
@@ -246,13 +260,15 @@ export async function POST(req: NextRequest) {
     const failed    = results.filter(r => r.status === "error").length;
 
     return NextResponse.json({
-      ok: failed === 0,
+      ok: failed === 0 && resumeOk,
       sender_email,
       sender_id: senderId,
       action,
       campaigns_affected: campaigns.length,
       succeeded,
       failed,
+      daily_limit_set: RESUME_DAILY_LIMIT,
+      resume_error:    resumeErr,
       results,
     });
 
