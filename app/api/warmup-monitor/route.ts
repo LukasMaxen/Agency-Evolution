@@ -146,12 +146,15 @@ export async function GET() {
     const sendersInLowHealthDomain = (s: SenderRow) =>
       lowHealthDomainSet.has(`${s.workspace_slug}::${s.sender_email.split("@")[1] ?? "unknown"}`);
 
-    // "Warming only" = sender is not attached to any active outbound
-    // campaign (attached_campaigns_count = 0). This is the inverse of "in
-    // outbound campaigns" and is what the per-workspace Warming-only tab
-    // filters on. ready_to_rejoin is the stricter subset: 14+ days since
-    // warming_since was set by Remove + warmup.
-    const isWarmingOnly = (s: SenderRow) => (s.attached_campaigns_count ?? 0) === 0;
+    // "Warming only" = sender is either not attached to any active outbound
+    // campaign (attached_campaigns_count = 0) OR has been throttled via
+    // pause_outbound_and_warmup (warming_since != null). The throttle keeps
+    // the sender attached so mid-sequence lead follow-ups don't strand, but
+    // daily_limit = 1 means it is effectively warming-only for our purposes.
+    // ready_to_rejoin is the stricter subset: 14+ days since warming_since
+    // was set.
+    const isWarmingOnly = (s: SenderRow) =>
+      (s.attached_campaigns_count ?? 0) === 0 || s.warming_since != null;
     const summary = {
       totalSenders:      senders.length,
       notWarming:        senders.filter(s => !s.warmup_enabled).length,
@@ -180,7 +183,10 @@ export async function GET() {
         readyToRejoin: 0, lowHealthDomains: 0, warmupHealthAvg: null,
       });
       w.total++;
-      if ((s.attached_campaigns_count ?? 0) > 0) w.active++;
+      // Active = attached AND not paused. A throttled sender (warming_since
+      // != null) stays attached for follow-up continuity but no longer
+      // counts as Active for the workspace card; it belongs in warmingOnly.
+      if ((s.attached_campaigns_count ?? 0) > 0 && s.warming_since == null) w.active++;
       if (s.conn_status === "Not connected") w.disconnected++;
       if (!s.warmup_enabled)         w.notWarming++;
       if (isWarmingOnly(s))          w.warmingOnly++;
