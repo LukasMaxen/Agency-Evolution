@@ -938,17 +938,25 @@ function SenderTable({
               const isExpanded = expandedDomain === d.domain;
               // Row tint follows the same per-metric rules as the Status
               // pill: burn = any-sender, bounce/reply/warmup = domain-level.
-              const domCritReply = d.totalSent >= 200 && d.replyRate < 0.5;
-              const domLowReply  = d.totalSent >=  50 && d.replyRate < 1;
-              const domListIssue = d.bounceRate >= 2;
+              // On the Warming-only tab the historical deliverability
+              // signals (burn / critical / low reply / list issue) are
+              // intentionally muted: the operator has already taken action
+              // by pausing, so the only color that should matter here is
+              // warmup health. Disconnected and MX-missing still tint
+              // because those are reachability problems, not historical
+              // outbound metrics.
+              const domCritReply = tab === "active" && d.totalSent >= 200 && d.replyRate < 0.5;
+              const domLowReply  = tab === "active" && d.totalSent >=  50 && d.replyRate < 1;
+              const domListIssue = tab === "active" && d.bounceRate >= 2;
               const domLowHealth = d.avgScore !== null && d.avgScore < 98;
+              const showHistoricalSignals = tab === "active";
               const domBg =
-                d.disconnected > 0  ? "#EEF2FF" :
-                d.mxMissing         ? "#FCEBEB" :
-                d.anyBurnFlagged    ? "#FCEBEB" :
-                d.notWarming > 0    ? "#FCEBEB" :
-                domCritReply        ? "#FCEBEB" :
-                domLowReply         ? "#FEF3C7" :
+                d.disconnected > 0                          ? "#EEF2FF" :
+                d.mxMissing                                 ? "#FCEBEB" :
+                showHistoricalSignals && d.anyBurnFlagged   ? "#FCEBEB" :
+                d.notWarming > 0                            ? "#FCEBEB" :
+                domCritReply                                ? "#FCEBEB" :
+                domLowReply                                 ? "#FEF3C7" :
                 domListIssue        ? "#FEF3C7" :
                 domLowHealth        ? "#FEF3C7" :
                                       "#fafafa";
