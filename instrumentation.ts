@@ -133,4 +133,26 @@ export async function register() {
   setInterval(() => void runSenderSync("periodic"), 6 * 60 * 60_000);
 
   console.log("[instrumentation] sender account sync started, 6h interval");
+
+  // ── 6. Slack health monitor ───────────────────────────────────────────────
+  // Watchdog for the approval-card pipeline. Detects a dead deployed bot token
+  // (auth.test) or channel-level post failures, fires a throttled alert, and
+  // auto-reflows stranded awaiting_manual rows once Slack recovers. Exists
+  // because a dead token silently stranded interested replies for ~2 days on
+  // 2026-06-16..18 with no alert (the alert channel itself was down).
+  const { runSlackHealthCheck } = await import("@/lib/slack-health-monitor");
+
+  setTimeout(() => {
+    runSlackHealthCheck().catch(err =>
+      console.error("[instrumentation] initial slack health check failed:", err)
+    );
+  }, 30_000);
+
+  setInterval(() => {
+    runSlackHealthCheck().catch(err =>
+      console.error("[instrumentation] periodic slack health check failed:", err)
+    );
+  }, 5 * 60_000);
+
+  console.log("[instrumentation] slack health monitor started, 5min interval");
 }
