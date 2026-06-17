@@ -1207,13 +1207,25 @@ function SenderTable({
                           </>
                         ) : (
                           <>
-                            <td style={{ padding: "8px 10px" }}>
-                              {disconnected
-                                ? <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>
-                                : <PillBadge text="Warming" tone="green" />}
-                            </td>
+                            {/* Same metrics as Active: keep visibility on
+                                what got the sender paused after it has
+                                moved here. */}
                             <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
-                              {s.warming_days === null ? "—" : `${s.warming_days}d`}
+                              <div>{fmt(s.emails_sent)}</div>
+                              <div style={{ fontSize: 9, color: "#9ca3af", marginTop: 1 }}>
+                                {s.confidence === "full"        ? "full"
+                                 : s.confidence === "provisional" ? "provisional"
+                                 :                                  "insufficient"}
+                              </div>
+                            </td>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.reply_rate < 1 ? "#B91C1C" : s.reply_rate < 2 ? "#D97706" : "#15803D", fontVariantNumeric: "tabular-nums" }}>
+                              {s.emails_sent === 0 ? "—" : pct(s.reply_rate)}
+                            </td>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.bounce_rate > 2 ? "#B91C1C" : s.bounce_rate > 1 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                              {s.emails_sent === 0 ? "—" : pct(s.bounce_rate)}
+                            </td>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.burn_rate > 0.5 ? "#B91C1C" : s.burn_rate > 0.25 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                              {s.emails_sent === 0 ? "—" : pct(s.burn_rate)}
                             </td>
                             <td style={{
                               padding: "8px 10px", textAlign: "right",
@@ -1222,6 +1234,17 @@ function SenderTable({
                                    : s.warmup_score >= 90 ? "#D97706" : "#B91C1C",
                               fontWeight: 500,
                             }}>{s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}</td>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
+                              {s.warming_days === null ? "—" : `${s.warming_days}d`}
+                            </td>
+                            {/* Rejoin status: green = warmup score recovered,
+                                amber = close, red = keep warming. */}
+                            <td style={{ padding: "8px 10px" }}>
+                              {s.warmup_score === null || s.warmup_score === 0 ? <PillBadge text="No data"        tone="grey"  />
+                               : s.warmup_score >= 98                          ? <PillBadge text="Ready to rejoin" tone="green" />
+                               : s.warmup_score >= 90                          ? <PillBadge text="Almost ready"   tone="amber" />
+                               :                                                 <PillBadge text="Keep warming"   tone="red"   />}
+                            </td>
                           </>
                         )}
                         <td style={{ padding: "8px 10px", textAlign: "center" }}>
