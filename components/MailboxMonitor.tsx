@@ -1011,15 +1011,18 @@ function SenderTable({
                       <>
                         {/* Same metrics as Active so the operator can see
                             how the domain was doing before pause without
-                            re-attaching to find out. */}
+                            re-attaching. Rendered in neutral gray on
+                            purpose — these numbers are historical and the
+                            only color that should drive attention on this
+                            tab is warmup health. */}
                         <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>{fmt(d.totalSent)}</td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.replyRate < 1 ? "#B91C1C" : d.replyRate < 2 ? "#D97706" : "#15803D", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.replyRate)}
                         </td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.bounceRate > 2 ? "#B91C1C" : d.bounceRate > 1 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.bounceRate)}
                         </td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.burnRate > 0.5 ? "#B91C1C" : d.burnRate > 0.25 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.burnRate)}
                         </td>
                         <td style={{
@@ -1152,16 +1155,19 @@ function SenderTable({
                     const notWarming   = isNotWarming(s);
                     const warmingOnly  = isWarmingOnly(s);
                     // Sender row tint follows the SENDER's own status, not
-                      // the domain's worst-sender. Same priority chain as the
-                      // Status pill so a healthy peer of a burned sender no
-                      // longer looks burned.
+                    // the domain's worst-sender. On the Warming-only tab
+                    // the historical deliverability tints (burned /
+                    // critical / low reply / list issue) are suppressed
+                    // because the operator already acted by pausing; only
+                    // warmup-driven signals (notWarming, ready_to_rejoin)
+                    // and disconnected are still allowed to tint.
                     const senderBg =
                       disconnected                                                    ? "#F5F7FF" :
-                      s.acc_status === "burned"                                       ? "#FEF7F7" :
+                      showHistoricalSignals && s.acc_status === "burned"              ? "#FEF7F7" :
                       notWarming                                                      ? "#FEF7F7" :
-                      s.acc_status === "critical_low_replies"                         ? "#FEF7F7" :
-                      s.acc_status === "low_replies"                                  ? "#FFFBEB" :
-                      s.acc_status === "list_issue"                                   ? "#FFFBEB" :
+                      showHistoricalSignals && s.acc_status === "critical_low_replies"? "#FEF7F7" :
+                      showHistoricalSignals && s.acc_status === "low_replies"         ? "#FFFBEB" :
+                      showHistoricalSignals && s.acc_status === "list_issue"          ? "#FFFBEB" :
                       tab === "warming_only" && s.ready_to_rejoin                     ? "#F0FDF4" :
                                                                                         "#ffffff";
                     return (
@@ -1217,7 +1223,8 @@ function SenderTable({
                           <>
                             {/* Same metrics as Active: keep visibility on
                                 what got the sender paused after it has
-                                moved here. */}
+                                moved here. Rendered neutral gray on
+                                purpose — these numbers are historical. */}
                             <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                               <div>{fmt(s.emails_sent)}</div>
                               <div style={{ fontSize: 9, color: "#9ca3af", marginTop: 1 }}>
@@ -1226,13 +1233,13 @@ function SenderTable({
                                  :                                  "insufficient"}
                               </div>
                             </td>
-                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.reply_rate < 1 ? "#B91C1C" : s.reply_rate < 2 ? "#D97706" : "#15803D", fontVariantNumeric: "tabular-nums" }}>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                               {s.emails_sent === 0 ? "—" : pct(s.reply_rate)}
                             </td>
-                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.bounce_rate > 2 ? "#B91C1C" : s.bounce_rate > 1 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                               {s.emails_sent === 0 ? "—" : pct(s.bounce_rate)}
                             </td>
-                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.burn_rate > 0.5 ? "#B91C1C" : s.burn_rate > 0.25 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                               {s.emails_sent === 0 ? "—" : pct(s.burn_rate)}
                             </td>
                             <td style={{
