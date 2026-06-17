@@ -3,7 +3,32 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
-> **REPLY AUTOMATION: DO NOTHING.** Sonaro AI replies are not handled from EmailBison. Do not draft, send, or auto-reply to any Sonaro AI lead. Do not mark status. Flag and stop.
+## REPLY QUICK REFERENCE
+campaign_type: ai-clinic-automation
+sender: Manuele Giamminola, Co-founder, Sonaro AI
+sender_email: manuelg@sonaroassist.com
+offer: Free 30-day trial of Sonaro AI. Clinics vertical = AI receptionist handling missed calls, booking, no-show reduction, patient reactivation. Gym/PT vertical = managed WhatsApp layer for winning back lapsed members and filling empty class slots. Pick the variant that matches the lead's vertical.
+calendly: https://sonaro.ai/book
+always_send_calendly: false
+english_call_handoff: Dominik (Manuele's partner) runs English-speaking calls. When proposing a call to an English-speaking lead, mention this so they know to expect Dominik. Manuele runs Italian-speaking calls himself.
+
+reply_rules:
+- Interested + ready to book ("send me your calendar", "let's set up a call", "happy to chat"): propose 2 specific slots in the lead's local timezone + https://sonaro.ai/book as fallback ("Alternatively, you can also grab a slot using this link"). Match Manuele's pattern: "Great to hear it. How about [DAY] at [TIME] or [DAY] at [TIME] ([LEAD TZ])?"
+- "Send me more info" / "Tell me more": one brief sentence on what we do tied to their vertical (clinic vs gym), then propose a call to walk through it. Do not dump a full pitch. Reference one of: missed-call recovery, no-show reduction, lapsed-member reactivation — whichever fits their business.
+- "What do you do?" / "I don't understand": same as above — short, clear, vertical-specific. Then call CTA.
+- Remove-from-list + interested mixed ("please remove me, but tell me more"): ack the removal first ("done, removed"), then answer the substantive part.
+- English-speaking lead booking a call: add the Dominik handoff line ("the call will be with my partner Dominik, who handles our English-speaking clients").
+- Not interested / "we're fully staffed" / "we have this covered": brief acknowledge + close. No follow-up. Match Manuele's pattern: "Understood, won't follow up further. Wishing you all the best."
+
+never:
+- Never name Tebra or any specific PMS system in cold outreach
+- Never guarantee specific patient or revenue outcomes
+- Never use € or £ symbols (spam trigger + compliance)
+- No P.S. lines
+- Never confirm specific times unless LIVE CALENDAR AVAILABILITY is in the prompt — use sonaro.ai/book
+
+fu_context: |
+  Sonaro AI sells an AI receptionist + clinic automation platform (clinics) or managed WhatsApp layer (gyms). Free 30-day trial is the primary hook. EU-focused. Italy is the highest-performing market (8.74% reply vs 0.82-1.09% elsewhere). Sender is Manuele Giamminola, Co-founder. Booking link: https://sonaro.ai/book.
 
 ---
 

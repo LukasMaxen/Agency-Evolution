@@ -622,7 +622,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // Atomic claim. Filter on status only — the dashboard's /api/analyze also writes
   // ai_analysis when a human opens a reply during the 2-min hold, so requiring
   // ai_analysis IS NULL would silently skip those rows and strand them at status='new'.
-  const claim = await pool.query(`UPDATE replies SET status = 'processing' WHERE id = $1 AND status IN ('new','read') RETURNING *`, [replyId]);
+  const claim = await pool.query(`UPDATE replies SET status = 'processing', processing_started_at = NOW() WHERE id = $1 AND status IN ('new','read') RETURNING *`, [replyId]);
   if (claim.rows.length === 0) return;
   const reply = claim.rows[0];
 

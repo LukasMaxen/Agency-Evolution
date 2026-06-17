@@ -17,11 +17,16 @@ export async function runAutoReplySweep(): Promise<void> {
     // Cause: container restart or crash killed the in-flight processor call.
     // Fix: reset to 'new' so the sweeper picks them up on the next tick.
     // Do NOT mark as 'errored' — errored means we gave up, not that we restarted.
+    // Keyed off processing_started_at (when the row entered 'processing'), not
+    // received_at. A normal processor call finishes in 5-30s, so 5 minutes in
+    // 'processing' means the call died. This recovers a deploy-killed reply in
+    // ~5 min instead of the old 30-min received_at window. COALESCE falls back to
+    // received_at for rows claimed before migration 018 (processing_started_at NULL).
     const stuckProcessing = await pool.query(
       `UPDATE replies
          SET status = 'new'
        WHERE status = 'processing'
-         AND received_at <= NOW() - INTERVAL '30 minutes'
+         AND COALESCE(processing_started_at, received_at) <= NOW() - INTERVAL '5 minutes'
        RETURNING id, workspace_slug, lead_name, lead_email`
     );
     if (stuckProcessing.rows.length > 0) {
