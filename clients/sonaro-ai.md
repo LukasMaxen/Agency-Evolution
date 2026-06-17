@@ -7,7 +7,7 @@
 campaign_type: ai-clinic-automation
 sender: Manuele Giamminola, Co-founder, Sonaro AI
 sender_email: manuelg@sonaroassist.com
-offer: Free 30-day trial of Sonaro AI. Clinics vertical = AI receptionist handling missed calls, booking, no-show reduction, patient reactivation. Gym/PT vertical = managed WhatsApp layer for winning back lapsed members and filling empty class slots. Pick the variant that matches the lead's vertical.
+offer: Free 30-day trial of Sonaro AI. Clinics vertical = managed WhatsApp service that recovers cancellations, reduces no-shows, and runs reactivation campaigns for dormant patients. Gym/PT vertical = managed WhatsApp layer for winning back lapsed members and filling empty class slots. Pick the variant that matches the lead's vertical.
 calendly: https://sonaro.ai/book
 always_send_calendly: false
 english_call_handoff: Dominik (Manuele's partner) runs English-speaking calls. When proposing a call to an English-speaking lead, mention this so they know to expect Dominik. Manuele runs Italian-speaking calls himself.
@@ -21,14 +21,17 @@ reply_rules:
 - Not interested / "we're fully staffed" / "we have this covered": brief acknowledge + close. No follow-up. Match Manuele's pattern: "Understood, won't follow up further. Wishing you all the best."
 
 never:
+- Never describe the offer as an "AI receptionist" — always describe it as a managed WhatsApp service that recovers cancellations, reduces no-shows, and runs reactivation campaigns for dormant patients
 - Never name Tebra or any specific PMS system in cold outreach
 - Never guarantee specific patient or revenue outcomes
 - Never use € or £ symbols (spam trigger + compliance)
 - No P.S. lines
 - Never confirm specific times unless LIVE CALENDAR AVAILABILITY is in the prompt — use sonaro.ai/book
 
+case_study_line: One clinic we work with recovered 11,000 in their first month — 5,000 of that came from reactivating dormant patients alone.
+
 fu_context: |
-  Sonaro AI sells an AI receptionist + clinic automation platform (clinics) or managed WhatsApp layer (gyms). Free 30-day trial is the primary hook. EU-focused. Italy is the highest-performing market (8.74% reply vs 0.82-1.09% elsewhere). Sender is Manuele Giamminola, Co-founder. Booking link: https://sonaro.ai/book.
+  Sonaro AI sells a managed WhatsApp service that recovers cancellations, reduces no-shows, and runs reactivation campaigns for dormant patients (clinics) or managed WhatsApp layer (gyms). Free 30-day trial is the primary hook. EU-focused. Italy is the highest-performing market (8.74% reply vs 0.82-1.09% elsewhere). Sender is Manuele Giamminola, Co-founder. Booking link: https://sonaro.ai/book.
 
 ---
 
@@ -51,19 +54,22 @@ fu_context: |
 ## Offer & Positioning
 
 **What they do:**
-Sonaro AI provides an AI receptionist and clinic automation platform for healthcare clinics (GP, dental, physio, aesthetics, etc.). The product handles missed calls, appointment booking, no-show reduction, and patient reactivation automatically.
+Sonaro AI provides a managed WhatsApp service for healthcare clinics (GP, dental, physio, aesthetics, etc.). The product recovers cancellations, reduces no-shows, and runs reactivation campaigns for dormant patients automatically.
 
 **What they're outreaching for:**
 Finding clinic owners and practice managers across the EU who are losing revenue from missed calls, no-shows, or lapsed patients.
 
 **Core value proposition:**
-A free 30-day trial of an AI receptionist for their clinic — no commitment, real results before they pay anything.
+A free 30-day trial of their managed WhatsApp service — no commitment, real results before they pay anything.
+
+**Case study (include as a one-sentence proof point in copy where appropriate):**
+One clinic they work with recovered 11,000 in their first month — 5,000 of that came from reactivating dormant patients alone.
 
 **What makes them different:**
 Free 30-day trial removes all risk. Addresses multiple clinic pain points in one system: missed calls, no-shows, lapsed patient reactivation, and online reviews. EU data storage. UK GDPR + PECR compliant.
 
 **What they can never say / promise:**
-Never guarantee specific revenue increases or patient acquisition numbers. No Tebra name-drops in cold outreach — too specific and assumes their tech stack.
+Never describe the offer as an "AI receptionist" — always frame it as a managed WhatsApp service that recovers cancellations, reduces no-shows, and runs reactivation campaigns for dormant patients. Never guarantee specific revenue increases or patient acquisition numbers. No Tebra name-drops in cold outreach — too specific and assumes their tech stack.
 
 ---
 
@@ -91,7 +97,7 @@ Hospital groups (too large/complex), non-patient-facing healthcare, outside EU.
 _Structure: one block per offer. Each offer lists its ICPs as rows. Changing the offer script/CTA/opener updates all ICPs under it. Changing a specific ICP updates only that send._
 
 ### Clinics — Free Trial
-_What's being pitched: Sonaro AI's free trial offer for clinics — AI-powered patient communication or scheduling tool._
+_What's being pitched: Sonaro AI's free trial offer for clinics — managed WhatsApp service that recovers cancellations, reduces no-shows, and runs reactivation campaigns for dormant patients._
 
 | ICP | Status |
 |---|---|
@@ -105,14 +111,16 @@ _What's being pitched: Sonaro AI's free trial offer for clinics — AI-powered p
 
 **CTA rules:**
 - Step 1: "Free 30-day trial, worth a quick 15 minutes to see how it works?"
-- Step 2: "Any interest in a free 30-day trial of an AI receptionist for {COMPANY}?"
+- Step 2: "Any interest in a free 30-day trial of our managed WhatsApp service for {COMPANY}?"
 - Step 3: "Worth a quick call to see how it works?"
 
 **Key rules:**
 - The free 30-day trial is the #1 hook — always include before the CTA in step 1
+- NEVER describe the offer as an "AI receptionist" — always frame it as a managed WhatsApp service that recovers cancellations, reduces no-shows, and runs reactivation campaigns for dormant patients
 - NEVER name Tebra in cold outreach — too specific, assumes their tech stack
 - EU-focused campaign — not UK-specific
 - Always include the trial in step 2 question
+- Include the one-sentence case study where it fits naturally: "One clinic we work with recovered 11,000 in their first month — 5,000 of that came from reactivating dormant patients alone."
 
 **Pain points ranked by effectiveness:**
 1. Missed calls (revenue walking out the door)
@@ -127,8 +135,10 @@ _What's being pitched: Sonaro AI's free trial offer for clinics — AI-powered p
 - Italy: 8.74% reply rate vs 0.82-1.09% elsewhere — 4-8x better than all other markets. Italy MUST be prioritized.
 - Free trial is always the hook — "free 30-day trial" — never bury it
 - EU data storage + UK GDPR/PECR compliance are strong trust signals — use when relevant
+- One-sentence case study (11,000 first-month recovery, 5,000 from dormant patients) adds social proof without making guarantees
 
 **What doesn't work:**
+- Describing the product as an "AI receptionist"
 - Naming Tebra or other specific PMS systems
 - Generic AI claims without specifics
 - UK-specific targeting
@@ -148,7 +158,7 @@ _What's being pitched: Sonaro AI's free trial offer for clinics — AI-powered p
 Approachable and professional. Clinic owners are time-poor — keep everything short and outcome-focused.
 
 **Interested signal:**
-Any reply asking about the trial, what the AI does, pricing after trial, or setup requirements.
+Any reply asking about the trial, what the service does, pricing after trial, or setup requirements.
 
 **Not interested signal:**
 "We're fully staffed", "we use a full reception team and it works", "not interested in AI."
@@ -157,12 +167,13 @@ Any reply asking about the trial, what the AI does, pricing after trial, or setu
 
 | Objection | Response |
 |---|---|
-| "We already have a receptionist" | The AI handles overflow — won't replace your team |
+| "We already have a receptionist" | The service handles overflow and reactivation — won't replace your team |
 | "What happens after the trial?" | Answer pricing honestly if asked |
 | "How does setup work?" | Redirect to a 15-minute call to walk through it |
 | "We're not interested in AI" | Acknowledge, close cleanly |
 
 **Things to never say:**
+- Never describe the offer as an "AI receptionist" — always use "managed WhatsApp service that recovers cancellations, reduces no-shows, and runs reactivation campaigns for dormant patients"
 - Never name Tebra or specific PMS systems in cold outreach
 - Never guarantee specific patient or revenue outcomes
 
@@ -267,6 +278,10 @@ Subject: [subject]
 ## Internal Notes
 
 EU-focused — not UK-specific. Never name Tebra in cold outreach. Free 30-day trial is the primary hook — never bury it.
+
+Never describe the offer as an "AI receptionist." Always frame it as a managed WhatsApp service that recovers cancellations, reduces no-shows, and runs reactivation campaigns for dormant patients.
+
+Always include the one-sentence case study where it fits: one clinic they work with recovered 11,000 in their first month — 5,000 of that came from reactivating dormant patients alone. Do not use currency symbols (€ or £) in copy.
 
 Italy is the highest-performing market by a significant margin (8.74% reply vs 0.82-1.09% elsewhere). Reactivate Italy campaigns immediately. Do not waste sends on US Lawyers (0% interested).
 
