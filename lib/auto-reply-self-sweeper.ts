@@ -46,7 +46,7 @@ export async function runAutoReplySweep(): Promise<void> {
        WHERE status = 'errored'
          AND received_at > NOW() - INTERVAL '6 hours'
          AND (ai_analysis->>'retry_attempted') IS NULL
-         AND workspace_slug NOT IN ('itg-group', 'sonaro-ai', 'sro-consulting')
+         AND workspace_slug NOT IN ('itg-group', 'sro-consulting')
        RETURNING id, workspace_slug, lead_name, lead_email`
     );
     if (retryErrored.rows.length > 0) {
@@ -66,7 +66,7 @@ export async function runAutoReplySweep(): Promise<void> {
        WHERE auto_reply_processed_at IS NULL
          AND status IN ('new', 'read')
          AND received_at <= NOW() - INTERVAL '4 hours'
-         AND workspace_slug NOT IN ('itg-group', 'sonaro-ai', 'sro-consulting')
+         AND workspace_slug NOT IN ('itg-group', 'sro-consulting')
        LIMIT 20`
     );
     if (stuck4h.rows.length > 0) {
@@ -110,7 +110,7 @@ export async function runAutoReplySweep(): Promise<void> {
        WHERE auto_reply_processed_at IS NULL
          AND status IN ('new', 'read')
          AND received_at > NOW() - INTERVAL '48 hours'
-         AND workspace_slug NOT IN ('itg-group', 'sonaro-ai', 'sro-consulting')
+         AND workspace_slug NOT IN ('itg-group', 'sro-consulting')
        ORDER BY received_at ASC
        LIMIT 20`
     );

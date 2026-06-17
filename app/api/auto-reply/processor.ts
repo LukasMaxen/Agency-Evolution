@@ -48,7 +48,9 @@ const CLIENT_FILE_ALIASES: Record<string, string> = {
 };
 
 // Workspaces that skip auto-reply entirely (handled externally, churned, or excluded).
-const SKIP_WORKSPACES = new Set(["itg-group", "sonaro-ai", "sro-consulting"]);
+// sonaro-ai removed 2026-06-17: onboarded onto bot. Approval channel routed to
+// C0BATJ48BL3 (#reply-management) via workspaces.slack_approval_channel column.
+const SKIP_WORKSPACES = new Set(["itg-group", "sro-consulting"]);
 
 // Minimum 2000 — replies load up to 8 thread messages + system prompt + client file.
 // Below 2000, Claude truncates mid-reply and the 80-char body guard routes everything to manual.
@@ -1276,17 +1278,48 @@ ${messageText.slice(0, 3000)}`;
       const slackTs = await postApprovalCard({ workspaceSlug, reply: replyWithCreds, instanceUrl: workspace.email_bison_instance_url ?? "", result });
 
       if (!slackTs) {
-        // Slack post failed — fall through to direct send so the reply isn't stuck forever.
-        console.warn(`[auto-reply] Approval card post failed for ${replyId} — falling through to direct send`);
-      } else {
-        await pool.query(
-          `INSERT INTO reply_drafts (id,reply_id,workspace_slug,lead_name,lead_email,intent,action,fu_sequence_type,flag_unsubscribe,flag_meeting_booked,manual_reason,subject,body,status,slack_ts,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',$14,NOW())`,
-          [draftId, replyId, workspaceSlug, reply.lead_name, reply.lead_email, result.intent, result.action, result.fu_sequence_type, result.flag_unsubscribe, result.flag_meeting_booked, result.manual_reason ?? null, reply.subject ?? "", result.reply_body, slackTs]
-        );
-        await pool.query(`UPDATE replies SET status='awaiting_approval', ai_analysis=$1, ai_analyzed_at=NOW(), auto_reply_processed_at=NOW() WHERE id=$2`,
-          [JSON.stringify({ intent: result.intent, auto_replied: false, awaiting_approval: true, fu_sequence_type: result.fu_sequence_type }), replyId]);
+        // Approval card post failed. Do NOT fall through to a direct send — that
+        // would auto-send a review-required reply with no human in the loop. That
+        // exact fall-through caused ~17h of unreviewed interested-reply sends during
+        // the 2026-06-16 Slack outage. Fail safe instead: retry via the sweeper a few
+        // times (handles a transient Slack blip), then park the draft in #manual-replies
+        // so a human sends it. The draft is never sent unreviewed.
+        const prev = (reply.ai_analysis as Record<string, any>) ?? {};
+        const slackFails = (prev.slack_fail_count ?? 0) + 1;
+        if (slackFails >= 3) {
+          await pool.query(
+            `INSERT INTO reply_drafts (id,reply_id,workspace_slug,lead_name,lead_email,intent,action,fu_sequence_type,flag_unsubscribe,flag_meeting_booked,manual_reason,subject,body,status,slack_ts,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',NULL,NOW())`,
+            [draftId, replyId, workspaceSlug, reply.lead_name, reply.lead_email, result.intent, result.action, result.fu_sequence_type, result.flag_unsubscribe, result.flag_meeting_booked, result.manual_reason ?? null, reply.subject ?? "", result.reply_body]
+          );
+          await pool.query(`UPDATE replies SET status='awaiting_manual', ai_analysis=$1, ai_analyzed_at=NOW(), auto_reply_processed_at=NOW() WHERE id=$2`,
+            [JSON.stringify({ ...prev, intent: result.intent, slack_fail_count: slackFails, skipped_reason: "approval_card_post_failed" }), replyId]);
+          // Best-effort manual alert with the drafted body inline. If the same outage
+          // also kills this post, the reply still sits at awaiting_manual in the dashboard.
+          const manualBlocks = buildCard("Approval card couldn't post — send this manually", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", {
+            intent: result.intent,
+            reason: `Drafted reply could not be posted to ${REPLY_APPROVAL_CHANNEL} after 3 tries (Slack returned no ts — likely a token/channel/config issue in the deployed env). Send manually, or fix Slack and re-queue with: UPDATE replies SET status='new', ai_analysis = ai_analysis - 'slack_fail_count' WHERE id='${replyId}'`,
+          });
+          manualBlocks.push({ type: "section", text: { type: "mrkdwn", text: `*Drafted reply:*\n${quoteForSlack(result.reply_body ?? "", 2500)}` } });
+          await postManual(workspaceSlug, {
+            text: `Approval card post failed 3x, ${workspaceSlug} / ${reply.lead_name} — needs manual send`,
+            blocks: manualBlocks,
+          }).catch(() => { /* manual channel may share the outage; row is already at awaiting_manual */ });
+          console.error(`[auto-reply] Approval card post failed 3x for ${replyId} — routed to manual, NOT auto-sent`);
+        } else {
+          await pool.query(`UPDATE replies SET status='new', ai_analysis=$1 WHERE id=$2`,
+            [JSON.stringify({ ...prev, slack_fail_count: slackFails }), replyId]);
+          console.warn(`[auto-reply] Approval card post failed for ${replyId} (fail ${slackFails}/3) — will retry`);
+        }
         return;
       }
+
+      await pool.query(
+        `INSERT INTO reply_drafts (id,reply_id,workspace_slug,lead_name,lead_email,intent,action,fu_sequence_type,flag_unsubscribe,flag_meeting_booked,manual_reason,subject,body,status,slack_ts,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',$14,NOW())`,
+        [draftId, replyId, workspaceSlug, reply.lead_name, reply.lead_email, result.intent, result.action, result.fu_sequence_type, result.flag_unsubscribe, result.flag_meeting_booked, result.manual_reason ?? null, reply.subject ?? "", result.reply_body, slackTs]
+      );
+      await pool.query(`UPDATE replies SET status='awaiting_approval', ai_analysis=$1, ai_analyzed_at=NOW(), auto_reply_processed_at=NOW() WHERE id=$2`,
+        [JSON.stringify({ intent: result.intent, auto_replied: false, awaiting_approval: true, fu_sequence_type: result.fu_sequence_type }), replyId]);
+      return;
     }
 
     // Direct send (only for hard closes — unsubscribe confirmations etc.)
