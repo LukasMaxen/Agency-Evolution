@@ -714,6 +714,19 @@ function SenderTable({
     //   3 Not warming    4 Critical reply  5 Low reply
     //   6 List issue     7 No data         8 Healthy
     const senderSeverity = (s: Sender, mxMissing: boolean): number => {
+      if (tab === "warming_only") {
+        // Same logic as domainSeverity on this tab: warmup health is the
+        // primary axis because the historical acc_status tiers no longer
+        // reflect current risk for a throttled sender.
+        if (isDisconnected(s))                         return 0;
+        if (mxMissing)                                 return 1;
+        if (isNotWarming(s))                           return 2;
+        const score = s.warmup_score;
+        if (score !== null && score > 0 && score < 90) return 3;
+        if (score !== null && score > 0 && score < 98) return 4;
+        if (score === null || score === 0)             return 5;
+        return 6;
+      }
       if (isDisconnected(s))                       return 0;
       if (mxMissing)                               return 1;
       if (s.acc_status === "burned")               return 2;
@@ -729,6 +742,13 @@ function SenderTable({
       const sa = senderSeverity(a, domMxMissing);
       const sb = senderSeverity(b, domMxMissing);
       if (sa !== sb) return sa - sb;
+      if (tab === "warming_only") {
+        // Lowest warmup health first (worst first, matches the tier order).
+        const aScore = a.warmup_score ?? 999;
+        const bScore = b.warmup_score ?? 999;
+        if (aScore !== bScore) return aScore - bScore;
+        return (a.email ?? "").localeCompare(b.email ?? "");
+      }
       // Within a tier, worst reply rate first — reply is the optimisation
       // metric, so a Healthy sender at 1.1% should sit above one at 5%.
       if ((a.reply_rate ?? 0) !== (b.reply_rate ?? 0)) {
@@ -751,12 +771,31 @@ function SenderTable({
       anyBurnFlagged,
     };
   }).sort((a, b) => {
-    // Domain severity tier — mirrors domainStatusBadge so sort order
-    // matches the Status pill the operator sees. Lower = worse.
-    //   0 Disconnected     1 MX missing       2 Burned (any sender)
-    //   3 Not warming      4 Critical reply   5 Low reply
-    //   6 List issue       7 Low health       8 No data    9 Healthy
+    // Two sort models, same direction (worst first). Active uses the full
+    // severity stack including historical reply/bounce/burn signals. The
+    // Warming-only tab suppresses those because they are stale (the senders
+    // are throttled, the past-window numbers no longer represent current
+    // risk) and sorts primarily by warmup health, which IS the live signal
+    // on this tab. This keeps "worst first" consistent across tabs while
+    // letting each tab define "worst" by what is actually actionable now.
     const domainSeverity = (d: DomainGroup): number => {
+      if (tab === "warming_only") {
+        // Warming-only severity. Lower = worse / needs more attention.
+        //   0 Disconnected   1 MX missing   2 Not warming
+        //   3 Low warmup health (<90)       4 Almost ready (90-97)
+        //   5 No data        6 Ready to rejoin (>=98)
+        if (d.disconnected > 0)                                return 0;
+        if (d.mxMissing)                                       return 1;
+        if (d.notWarming > 0)                                  return 2;
+        if (d.avgScore !== null && d.avgScore < 90)            return 3;
+        if (d.avgScore !== null && d.avgScore < 98)            return 4;
+        if (d.avgScore === null)                               return 5;
+        return 6;
+      }
+      // Active severity. Lower = worse.
+      //   0 Disconnected     1 MX missing       2 Burned (any sender)
+      //   3 Not warming      4 Critical reply   5 Low reply
+      //   6 List issue       7 Low health       8 No data    9 Healthy
       if (d.disconnected > 0)                      return 0;
       if (d.mxMissing)                             return 1;
       if (d.anyBurnFlagged)                        return 2;
@@ -771,6 +810,15 @@ function SenderTable({
     const sa = domainSeverity(a);
     const sb = domainSeverity(b);
     if (sa !== sb) return sa - sb;
+    if (tab === "warming_only") {
+      // Within a tier, lowest warmup health first (keeps "worst first"
+      // consistent with the tier ordering above), then most-time-warming
+      // first (longer-stuck senders deserve more visibility).
+      const aScore = a.avgScore ?? 999;
+      const bScore = b.avgScore ?? 999;
+      if (aScore !== bScore) return aScore - bScore;
+      return a.domain.localeCompare(b.domain);
+    }
     // Within a tier, worst reply rate first — reply is the optimisation
     // metric, so the lowest-reply Healthy domain leads the green block.
     if (a.replyRate !== b.replyRate) return a.replyRate - b.replyRate;
