@@ -903,12 +903,22 @@ function SenderTable({
                   textTransform: "uppercase", letterSpacing: "0.04em", width: w,
                 }}>{h}</th>
               )) : [
-                { h: "Sender",        w: "32%", align: "left" },
-                { h: "Status",        w: "18%", align: "left" },
-                { h: "Warmup",        w: "12%", align: "left" },
-                { h: "Days warming",  w: "12%", align: "right" },
-                { h: "Health",        w: "10%", align: "right" },
-                { h: "Action",        w: "16%", align: "center" },
+                // Warming-only tab keeps the same deliverability metrics as
+                // Active so the operator can see how the domain WAS doing
+                // before pause without re-attaching to find out. Status
+                // column is replaced by "Rejoin status" which answers the
+                // only question that matters here: is this safe to put back
+                // in outbound? (driven by warmup health).
+                { h: "Sender",         w: "19%", align: "left"   },
+                { h: "Campaigns",      w: "10%", align: "left"   },
+                { h: "Sends",          w: "6%",  align: "right"  },
+                { h: "Reply",          w: "6%",  align: "right"  },
+                { h: "Bounce",         w: "6%",  align: "right"  },
+                { h: "Burn",           w: "6%",  align: "right"  },
+                { h: "Warmup",         w: "8%",  align: "right"  },
+                { h: "Days warming",   w: "8%",  align: "right"  },
+                { h: "Rejoin status",  w: "16%", align: "left"   },
+                { h: "Action",         w: "15%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -920,7 +930,7 @@ function SenderTable({
           </thead>
           <tbody>
             {domainGroups.length === 0 && (
-              <tr><td colSpan={tab === "active" ? 8 : 6} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+              <tr><td colSpan={tab === "active" ? 9 : 10} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
                 No senders matching this filter.
               </td></tr>
             )}
@@ -991,9 +1001,26 @@ function SenderTable({
                       </>
                     ) : (
                       <>
-                        <td style={{ padding: "10px 10px" }}>
-                          <PillBadge text="Warming" tone="green" />
+                        {/* Same metrics as Active so the operator can see
+                            how the domain was doing before pause without
+                            re-attaching to find out. */}
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>{fmt(d.totalSent)}</td>
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.replyRate < 1 ? "#B91C1C" : d.replyRate < 2 ? "#D97706" : "#15803D", fontVariantNumeric: "tabular-nums" }}>
+                          {pct(d.replyRate)}
                         </td>
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.bounceRate > 2 ? "#B91C1C" : d.bounceRate > 1 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                          {pct(d.bounceRate)}
+                        </td>
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.burnRate > 0.5 ? "#B91C1C" : d.burnRate > 0.25 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                          {pct(d.burnRate)}
+                        </td>
+                        <td style={{
+                          padding: "10px 10px", textAlign: "right",
+                          color: d.avgScore === null ? "#9ca3af"
+                               : d.avgScore >= 98 ? "#15803D"
+                               : d.avgScore >= 90 ? "#D97706" : "#B91C1C",
+                          fontWeight: 500,
+                        }}>{d.avgScore === null ? "—" : `${d.avgScore}%`}</td>
                         <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {(() => {
                             const days = d.senders.map(s => s.warming_days ?? 0).filter(n => n > 0);
@@ -1003,13 +1030,15 @@ function SenderTable({
                             return min === max ? `${min}d` : `${min}–${max}d`;
                           })()}
                         </td>
-                        <td style={{
-                          padding: "10px 10px", textAlign: "right",
-                          color: d.avgScore === null ? "#9ca3af"
-                               : d.avgScore >= 98 ? "#15803D"
-                               : d.avgScore >= 90 ? "#D97706" : "#B91C1C",
-                          fontWeight: 500,
-                        }}>{d.avgScore === null ? "—" : `${d.avgScore}%`}</td>
+                        {/* Rejoin status: is the domain safe to put back in
+                            outbound? Driven by warmup health using the same
+                            tiers we use elsewhere. */}
+                        <td style={{ padding: "10px 10px" }}>
+                          {d.avgScore === null              ? <PillBadge text="No data"        tone="grey"  />
+                           : d.avgScore >= 98               ? <PillBadge text="Ready to rejoin" tone="green" />
+                           : d.avgScore >= 90               ? <PillBadge text="Almost ready"   tone="amber" />
+                           :                                  <PillBadge text="Keep warming"   tone="red"   />}
+                        </td>
                       </>
                     )}
                     <td style={{ padding: "10px 10px", textAlign: "center" }} onClick={e => e.stopPropagation()}>
