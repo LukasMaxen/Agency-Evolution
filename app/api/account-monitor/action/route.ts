@@ -33,6 +33,12 @@ const PAUSE_DAILY_LIMIT = 1;
 // left at 1/day after being re-added to campaigns. 20 matches EB's active
 // default for our workspaces.
 const RESUME_DAILY_LIMIT = 20;
+// Warmup daily-volume targets. Pause-outbound pushes warmup to EB's
+// ceiling (50; higher values return 422) for fastest recovery; attach
+// resets back to the operating default so total daily footprint stays
+// natural. Endpoint: PATCH /api/warmup/sender-emails/update-daily-warmup-limits
+const WARMUP_PAUSE_LIMIT  = 50;
+const WARMUP_RESUME_LIMIT = 20;
 const TERMINAL_STATES = new Set(["completed", "archived", "finished", "ended"]);
 const ATTACH_STATES = new Set(["active", "running", "live", "draft", "queued", "launching", "paused"]);
 
@@ -144,6 +150,13 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Push warmup volume to its EB ceiling for fastest reputation
+      // recovery while outbound is throttled.
+      const warmupLimitRes = await fetch(`${instanceUrl}/api/warmup/sender-emails/update-daily-warmup-limits`, {
+        method: "PATCH", headers,
+        body: JSON.stringify({ sender_email_ids: [senderId], daily_limit: WARMUP_PAUSE_LIMIT }),
+      });
+
       await pool.query(
         `UPDATE sender_accounts SET warming_since = NOW()
          WHERE workspace_slug = $1 AND email = $2`,
@@ -151,13 +164,15 @@ export async function POST(req: NextRequest) {
       );
 
       return NextResponse.json({
-        ok:              throttleOk,
+        ok:                     throttleOk && warmupLimitRes.ok,
         sender_email,
-        sender_id:       senderId,
+        sender_id:              senderId,
         action,
-        daily_limit_set: PAUSE_DAILY_LIMIT,
-        throttle_error:  throttleErr,
-        warmup:          warmupResult,
+        daily_limit_set:        PAUSE_DAILY_LIMIT,
+        warmup_daily_limit_set: WARMUP_PAUSE_LIMIT,
+        throttle_error:         throttleErr,
+        warmup:                 warmupResult,
+        warmup_limit:           warmupLimitRes.ok ? "set" : `failed (${warmupLimitRes.status})`,
       });
     }
 
@@ -228,6 +243,14 @@ export async function POST(req: NextRequest) {
     const resumeOk  = resumeRes.ok;
     const resumeErr = resumeOk ? null : await resumeRes.text();
 
+    // Reset warmup volume to its operating default. Otherwise re-attached
+    // senders keep an aggressive 50/day warmup load on top of 20/day
+    // outbound, which is unnaturally high for a single mailbox.
+    const warmupLimitRes = await fetch(`${instanceUrl}/api/warmup/sender-emails/update-daily-warmup-limits`, {
+      method: "PATCH", headers,
+      body: JSON.stringify({ sender_email_ids: [senderId], daily_limit: WARMUP_RESUME_LIMIT }),
+    });
+
     await pool.query(
       `UPDATE sender_accounts SET warming_since = NULL
        WHERE workspace_slug = $1 AND email = $2 AND warming_since IS NOT NULL`,
@@ -260,15 +283,17 @@ export async function POST(req: NextRequest) {
     const failed    = results.filter(r => r.status === "error").length;
 
     return NextResponse.json({
-      ok: failed === 0 && resumeOk,
+      ok: failed === 0 && resumeOk && warmupLimitRes.ok,
       sender_email,
       sender_id: senderId,
       action,
-      campaigns_affected: campaigns.length,
+      campaigns_affected:     campaigns.length,
       succeeded,
       failed,
-      daily_limit_set: RESUME_DAILY_LIMIT,
-      resume_error:    resumeErr,
+      daily_limit_set:        RESUME_DAILY_LIMIT,
+      warmup_daily_limit_set: WARMUP_RESUME_LIMIT,
+      resume_error:           resumeErr,
+      warmup_limit:           warmupLimitRes.ok ? "reset" : `failed (${warmupLimitRes.status})`,
       results,
     });
 

@@ -24,6 +24,17 @@ const PAUSE_DAILY_LIMIT = 1;
 // for our workspaces (CLAUDE.md / SKILL_LeadMonitoring say 25 but live EB
 // inspection of Sonaro and others shows 20 is the active default).
 const RESUME_DAILY_LIMIT = 20;
+// Warmup daily-volume targets. When we pause outbound we want maximum
+// engagement to rebuild reputation, so push warmup to EB's ceiling (50;
+// values above this return 422). When we re-attach to campaigns we drop
+// warmup back so the total daily footprint (outbound + warmup) matches a
+// normal sender. Endpoint:
+//   PATCH /api/warmup/sender-emails/update-daily-warmup-limits
+//   body: { sender_email_ids: [...], daily_limit: N }
+// daily_reply_limit is intentionally left to EB to manage automatically;
+// the EB docs warn against operator-controlled reply rate.
+const WARMUP_PAUSE_LIMIT  = 50;
+const WARMUP_RESUME_LIMIT = 20;
 
 // Concurrency cap for per-sender / per-campaign EB+DB bursts. The previous
 // Promise.all(items.map(...)) pattern fired all in parallel which, when the
@@ -125,6 +136,15 @@ export async function POST(req: NextRequest) {
       });
       const resumeFailed = resumeResults.filter(r => !r.ok);
 
+      // Reset warmup volume back to its operating default. Pause-outbound
+      // bumps it to the ceiling (50); leaving that high after a re-attach
+      // would mean every reattached sender carries an aggressive warmup
+      // load on top of full outbound, which looks unnatural to providers.
+      const warmupLimitRes = await fetch(`${instanceUrl}/api/warmup/sender-emails/update-daily-warmup-limits`, {
+        method: "PATCH", headers,
+        body: JSON.stringify({ sender_email_ids: sender_ids, daily_limit: WARMUP_RESUME_LIMIT }),
+      });
+
       await pool.query(
         `UPDATE sender_accounts SET warming_since = NULL
           WHERE workspace_slug = $1 AND eb_sender_id = ANY($2::int[]) AND warming_since IS NOT NULL`,
@@ -135,15 +155,17 @@ export async function POST(req: NextRequest) {
       const succeeded = results.filter(r => r.ok).length;
       const failed    = results.filter(r => !r.ok).length;
       return NextResponse.json({
-        ok: failed === 0 && resumeFailed.length === 0,
+        ok: failed === 0 && resumeFailed.length === 0 && warmupLimitRes.ok,
         action,
-        sender_count:    sender_ids.length,
-        campaigns:       campaigns.length,
+        sender_count:           sender_ids.length,
+        campaigns:              campaigns.length,
         succeeded,
         failed,
-        daily_limit_set: RESUME_DAILY_LIMIT,
-        resume_failed:   resumeFailed.map(r => ({ id: r.id, err: r.err })),
-        errors:          results.filter(r => !r.ok).map(r => ({ id: r.id, name: r.name, err: r.err })),
+        daily_limit_set:        RESUME_DAILY_LIMIT,
+        warmup_daily_limit_set: WARMUP_RESUME_LIMIT,
+        warmup_limit:           warmupLimitRes.ok ? "reset" : `failed (${warmupLimitRes.status})`,
+        resume_failed:          resumeFailed.map(r => ({ id: r.id, err: r.err })),
+        errors:                 results.filter(r => !r.ok).map(r => ({ id: r.id, name: r.name, err: r.err })),
       });
     }
 
@@ -169,6 +191,15 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ sender_email_ids: sender_ids }),
     });
 
+    // Push warmup volume to its EB ceiling. The point of pause-outbound is
+    // reputation recovery; leaving warmup at the sender-default (typically
+    // 20-30) would mean a slower bounce-back. The endpoint accepts the
+    // full batch in a single call.
+    const warmupLimitRes = await fetch(`${instanceUrl}/api/warmup/sender-emails/update-daily-warmup-limits`, {
+      method: "PATCH", headers,
+      body: JSON.stringify({ sender_email_ids: sender_ids, daily_limit: WARMUP_PAUSE_LIMIT }),
+    });
+
     // Mirror the new state into our local DB. warming_since starts the
     // "warming for X days" clock; warmup_enabled mirrors EB.
     if (warmupRes.ok) {
@@ -185,12 +216,14 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({
-      ok:                throttleFailed.length === 0 && warmupRes.ok,
+      ok:                     throttleFailed.length === 0 && warmupRes.ok && warmupLimitRes.ok,
       action,
-      sender_count:      sender_ids.length,
-      daily_limit_set:   PAUSE_DAILY_LIMIT,
-      throttle_failed:   throttleFailed.map(r => ({ id: r.id, err: r.err })),
-      warmup:            warmupRes.ok ? "enabled" : `failed (${warmupRes.status})`,
+      sender_count:           sender_ids.length,
+      daily_limit_set:        PAUSE_DAILY_LIMIT,
+      warmup_daily_limit_set: WARMUP_PAUSE_LIMIT,
+      throttle_failed:        throttleFailed.map(r => ({ id: r.id, err: r.err })),
+      warmup:                 warmupRes.ok ? "enabled" : `failed (${warmupRes.status})`,
+      warmup_limit:           warmupLimitRes.ok ? "set" : `failed (${warmupLimitRes.status})`,
     });
 
   } catch (err: any) {
