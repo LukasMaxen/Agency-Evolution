@@ -1,5 +1,6 @@
 import pool from "@/lib/db";
 import { classifyBounce } from "@/lib/bounce-classifier";
+import { isOwnSenderAddress } from "@/lib/own-outbound";
 
 // EmailBison inbox poller. Catches inbound replies that the LEAD_REPLIED
 // webhook would not deliver:
@@ -94,6 +95,14 @@ export async function runEmailBisonInboxSync(): Promise<void> {
             [item.uuid]
           );
           if (existing.rows.length > 0) continue;
+
+          // Own-outbound guard: if the author is one of our own sender accounts,
+          // this is our outbound surfacing in the inbox, not a lead reply. Skip
+          // ingestion entirely so it never reaches the processor or Slack.
+          if (await isOwnSenderAddress(ws.slug, item.from_email_address)) {
+            console.log(`[inbox-sync] ${ws.slug} skipped own outbound from ${item.from_email_address}`);
+            continue;
+          }
 
           const leadName = item.from_name ?? item.from_email_address;
           const message = extractCleanBody(item.text_body ?? "");

@@ -316,6 +316,30 @@ function isNoActionReply(message: string): boolean {
 }
 
 /**
+ * Conservative bulk-newsletter detector. Only matches mail carrying unambiguous
+ * mass-send markers (List-Unsubscribe style footers, "view in browser", "manage
+ * preferences", "Issue #N", explicit "Newsletter" subjects). Deliberately does
+ * NOT match M&A deal-flow teasers ("Available for Acquisition", "Investment
+ * Opportunity"): those can be real inbound deal flow for PE-buyer workspaces and
+ * must stay in the queue.
+ */
+function isBulkNewsletter(subject: string, message: string): boolean {
+  const s = (subject || "").toLowerCase();
+  const m = (message || "").toLowerCase();
+  const text = `${s}\n${m}`;
+  return (
+    /view (this )?(email|message|newsletter)?\s*(in|online in) (your )?(web ?)?browser/.test(text) ||
+    /view (it |this )?online/.test(text) ||
+    (/unsubscribe/.test(text) && /(manage|update|change|edit) (your )?(email |communication )?(preferences|subscription|settings)/.test(text)) ||
+    /you('?re| are) receiving this (email|message)\s+because/.test(text) ||
+    /to stop receiving (these )?(emails|messages|updates)/.test(text) ||
+    /no longer wish to receive/.test(text) ||
+    /\bissue\s*#\s*\d+/.test(s) ||
+    /\bnewsletter\b/.test(s)
+  );
+}
+
+/**
  * Scans the message for email addresses that differ from the lead on record.
  * Returns a warning string if a different sender is detected.
  */
@@ -678,6 +702,15 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   if (isNoActionReply(messageText)) {
     await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ intent: "no_action", skipped_reason: "OOO/bounce/spam" }), replyId]);
+    return;
+  }
+
+  // ── Pre-filter 1b: bulk newsletters ──────────────────────────────────────────
+  // Conservative: only clear mass-send markers (see isBulkNewsletter). M&A
+  // deal-flow teasers are intentionally left in the queue.
+  if (isBulkNewsletter(reply.subject ?? "", messageText)) {
+    await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
+      [JSON.stringify({ intent: "no_action", skipped_reason: "bulk_newsletter" }), replyId]);
     return;
   }
 
