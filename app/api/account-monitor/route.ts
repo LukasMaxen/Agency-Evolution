@@ -14,7 +14,13 @@ import { checkMxMissing } from "@/lib/dns-mx-cache";
 //   reply_rate <  1.0  -> LOW_REPLIES          (yellow, monitor only)
 //   reply_rate >= 1.0  -> healthy on the reply axis
 // Bounce rate target: <  2.0%   at/above = LIST_ISSUE signal fires
-// Burn rate target:   <  0.5%   at/above OR any single burn event fires
+// Burn rate target:   <  0.5%   at/above fires.
+//                     Account-level ALSO fires on any single burn event,
+//                     since one Barracuda/Mimecast block is a strong
+//                     per-sender signal. Domain rollup uses rate only
+//                     (pass rateOnlyBurn=true), so one struck-out account
+//                     does not flip the whole domain when the rest of the
+//                     senders are clean.
 //
 // Confidence tiers (based on send volume):
 //   - sends >= full threshold:  status is confident (no asterisk)
@@ -78,6 +84,7 @@ function classify(args: {
   bounceRate: number;
   replyRate: number;
   disconnected?: boolean;
+  rateOnlyBurn?: boolean;
 }): { status: Status; confidence: Confidence; signals: SignalFlags } {
   // Disconnected always wins. EB returns "Not connected" for senders whose
   // mailbox auth has broken; they cannot send regardless of metrics.
@@ -89,7 +96,13 @@ function classify(args: {
     };
   }
 
-  const burnFires = args.burnCount > 0 || args.burnRate >= BURN_RATE_MAX;
+  // Account-level: any single burn event counts (one Barracuda block on a
+  // 50-send sender is a real reputation hit). Domain rollup passes
+  // rateOnlyBurn=true so one struck-out sender does not flip the whole
+  // domain when the aggregate burn rate is still under 0.5%.
+  const burnFires = args.rateOnlyBurn
+    ? args.burnRate >= BURN_RATE_MAX
+    : args.burnCount > 0 || args.burnRate >= BURN_RATE_MAX;
 
   // Below the provisional floor and no burn event: truly no signal.
   if (args.sent < args.provisionalFloor && !burnFires) {
@@ -453,6 +466,7 @@ export async function GET(req: NextRequest) {
           bounceRate,
           replyRate,
           disconnected: anyDisconnected,
+          rateOnlyBurn: true,
         });
 
         const statusCounts = {
