@@ -7,6 +7,14 @@ import {
   postToSlack,
   slugToName,
 } from "@/lib/slack-approval";
+import { commitReviewPatterns } from "@/lib/apply-weekly-review";
+
+// Client-managed workspaces whose weekly-review patterns auto-apply with NO human
+// approval gate. Safe because client reviews are scope-locked to clients/<slug>.md
+// and prompts/extras/<slug>.md only (never universal files), every change is a
+// reversible git commit, and Lukas is notified in #feedback-review with the commit
+// link so he can revert. See buildSystemPrompt's SINGLE-CLIENT scope lock.
+const AUTO_APPLY_FEEDBACK_SLUGS = new Set<string>(["sonaro-ai"]);
 
 interface DraftStats {
   total_drafts: number;
@@ -299,7 +307,7 @@ async function composeAndPostReview(opts: {
   perWsRows: PerWsRow[];
   reply: DraftStats;
   fu: DraftStats;
-}): Promise<{ ts: string | null; patterns: number }> {
+}): Promise<{ ts: string | null; patterns: number; summary: ReviewSummary | null }> {
   const { channel, title, systemPrompt, feedbackRows, perWsRows, reply: r, fu: f } = opts;
 
   const feedbackBlock = feedbackRows.map((row, i) => {
