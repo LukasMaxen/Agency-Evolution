@@ -544,10 +544,11 @@ interface DomainGroup {
   worstSev:      number;
   fullyDisconnected: boolean;
   mxMissing:     boolean;
-  // ANY sender on this domain has a burn rate at/above 0.5% or a recorded
-  // burn event. Per operator rule, one burned sender taints the domain,
-  // so this binary flag drives the domain badge and sort priority — it
-  // is NOT smoothed by the domain-aggregate burn rate.
+  // Domain-AGGREGATE burn rate is at/above 0.5%. One struck-out sender
+  // no longer flips the whole domain; the domain is judged by its
+  // average across all senders. This flag drives the domain badge and
+  // sort priority. (Name kept for blast radius; semantics changed from
+  // "any sender flagged" to "domain rate flagged".)
   anyBurnFlagged: boolean;
 }
 
@@ -695,16 +696,31 @@ function SenderTable({
     const replyRate    = totalSent > 0 ? (totalReplies / totalSent) * 100 : 0;
     const bounceRate   = totalSent > 0 ? (totalBounces / totalSent) * 100 : 0;
     const burnRate     = totalSent > 0 ? (totalBurns   / totalSent) * 100 : 0;
-    // Domain accStatus picked from worst sender (account-monitor's tiers
-    // are: disconnected > burned > critical_low_replies > list_issue >
-    // low_replies > insufficient_data > healthy).
-    const tierRank: Record<string, number> = {
-      disconnected: 0, burned: 1, critical_low_replies: 2, list_issue: 3,
-      low_replies: 4, insufficient_data: 5, healthy: 6,
-    };
-    const accStatus = list
-      .map(s => s.acc_status || "insufficient_data")
-      .sort((a, b) => (tierRank[a] ?? 7) - (tierRank[b] ?? 7))[0] ?? "insufficient_data";
+    // Domain accStatus computed from domain-AGGREGATE rates, not from
+    // the worst per-sender status. One struck-out sender no longer
+    // flips the whole domain when the average is still under thresholds.
+    // Thresholds mirror /api/account-monitor/route.ts classify():
+    //   burn   >= 0.5%  -> burned
+    //   reply  <  0.5%  AND sends >= 200 -> critical_low_replies
+    //   bounce >= 2.0%  -> list_issue
+    //   reply  <  1.0%  -> low_replies
+    //   else            -> healthy
+    // Disconnected still inherits from "any sender disconnected".
+    const anyDisconnected = list.some(isDisconnected);
+    const BURN_MAX           = 0.5;
+    const BOUNCE_MAX         = 2.0;
+    const REPLY_MIN          = 1.0;
+    const REPLY_CRITICAL     = 0.5;
+    const CRITICAL_MIN_SEND  = 200;
+    const PROVISIONAL_FLOOR  = 20;
+    let accStatus: string;
+    if (anyDisconnected)                                                                     accStatus = "disconnected";
+    else if (totalSent < PROVISIONAL_FLOOR && burnRate < BURN_MAX)                           accStatus = "insufficient_data";
+    else if (burnRate >= BURN_MAX)                                                           accStatus = "burned";
+    else if (replyRate < REPLY_CRITICAL && totalSent >= CRITICAL_MIN_SEND)                   accStatus = "critical_low_replies";
+    else if (bounceRate >= BOUNCE_MAX)                                                       accStatus = "list_issue";
+    else if (replyRate < REPLY_MIN)                                                          accStatus = "low_replies";
+    else                                                                                     accStatus = "healthy";
 
     // Sender severity tier — mirrors senderStatusBadge priority so the
     // sort order matches the Status pill the operator sees. Lower = worse.
@@ -757,7 +773,11 @@ function SenderTable({
       return (b.emails_sent ?? 0) - (a.emails_sent ?? 0);
     });
 
-    const anyBurnFlagged = list.some(s => (s.burn_rate ?? 0) >= 0.5 || (s.burns ?? 0) > 0);
+    // Domain-aggregate burn rate >= 0.5%. Previously this fired if ANY
+    // sender hit the threshold or had any burn event, which flipped whole
+    // domains over a single Barracuda/Mimecast block. The domain rollup
+    // now judges by average so the rest of the senders can absorb noise.
+    const anyBurnFlagged = burnRate >= 0.5;
 
     return {
       domain: dom, senders: sortedList, disconnected, notWarming,
