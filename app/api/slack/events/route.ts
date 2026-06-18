@@ -523,7 +523,9 @@ async function approveReplyDraft(draft: ReplyDraftRow, slackUserId: string, chan
   await pool.query(
     `UPDATE replies SET status = 'replied', interested = $1, ai_analysis = jsonb_set(COALESCE(ai_analysis, '{}'::jsonb), '{auto_replied}', 'true'::jsonb), ai_analyzed_at = NOW() WHERE id = $2`,
     [
-      ["interested", "interested_urgent", "needs_info"].includes(draft.intent ?? "") ? true : null,
+      // needs_info is excluded: it still drafts + runs through approval, but asking a
+      // question is not buying interest, so we don't flip the interested flag on send.
+      ["interested", "interested_urgent"].includes(draft.intent ?? "") ? true : null,
       draft.reply_id,
     ]
   );

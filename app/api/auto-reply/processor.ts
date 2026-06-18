@@ -1121,15 +1121,21 @@ ${messageText.slice(0, 3000)}`;
 
   // ── Back-sync interested classification to EmailBison ─────────────────────────
   // Bumps EmailBison's interested count for this reply so /api/workspaces/v1.1/stats
-  // (the source the CSM update reads) matches what we see in our own DB. Fires for
-  // every interested/needs_info reply regardless of which route handles it next
-  // (forward, auto_send, manual, do_nothing). Idempotent — no-ops if already
-  // interested or missing EmailBison metadata. Errors are logged, never thrown.
+  // (the source the CSM update reads) matches what we see in our own DB. Fires only
+  // for genuine buying interest (interested/interested_urgent), regardless of which
+  // route handles it next (forward, auto_send, manual, do_nothing). Idempotent —
+  // no-ops if already interested or missing EmailBison metadata. Errors are logged,
+  // never thrown.
+  //
+  // needs_info is intentionally EXCLUDED: those replies still get drafted and run
+  // through #reply-approval, but "needs info" means the lead asked a question, not
+  // that they showed interest. We do not flip our `interested` flag or EmailBison's
+  // interested count for them.
   //
   // Special case: if EmailBison refuses because no contact is attached (off-campaign
   // inbound, deleted lead, etc.), post to #manual-replies so a teammate can attach
   // the lead in EmailBison or mark interested manually in EmailBison's UI.
-  if (["interested", "interested_urgent", "needs_info"].includes(result.intent)) {
+  if (["interested", "interested_urgent"].includes(result.intent)) {
     try {
       const bs = await backsyncInterestedToEmailBison(replyId);
       if (bs.skipped && bs.skipped !== "already_interested") {
@@ -1327,7 +1333,7 @@ ${messageText.slice(0, 3000)}`;
     if (sent) {
       await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
         [`auto-${replyId}-${Date.now()}`, replyId, workspaceSlug, reply.lead_email, reply.lead_name, reply.subject ?? "", result.reply_body]);
-      const interested = ["interested","interested_urgent","needs_info"].includes(result.intent);
+      const interested = ["interested","interested_urgent"].includes(result.intent);
       await pool.query(`UPDATE replies SET status='replied', interested=$1, ai_analysis=$2, ai_analyzed_at=NOW(), auto_reply_processed_at=NOW() WHERE id=$3`,
         [interested ? true : null, JSON.stringify({ intent: result.intent, auto_replied: true, fu_sequence_type: result.fu_sequence_type }), replyId]);
       await createFuRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);

@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { backsyncInterestedToEmailBison } from "@/lib/emailbison-backsync";
 
-const INTERESTED_INTENTS = new Set(["interested", "interested_urgent", "needs_info"]);
+// needs_info is intentionally excluded — those leads asked a question, which is not
+// the same as showing interest. We don't back-sync them to EmailBison's interested count.
+const INTERESTED_INTENTS = new Set(["interested", "interested_urgent"]);
 
 const SYSTEM_PROMPT = `You are a cold email reply classifier for a B2B M&A/PE outreach agency.
 
