@@ -145,12 +145,17 @@ export async function runSlackHealthCheck(): Promise<void> {
 
     // ── Healthy path ─────────────────────────────────────────────────────────
     // Reflow the Slack-stranded backlog back to 'new' so the sweeper reposts
-    // real approval cards. Small batch per tick: if we are wrong about being
-    // healthy (channel still broken), only REFLOW_BATCH rows re-strand before
-    // the cardsFailing signal trips again and stops us.
+    // real approval cards. auto_reply_processed_at MUST be nulled too: the
+    // self-sweeper's main query filters on auto_reply_processed_at IS NULL, so
+    // a row left with that timestamp set sits at 'new' forever and never gets
+    // reprocessed. Small batch per tick: if we are wrong about being healthy
+    // (channel still broken), only REFLOW_BATCH rows re-strand before the
+    // cardsFailing signal trips again and stops us.
     const reflow = await pool.query<{ id: string; workspace_slug: string; lead_name: string }>(
       `UPDATE replies
           SET status = 'new',
+              auto_reply_processed_at = NULL,
+              processing_started_at = NULL,
               ai_analysis = (ai_analysis - 'slack_fail_count') - 'skipped_reason'
         WHERE id IN (
           SELECT id FROM replies
