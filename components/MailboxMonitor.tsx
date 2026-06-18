@@ -813,20 +813,19 @@ function SenderTable({
         return 6;
       }
       // Active severity. Lower = worse. Order matches domainStatusBadge.
-      // Low warmup health OUTRANKS List issue: when warmup score drops,
-      // replies follow, and the recovery path requires pause+warmup, not
-      // a list cleanse. List issue still OUTRANKS Low reply: a dirty list
-      // compounds every send while 0.5%-1% reply on a clean list is a
-      // copy/targeting tune.
+      // Low warmup health OUTRANKS Critical reply because the score is
+      // the root cause: when it drops, replies collapse next and the
+      // recovery path (pause + warmup) is the same. Critical reply still
+      // OUTRANKS List issue, which OUTRANKS Low reply.
       //   0 Disconnected     1 MX missing       2 Burned
-      //   3 Not warming      4 Critical reply   5 Low health
+      //   3 Not warming      4 Low health       5 Critical reply
       //   6 List issue       7 Low reply        8 No data    9 Healthy
       if (d.disconnected > 0)                      return 0;
       if (d.mxMissing)                             return 1;
       if (d.anyBurnFlagged)                        return 2;
       if (d.notWarming > 0)                        return 3;
-      if (d.totalSent >= 200 && d.replyRate < 0.5) return 4;
-      if (d.avgScore !== null && d.avgScore < 98)  return 5;
+      if (d.avgScore !== null && d.avgScore < 98)  return 4;
+      if (d.totalSent >= 200 && d.replyRate < 0.5) return 5;
       if (d.bounceRate >= 2)                       return 6;
       if (d.totalSent >=  50 && d.replyRate < 1)   return 7;
       if (d.totalSent === 0)                       return 8;
@@ -891,15 +890,19 @@ function SenderTable({
   //   warmup      → DOMAIN-AGGREGATE avg score
   // Disconnected / MX-missing / Not-warming remain binary-any-sender.
   // Severity order (highest to lowest among amber+ tier):
-  //   Critical reply (red, < 0.5%)  full collapse, stop+warmup
-  //   Low warmup health (< 98%)     leading inbox indicator: when this
-  //                                 drops, replies follow. Outranks list
-  //                                 issue because a cleansed list will
-  //                                 still under-deliver on a sender with
-  //                                 a damaged warmup score.
+  //   Low warmup health (< 98%)     leading inbox indicator and root
+  //                                 cause: when the score drops, replies
+  //                                 collapse next. Outranks Critical
+  //                                 reply because a 0% reply on a sender
+  //                                 with a tanking warmup score is a
+  //                                 SYMPTOM of low health, and the fix
+  //                                 (pause + warmup) is the same.
+  //   Critical reply (red, < 0.5%)  full reply collapse on a sender with
+  //                                 healthy warmup: copy/targeting at
+  //                                 fault, not deliverability.
   //   List issue (bounce >= 2%)     data-quality problem; compounds every
-  //                                 send and damages reputation
-  //   Low reply (0.5%-1%)           copy/targeting; tune without pausing
+  //                                 send and damages reputation.
+  //   Low reply (0.5%-1%)           copy/targeting; tune without pausing.
   const domainStatusBadge = (d: DomainGroup) => {
     if (d.fullyDisconnected)                     return <PillBadge text="All disconnected" tone="indigo" />;
     if (d.disconnected > 0)                      return <PillBadge text={`${d.disconnected} disconnected`} tone="indigo" />;
@@ -911,8 +914,8 @@ function SenderTable({
     // Hardcoded 200/50 used to be 7d-only: at 24h a 59-send domain with
     // 0 replies would tip Low reply while a 49-send domain with 0 replies
     // (genuinely the same signal) would fall through to Healthy.
-    if (d.totalSent >= thresholds.criticalMinSend  && d.replyRate < 0.5) return <PillBadge text="Critical reply" tone="red" />;
     if (d.avgScore !== null && d.avgScore < 98)                          return <PillBadge text="Low health" tone="amber" />;
+    if (d.totalSent >= thresholds.criticalMinSend  && d.replyRate < 0.5) return <PillBadge text="Critical reply" tone="red" />;
     if (d.bounceRate >= 2)                                               return <PillBadge text="List issue" tone="amber" />;
     if (d.totalSent >= thresholds.provisionalFloor && d.replyRate < 1)   return <PillBadge text="Low reply" tone="amber" />;
     if (d.totalSent < thresholds.provisionalFloor)                       return <PillBadge text="No data" tone="grey" />;
