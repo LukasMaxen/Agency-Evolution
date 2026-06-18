@@ -974,7 +974,7 @@ Fill in questions_to_answer, personal_hook, and pivot_line BEFORE writing reply_
   "personal_hook": "one concrete fact you are using from their message, company, or context. empty string only if genuinely nothing is available.",
   "pivot_line": "the exact sentence used to lead into the Calendly link. empty string if no Calendly in this reply.",
   "action": "auto_send" | "manual" | "do_nothing",
-  "intent": "interested" | "needs_info" (asked a question, wants info) | "neutral" (vague, no clear signal) | "not_interested" | "unsubscribe" | "hard_no" (definitive disqualification) | "wrong_target" | "hostile",
+  "intent": "interested" (ANY positive engagement: a clear yes, OR wanting more info / materials / the teaser, OR asking substantive questions about the deal, valuation, structure, or process because they are weighing it, e.g. "send more info" / "tell me more") | "needs_info" (the lead needs a reply but has NOT shown interest: corrects a premise in the cold email, questions who you are or how you got their info, or asks a skeptical / gatekeeping question) | "neutral" (vague, no clear signal) | "not_interested" | "unsubscribe" | "hard_no" (definitive disqualification) | "wrong_target" | "hostile",
   "fu_sequence_type": "full" (interested/needs_info/neutral) | "abbreviated" (soft timing objection: "not right now", "not the right time") | "none" (booked/unsubscribe/hard_no/wrong_target/hostile),
   "reply_body": "full plain text reply. Required when action is auto_send.",
   "manual_reason": "one sentence. Required when action is manual.",

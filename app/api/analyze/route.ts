@@ -19,8 +19,8 @@ Return ONLY valid JSON — no markdown, no explanation:
 
 INTENTS
 interested_urgent: confirmed meeting, gave specific time, ready to move now
-interested: clear interest, no concrete next step
-needs_info: asked about deal, valuation, structure, or docs
+interested: any positive engagement — clear interest, OR wants more info/materials/the teaser, OR asks about the deal, valuation, structure, or process because they are weighing it (e.g. "send more info", "tell me more")
+needs_info: needs a reply but has NOT shown interest — corrects a premise in the cold email, questions who you are or how you got their info, or asks a skeptical/gatekeeping question
 neutral: ambiguous or non-committal
 not_interested: soft no or wrong timing
 unsubscribe: hard no, asks to be removed
