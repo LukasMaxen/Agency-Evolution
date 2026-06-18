@@ -2,6 +2,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import pool from "@/lib/db";
 import { processAutoReply } from "@/app/api/auto-reply/processor";
 import { notifyReply } from "@/lib/slack-notifications";
+import { isOwnSenderAddress } from "@/lib/own-outbound";
 
 function extractCleanBody(textBody: string): string {
   if (!textBody) return "";
@@ -118,6 +119,20 @@ export async function POST(
   ]
 );
       const isNewReply = (insertResult.rowCount ?? 0) > 0;
+
+      // ── Own-outbound guard ───────────────────────────────────────────────────
+      // If the message was actually authored by one of our own sender accounts,
+      // it is our outbound follow-up that EmailBison surfaced as a reply, not a
+      // lead reply. Mark it read and stop: no FU conversion, no auto-reply
+      // processing, no Slack card. (Catches the "Peter from GN Motion" noise.)
+      if (isNewReply && (await isOwnSenderAddress(slug, fromEmail))) {
+        await pool.query(
+          `UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
+          [JSON.stringify({ intent: "no_action", skipped_reason: "own_outbound_ingested" }), replyUuid]
+        );
+        console.log(`[webhook] ${slug} — own outbound from ${fromEmail}, marked read (not a lead reply)`);
+        return NextResponse.json({ ok: true, event: "LEAD_REPLIED", id: replyUuid, filtered: "own_outbound" });
+      }
 
       // If this lead is already in an active FU sequence, record the conversion
       // and stop the sequence — they re-engaged, no more automated FUs needed.
