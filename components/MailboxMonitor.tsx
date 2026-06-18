@@ -1014,17 +1014,21 @@ function SenderTable({
               // because those are reachability problems, not historical
               // outbound metrics.
               const domCritReply = tab === "active" && d.totalSent >= 200 && d.replyRate < 0.5;
-              const domLowReply  = tab === "active" && d.totalSent >=  50 && d.replyRate < 1;
               const domListIssue = tab === "active" && d.bounceRate >= 2;
               const domLowHealth = d.avgScore !== null && d.avgScore < 98;
               const showHistoricalSignals = tab === "active";
+              // Low-reply-only domains (0.5%-1% reply with no other
+              // issues) get the neutral background, not amber. The
+              // amber "Low reply" status pill still surfaces the signal
+              // in the Status column; the row tint is reserved for
+              // problems that actually require row-level action
+              // (disconnected, burned, list_issue, low warmup health).
               const domBg =
                 d.disconnected > 0                          ? "#EEF2FF" :
                 d.mxMissing                                 ? "#FCEBEB" :
                 showHistoricalSignals && d.anyBurnFlagged   ? "#FCEBEB" :
                 d.notWarming > 0                            ? "#FCEBEB" :
                 domCritReply                                ? "#FCEBEB" :
-                domLowReply                                 ? "#FEF3C7" :
                 domListIssue        ? "#FEF3C7" :
                 domLowHealth        ? "#FEF3C7" :
                                       "#fafafa";
