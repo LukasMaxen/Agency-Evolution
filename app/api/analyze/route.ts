@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { backsyncInterestedToEmailBison } from "@/lib/emailbison-backsync";
 
-// needs_info is intentionally excluded — those leads asked a question, which is not
-// the same as showing interest. We don't back-sync them to EmailBison's interested count.
+// needs_info is intentionally excluded. Those leads need a reply but have not shown
+// interest, so we don't back-sync them to EmailBison's interested count.
 const INTERESTED_INTENTS = new Set(["interested", "interested_urgent"]);
 
 const SYSTEM_PROMPT = `You are a cold email reply classifier for a B2B M&A/PE outreach agency.
@@ -19,8 +19,8 @@ Return ONLY valid JSON — no markdown, no explanation:
 
 INTENTS
 interested_urgent: confirmed meeting, gave specific time, ready to move now
-interested: any positive engagement — clear interest, OR wants more info/materials/the teaser, OR asks about the deal, valuation, structure, or process because they are weighing it (e.g. "send more info", "tell me more")
-needs_info: needs a reply but has NOT shown interest — corrects a premise in the cold email, questions who you are or how you got their info, or asks a skeptical/gatekeeping question
+interested: any positive engagement (clear interest, OR wants more info/materials/the teaser, OR asks about the deal, valuation, structure, or process because they are weighing it, e.g. "send more info", "tell me more")
+needs_info: needs a reply but has NOT shown interest (corrects a premise in the cold email, questions who you are or how you got their info, or asks a skeptical/gatekeeping question)
 neutral: ambiguous or non-committal
 not_interested: soft no or wrong timing
 unsubscribe: hard no, asks to be removed
