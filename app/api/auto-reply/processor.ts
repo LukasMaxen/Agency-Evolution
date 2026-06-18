@@ -1221,13 +1221,21 @@ ${messageText.slice(0, 3000)}`;
     result.action = "do_nothing";
   }
 
-  // Body length guard: 80 chars catches truncated replies ("Hi John,", "Hi John,\n\nSounds great!")
-  // while allowing valid short replies through. 80 was set after the 2026-05-11 batch incident.
+  // Body length guard: catch genuinely truncated replies while letting valid short
+  // confirmations through (e.g. a lead who already booked a meeting just needs "Perfect,
+  // looking forward to it!"). Length alone is a poor signal — the real tell of truncation
+  // is an incomplete ending (mid-sentence, or a trailing comma like "Hi John,"). A reply
+  // that ends with terminal punctuation or an emoji is a complete thought, so we allow it.
+  // 80-char floor / 2026-05-11 batch incident context retained for fragments.
   if (result.action === "auto_send" && result.reply_body) {
     const stripped = result.reply_body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim();
-    if (stripped.length < 80) {
+    // Strip a trailing emoji/symbol so we can read the punctuation underneath it.
+    const lastChar = stripped.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\s"')\]]+$/u, "").slice(-1);
+    const endsComplete = /[.!?]/.test(lastChar) || /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(stripped.slice(-2));
+    // A short reply is only truncation if it looks incomplete. Complete short confirmations pass.
+    if (stripped.length < 80 && (!endsComplete || stripped.length < 15)) {
       result.action = "manual";
-      result.manual_reason = `Generated reply too short (${stripped.length} chars) — likely truncation. Needs manual review.`;
+      result.manual_reason = `Generated reply too short (${stripped.length} chars) and ends incompletely — likely truncation. Needs manual review.`;
     }
   }
 
