@@ -23,6 +23,7 @@ import {
   WeeklyReviewPattern,
   WeeklyReviewSummary,
   resolveTargetPath,
+  applyPatternsToFile,
   commitReviewPatterns,
 } from "@/lib/apply-weekly-review";
 import {

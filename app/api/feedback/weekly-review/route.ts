@@ -340,7 +340,7 @@ ${feedbackBlock}
 Identify patterns and propose rule updates now.`;
 
   const summary = await callClaude(systemPrompt, userMessage);
-  if (!summary) return { ts: null, patterns: 0 };
+  if (!summary) return { ts: null, patterns: 0, summary: null };
 
   const headerStats = `*Reply drafts:* ${r.total_drafts} total · ${r.sent} sent · ${r.rejected} rejected · ${r.pending} pending\n*FU drafts:* ${f.total_drafts} total · ${f.sent} sent · ${f.rejected} rejected · ${f.pending} pending\n*Feedback comments:* ${feedbackRows.length}`;
 
@@ -416,7 +416,66 @@ Identify patterns and propose rule updates now.`;
     );
   }
 
-  return { ts: slackTs, patterns: summary.patterns.length };
+  return { ts: slackTs, patterns: summary.patterns.length, summary };
+}
+
+// Auto-apply a client-managed workspace's review patterns with no human approval
+// gate, then notify Lukas in #feedback-review with commit links so he can revert.
+// Only called for slugs in AUTO_APPLY_FEEDBACK_SLUGS. Their reviews are already
+// scope-locked to clients/<slug>.md and prompts/extras/<slug>.md.
+async function autoApplyClientReview(opts: {
+  slug: string;
+  reviewTs: string;
+  channel: string;
+  summary: ReviewSummary;
+}): Promise<void> {
+  const { slug, reviewTs, channel, summary } = opts;
+  const patterns = summary.patterns ?? [];
+  if (patterns.length === 0) return;
+
+  const name = slugToName(slug);
+  const { applied, failed, skippedTargets } = await commitReviewPatterns(
+    patterns,
+    "",
+    `${name} auto-apply (no human gate)`,
+    `Auto-applied from ${slug} feedback review (client-managed, no human gate).`
+  );
+
+  if (applied.length > 0) {
+    await pool.query(
+      `UPDATE weekly_reviews SET status = 'applied', applied_at = NOW(), applied_by = $1, commit_url = $2 WHERE slack_ts = $3`,
+      ["auto-apply", applied[0].commitUrl, reviewTs]
+    );
+  }
+
+  // Record the outcome in the client's own review thread.
+  const total = applied.reduce((n, a) => n + a.titles.length, 0);
+  const clientLines: string[] = [];
+  if (applied.length > 0) {
+    clientLines.push(`*Auto-applied ${total} rule(s):*`);
+    for (const a of applied) clientLines.push(`• \`${a.file}\` — ${a.titles.join(", ")} (<${a.commitUrl}|commit>)`);
+    clientLines.push("", "Live on the next deploy.");
+  } else {
+    clientLines.push("Nothing was auto-applied this review.");
+  }
+  if (skippedTargets.length > 0) clientLines.push("", "*Skipped:*", ...skippedTargets.map(s => `• ${s}`));
+  if (failed.length > 0) clientLines.push("", "*Failed:*", ...failed.map(f => `• ${f}`));
+  await postToSlack({ channel, threadTs: reviewTs, text: clientLines.join("\n") });
+
+  // Notify Lukas with revert handles. Only ping when something actually committed.
+  if (applied.length > 0) {
+    const notifyLines = [
+      `:robot_face: *Auto-applied ${total} rule(s) for ${name}* (client-managed, no approval gate).`,
+      ...applied.map(a => `• \`${a.file}\` — ${a.titles.join(", ")} (<${a.commitUrl}|commit>)`),
+      "",
+      "To undo: revert the commit above, or tell me in chat and I will.",
+    ];
+    await postToSlack({
+      channel: FEEDBACK_REVIEW_CHANNEL,
+      text: `Auto-applied ${total} rule(s) for ${name}`,
+      blocks: [{ type: "section", text: { type: "mrkdwn", text: notifyLines.join("\n") } }],
+    });
+  }
 }
 
 // Exported so the in-process scheduler (instrumentation.ts) can call this
@@ -583,7 +642,14 @@ export async function runWeeklyFeedbackReviewOnce(opts: { dedupeWindow?: boolean
       reply: stats.reply,
       fu: stats.fu,
     });
-    if (res.ts) clientReviews++;
+    if (res.ts) {
+      clientReviews++;
+      // Client-managed workspaces on the auto-apply list bake their own rules
+      // with no human gate; Lukas is notified with commit links to revert.
+      if (AUTO_APPLY_FEEDBACK_SLUGS.has(slug) && res.summary) {
+        await autoApplyClientReview({ slug, reviewTs: res.ts, channel, summary: res.summary });
+      }
+    }
   }
 
   return {
