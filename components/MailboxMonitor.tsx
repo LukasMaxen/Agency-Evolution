@@ -812,17 +812,20 @@ function SenderTable({
         if (d.avgScore === null)                               return 5;
         return 6;
       }
-      // Active severity. Lower = worse.
-      //   0 Disconnected     1 MX missing       2 Burned (any sender)
-      //   3 Not warming      4 Critical reply   5 Low reply
-      //   6 List issue       7 Low health       8 No data    9 Healthy
+      // Active severity. Lower = worse. Order matches domainStatusBadge:
+      // List issue OUTRANKS Low reply because a dirty list compounds with
+      // every send and damages reputation, while 0.5%-1% reply on a clean
+      // list is a copy/targeting issue that can be tuned without pausing.
+      //   0 Disconnected     1 MX missing       2 Burned
+      //   3 Not warming      4 Critical reply   5 List issue
+      //   6 Low reply        7 Low health       8 No data    9 Healthy
       if (d.disconnected > 0)                      return 0;
       if (d.mxMissing)                             return 1;
       if (d.anyBurnFlagged)                        return 2;
       if (d.notWarming > 0)                        return 3;
       if (d.totalSent >= 200 && d.replyRate < 0.5) return 4;
-      if (d.totalSent >=  50 && d.replyRate < 1)   return 5;
-      if (d.bounceRate >= 2)                       return 6;
+      if (d.bounceRate >= 2)                       return 5;
+      if (d.totalSent >=  50 && d.replyRate < 1)   return 6;
       if (d.avgScore !== null && d.avgScore < 98)  return 7;
       if (d.totalSent === 0)                       return 8;
       return 9;
