@@ -1175,7 +1175,7 @@ ${messageText.slice(0, 3000)}`;
       [JSON.stringify({ intent: result.intent, auto_replied: false, skipped_reason: "not_interested_in_interested_thread_manual" }), replyId]);
     await postManual(workspaceSlug, {
       text: `Possible soft-no in an interested thread, ${workspaceSlug} / ${reply.lead_name}`,
-      blocks: buildCard("Lead was interested earlier — read as not_interested now", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", {
+      blocks: buildCard("Lead was interested earlier, read as not_interested now", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", {
         reason: "This lead showed interest earlier in the thread, but this latest message read as not_interested. Decide whether to nurture or let it close.",
         intent: result.intent,
       }),
