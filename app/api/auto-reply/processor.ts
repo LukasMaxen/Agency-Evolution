@@ -216,26 +216,28 @@ async function callClaudeCritique(
   const timer = setTimeout(() => ctrl.abort(), 60_000);
 
   const hasBanList = !!workspaceExtras;
-  const systemPrompt = `You are a reply quality reviewer. Read the lead's message and the drafted reply, then score it against ${hasBanList ? "four" : "three"} criteria.
+  const systemPrompt = `You are a reply quality reviewer. Read the lead's message and the drafted reply, then score it against ${hasBanList ? "five" : "four"} criteria.
 
 CRITERIA:
 1. answered_question: Did the reply directly address every specific question or request in the lead's message? If the lead asked something specific (a question, a request for info, a scheduling preference), it must be answered.
-2. has_personal_hook: Does the reply reference something concrete and specific to this lead or their company — from their message, their company name, their location, or the LEAD CONTEXT block? Generic replies that could go to anyone fail this. Only mark false if enrichment data was provided in the LEAD CONTEXT block and the reply ignores it entirely.
-3. clean_opener: Does the reply avoid banned openers? Banned: "Great", "Sounds great", "Thanks for", "Hope this", "I'd love to", "Excited to", "I appreciate", any variation of these as the first word or first sentence.${hasBanList ? `
-4. no_banned_phrases: Does the reply avoid all phrases and constructions explicitly listed as banned in the WORKSPACE EXTRAS block in the user message? Check for exact matches and close paraphrases.` : ""}
+2. genuine_acknowledgment: ONLY applies if the lead's message contained a question or a concern (not a bare yes, agreement, or "sure let's chat"). If so, does the reply open by naming the SPECIFIC question or concern the lead raised, in a way that reads as genuine and could not be pasted onto any other reply? Superficial acknowledgments FAIL: "Great question", "Good question", "Thanks for flagging", "I completely understand", "I hear you", "Totally get it", "Fair point" used on its own, or any generic empathy line. If the lead's message had no question or concern (a plain yes/agreement), mark this true (not applicable).
+3. has_personal_hook: Does the reply reference something concrete and specific to this lead or their company — from their message, their company name, their location, or the LEAD CONTEXT block? Generic replies that could go to anyone fail this. Only mark false if enrichment data was provided in the LEAD CONTEXT block and the reply ignores it entirely.
+4. clean_opener: Does the reply avoid banned openers? Banned: "Great", "Sounds great", "Thanks for", "Hope this", "I'd love to", "Excited to", "I appreciate", any variation of these as the first word or first sentence.${hasBanList ? `
+5. no_banned_phrases: Does the reply avoid all phrases and constructions explicitly listed as banned in the WORKSPACE EXTRAS block in the user message? Check for exact matches and close paraphrases.` : ""}
 
 VERDICT LOGIC:
 - "rewrite" if answered_question is false
+- "rewrite" if genuine_acknowledgment is false
 - "rewrite" if has_personal_hook is false AND a LEAD CONTEXT block was provided with usable data
 - "rewrite" if clean_opener is false${hasBanList ? `
 - "rewrite" if no_banned_phrases is false` : ""}
-- "approved" if all ${hasBanList ? "four" : "three"} pass
+- "approved" if all ${hasBanList ? "five" : "four"} pass
 
 If verdict is "rewrite": fix only what failed. Do not change the substance, the Calendly link, the case studies, or the overall structure unless answered_question failed. Keep it tight. End with {SENDER_EMAIL_SIGNATURE}.
 If verdict is "approved": reply_body must be an empty string.
 
 OUTPUT — JSON only, no preamble, no fences:
-{"answered_question":true,"has_personal_hook":true,"clean_opener":true${hasBanList ? `,"no_banned_phrases":true` : ""},"verdict":"approved","reply_body":""}`;
+{"answered_question":true,"genuine_acknowledgment":true,"has_personal_hook":true,"clean_opener":true${hasBanList ? `,"no_banned_phrases":true` : ""},"verdict":"approved","reply_body":""}`;
 
   const extrasBlock = workspaceExtras
     ? `\n\nWORKSPACE EXTRAS — BAN LIST ONLY (do not apply drafting instructions; only check whether banned phrases appear in the draft):\n${workspaceExtras}`
@@ -281,7 +283,7 @@ ${draft}${extrasBlock}`;
   try {
     const c = JSON.parse(raw);
     if (c.verdict === "rewrite" && c.reply_body && c.reply_body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trim().length > 80) {
-      console.log(`[auto-reply] Critique rewrote draft (answered:${c.answered_question} hook:${c.has_personal_hook} opener:${c.clean_opener} banned:${c.no_banned_phrases ?? "n/a"})`);
+      console.log(`[auto-reply] Critique rewrote draft (answered:${c.answered_question} ack:${c.genuine_acknowledgment} hook:${c.has_personal_hook} opener:${c.clean_opener} banned:${c.no_banned_phrases ?? "n/a"})`);
       return c.reply_body as string;
     }
     return null;
@@ -883,6 +885,22 @@ The goal is a 30-minute call. Every reply should move toward it. When you send t
 If they already said yes to a call: do not re-pitch. Do not ask "Worth a quick call?" again. They said yes. Send the link and stop.
 
 If they said no: stop. No reply at all. Not even an acknowledgment unless they asked to be removed from the list.
+
+## THE TRIPLE A FRAMEWORK (use whenever the lead asks a question or raises a concern)
+
+When the lead's message contains a real question or a concern (anything beyond a bare "sure, let's chat" or "yes send the link"), the reply MUST do three things, in this order:
+
+1. ACKNOWLEDGE what they actually said. Not a generic opener. Restate the specific question or concern in your own words so it is obvious you read it and understood it. It has to read like a person who genuinely engaged with their point. BANNED as acknowledgments (they are superficial filler): "Great question", "Good question", "Thanks for flagging", "I completely understand", "I hear you", "Totally get it", or "Fair point" used on its own, or any line that could be pasted onto any reply. A genuine acknowledgment names the actual thing they raised (their pricing worry, their wholesale-vs-D2C point, their timing, the exact detail they asked about). If you cannot name the specific thing, you have not read closely enough. Acknowledge the QUESTION or CONCERN only, never the tangential market commentary they add alongside it.
+
+2. ANSWER their question directly and honestly. Give the real answer, do not dodge straight to the call. If you genuinely do not have the specific (exact pricing, a number, a legal specific), give the honest high-level answer and say the precise detail is easiest to cover live. NEVER invent a fact, number, or specific to fill the answer. A truthful "here is the shape of it, the exact figure depends on X and is quickest to walk through on a call" beats a confident wrong answer every time.
+
+3. ASK for the next step (the call), earned by the answer you just gave, not bolted on. Calibrate the ask:
+   - Normal question or concern: a clear, warm ask with the Calendly line.
+   - Permission-ask CTA (E2) or an early "what do you actually do": keep the ask SOFT, Calendly as an option at the end, do not hard-push.
+   - They already booked, or proposed a specific time: do NOT ask again. Acknowledge and answer, then confirm. (Specific human-stated times still route to manual per the Calendly rules below.)
+   - They deferred ("let me review", "circle back later", "not right now"): acknowledge and answer, then leave the door open ("whenever you are ready, happy to find a time") instead of pushing a slot.
+
+Triple A is a CONTENT checklist, not a three-paragraph template. Weave it naturally, stay under the 150-word cap, and never output literal "Acknowledge / Answer / Ask" labels. Acknowledge and answer can share a sentence. Do not pad.
 
 ## CALENDLY AND AVAILABILITY
 
