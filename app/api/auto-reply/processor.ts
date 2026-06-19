@@ -785,6 +785,24 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
 
   const coldEmailBody = coldEmailResult.rows[0]?.body?.slice(0, 600) ?? null;
 
+  // ── Thread interest anchor ────────────────────────────────────────────────────
+  // Has this lead shown interest EARLIER in this thread (a prior interested flag,
+  // a booked meeting, or a prior interested/needs_info classification)? If so, a
+  // later message must be judged against that demonstrated interest, not in
+  // isolation. A single negative answer to a qualifying question or a one-off
+  // objection is the lead continuing to engage, not withdrawing, so it should
+  // never be silently closed as not_interested.
+  const priorInterest = await pool.query(
+    `SELECT 1 FROM replies
+     WHERE workspace_slug = $1 AND lead_email = $2 AND id <> $3
+       AND ( interested = TRUE
+          OR meeting_booked = TRUE
+          OR ai_analysis->>'intent' IN ('interested','interested_urgent','needs_info') )
+     LIMIT 1`,
+    [workspaceSlug, reply.lead_email, replyId]
+  );
+  const threadHasInterest = reply.lead_email ? priorInterest.rows.length > 0 : false;
+
   // ── Context injections ────────────────────────────────────────────────────────
   // If the webhook already identified a different sender (from_email_address != lead.email),
   // inject a hard directive so Claude addresses the right person and sets recipient_email.
@@ -1076,10 +1094,14 @@ Do not confirm a single slot, always offer both.
   // if the query returns nothing (e.g. fresh workspace with no sends yet).
   const positiveExamples = await fetchRecentApprovedExamples(workspaceSlug, reply.lead_email, 3);
 
+  const threadInterestDirective = threadHasInterest
+    ? `ESTABLISHED INTEREST IN THIS THREAD: This lead already showed interest earlier in this conversation (see THREAD HISTORY). Judge this new message in the context of that demonstrated interest, NOT in isolation. A negative answer to a qualifying question, a single objection, a raised concern, or "the rest is not a fit" is the lead CONTINUING to qualify and engage, so classify it as needs_info or neutral and draft a reply that addresses the concern and keeps the conversation moving. Only use not_interested or hard_no if THIS message is an explicit, unambiguous withdrawal of interest (e.g. "stop contacting me", "remove me", "we've decided not to proceed", "definitely not interested"). When in doubt in an interested thread, draft a reply rather than closing.\n\n`
+    : "";
+
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${companyContextBlock}${calendlyHint}${positiveExamples}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
@@ -1142,6 +1164,24 @@ ${messageText.slice(0, 3000)}`;
   // Sanitize
   if (result.reply_body) result.reply_body = sanitizeDashes(result.reply_body);
   if (result.manual_reason) result.manual_reason = sanitizeDashes(result.manual_reason);
+
+  // Safety net: a not_interested verdict on a thread where the lead already showed
+  // interest should NOT silently close. The classifier is instructed to avoid this
+  // (see threadInterestDirective), but if it still lands here, surface it to a human
+  // in #manual-replies rather than closing the conversation behind their back.
+  // hard_no still closes — that is a definitive disqualification, not a soft no.
+  if (result.intent === "not_interested" && threadHasInterest) {
+    await pool.query(`UPDATE replies SET status = 'awaiting_manual', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
+      [JSON.stringify({ intent: result.intent, auto_replied: false, skipped_reason: "not_interested_in_interested_thread_manual" }), replyId]);
+    await postManual(workspaceSlug, {
+      text: `Possible soft-no in an interested thread, ${workspaceSlug} / ${reply.lead_name}`,
+      blocks: buildCard("Lead was interested earlier — read as not_interested now", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", {
+        reason: "This lead showed interest earlier in the thread, but this latest message read as not_interested. Decide whether to nurture or let it close.",
+        intent: result.intent,
+      }),
+    });
+    return;
+  }
 
   // Hard gate: not_interested and hard_no are NEVER replied to, regardless of Claude's action.
   // The pre-filter catches most of these for free; this catches any that slip through to Claude.
