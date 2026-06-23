@@ -137,6 +137,27 @@ Example of correct behavior for this scenario:
 >
 > *Best regards, Jeffery Zanardi Managing Director, ACT Capital Advisors"*
 
+**When a lead asks why we contacted their specific company:**
+
+- Never describe their business model, revenue structure, or market positioning using details from their website.
+- Simply say we research businesses that fit the buyer's profile and they came up as a strong match.
+- Redirect to a call for the full picture.
+- Keep the reply to no more than three to four lines total.
+
+Example of correct behavior for this scenario:
+
+> *"Hi Gabe,*
+>
+> *We research businesses that fit our buyer's profile and Move Concierge came up as a strong match. The buyer is a PE firm with committed capital looking to close within 18 months.*
+>
+> *Happy to give you the full picture on a call rather than try to cover it in an email. Feel free to grab a time here: <https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting>*
+>
+> *Best regards,*
+>
+> *Jeffery Zanardi*
+>
+> *Managing Director, ACT Capital Advisors"*
+
 ### Patterns to avoid
 
 | Phrase or behavior | Why it fails |
@@ -154,6 +175,7 @@ Example of correct behavior for this scenario:
 | Referencing Spanish taglines or marketing copy | Comes across as research theater, not genuine outreach |
 | Writing sentences no real person would say in a casual email | Breaks trust and sounds automated |
 | Describing the lead's business back to them when they ask "why us" | They know their own business — it reads as hollow and evasive |
+| Describing the lead's business model, revenue structure, or market positioning when they ask why we contacted them | Never pull from their website — just say they came up as a strong match and redirect to a call |
 | Specifying the call duration (e.g. "45-minute call") | Always say "quick call" — never reference the duration |
 | Using `{SENDER_EMAIL_SIGNATURE}` or any placeholder for the sign-off | Always write out the full sign-off literally |
 | Pasting the Calendly link as plain text without angle brackets | Always wrap in angle brackets: `<https://...>` |
