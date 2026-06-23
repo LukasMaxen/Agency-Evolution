@@ -20,16 +20,19 @@
 
 ### Pricing Language Rules (from Kasper Zacho review)
 
-- Describe pricing as **performance-based / pay-per-relevant-introduction only**.
+- Describe pricing as **performance-based only**. Keep the framing high-level and frictionless — do not specify the trigger for payment or go into detail about the fee structure.
 - **Never say "only when a deal closes"** or imply that payment is tied to a closing event.
-- The correct framing is: there is nothing to lose except time for an initial call, and we charge per relevant introduction.
+- **Never say "pay-per-relevant-introduction"** or specify any payment trigger mechanism. Keep the performance-basis framing high-level.
+- The correct framing is: we operate on a performance basis, so there is nothing to lose except their time for an initial call.
 - Keep pricing mentions brief and low-friction — the goal is to remove objections, not to over-explain the fee structure.
 
 **Correct framing example:**
-> We work on a performance basis — pay-per-relevant-introduction — so there's really nothing to lose except your time for an initial call.
+> We work on a performance basis, so there's really nothing to lose except your time for an initial call.
 
 **Incorrect framing (never use):**
 > We only get paid when a deal closes.
+> We charge per relevant introduction.
+> It's pay-per-relevant-introduction.
 
 ---
 
@@ -58,4 +61,4 @@ When a lead has already agreed to a call, use this exact format:
 
 Apply the same three-line rule: if the lead has agreed to a call, confirm, share the correct buy-side link, and close. Do not pitch again.
 
-Apply the same pricing language rules: performance-based / pay-per-relevant-introduction only. Never say "only when a deal closes."
+Apply the same pricing language rules: performance-based framing only, kept high-level. Never specify a payment trigger. Never say "only when a deal closes." Never say "pay-per-relevant-introduction." The only correct framing is that we operate on a performance basis, so there is nothing to lose except their time for an initial call.
