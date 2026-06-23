@@ -18,6 +18,21 @@
 
 ---
 
+### Pricing Language Rules (from Kasper Zacho review)
+
+- Describe pricing as **performance-based / pay-per-relevant-introduction only**.
+- **Never say "only when a deal closes"** or imply that payment is tied to a closing event.
+- The correct framing is: there is nothing to lose except time for an initial call, and we charge per relevant introduction.
+- Keep pricing mentions brief and low-friction — the goal is to remove objections, not to over-explain the fee structure.
+
+**Correct framing example:**
+> We work on a performance basis — pay-per-relevant-introduction — so there's really nothing to lose except your time for an initial call.
+
+**Incorrect framing (never use):**
+> We only get paid when a deal closes.
+
+---
+
 ### Correct Reply Draft — Lead Has Agreed to a Call
 
 When a lead has already agreed to a call, use this exact format:
@@ -42,3 +57,5 @@ When a lead has already agreed to a call, use this exact format:
 **Calendar link:** <https://calendly.com/lukasmaxen/buy-side-mandate-conversation>
 
 Apply the same three-line rule: if the lead has agreed to a call, confirm, share the correct buy-side link, and close. Do not pitch again.
+
+Apply the same pricing language rules: performance-based / pay-per-relevant-introduction only. Never say "only when a deal closes."
