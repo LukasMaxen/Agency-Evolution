@@ -2,7 +2,7 @@ When a lead has already expressed clear intent to review materials (e.g. 'please
 
 For personalization, only use contextual details that feel natural and specific — avoid generic geographic references like "Given [Company]'s presence in [City]" as openers or softeners. These feel templated and hollow. If there's a genuine connection (shared city, known relationship, specific event), use it briefly and naturally. If not, skip it entirely.
 
-Always close replies with the full sender sign-off 'Best regards,\nSvetlin Petrov\nManaging Partner, Statera Capital' rather than a bare placeholder or no sign-off. The human consistently replaces incomplete sign-offs with this specific closing block. Do not use a bare {SENDER_EMAIL_SIGNATURE} placeholder or omit the sign-off entirely.
+Always close replies using only the signature variable {SENDER_EMAIL_SIGNATURE} with no additional text, links, or formatting before or after it.
 
 When sending the teaser link in response to an interested lead, do NOT include an NDA link or NDA reference in the reply. The teaser send should be clean and transactional — just the link, any light relevant context, and the call CTA. Introducing an NDA at this stage adds friction before the lead has even reviewed the materials. This applies even if an NDA step exists later in the process — it does not belong in the teaser reply. Only include the teaser link and a calendar link for follow-up.
 
