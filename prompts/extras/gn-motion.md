@@ -68,6 +68,7 @@ When moving a lead toward a meeting or next step, use the following CTA pattern:
 - Always end with the calendar link: https://app.iclosed.io/e/GNMOTION/30min
 - Keep the CTA warm and conversational, not pushy
 - When including the calendar link, lead into it with a warm connector phrase such as "I'd love to have a quick chat with you. Feel free to grab a time here:" rather than dropping the link after a standalone sentence. This makes the CTA feel more inviting and personal.
+- Always use **"I'd love to"** when framing the call CTA — never use "Worth a" or similar passive phrases. "I'd love to" reads as warmer and more direct.
 
 ---
 
@@ -80,6 +81,7 @@ When moving a lead toward a meeting or next step, use the following CTA pattern:
 - Do not use the old portfolio link ending in h6402713df7
 - Do not reference the lead's product names, ingredients, collections, or brand story unless they shared it directly in the thread
 - Do not suggest which product the lead should use for the complimentary sample
+- Do not include speculative pitch copy about the lead's business model, product category, or use-case rationale when sending a portfolio or example link — simply deliver what was asked for and move to the CTA
 
 ---
 
@@ -133,6 +135,23 @@ When a lead asks about pricing before a call has been booked, do not quote a num
 > "On pricing, it depends entirely on scope so I would not want to throw out a number that ends up being off. A quick call is the fastest way to understand what you need and make sure the sample we put together is actually matched to your brand rather than a generic concept.
 >
 > I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/30min"
+
+---
+
+## Delivering a Portfolio Link — Keep It Clean
+
+When a lead asks to see the portfolio or requests an example link, do not add speculative copy about their business, product category, or why video would suit their model. Simply deliver the link and move straight to the CTA.
+
+**Confirmed correct format (based on send-time learning):**
+
+> "Hi [Name],
+>
+> [One line acknowledging the request, e.g. "Totally get it, here is the portfolio:"]
+> [Portfolio link]
+>
+> I'd love to have a quick chat about what we could put together for [Brand/Name]. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/30min
+>
+> {SENDER_EMAIL_SIGNATURE}"
 
 ---
 
