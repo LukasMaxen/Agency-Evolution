@@ -65,7 +65,7 @@ When moving a lead toward a meeting or next step, use the following CTA pattern:
 
 **Rules:**
 - Always propose **two specific date placeholders** (DATE or DATE) first
-- Always end with the calendar link: https://app.iclosed.io/e/GNMOTION/30min
+- Always end with the calendar link: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
 - Keep the CTA warm and conversational, not pushy
 - When including the calendar link, lead into it with a warm connector phrase such as "I'd love to have a quick chat with you. Feel free to grab a time here:" rather than dropping the link after a standalone sentence. This makes the CTA feel more inviting and personal.
 - Always use **"I'd love to"** when framing the call CTA — never use "Worth a" or similar passive phrases. "I'd love to" reads as warmer and more direct.
@@ -120,7 +120,7 @@ When the lead replies with just a thank you or a short neutral message:
 >
 > If you would like to see what we could do for one of your products, a quick call is the easiest way to align on the concept before we put the sample together.
 >
-> I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/30min
+> I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
 >
 > {SENDER_EMAIL_SIGNATURE}"
 
@@ -134,7 +134,7 @@ When a lead asks about pricing before a call has been booked, do not quote a num
 
 > "On pricing, it depends entirely on scope so I would not want to throw out a number that ends up being off. A quick call is the fastest way to understand what you need and make sure the sample we put together is actually matched to your brand rather than a generic concept.
 >
-> I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/30min"
+> I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email"
 
 ---
 
@@ -149,7 +149,7 @@ When a lead asks to see the portfolio or requests an example link, do not add sp
 > [One line acknowledging the request, e.g. "Totally get it, here is the portfolio:"]
 > [Portfolio link]
 >
-> I'd love to have a quick chat about what we could put together for [Brand/Name]. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/30min
+> I'd love to have a quick chat about what we could put together for [Brand/Name]. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
 >
 > {SENDER_EMAIL_SIGNATURE}"
 
@@ -157,4 +157,4 @@ When a lead asks to see the portfolio or requests an example link, do not add sp
 
 ## Example CTA (use as template)
 
-> "If you are interested in getting a project underway, let's outline the scope over a quick meeting and we'll be able to give you a final quote. Are you available DATE or DATE? If not, I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/30min"
+> "If you are interested in getting a project underway, let's outline the scope over a quick meeting and we'll be able to give you a final quote. Are you available DATE or DATE? If not, I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email"

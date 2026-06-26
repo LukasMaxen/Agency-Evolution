@@ -317,7 +317,7 @@ Completely understand, producing locally makes sense at scale. Where CGI tends t
 
 You can see examples here: https://www.canva.com/design/DAHCb_CiXzA/UA6aPIn-u-MAXQiuuanQAQ/view?utm_content=DAHCb_CiXzA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h6402713df7
 
-On pricing, best to cover that after a quick call so I can understand what you are working on specifically. Happy to produce a complimentary sample for one of your products so you can see the quality before committing to anything. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/30min
+On pricing, best to cover that after a quick call so I can understand what you are working on specifically. Happy to produce a complimentary sample for one of your products so you can see the quality before committing to anything. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
 
 {SENDER_EMAIL_SIGNATURE}`,
   },
