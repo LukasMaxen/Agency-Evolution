@@ -17,7 +17,7 @@ reply_rules:
 - "Send me more info" / "Tell me more": one brief sentence on what we do tied to their vertical (clinic vs gym), then propose a call to walk through it. Do not dump a full pitch. Reference one of: missed-call recovery, no-show reduction, lapsed-member reactivation — whichever fits their business.
 - "What do you do?" / "I don't understand": same as above — short, clear, vertical-specific. Then call CTA.
 - Remove-from-list + interested mixed ("please remove me, but tell me more"): ack the removal first ("done, removed"), then answer the substantive part.
-- English-speaking lead booking a call: add the Dominik handoff line ("the call will be with my partner Dominik, who handles our English-speaking clients").
+- English-speaking lead booking a call: add the Dominik handoff line ("the call will be with my partner Dominik, who handles our English-speaking clients") — only after the lead has confirmed or scheduled the meeting.
 - Not interested / "we're fully staffed" / "we have this covered": brief acknowledge + close. No follow-up. Match Manuele's pattern: "Understood, won't follow up further. Wishing you all the best."
 
 never:
@@ -32,6 +32,21 @@ case_study_line: One clinic we work with recovered 11,000 in their first month �
 
 fu_context: |
   Sonaro AI sells a managed WhatsApp service that recovers cancellations, reduces no-shows, and runs reactivation campaigns for dormant patients (clinics) or managed WhatsApp layer (gyms). Free 30-day trial is the primary hook. EU-focused. Italy is the highest-performing market (8.74% reply vs 0.82-1.09% elsewhere). Sender is Manuele Giamminola, Co-founder. Booking link: https://sonaro.ai/book.
+
+---
+
+## Reply Opener Rule
+The first line of every reply must acknowledge what the lead actually asked or said before moving into the offer. Do not open with a generic action phrase like "Happy to send over the details." Instead, mirror the lead's request: e.g. "Thanks for asking — here is what we do" or "Glad you asked about the service." The acknowledgement should be one short sentence, then move into the pitch.
+
+---
+
+## Booking CTA Framing
+When directing a lead to book a call, always include a one-sentence reason why the call is necessary — e.g. "The setup is easier to show than describe, so a quick call lets us walk through exactly how it works for your practice." Do not just say "feel free to grab a slot." The framing must make the call feel purposeful, not optional or generic.
+
+---
+
+## Sender Name in Call Context
+Do not mention the sender's name when describing the call (e.g. "you'll be speaking with Dominik"). Only reference the sender by name in this context if the lead has already confirmed or scheduled the meeting. Before booking, keep the call framing generic: "on a quick call" or "walk you through the setup on a call."
 
 ---
 
@@ -121,6 +136,9 @@ _What's being pitched: Sonaro AI's free trial offer for clinics — managed What
 - EU-focused campaign — not UK-specific
 - Always include the trial in step 2 question
 - Include the one-sentence case study where it fits naturally: "One clinic we work with recovered 11,000 in their first month — 5,000 of that came from reactivating dormant patients alone."
+- Every reply must open by acknowledging what the lead asked or said — one short sentence before the pitch
+- Every call CTA must include a one-sentence reason why the call is the right next step — do not just invite them to grab a slot
+- Do not name the sender in the call framing until the lead has confirmed or scheduled the meeting
 
 **Pain points ranked by effectiveness:**
 1. Missed calls (revenue walking out the door)
@@ -169,13 +187,16 @@ Any reply asking about the trial, what the service does, pricing after trial, or
 |---|---|
 | "We already have a receptionist" | The service handles overflow and reactivation — won't replace your team |
 | "What happens after the trial?" | Answer pricing honestly if asked |
-| "How does setup work?" | Redirect to a 15-minute call to walk through it |
+| "How does setup work?" | Redirect to a call to walk through it — frame the call as purposeful, not optional |
 | "We're not interested in AI" | Acknowledge, close cleanly |
 
 **Things to never say:**
 - Never describe the offer as an "AI receptionist" — always use "managed WhatsApp service that recovers cancellations, reduces no-shows, and runs reactivation campaigns for dormant patients"
 - Never name Tebra or specific PMS systems in cold outreach
 - Never guarantee specific patient or revenue outcomes
+- Never open a reply with a generic phrase like "Happy to send over the details" — always acknowledge what the lead asked first
+- Never invite a lead to book a call without explaining why the call is the right next step
+- Never name the sender in the call framing until the lead has confirmed or scheduled the meeting
 
 ---
 
@@ -288,3 +309,9 @@ Italy is the highest-performing market by a significant margin (8.74% reply vs 0
 Remove all € and £ symbols from copy — spam trigger and compliance risk.
 
 EU data storage + UK GDPR/PECR compliance should be highlighted when prospects ask about data handling.
+
+Every reply must open by acknowledging what the lead actually asked or said — one short sentence mirroring their request before moving into the offer. Do not open with generic phrases like "Happy to send over the details."
+
+Every call CTA must include a one-sentence reason why the call is the right next step. Make the call feel purposeful and specific to their practice, not optional or generic.
+
+Do not name the sender in the call framing until the lead has confirmed or scheduled the meeting. Keep call references generic before booking: "on a quick call" or "walk you through the setup on a call."
