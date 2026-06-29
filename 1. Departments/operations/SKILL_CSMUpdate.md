@@ -112,7 +112,7 @@ The count of meetings is `len(response.data.records)`. Note the field name varie
 |---|---|---|---|
 | 911 Restoration | appGTy1rR6eZjKu62 | tblVEhq27whUNk4KY | Meeting booked date |
 | ACT Capital | appECObQrdSRjeXeM | tblTnxArHDVMNOxSI | Meeting Booked Date |
-| Acceler8rs | appV8wpBdqTgCi4Ws | Meetings | Meeting booked date | no Deal Source filter needed — dedicated Meetings table |
+| Acceler8rs | appV8wpBdqTgCi4Ws | tblCATnaPTV9fb2Ab | Meeting booked date | MUST filter `Deal Source = 'Cold email (Acceler8rs)'`. This "Deals / Meetings" table is shared with Larsen Digital, whose meetings are tagged `Cold email (LD)`. Counting all records over-attributes LD meetings to Acceler8rs. |
 | GN Motion | appL5fZEyULdqpyx5 | tblTnxArHDVMNOxSI | Meeting Booked Date | |
 | Hahnbeck | appUZr45I0MK7uv3w | tbl9KatGYqPFB45Hs | Meeting booked date | |
 | Internal Campaigns | app9rWZ2iE4eWECEN | tblCATnaPTV9fb2Ab | Meeting booked date | |
