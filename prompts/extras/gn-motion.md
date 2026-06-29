@@ -155,6 +155,30 @@ When a lead asks to see the portfolio or requests an example link, do not add sp
 
 ---
 
+## Responding to Requests for More Information (Case Studies, Company Info, Products)
+
+When a lead asks for more information — case studies, company background, service details, or examples — keep the reply short and human. Do not pad it out with generic service descriptions or marketing language.
+
+**Rules:**
+- Write like a real person dashing off a quick note, not a polished marketing email
+- Include specific, relevant case studies or client examples to add substance (use confirmed clients only: L'Oréal, Audemars Piguet, Bang & Olufsen, Formula 1, Samsung)
+- Cut any sentence that does not add real information — if it sounds like filler, delete it
+- Triple-check before sending: read it out loud. If it sounds like a brochure, rewrite it
+- Over-written replies kill trust and come across as templated — shorter is almost always better
+
+**Example format:**
+
+> "Hi [Name],
+>
+> [One short sentence with a specific, relevant example or client reference]
+> [Portfolio link if not already shared]
+>
+> I'd love to jump on a quick call to talk through what we could do for you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
+>
+> {SENDER_EMAIL_SIGNATURE}"
+
+---
+
 ## Example CTA (use as template)
 
 > "If you are interested in getting a project underway, let's outline the scope over a quick meeting and we'll be able to give you a final quote. Are you available DATE or DATE? If not, I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email"
