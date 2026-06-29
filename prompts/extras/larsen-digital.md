@@ -208,14 +208,14 @@ Tone: honest and direct, not dismissive. We're not closing the door — we're qu
 Key points to hit, in order:
 1. Acknowledge the question warmly ("Hi [FIRST_NAME], good question.")
 2. Be straight about the revenue threshold: we typically find it difficult to add meaningful leverage unless a brand is doing at least **$100,000 a year in top-line revenue**.
-3. Reframe the scale examples if they came up: KyiKyi and Motel Margarita are actually among the smaller brands we work with — they were doing five figures a month, which still clears that bar.
+3. Reframe the scale examples if they came up: some of the brands we work with are actually on the smaller end, doing five figures a month, which still clears that bar.
 4. Open the alternative path: if the brand has a wholesale, retail, or Amazon presence and wants to build or launch D2C from scratch, we have done exactly that — taken brands from **zero D2C revenue to seven and eight figures in DTC sales**.
 5. CTA: two slot suggestions plus Calendly link.
 
 ```
 Hi [FIRST_NAME],
 
-Good question. To be straight with you — we typically find it difficult to add real leverage unless a brand is doing at least $100,000 a year in top-line revenue. The brands I mentioned, KyiKyi and Motel Margarita, are actually on the smaller end of what we work with. They were doing five figures a month at the time, which still puts them above that threshold.
+Good question. To be straight with you, we typically find it difficult to add real leverage unless a brand is doing at least $100,000 a year in top-line revenue. Some of the brands we work with are actually on the smaller end. They were doing five figures a month at the time, which still puts them above that threshold.
 
 That said, there's another path that might be a better fit depending on where [BRAND] is right now. We work with brands that have a strong presence outside of D2C — on Amazon, retail, or wholesale — and want to build or launch their direct channel from scratch. In those cases we've taken brands from zero D2C revenue all the way to seven and eight figures in DTC sales, so the starting point isn't a barrier if the brand has traction elsewhere.
 

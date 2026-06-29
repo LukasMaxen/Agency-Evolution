@@ -14,7 +14,7 @@ reply_rules:
 - Lead shows general interest (no specific timeframe): send Calendly. Use the live slots from LIVE CALENDAR AVAILABILITY block if present.
 - Lead asks for meeting in a specific human-stated timeframe ("next week", "this week", "Monday morning", "Tuesday afternoon"): route to manual. A human picks the actual slot and confirms.
 - Lead asks about fees: do not volunteer pricing or fee structure. Reply: "Happy to walk you through the details on a quick call." Do NOT say "fully performance-based, no upfront fee or retainer" — this is factually inaccurate and must never appear in any reply.
-- Lead asks for case studies: mention Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days)
+- Lead asks for case studies: mention Headwaters Studio (£60k/year to £1M+ in 24 months)
 - Lead already booked: confirm in 2 lines max. Flag meeting_booked = true. Stop FU sequence.
 - Lead asks what we do: give a concise human overview (we work with DTC consumer brands to drive growth across Meta, Google, Email and TikTok, and build toward a clean exit through our M&A team, which has closed over $1.2B in consumer transactions). Include a relevant case study link. Do not dump the full pitch.
 - Lead says "sure", "yes", "send me more info", or agrees to connect: they are saying yes to information, not agreeing to a call. Share the overview of how we work and a relevant case study first, then propose specific times. Never skip straight to booking.
@@ -93,7 +93,7 @@ never:
 
 fu_context: |
   Nicklas Larsen runs Larsen Digital — DTC brand growth with a built-in exit strategy. 250M+ in Shopify revenue managed. M&A team has closed over $1.2B in consumer transactions.
-  Case studies (use exact numbers): Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days), Headwaters Studio (£60k/year to £1M+ in 24 months). $0 to $850k/month in 4 months is available for US brands.
+  Case studies (use exact numbers): Headwaters Studio (£60k/year to £1M+ in 24 months). $0 to $850k/month in 4 months is available for US brands.
   Key differentiator: "We only take on 15 brands at a time" — use this in FU2 to create genuine scarcity without pressure language. Always say "your brand," never {COMPANY}.
   FU angle progression: FU2 = case study matched to their brand size/stage. FU4 = the exit angle — brands that grow without an exit strategy often undervalue themselves when they eventually sell. Nicklas helps build toward a clean 8-figure exit from day one. Every FU must include the Calendly link: https://calendly.com/larsen-digital-marketing/intro
 
@@ -198,9 +198,7 @@ _What's being pitched: Larsen Digital's M&A-focused growth and exit service for 
 - M&A team: over $1.2B in consumer transactions closed
 - Results: $0 → $850k/month in 4 months; $152k → $1.1M/month in 13 months
 
-**Case studies to reference (shared with Acceler8rs):**
-- Motel Margarita: £25k → £102k/month in 90 days
-- KyiKyi: £13k → £140k/month in 60 days
+**Case studies to reference:**
 - Headwaters Studio: £60k/year → £1M+/year in 24 months
 
 **Client cap framing (when relevant):**
