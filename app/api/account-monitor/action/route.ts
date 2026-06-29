@@ -38,7 +38,7 @@ const RESUME_DAILY_LIMIT = 20;
 // resets back to the operating default so total daily footprint stays
 // natural. Endpoint: PATCH /api/warmup/sender-emails/update-daily-warmup-limits
 const WARMUP_PAUSE_LIMIT  = 50;
-const WARMUP_RESUME_LIMIT = 20;
+const WARMUP_RESUME_LIMIT = 30;
 const TERMINAL_STATES = new Set(["completed", "archived", "finished", "ended"]);
 const ATTACH_STATES = new Set(["active", "running", "live", "draft", "queued", "launching", "paused"]);
 

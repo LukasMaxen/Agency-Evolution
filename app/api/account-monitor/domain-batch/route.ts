@@ -34,7 +34,7 @@ const RESUME_DAILY_LIMIT = 20;
 // daily_reply_limit is intentionally left to EB to manage automatically;
 // the EB docs warn against operator-controlled reply rate.
 const WARMUP_PAUSE_LIMIT  = 50;
-const WARMUP_RESUME_LIMIT = 20;
+const WARMUP_RESUME_LIMIT = 30;
 
 // Concurrency cap for per-sender / per-campaign EB+DB bursts. The previous
 // Promise.all(items.map(...)) pattern fired all in parallel which, when the
