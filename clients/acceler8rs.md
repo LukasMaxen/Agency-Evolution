@@ -9,8 +9,14 @@ sender: Lukas Maxen, Co-founder, Acceler8rs
 offer: 3-phase DTC brand growth system — grow profitably, scale with operating partnership, exit at 8 figures.
 calendly: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner (DEFAULT — operating partner / growth intro call)
 calendly_ma: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital (SELL-SIDE / EXIT ONLY — actual M&A or capital markets conversations)
+
+campaign_routing: |
+  FIRST, check the campaign name. It decides which track this reply belongs to. The campaign overrides the lead-words routing below.
+  - Campaign name contains "Pathfinder": this is the SELL-SIDE / M&A campaign. The cold email opened by expressing acquisition interest in the lead's brand (e.g. subject "Acquisition interest in [Brand]"). Treat EVERY interested reply on this campaign as an M&A conversation from the first reply. Continue the acquisition conversation, do NOT pitch the 3-phase growth system, do NOT use more_info_template, do NOT send the operating-partner link. Use the M&A link (calendly_ma). Lukas takes these calls himself, so no hand-off line.
+  - Any other campaign (the Growth & Exit Shopify campaigns): use the calendly_routing logic below (growth is the default).
+
 calendly_routing: |
-  Two booking links. Pick by what the lead actually wants.
+  Two booking links. Only applies to non-Pathfinder (growth) campaigns. For Pathfinder, see campaign_routing above (always M&A).
   - Growth / operating partner interest (the default for almost every reply): send the operating partner link above.
   - Sell-side / M&A / exit conversation (lead explicitly wants to discuss actually selling or exiting their business now, i.e. Phase 3): send the M&A link.
   - The sender for Acceler8rs is Lukas Maxen, who personally takes the M&A and capital markets calls, so no hand-off line is needed. Just frame it as the M&A track, e.g. "For the M&A and capital markets side, grab a time here:" then the M&A link.
