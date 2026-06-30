@@ -117,7 +117,8 @@ fu_context: |
 | **Primary contact** | Nicklas Larsen, Founder |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner |
+| **Calendly link (default)** | https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner |
+| **Calendly link (M&A / sell-side)** | https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital |
 | **Monthly retainer** | [amount] |
 
 ---

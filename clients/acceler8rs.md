@@ -7,7 +7,13 @@
 campaign_type: agency_services
 sender: Lukas Maxen, Co-founder, Acceler8rs
 offer: 3-phase DTC brand growth system — grow profitably, scale with operating partnership, exit at 8 figures.
-calendly: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
+calendly: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner (DEFAULT — operating partner / growth intro call)
+calendly_ma: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital (SELL-SIDE / EXIT ONLY — actual M&A or capital markets conversations)
+calendly_routing: |
+  Two booking links. Pick by what the lead actually wants.
+  - Growth / operating partner interest (the default for almost every reply): send the operating partner link above.
+  - Sell-side / M&A / exit conversation (lead explicitly wants to discuss actually selling or exiting their business now, i.e. Phase 3): send the M&A link.
+  - The sender for Acceler8rs is Lukas Maxen, who personally takes the M&A and capital markets calls, so no hand-off line is needed. Just frame it as the M&A track, e.g. "For the M&A and capital markets side, grab a time here:" then the M&A link.
 always_send_calendly: false
 
 reply_rules:
@@ -17,6 +23,7 @@ reply_rules:
 - Lead asks for "more info" / "send me details" / CTA was to send more info: use the approved more_info_template below. Do not send a booking link only — the CTA was to send information.
 - Lead asks for case studies: send https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
 - Lead gives specific day/time: post to #manual-replies
+- Lead wants a sell-side / M&A / exit conversation (explicitly wants to discuss actually selling or exiting the business now, Phase 3, not growth): send the M&A link (calendly_ma above), not the operating partner link. Lukas takes those calls himself, so no hand-off line, just frame it as the M&A / capital markets track.
 
 never:
 - Never guarantee specific revenue outcomes
@@ -62,7 +69,8 @@ fu_context: |
 | **Primary contact** | Lukas Maxen, Co-founder |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner |
+| **Calendly link (default)** | https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner |
+| **Calendly link (M&A / sell-side)** | https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital |
 | **Monthly retainer** | [amount] |
 
 ---
