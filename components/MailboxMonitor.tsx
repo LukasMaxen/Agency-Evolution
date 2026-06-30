@@ -373,8 +373,7 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
                     : totals.bounceRate < 2       ? "#15803D"
                                                    : "#B91C1C";
   const burnColor   = totals.totalSent === 0      ? "#9ca3af"
-                    : totals.burnRate <= 0.25     ? "#15803D"
-                    : totals.burnRate <= 0.5      ? "#D97706"
+                    : totals.burnRate < 0.5       ? "#15803D"
                                                    : "#B91C1C";
   // Sub-counts (disconnected, burned, critical, low-health) are deliberately
   // omitted here — they all live in the DomainStatusStrip below. Each Stat
@@ -1075,13 +1074,13 @@ function SenderTable({
                     {tab === "active" ? (
                       <>
                         <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>{fmt(d.totalSent)}</td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.replyRate < 1 ? "#B91C1C" : d.replyRate < 2 ? "#D97706" : "#15803D", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.replyRate >= 1 ? "#15803D" : d.replyRate >= 0.5 ? "#D97706" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.replyRate)}
                         </td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.bounceRate > 2 ? "#B91C1C" : d.bounceRate > 1 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.bounceRate < 2 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.bounceRate)}
                         </td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.burnRate > 0.5 ? "#B91C1C" : d.burnRate > 0.25 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.burnRate < 0.5 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.burnRate)}
                         </td>
                         <td style={{
@@ -1285,13 +1284,13 @@ function SenderTable({
                                  :                                  "insufficient"}
                               </div>
                             </td>
-                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.reply_rate < 1 ? "#B91C1C" : s.reply_rate < 2 ? "#D97706" : "#15803D", fontVariantNumeric: "tabular-nums" }}>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.reply_rate >= 1 ? "#15803D" : s.reply_rate >= 0.5 ? "#D97706" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                               {s.emails_sent === 0 ? "—" : pct(s.reply_rate)}
                             </td>
-                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.bounce_rate > 2 ? "#B91C1C" : s.bounce_rate > 1 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.bounce_rate < 2 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                               {s.emails_sent === 0 ? "—" : pct(s.bounce_rate)}
                             </td>
-                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.burn_rate > 0.5 ? "#B91C1C" : s.burn_rate > 0.25 ? "#D97706" : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.burn_rate < 0.5 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                               {s.emails_sent === 0 ? "—" : pct(s.burn_rate)}
                             </td>
                             <td style={{
