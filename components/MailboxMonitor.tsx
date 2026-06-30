@@ -496,10 +496,9 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
                                           : "#B91C1C" },
           { label: "Burn rate",
             value: w.totalSent === 0 ? "—" : `${w.burnPct.toFixed(1)}%`,
-            color: w.totalSent === 0   ? "#9ca3af"
-                 : w.burnPct <= 0.25   ? "#15803D"
-                 : w.burnPct <= 0.5    ? "#D97706"
-                                       : "#B91C1C" },
+            color: w.totalSent === 0  ? "#9ca3af"
+                 : w.burnPct < 0.5   ? "#15803D"
+                                      : "#B91C1C" },
         ].map(s => (
           <div key={s.label}>
             <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{s.label}</p>
