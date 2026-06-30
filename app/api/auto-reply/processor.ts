@@ -199,6 +199,72 @@ async function fetchLeadEnrichment(instanceUrl: string, apiKey: string, leadId: 
   }
 }
 
+// ─── EmailBison thread fetch ───────────────────────────────────────────────────
+// Reads the full conversation directly from EB so manual replies Kasper sends
+// inside EmailBison are visible to the processor (they never reach sent_emails).
+
+function stripHtmlForThread(s: string): string {
+  return (s || "")
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function fetchEBThread(
+  instanceUrl: string,
+  apiKey: string,
+  leadEmail: string,
+  currentEbReplyId: string | number | null
+): Promise<{ messages: Array<{ dir: "inbound" | "outbound"; sent_at: string; body: string }>; coldEmailBody: string | null }> {
+  const empty = { messages: [], coldEmailBody: null };
+  if (!instanceUrl || !apiKey || !leadEmail) return empty;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10_000);
+    let res: Response;
+    try {
+      res = await fetch(
+        `${instanceUrl}/api/replies?per_page=50&search=${encodeURIComponent(leadEmail)}`,
+        { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" }, signal: ctrl.signal }
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) return empty;
+    const data = await res.json();
+    const items: any[] = (data?.data ?? []).sort(
+      (a: any, b: any) =>
+        new Date(a.date_received || a.date_sent || 0).getTime() -
+        new Date(b.date_received || b.date_sent || 0).getTime()
+    );
+
+    const messages = items
+      .filter((item: any) => currentEbReplyId == null || String(item.id) !== String(currentEbReplyId))
+      .map((item: any) => {
+        const isSent = item.folder === "Sent";
+        const raw = item.text_body ? item.text_body : stripHtmlForThread(item.html_body || "");
+        const cutAt = raw.search(/On \w+,? \w+ \d+,? \d{4}.* wrote:|wrote:/);
+        const body = (cutAt > 0 ? raw.slice(0, cutAt) : raw).trim();
+        return {
+          dir: (isSent ? "outbound" : "inbound") as "inbound" | "outbound",
+          sent_at: item.date_received || item.date_sent || new Date().toISOString(),
+          body,
+        };
+      });
+
+    const firstSent = messages.find(m => m.dir === "outbound");
+    const coldEmailBody = firstSent ? firstSent.body.slice(0, 600) : null;
+    return { messages, coldEmailBody };
+  } catch {
+    return empty;
+  }
+}
+
 // ─── Self-critique pass ────────────────────────────────────────────────────────
 
 async function callClaudeCritique(
@@ -753,39 +819,26 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
 
   const quickRef = extractQuickReference(clientFileRaw);
 
-  // ── Build thread history ──────────────────────────────────────────────────────
-  // Includes: original cold email (step 0), our reply/FU emails, and prior inbound replies.
-  // This gives Claude the full picture — including what was promised in the original pitch.
-  const [coldEmailResult, outbound, inbound, leadEnrichment] = await Promise.all([
-    // The original cold email the lead is responding to — gives context the lead may reference.
-    pool.query(
-      `SELECT email_body AS body, subject, sent_at
-       FROM emails_sent
-       WHERE workspace_slug=$1 AND lead_email=$2 AND email_body IS NOT NULL
-       ORDER BY sent_at ASC LIMIT 1`,
-      [workspaceSlug, reply.lead_email]
-    ),
-    pool.query(
-      `SELECT 'outbound' AS dir, email_type, subject, body, sent_at
-       FROM sent_emails
-       WHERE workspace_slug=$1 AND lead_email=$2 AND email_type NOT IN ('forward_to_client')`,
-      [workspaceSlug, reply.lead_email]
-    ),
-    pool.query(
-      `SELECT 'inbound' AS dir, 'lead_reply' AS email_type, subject, message AS body, received_at AS sent_at
-       FROM replies WHERE workspace_slug=$1 AND lead_email=$2 AND id!=$3`,
-      [workspaceSlug, reply.lead_email, replyId]
+  // ── Build thread history from EmailBison directly ─────────────────────────────
+  // Reads all messages (inbound + outbound) from EB so manual replies sent by
+  // Kasper inside EmailBison are included. Falls back to "No prior messages."
+  // if EB is unreachable — processor still drafts, just without thread context.
+  const [ebThread, leadEnrichment] = await Promise.all([
+    fetchEBThread(
+      workspace.email_bison_instance_url ?? "",
+      workspace.email_bison_api_key ?? "",
+      reply.lead_email,
+      reply.email_bison_reply_id ?? null
     ),
     fetchLeadEnrichment(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_lead_id ?? null),
   ]);
 
-  const allMessages = [...outbound.rows, ...inbound.rows].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
-  const recentMessages = allMessages.slice(-8);
+  const recentMessages = ebThread.messages.slice(-8);
   const threadHistory = recentMessages.length > 0
-    ? recentMessages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body?.slice(0, 400)}`).join("\n\n")
+    ? recentMessages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body.slice(0, 400)}`).join("\n\n")
     : "No prior messages.";
 
-  const coldEmailBody = coldEmailResult.rows[0]?.body?.slice(0, 600) ?? null;
+  const coldEmailBody = ebThread.coldEmailBody;
 
   // ── Thread interest anchor ────────────────────────────────────────────────────
   // Has this lead shown interest EARLIER in this thread (a prior interested flag,
