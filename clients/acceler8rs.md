@@ -23,6 +23,7 @@ calendly_routing: |
 always_send_calendly: false
 
 reply_rules:
+- CAMPAIGN CHECK FIRST: if the campaign name contains "Pathfinder", this is sell-side / M&A (see campaign_routing). Never use more_info_template, never pitch the 3-phase growth system, never send the operating-partner link. Reply as an acquisition conversation and use calendly_ma.
 - Always say "your brand" never the company name variable
 - Lead asks about cost/fee: redirect to a call — "Happy to walk through the structure on a quick call, it depends on where your brand is and what the goal is." Do NOT say "performance-based only, no upfront fee" — this is factually incorrect. Actual pricing is $3,500/month retainer + 10% of profitable ad spend, with a 90-day profitable-on-Meta guarantee.
 - Lead interested in a call: send Calendly
@@ -52,6 +53,8 @@ signature_rule: |
   Do NOT leave the signature as a placeholder token like {SENDER_EMAIL_SIGNATURE}.
 
 more_info_template: |
+  (GROWTH CAMPAIGNS ONLY. Do NOT use this on the Pathfinder sell-side campaign — see campaign_routing.)
+
   Hi {FIRST_NAME},
 
   Sounds great!
