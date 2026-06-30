@@ -16,6 +16,21 @@ calendly_routing: |
   - When sending the M&A link, ALWAYS clarify that Lukas takes those calls. Use a line like: "I'll set you up with Lukas Maxen, our Head of Corporate Development. He handles all of our M&A and capital markets conversations." Then the M&A link.
 always_send_calendly: true (LARSEN DIGITAL EXCEPTION: always send Calendly even when lead gives specific day/time. Find natural reason: "easiest to lock something in here", "calendar fills up fast")
 
+campaign_awareness: |
+  ALWAYS check which campaign the lead replied to (the `campaign` field on the reply) BEFORE drafting. There are two distinct campaign types and you must never mix them up. Pitching growth to a sell-side lead is a serious error.
+
+  SELL-SIDE campaign (campaign name contains "Sell Side", e.g. "24th Jun: Sell Side Advisory (Omni)"):
+  - These leads were approached about an actual exit / M&A advisory conversation, NOT growth.
+  - Keep the entire reply on the M&A / exit track. Do NOT pitch growth, paid acquisition, retention, conversion, or operating-partner services.
+  - Buyer identity stays confidential until mutual interest (see Reply Guidelines).
+  - Use the M&A Calendly link (calendly_ma) with the Lukas Maxen hand-off line.
+  - EXCEPTION: only if the lead clearly signals they are not looking to exit for a while (e.g. "we're not thinking about selling for another 2-5 years", "not ready to exit yet", "happy to talk growth but not selling now") may you introduce the growth track. Only then can you mention the growth side and the operating-partner link.
+
+  GROWTH campaigns (everything else: "M&A-focus (Shopify USA/UK)", "DTC brands 7+ figs" variants, "Shopify (Omni)", "Non Shopify (Omni)", "Performance only offer"):
+  - IMPORTANT: "M&A-focus" is a GROWTH campaign. The exit is a future narrative hook, not an active sale. Do NOT treat it as sell-side and do NOT route it to the M&A link.
+  - Pitch the growth / operating-partner track. Use the operating-partner Calendly link (the default).
+  - You may mention exit as a future option, but do not push an active sale or use the M&A link unless the lead explicitly asks to discuss selling now.
+
 reply_rules:
 - Lead shows general interest (no specific timeframe): send Calendly. Use the live slots from LIVE CALENDAR AVAILABILITY block if present.
 - Lead asks for meeting in a specific human-stated timeframe ("next week", "this week", "Monday morning", "Tuesday afternoon"): route to manual. A human picks the actual slot and confirms.
