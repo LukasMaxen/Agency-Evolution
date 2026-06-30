@@ -7,7 +7,7 @@
 campaign_type: agency_services
 sender: Lukas Maxen, Co-founder, Acceler8rs
 offer: 3-phase DTC brand growth system — grow profitably, scale with operating partnership, exit at 8 figures.
-calendly: https://calendly.com/lukasm-acceler8rs/intro-meeting
+calendly: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 always_send_calendly: false
 
 reply_rules:
@@ -39,7 +39,7 @@ more_info_template: |
 
   Here's an example of what 4 months in our Grow phase looked like for a brand we took from $6.3k/mo to $93.2k/mo in DTC sales: https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
 
-  If this seems like a fit, I'd love to learn more about your plans with the brand. Here is my calendar if you'd like to explore further: https://calendly.com/lukasm-acceler8rs/intro-meeting
+  If this seems like a fit, I'd love to learn more about your plans with the brand. Here is my calendar if you'd like to explore further: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 
   {SENDER_EMAIL_SIGNATURE}
 
@@ -62,7 +62,7 @@ fu_context: |
 | **Primary contact** | Lukas Maxen, Co-founder |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | https://calendly.com/lukasm-acceler8rs/intro-meeting |
+| **Calendly link** | https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner |
 | **Monthly retainer** | [amount] |
 
 ---

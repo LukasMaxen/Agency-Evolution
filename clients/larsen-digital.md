@@ -7,7 +7,13 @@
 campaign_type: agency_services
 sender: Nicklas Larsen, Founder, Larsen Digital
 offer: DTC brand growth and exit planning. M&A team has closed over $1.2B in consumer transactions. Goal: 8-figure exit. 250M+ in Shopify revenue managed.
-calendly: https://calendly.com/larsen-digital-marketing/intro
+calendly: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner (DEFAULT — operating partner / growth intro call)
+calendly_ma: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital (SELL-SIDE / EXIT ONLY — actual M&A or capital markets conversations)
+calendly_routing: |
+  Two booking links. Pick by what the lead actually wants.
+  - Growth / operating partner interest (the default for almost every reply): send the operating partner link above.
+  - Sell-side / M&A / exit conversation (lead replied to a sell-side campaign, or explicitly wants to discuss actually selling or exiting their business now): send the M&A link.
+  - When sending the M&A link, ALWAYS clarify that Lukas takes those calls. Use a line like: "I'll set you up with Lukas Maxen, our Head of Corporate Development. He handles all of our M&A and capital markets conversations." Then the M&A link.
 always_send_calendly: true (LARSEN DIGITAL EXCEPTION: always send Calendly even when lead gives specific day/time. Find natural reason: "easiest to lock something in here", "calendar fills up fast")
 
 reply_rules:
@@ -23,6 +29,7 @@ reply_rules:
 - Lead agrees with a point in the cold email ("yes you're probably right", "fair point"): use info_body but open naturally with a short acknowledgment, not "Happy to share more" and not "Appreciate that" or "Great to hear".
 - Lead shares valuation benchmarks or exit expectations: do not question or push back on their numbers. Use it as a hook to get them on a call. Two to three lines max, then propose specific times. The gap between founder expectations and what the market pays is the conversation worth having.
 - Lead is not ready or too busy: do not send the full pitch. Acknowledge in one line, share a relevant case study link, leave the calendar link for when they are ready. No pressure, no hard sell.
+- Lead wants a sell-side / M&A / exit conversation (replied to a sell-side campaign, or explicitly wants to discuss actually selling or exiting the business now, not growth): send the M&A link (calendly_ma above), not the operating partner link. ALWAYS clarify Lukas takes those calls first: "I'll set you up with Lukas Maxen, our Head of Corporate Development. He handles all of our M&A and capital markets conversations." Then the M&A link.
 
 reply_body_rules: |
   HARD LIMIT, every reply body must be 90 words or less. 2-3 short paragraphs maximum, no dump.
@@ -56,9 +63,9 @@ reply_body_rules: |
 
   PREFERRED CTA FORMAT (confirmed by Kasper, 2026-05-29):
   WITH live slots (LIVE CALENDAR AVAILABILITY block is present with 2 slots):
-  "If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [SLOT 1 NATURAL] or [SLOT 2 NATURAL]? If not, here is my calendar: https://calendly.com/larsen-digital-marketing/intro"
+  "If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [SLOT 1 NATURAL] or [SLOT 2 NATURAL]? If not, here is my calendar: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner"
   WITHOUT live slots (no LIVE CALENDAR AVAILABILITY block):
-  "If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Feel free to grab a time here: https://calendly.com/larsen-digital-marketing/intro"
+  "If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Feel free to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner"
   NEVER write [DATE 1], [DATE 2], or any placeholder text in the final reply. If no live slots are available, drop the slot proposal entirely and only include the Calendly link.
   The CTA must always include a reason for the call specific to the lead. Never end with a bare calendar link and nothing else.
 
@@ -67,7 +74,7 @@ referral_handover_template: |
 
   [ONE LINE: acknowledge the intro from the original sender by first name. e.g. "Thanks for the intro, [ORIGINAL_SENDER_FIRST_NAME] mentioned you'd be the right person to chat with."]
 
-  [SLOT LINE: If LIVE CALENDAR AVAILABILITY has 2 slots, write "Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick call? If not, easiest is to grab a time here: https://calendly.com/larsen-digital-marketing/intro" Otherwise just "Easiest is to grab a time here: https://calendly.com/larsen-digital-marketing/intro"]
+  [SLOT LINE: If LIVE CALENDAR AVAILABILITY has 2 slots, write "Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick call? If not, easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner" Otherwise just "Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner"]
 
   {SENDER_EMAIL_SIGNATURE}
 
@@ -95,7 +102,7 @@ fu_context: |
   Nicklas Larsen runs Larsen Digital — DTC brand growth with a built-in exit strategy. 250M+ in Shopify revenue managed. M&A team has closed over $1.2B in consumer transactions.
   Case studies (use exact numbers): Headwaters Studio (£60k/year to £1M+ in 24 months). $0 to $850k/month in 4 months is available for US brands.
   Key differentiator: "We only take on 15 brands at a time" — use this in FU2 to create genuine scarcity without pressure language. Always say "your brand," never {COMPANY}.
-  FU angle progression: FU2 = case study matched to their brand size/stage. FU4 = the exit angle — brands that grow without an exit strategy often undervalue themselves when they eventually sell. Nicklas helps build toward a clean 8-figure exit from day one. Every FU must include the Calendly link: https://calendly.com/larsen-digital-marketing/intro
+  FU angle progression: FU2 = case study matched to their brand size/stage. FU4 = the exit angle — brands that grow without an exit strategy often undervalue themselves when they eventually sell. Nicklas helps build toward a clean 8-figure exit from day one. Every FU must include the Calendly link: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 
 ---
 
@@ -110,7 +117,7 @@ fu_context: |
 | **Primary contact** | Nicklas Larsen, Founder |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | https://calendly.com/larsen-digital-marketing/intro |
+| **Calendly link** | https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner |
 | **Monthly retainer** | [amount] |
 
 ---
@@ -252,6 +259,11 @@ Happy with current setup, not looking to scale or exit, B2B pivot.
 **Calendly rule (Larsen Digital only):**
 Always send the Calendly link — even when the lead mentions specific availability or a preferred time. Never book manually. Instead, find a natural, valid reason to send the link anyway (e.g. "easiest way to lock something in", "calendar fills up fast", "grab whichever slot works on your end"). The excuse must feel genuine, not forced. If the lead says yes/interested/happy to chat, always close with the Calendly link.
 
+**Which Calendly link to send:**
+Two links, pick by intent:
+- Default (operating partner / growth intro call): https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner — use this for almost every reply.
+- Sell-side / M&A / exit conversation: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital — use only when the lead replied to a sell-side campaign or explicitly wants to discuss actually selling or exiting their business now. When sending it, always clarify Lukas takes those calls: "I'll set you up with Lukas Maxen, our Head of Corporate Development. He handles all of our M&A and capital markets conversations."
+
 ---
 
 ## Reply Templates
@@ -273,7 +285,7 @@ We run a model built around one outcome, maximizing the value of your brand when
 
 We take over multi-channel growth and retention. For context on velocity, last year we took 2 brands past 8 figure run rates. One went from $0 to $850k/mo in 4 months, a global brand you would recognize instantly. Our M&A team has closed over $1.2B in consumer transactions, giving us a clear read on what strategic and PE buyers pay a premium for and how to position your brand for the best possible exit.
 
-If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [DAY at TIME, their TZ] or [DAY at TIME, their TZ]? If not, grab a slot on my calendar here: https://calendly.com/larsen-digital-marketing/intro
+If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [DAY at TIME, their TZ] or [DAY at TIME, their TZ]? If not, grab a slot on my calendar here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 
 Looking forward to connecting,
 
@@ -393,4 +405,4 @@ Subject: [subject]
 
 ## Internal Notes
 
-Similar model to Acceler8rs but different positioning (8-figure exit focus). Keep Larsen Digital and Acceler8rs messaging separate — different senders, different Calendly links.
+Similar model to Acceler8rs but different positioning (8-figure exit focus). Keep Larsen Digital and Acceler8rs messaging separate, different senders. Both clients now share the same two Calendly links: operating partner intro (default) and M&A conversation (sell-side/exit, taken by Lukas Maxen).
