@@ -82,6 +82,7 @@ When moving a lead toward a meeting or next step, use the following CTA pattern:
 - Do not reference the lead's product names, ingredients, collections, or brand story unless they shared it directly in the thread
 - Do not suggest which product the lead should use for the complimentary sample
 - Do not include speculative pitch copy about the lead's business model, product category, or use-case rationale when sending a portfolio or example link — simply deliver what was asked for and move to the CTA
+- Do not compliment or validate a lead's product choice when they share a specific product for a sample — they have already decided; take their input at face value and move directly to the next step
 
 ---
 
@@ -101,7 +102,8 @@ Correct flow:
 
 WRONG: "What I can do in the meantime is put together a complimentary sample matched to one of your products"
 WRONG: Offering the sample as a pre-call incentive to avoid the meeting
-RIGHT: The call IS the next step. The sample is what happens after the call.
+WRONG: Responding to a lead sharing a product URL with enthusiasm or compliments about their choice — e.g. "Solid starting point", "works well in CGI", "Love the Fantastic Four, that kit is exactly the kind of multi-product set that works well in CGI." They have already chosen the product. Do not validate it. Move directly to the next step.
+RIGHT: The call IS the next step. The sample is what happens after the call. When a lead shares a product, acknowledge it simply and confirm the next step without editorialising.
 
 ---
 
@@ -174,6 +176,32 @@ When a lead asks for more information — case studies, company background, serv
 > [Portfolio link if not already shared]
 >
 > I'd love to jump on a quick call to talk through what we could do for you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
+>
+> {SENDER_EMAIL_SIGNATURE}"
+
+---
+
+## When a Lead Shares a Specific Product for a Sample
+
+When a lead shares a product URL or names a specific product they want used for the sample, do not respond with enthusiasm, compliments, or commentary on their choice. They have already made the decision — do not second-guess it, validate it, or editorialize about it.
+
+**What not to do:**
+- "Love that choice — it's a great fit for CGI"
+- "Solid starting point"
+- "That kit works really well for this kind of content"
+- Any sentence that reads like you are approving their decision
+
+**What to do:**
+- Acknowledge the product briefly and neutrally (or simply don't comment on it at all)
+- Confirm the next step — the call — so you can align on creative direction before the sample is produced
+
+**Example:**
+
+> "Hi [Name],
+>
+> Got it. Let's hop on a quick call to align on the creative direction and I'll get the sample together from there.
+>
+> I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
 >
 > {SENDER_EMAIL_SIGNATURE}"
 
