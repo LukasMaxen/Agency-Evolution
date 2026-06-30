@@ -250,7 +250,7 @@ function RateCell({ value, type }: { value: number; type: "reply" | "bounce" | "
   // Binary KPI coloring: green if meeting the target, red if not.
   let color: string;
   if (type === "reply") {
-    color = value >= 1 ? "#15803D" : value >= 0.5 ? "#D97706" : "#B91C1C";
+    color = parseFloat(value.toFixed(1)) >= 1 ? "#15803D" : parseFloat(value.toFixed(1)) >= 0.5 ? "#D97706" : "#B91C1C";
   } else if (type === "bounce") {
     color = value < 2 ? "#15803D" : "#B91C1C";
   } else {

@@ -362,10 +362,10 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
                                                    : "#B91C1C";
   // Reply: ≥1% is the operator target (green), 0.5-1% is the watch
   // band (amber), anything under 0.5% is a red flag.
-  const replyColor  = totals.totalSent === 0      ? "#9ca3af"
-                    : totals.replyRate >= 1       ? "#15803D"
-                    : totals.replyRate >= 0.5     ? "#D97706"
-                                                   : "#B91C1C";
+  const replyColor  = totals.totalSent === 0                                  ? "#9ca3af"
+                    : parseFloat(totals.replyRate.toFixed(1)) >= 1            ? "#15803D"
+                    : parseFloat(totals.replyRate.toFixed(1)) >= 0.5          ? "#D97706"
+                                                                               : "#B91C1C";
   // <2% bounce is healthy across the whole portfolio, ≥2% is the red
   // threshold we already use in the per-sender Bounce column. No amber
   // middle band on the headline metric — operators want a clear go/no-go.
@@ -490,10 +490,10 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
             color: w.warmupHealthAvg === null ? "#9ca3af" : w.warmupHealthAvg >= 98 ? "#15803D" : w.warmupHealthAvg >= 90 ? "#D97706" : "#B91C1C" },
           { label: "Reply rate",
             value: w.totalSent === 0 ? "—" : `${w.avgReplyRate.toFixed(1)}%`,
-            color: w.totalSent === 0      ? "#9ca3af"
-                 : w.avgReplyRate >= 1    ? "#15803D"
-                 : w.avgReplyRate >= 0.5  ? "#D97706"
-                                          : "#B91C1C" },
+            color: w.totalSent === 0                                        ? "#9ca3af"
+                 : parseFloat(w.avgReplyRate.toFixed(1)) >= 1               ? "#15803D"
+                 : parseFloat(w.avgReplyRate.toFixed(1)) >= 0.5             ? "#D97706"
+                                                                             : "#B91C1C" },
           { label: "Burn rate",
             value: w.totalSent === 0 ? "—" : `${w.burnPct.toFixed(1)}%`,
             color: w.totalSent === 0  ? "#9ca3af"
@@ -1073,7 +1073,7 @@ function SenderTable({
                     {tab === "active" ? (
                       <>
                         <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>{fmt(d.totalSent)}</td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.replyRate >= 1 ? "#15803D" : d.replyRate >= 0.5 ? "#D97706" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "10px 10px", textAlign: "right", color: parseFloat(d.replyRate.toFixed(1)) >= 1 ? "#15803D" : parseFloat(d.replyRate.toFixed(1)) >= 0.5 ? "#D97706" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.replyRate)}
                         </td>
                         <td style={{ padding: "10px 10px", textAlign: "right", color: d.bounceRate < 2 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
@@ -1283,7 +1283,7 @@ function SenderTable({
                                  :                                  "insufficient"}
                               </div>
                             </td>
-                            <td style={{ padding: "8px 10px", textAlign: "right", color: s.reply_rate >= 1 ? "#15803D" : s.reply_rate >= 0.5 ? "#D97706" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: parseFloat(s.reply_rate.toFixed(1)) >= 1 ? "#15803D" : parseFloat(s.reply_rate.toFixed(1)) >= 0.5 ? "#D97706" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                               {s.emails_sent === 0 ? "—" : pct(s.reply_rate)}
                             </td>
                             <td style={{ padding: "8px 10px", textAlign: "right", color: s.bounce_rate < 2 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
