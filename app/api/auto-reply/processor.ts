@@ -55,7 +55,7 @@ const SKIP_WORKSPACES = new Set(["itg-group", "sro-consulting"]);
 // Minimum 2000 — replies load up to 8 thread messages + system prompt + client file.
 // Below 2000, Claude truncates mid-reply and the 80-char body guard routes everything to manual.
 // 3000 gives headroom for the reasoning fields (questions_to_answer, personal_hook, pivot_line).
-const CLAUDE_MAX_TOKENS = 3000;
+const CLAUDE_MAX_TOKENS = 5000;
 
 // ─── File helpers ──────────────────────────────────────────────────────────────
 
@@ -137,8 +137,8 @@ async function fetchRecentApprovedExamples(
         .filter(line => !line.trimStart().startsWith(">"))
         .join("\n")
         .trim()
-        .slice(0, 350);
-      const sent = (row.sent_body || "").trim().slice(0, 700);
+        .slice(0, 600);
+      const sent = (row.sent_body || "").trim().slice(0, 1000);
       const company = row.lead_company ? ` (${row.lead_company})` : "";
       return `--- Example ${i + 1}${company} ---
 LEAD INBOUND:
@@ -258,7 +258,7 @@ async function fetchEBThread(
       });
 
     const firstSent = messages.find(m => m.dir === "outbound");
-    const coldEmailBody = firstSent ? firstSent.body.slice(0, 600) : null;
+    const coldEmailBody = firstSent ? firstSent.body.slice(0, 1200) : null;
     return { messages, coldEmailBody };
   } catch {
     return empty;
@@ -833,9 +833,8 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     fetchLeadEnrichment(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_lead_id ?? null),
   ]);
 
-  const recentMessages = ebThread.messages.slice(-8);
-  const threadHistory = recentMessages.length > 0
-    ? recentMessages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body.slice(0, 400)}`).join("\n\n")
+  const threadHistory = ebThread.messages.length > 0
+    ? ebThread.messages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body.slice(0, 1200)}`).join("\n\n")
     : "No prior messages.";
 
   const coldEmailBody = ebThread.coldEmailBody;
@@ -1181,7 +1180,7 @@ Company: ${reply.lead_company ?? "unknown"} | Title: ${reply.lead_title ?? "unkn
 Campaign: ${reply.campaign ?? "unknown"}
 Subject: ${reply.subject ?? ""}
 
-${messageText.slice(0, 3000)}`;
+${messageText.slice(0, 8000)}`;
 
   // ── Append per-workspace learnings to the system prompt ──────────────────────
   // Loaded from prompts/extras/<slug>.md so the weekly-review handler can
@@ -1204,7 +1203,7 @@ ${messageText.slice(0, 3000)}`;
     (result.intent === "interested" || result.intent === "needs_info") &&
     reply.thread_context
   ) {
-    const threadContextBlock = `PRIOR EMAIL CHAIN (quoted in lead's reply — what they are responding to):\n${(reply.thread_context as string).slice(0, 1500)}\n\n`;
+    const threadContextBlock = `PRIOR EMAIL CHAIN (quoted in lead's reply — what they are responding to):\n${(reply.thread_context as string).slice(0, 4000)}\n\n`;
     const enrichedMessage = userMessage.replace(
       "THREAD HISTORY — WHAT HAS BEEN SAID",
       `${threadContextBlock}THREAD HISTORY — WHAT HAS BEEN SAID`
