@@ -39,6 +39,13 @@ never:
 - Never open a reply by leading with the commercial model
 - No P.S. opt-out lines
 
+signature_rule: |
+  Always close replies with the full sender sign-off:
+    Best,
+    Lukas Maxen
+    Head of Corporate Development, Larsen Digital
+  Do NOT leave the signature as a placeholder token like {SENDER_EMAIL_SIGNATURE}.
+
 more_info_template: |
   Hi {FIRST_NAME},
 
@@ -54,7 +61,9 @@ more_info_template: |
 
   If this seems like a fit, I'd love to learn more about your plans with the brand. Here is my calendar if you'd like to explore further: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 
-  {SENDER_EMAIL_SIGNATURE}
+  Best,
+  Lukas Maxen
+  Head of Corporate Development, Larsen Digital
 
 fu_context: |
   Acceler8rs is a 3-phase DTC brand growth system: grow profitably, scale with an operating partner, then exit at 8 figures.
@@ -315,3 +324,15 @@ Subject: [subject]
 ## Internal Notes
 
 LinkedIn for Lukas skews toward Agency Evolution (B2B/PE), not Acceler8rs. Keep messaging and positioning separate between the two. Never mix Agency Evolution framing into Acceler8rs outreach.
+
+**Approved reply example (Pathfinder / M&A campaign — name correction):**
+The following was reviewed and approved. Use as a reference for tone and structure on Pathfinder replies where the lead's name was wrong in the original email:
+
+> Hi Peter,
+> Apologies for getting your name wrong in the first email.
+> Happy to share more. The buyer has committed capital and is actively looking for established consumer brands with room to grow. A confidential call is the easiest way to give you the full picture and see if there is a fit.
+> Feel free to grab a time here: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital
+>
+> Best,
+> Lukas Maxen
+> Head of Corporate Development, Larsen Digital
