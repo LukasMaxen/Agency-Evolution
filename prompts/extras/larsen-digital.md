@@ -89,6 +89,7 @@ Key rules for this shape:
 | "Why are you interested in MY company", "what caught your eye", "what makes us a fit" | needs_info (Pattern A) | `#reply-approval` with "what caught my eye" template (Pattern A below) |
 | Short positive: "sure", "yes", "happy to chat", "let me know when you're free" — BUT ONLY when the cold email CTA was a direct meeting ask | interested | `#reply-approval` with SHORT-INTERESTED reply (below). Acknowledge if there's prior thread context. |
 | "Sure", "yes", "please", "of course" when the cold email CTA was a permission-ask ("Mind if I share some more info?", "Want me to send details?") | needs_info (Pattern B) | `#reply-approval` with Pattern B lean More Info shape. The lead agreed to receive info, not to book a call. |
+| "Yes please do", "sure", "send it over" when the cold email CTA specifically offered the CASE STUDY ("Want me to send over the case study?", "Mind if I share the case study?") | needs_info (CASE-STUDY-YES) | `#reply-approval` with the CASE-STUDY-YES reply below. The lead said yes to the CASE STUDY. You MUST actually send it (link + one matched result). Do NOT fire the generic Pattern B "what we do" overview, that drops the exact thing they asked for. |
 | Specific clarifying question: "are you marketing or M&A?", "where are you based?" | needs_info (specific) | `#reply-approval` with CLARIFYING-QUESTION reply (below). Confident "We do both"-style framing. |
 | Lead requests a specific availability window: "what's your availability next Tuesday–Friday?", "give me times the week of X" | interested_window | **`#manual-replies` (awaiting_manual). NOT approval.** A human checks the calendar and proposes specific times. This is a textbook manual booking. |
 | Confirming a proposed slot: "Monday at 1pm works", "yes that time is good" | meeting_booked | `#manual-replies` (awaiting_manual). A human creates the calendar invite. |
@@ -133,6 +134,31 @@ OPTIONAL ADDITION (when the lead's brand looks ready to exit RIGHT NOW — matur
 **When background research on the brand is limited or uncertain, use the leaner PREFERRED MORE INFO REPLY SHAPE from the PERSONALIZATION ACCURACY RULES section above instead of the full canonical template.** Category-level relevance + a verified case study result outperforms over-personalized claims that could be wrong.
 
 **Tone reminder for Pattern B drafts:** The opener should feel like a real person who looked the brand up and has something specific and genuine to say about it — not a pitch block dropped on top of a name. See TONE & LANGUAGE RULES and BACKGROUND RESEARCH RULES above. If the draft reads as corporate or template-heavy, it is not ready to send.
+
+## CASE-STUDY-YES REPLY (cold email offered the case study, lead said yes)
+
+TRIGGER: the original cold email CTA (usually step 3) was "Want me to send over the case study?" or "Mind if I share the case study?" AND the lead replied with any yes ("yes please do", "sure", "go ahead", "send it over").
+
+The lead agreed to receive the CASE STUDY specifically. The reply MUST actually deliver it. This is the whole point of their message. A reply that gives a generic "here's what we do" overview and omits the case study is WRONG, it ignores what they said yes to.
+
+Rules:
+- Open with a short, plain acknowledgment (no "Happy to share more" filler).
+- Actually SEND the case study: include the link `https://www.larsendigitalmarketing.com/case-studies` AND one matched result (default Headwaters Studio, £60k/year to £1M+ in 24 months, or a result closer to the lead's category/stage if one fits).
+- One plain line on why it's relevant, then the call CTA. Do NOT dump the full value prop.
+- Keep it to 90 words or less.
+- Never write "take a look" or "here are some examples" without the actual link.
+
+```
+Hi [FIRST_NAME],
+
+Of course, here it is: https://www.larsendigitalmarketing.com/case-studies
+
+The one worth starting with is Headwaters Studio, we took them from £60k/year to over £1M in 24 months. [ONE LINE tying it to the lead's stage/category if a genuine match exists, otherwise drop this line.]
+
+If you want to talk through how we'd approach [BRAND] specifically, would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick 15? If not, grab a slot on my calendar here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
+
+[SENDER_EMAIL_SIGNATURE]
+```
 
 ## SHORT-INTERESTED REPLY (lead just says "sure", "yes", "happy to chat")
 
