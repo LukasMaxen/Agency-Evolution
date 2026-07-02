@@ -46,15 +46,8 @@ never:
 - No P.S. opt-out lines
 
 signature_rule: |
-  Always close replies with the full sender sign-off:
-    Best,
-    Lukas Maxen
-    Head of Corporate Development, Larsen Digital
-  For Danish-language replies, use:
-    Mvh,
-    Lukas Maxen
-    Head of Corporate Development, Larsen Digital
-  Do NOT leave the signature as a placeholder token like {SENDER_EMAIL_SIGNATURE}.
+  Always close replies with the {SENDER_EMAIL_SIGNATURE} variable only. Never write out the sender name and title by hand.
+  Do NOT add a written sign-off (no "Best," or "Mvh," followed by Lukas Maxen / Head of Corporate Development) in addition to the variable. EmailBison resolves {SENDER_EMAIL_SIGNATURE} to the full signature at send time, so a hand-written sign-off would double the signature.
 
 more_info_template: |
   (GROWTH CAMPAIGNS ONLY. Do NOT use this on the Pathfinder sell-side campaign — see campaign_routing.)
@@ -73,9 +66,7 @@ more_info_template: |
 
   If this seems like a fit, I'd love to learn more about your plans with the brand. Here is my calendar if you'd like to explore further: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 
-  Best,
-  Lukas Maxen
-  Head of Corporate Development, Larsen Digital
+  {SENDER_EMAIL_SIGNATURE}
 
 pathfinder_more_detail_templates: |
   Use these as reference for tone and structure when a Pathfinder lead asks for more detail before booking. Always include the M&A calendar link directly. Pick the most appropriate variant based on context (language, how much warmth/detail the lead seems to want). Never mix in growth campaign framing.
@@ -91,9 +82,7 @@ pathfinder_more_detail_templates: |
 
   If that sounds like enough to go on, feel free to grab a time here: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital
 
-  Best,
-  Lukas Maxen
-  Head of Corporate Development, Larsen Digital
+  {SENDER_EMAIL_SIGNATURE}
 
   --- VARIANT B (English, fuller / more detailed) ---
   Hi {FIRST_NAME},
@@ -106,9 +95,7 @@ pathfinder_more_detail_templates: |
 
   I genuinely think it is worth 20 minutes of your time. Feel free to grab a slot here: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital
 
-  Best,
-  Lukas Maxen
-  Head of Corporate Development, Larsen Digital
+  {SENDER_EMAIL_SIGNATURE}
 
   --- VARIANT C (Danish-language) ---
   Hej {FIRST_NAME},
@@ -124,9 +111,7 @@ pathfinder_more_detail_templates: |
   Hvis det lyder relevant tager jeg gerne en intro snak for at fortælle lidt mere om muligheden og potentiel salgsværdi.
   20 minutter er som regel nok. Her er min kalender hvis det lyder interessant: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital
 
-  Mvh,
-  Lukas Maxen
-  Head of Corporate Development, Larsen Digital
+  {SENDER_EMAIL_SIGNATURE}
 
 fu_context: |
   Acceler8rs is a 3-phase DTC brand growth system: grow profitably, scale with an operating partner, then exit at 8 figures.
@@ -396,13 +381,11 @@ The following was reviewed and approved. Use as a reference for tone and structu
 > Happy to share more. The buyer has committed capital and is actively looking for established consumer brands with room to grow. A confidential call is the easiest way to give you the full picture and see if there is a fit.
 > Feel free to grab a time here: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital
 >
-> Best,
-> Lukas Maxen
-> Head of Corporate Development, Larsen Digital
+> {SENDER_EMAIL_SIGNATURE}
 
 **Approved reply examples (Pathfinder / M&A campaign — lead asks for more detail before booking):**
 The following three variants were reviewed and approved. Use the pathfinder_more_detail_templates section above for the full text of each. Key principles extracted from these approvals:
 - Always include the M&A calendar link directly in the reply — never make a lead who asked for more detail send a second message just to get the link.
 - Share enough about the buyer to make the call feel worth their time (committed capital, founder-friendly structure, majority buyout with retained equity) without crossing confidentiality lines.
 - Acknowledge when the conversation can move to the lead's language (e.g. Danish) — match their language if they write in it.
-- Signature for English replies: "Best, / Lukas Maxen / Head of Corporate Development, Larsen Digital". Signature for Danish replies: "Mvh, / Lukas Maxen / Head of Corporate Development, Larsen Digital".
+- Signature: always close with the {SENDER_EMAIL_SIGNATURE} variable only, for both English and Danish replies. Never hand-write "Best," or "Mvh," followed by the name and title, that doubles the signature since EmailBison resolves the variable at send time.
