@@ -24,6 +24,8 @@ Always close replies with a full email signature block: 'Best,\nLukas Maxen\nHea
 
 When including the Calendly link in replies, wrap it in angle brackets (e.g. <https://calendly.com/...>) rather than leaving it as a bare URL. Also, always close with a manual sign-off block ('Best, / Lukas Maxen / Head of Corporate Development, Larsen Digital') rather than relying on a {SENDER_EMAIL_SIGNATURE} placeholder.
 
+Never include both a written-out signature line (e.g. 'Lukas Maxen') AND the {SENDER_EMAIL_SIGNATURE} variable in the same draft. Use one or the other, not both. In practice, always use the written-out signature block and never include the {SENDER_EMAIL_SIGNATURE} placeholder anywhere in the draft.
+
 When a lead confirms a call or agrees to connect and asks for buyer details before the call, do not over-explain or list out the buyer's profile in full. Keep the reply brief and forward-moving: confirm the call is set, share one short line of context about the buyer (e.g. 'a private investment group focused on acquiring established consumer brands with committed capital ready to move'), then redirect remaining details to the call. Close with the Calendly link wrapped in angle brackets and the standard sign-off. Example used in practice:
 
 > Hi Cyril,
