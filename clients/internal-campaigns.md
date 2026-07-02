@@ -61,10 +61,7 @@ When describing the commercial model, say only: performance basis, pay per relev
 >
 > Easiest to align on what would be useful for ABRB on a quick call. Feel free to grab a time here: https://calendly.com/lukasm-acceler8rs/intro-meeting-clone
 >
-> Best,
->
-> Lukas Maxen
-> Founder, Agency Evolution
+> {SENDER_EMAIL_SIGNATURE}
 
 ---
 
@@ -78,10 +75,7 @@ When describing the commercial model, say only: performance basis, pay per relev
 >
 > Worth a quick call to talk through your mandate and see if we can be useful? https://calendly.com/lukasm-acceler8rs/intro-meeting-clone
 >
-> Best,
->
-> Lukas Maxen
-> Founder, Agency Evolution
+> {SENDER_EMAIL_SIGNATURE}
 
 ---
 
