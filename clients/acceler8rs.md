@@ -30,6 +30,7 @@ reply_rules:
 - Lead asks for case studies: send https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
 - Lead gives specific day/time: post to #manual-replies
 - Lead wants a sell-side / M&A / exit conversation (explicitly wants to discuss actually selling or exiting the business now, Phase 3, not growth): send the M&A link (calendly_ma above), not the operating partner link. Lukas takes those calls himself, so no hand-off line, just frame it as the M&A / capital markets track.
+- Pathfinder lead asks for more detail before booking a call: always include the M&A calendar link directly in the reply so they can book without a follow-up exchange. Never make them ask again. See the approved Pathfinder more-detail templates below for tone and structure.
 
 never:
 - Never guarantee specific revenue outcomes
@@ -42,6 +43,10 @@ never:
 signature_rule: |
   Always close replies with the full sender sign-off:
     Best,
+    Lukas Maxen
+    Head of Corporate Development, Larsen Digital
+  For Danish-language replies, use:
+    Mvh,
     Lukas Maxen
     Head of Corporate Development, Larsen Digital
   Do NOT leave the signature as a placeholder token like {SENDER_EMAIL_SIGNATURE}.
@@ -62,6 +67,57 @@ more_info_template: |
   If this seems like a fit, I'd love to learn more about your plans with the brand. Here is my calendar if you'd like to explore further: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 
   Best,
+  Lukas Maxen
+  Head of Corporate Development, Larsen Digital
+
+pathfinder_more_detail_templates: |
+  Use these as reference for tone and structure when a Pathfinder lead asks for more detail before booking. Always include the M&A calendar link directly. Pick the most appropriate variant based on context (language, how much warmth/detail the lead seems to want). Never mix in growth campaign framing.
+
+  --- VARIANT A (English, concise) ---
+  Hi {FIRST_NAME},
+
+  Happy to share a bit more before we get on a call.
+
+  The buyer is a private investment group actively acquiring established consumer brands. They have committed capital, are open to majority buyouts where the founder keeps some equity, and are focused on brands with room to grow. They move quickly when there is a genuine fit.
+
+  Beyond that the specifics are better covered on a confidential call, simply because there is a limit to what we can share in writing at this stage.
+
+  If that sounds like enough to go on, feel free to grab a time here: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital
+
+  Best,
+  Lukas Maxen
+  Head of Corporate Development, Larsen Digital
+
+  --- VARIANT B (English, fuller / more detailed) ---
+  Hi {FIRST_NAME},
+
+  Happy to share a bit more before we get on a call.
+
+  The buyer is a private investment group that has been quietly acquiring consumer brands across Europe and North America for several years. They have a strong track record of working closely with founders post-acquisition rather than just coming in and flipping the business. They are not a fund with a short exit horizon, they take a longer view and like to keep the brand's identity intact. Committed capital, majority buyout structure, and happy to leave meaningful equity with the founder.
+
+  Beyond that the specifics are better covered on a confidential call, partly because of what we have agreed with them in terms of confidentiality at this stage.
+
+  I genuinely think it is worth 20 minutes of your time. Feel free to grab a slot here: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital
+
+  Best,
+  Lukas Maxen
+  Head of Corporate Development, Larsen Digital
+
+  --- VARIANT C (Danish-language) ---
+  Hej {FIRST_NAME},
+
+  Tak for hurtig svar.
+
+  Vi rækker ud til en liste af udvalgte brands med samme email, og det er sjældent vi rammer en dansker, men lad os da bare tage den på dansk herfra!
+
+  Lidt om køber: de har opkøbt consumer brands i Europa og Nordamerika i flere år, arbejder tæt med stifter/founder frem for at komme ind og vende hele virksomheden på hovedet. De har kapital klar til 2-3 køb i 2026 og forventningen er at du ville få muligheden for at blive i virksomheden og beholde en andel efter opkøbet.
+
+  Det giver dig en chance for at mindske din risiko ved at realisere en del af værdien nu, mens du samtidig tager del i den fremtidige vækst.
+
+  Hvis det lyder relevant tager jeg gerne en intro snak for at fortælle lidt mere om muligheden og potentiel salgsværdi.
+  20 minutter er som regel nok. Her er min kalender hvis det lyder interessant: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital
+
+  Mvh,
   Lukas Maxen
   Head of Corporate Development, Larsen Digital
 
@@ -336,3 +392,10 @@ The following was reviewed and approved. Use as a reference for tone and structu
 > Best,
 > Lukas Maxen
 > Head of Corporate Development, Larsen Digital
+
+**Approved reply examples (Pathfinder / M&A campaign — lead asks for more detail before booking):**
+The following three variants were reviewed and approved. Use the pathfinder_more_detail_templates section above for the full text of each. Key principles extracted from these approvals:
+- Always include the M&A calendar link directly in the reply — never make a lead who asked for more detail send a second message just to get the link.
+- Share enough about the buyer to make the call feel worth their time (committed capital, founder-friendly structure, majority buyout with retained equity) without crossing confidentiality lines.
+- Acknowledge when the conversation can move to the lead's language (e.g. Danish) — match their language if they write in it.
+- Signature for English replies: "Best, / Lukas Maxen / Head of Corporate Development, Larsen Digital". Signature for Danish replies: "Mvh, / Lukas Maxen / Head of Corporate Development, Larsen Digital".
