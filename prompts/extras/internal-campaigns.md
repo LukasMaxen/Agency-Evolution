@@ -43,9 +43,7 @@ When a lead has already agreed to a call, use this exact format:
 > Hi Steve,
 > Great, feel free to grab a time here: <https://calendly.com/lukasm-acceler8rs/intro-meeting-clone>
 > Looking forward to it.
-> Best,
-> Lukas Maxen
-> Founder, Agency Evolution
+> {SENDER_EMAIL_SIGNATURE}
 
 **Rules applied in this draft:**
 - Confirms briefly (one word: "Great")
@@ -79,9 +77,7 @@ When a lead asks multiple detailed questions before agreeing to a call, apply th
 > Pricing wise it is simple, pay per relevant introduction.
 > Easiest to just hop on a call and go through it properly.
 > <https://calendly.com/lukasm-acceler8rs/m-a-consultation-clone>
-> Best,
-> Lukas Maxen
-> Founder, Agency Evolution
+> {SENDER_EMAIL_SIGNATURE}
 
 **Rules applied in this draft:**
 - Answers each question directly and stops — no trailing qualifiers after the pricing line
