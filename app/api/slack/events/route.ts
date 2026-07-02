@@ -13,6 +13,7 @@ import {
   getChannelName,
   bareChannelName,
   sanitizeDashes,
+  normalizeSignature,
   quoteForSlack,
   FEEDBACK_REVIEW_CHANNEL,
 } from "@/lib/slack-approval";
@@ -1098,7 +1099,7 @@ Produce the revised draft now.`;
     return;
   }
 
-  const newBody = sanitizeDashes(regen.result.body);
+  const newBody = normalizeSignature(sanitizeDashes(regen.result.body));
   const newSubject = regen.result.subject ? sanitizeDashes(regen.result.subject) : draft.subject;
 
   // Guard: reject a regenerated body that is too short — same truncation risk as the main processor.
@@ -1225,7 +1226,7 @@ Produce the revised follow-up draft now.`;
     return;
   }
 
-  const newBody = sanitizeDashes(regen.result.body);
+  const newBody = normalizeSignature(sanitizeDashes(regen.result.body));
   const newSubject = regen.result.subject ? sanitizeDashes(regen.result.subject) : draft.subject;
 
   // Guard: reject a regenerated body that is too short.

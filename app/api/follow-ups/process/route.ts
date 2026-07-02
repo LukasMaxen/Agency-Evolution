@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import {
   sanitizeDashes,
+  normalizeSignature,
 } from "@/lib/slack-approval";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import {
@@ -445,10 +446,9 @@ Draft FU step ${nextStep} now.`;
     }
   }
 
-  // Signature guard: append if Claude omitted it.
-  if (!/\{SENDER_EMAIL_SIGNATURE\}/i.test(draft.body)) {
-    draft.body = draft.body.trimEnd() + "\n\n{SENDER_EMAIL_SIGNATURE}";
-  }
+  // Signature guard: strip any hand-written sign-off and guarantee exactly one
+  // {SENDER_EMAIL_SIGNATURE} at the end so it never doubles EmailBison's resolved signature.
+  draft.body = normalizeSignature(draft.body);
 
   // FU emails auto-send directly — no approval queue.
   const sent = await sendReplyToEmailBison(reply, draft.body);

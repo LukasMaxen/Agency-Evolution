@@ -10,6 +10,7 @@ import {
   quoteForSlack,
   slugToName as slugToNameShared,
   sanitizeDashes,
+  normalizeSignature,
 } from "@/lib/slack-approval";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { backsyncInterestedToEmailBison } from "@/lib/emailbison-backsync";
