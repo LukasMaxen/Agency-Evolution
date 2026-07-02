@@ -1399,9 +1399,11 @@ ${messageText.slice(0, 8000)}`;
     if (revised) result.reply_body = sanitizeDashes(revised);
   }
 
-  // Signature guard
-  if (result.action === "auto_send" && result.reply_body && !/\{SENDER_EMAIL_SIGNATURE\}/i.test(result.reply_body)) {
-    result.reply_body = result.reply_body.trimEnd() + "\n\n{SENDER_EMAIL_SIGNATURE}";
+  // Signature guard: strip any hand-written sign-off and guarantee exactly one
+  // {SENDER_EMAIL_SIGNATURE} at the end, so EmailBison's resolved signature never
+  // doubles up with a manual sign-off the model may have added.
+  if (result.reply_body) {
+    result.reply_body = normalizeSignature(result.reply_body);
   }
 
   // DB flags

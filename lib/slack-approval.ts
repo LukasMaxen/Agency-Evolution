@@ -74,6 +74,29 @@ export function sanitizeDashes(text: string): string {
     .replace(/\s+-\s+/g, ", ");
 }
 
+/**
+ * Guarantee a drafted email body ends with exactly one {SENDER_EMAIL_SIGNATURE}
+ * variable and never a hand-written sign-off.
+ *
+ * EmailBison resolves {SENDER_EMAIL_SIGNATURE} to the sender's full signature at
+ * send time. If the model also writes out a manual sign-off ("Best, / Lukas Maxen /
+ * Head of Corporate Development, Larsen Digital"), the recipient gets two signatures.
+ * This strips any trailing hand-written sign-off block and re-appends a single
+ * variable, so the variable is the only sign-off regardless of prompt drift.
+ */
+export function normalizeSignature(body: string): string {
+  // Drop every existing signature-variable token so we can re-append exactly one.
+  let out = body.replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").trimEnd();
+
+  // Strip a trailing manual sign-off: a closer line (Best, / Regards / Mvh / etc.)
+  // followed by up to three short name/title lines at the very end of the body.
+  const closer =
+    /(?:^|\n)[^\S\n]*(?:best(?:\s+regards)?|kind\s+regards|warm\s+regards|regards|mvh|med\s+venlig\s+hilsen|venlig\s+hilsen|sincerely|cheers|all\s+the\s+best|thanks|thank\s+you)[,.]?[^\S\n]*(?:\n[^\S\n]*[^\n]{0,60}){0,3}\s*$/i;
+  out = out.replace(closer, "").trimEnd();
+
+  return `${out}\n\n{SENDER_EMAIL_SIGNATURE}`;
+}
+
 export function slugToName(slug: string): string {
   return slug
     .split("-")
