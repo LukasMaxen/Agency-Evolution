@@ -45,7 +45,7 @@ When describing the commercial model, say only: performance basis, pay per relev
 - Over-explain when the lead just wants a quick answer
 - Say 'you only pay when a deal closes', 'per closed deal', or use any deal-close framing when describing the commercial model
 
-**Calendar link:** https://calendly.com/lukasmaxen/agency-evolution
+**Calendar link:** https://calendly.com/lukasm-acceler8rs/intro-meeting-clone
 
 ---
 
@@ -59,7 +59,7 @@ When describing the commercial model, say only: performance basis, pay per relev
 >
 > We source proprietary off-market deal flow for family offices, PE firms, and M&A advisors. Sell-side origination, buy-side mandates, strategic buyer outreach, all performance based with no retainer. Enterprise value range is typically $5M to $250M and we match everything to the client's mandate before anything gets shared.
 >
-> Easiest to align on what would be useful for ABRB on a quick call. Feel free to grab a time here: https://calendly.com/lukasmaxen/agency-evolution
+> Easiest to align on what would be useful for ABRB on a quick call. Feel free to grab a time here: https://calendly.com/lukasm-acceler8rs/intro-meeting-clone
 >
 > Best,
 >
@@ -76,7 +76,7 @@ When describing the commercial model, say only: performance basis, pay per relev
 >
 > Performance basis only — there is nothing to lose except the time for an initial call. We charge per relevant introduction.
 >
-> Worth a quick call to talk through your mandate and see if we can be useful? https://calendly.com/lukasmaxen/agency-evolution
+> Worth a quick call to talk through your mandate and see if we can be useful? https://calendly.com/lukasm-acceler8rs/intro-meeting-clone
 >
 > Best,
 >
@@ -90,5 +90,5 @@ When describing the commercial model, say only: performance basis, pay per relev
 - Do not use pitch deck language or over-explain
 - Keep replies concise when the lead is asking a straightforward question
 - Always frame the no-retainer, performance-based model as a risk-alignment point, not just a pricing detail
-- Always close with the calendar link: https://calendly.com/lukasmaxen/agency-evolution
+- Always close with the calendar link: https://calendly.com/lukasm-acceler8rs/intro-meeting-clone
 - The correct framing for the commercial model is: 'Performance basis only — there is nothing to lose except the time for an initial call. We charge per relevant introduction.' Never use deal-close language such as 'you only pay when a deal closes' or 'per closed deal'
