@@ -36,3 +36,13 @@ When a lead confirms a call or agrees to connect and asks for buyer details befo
 > Best,
 > Lukas Maxen
 > Head of Corporate Development, Larsen Digital
+
+When answering a simple factual question from a lead (e.g. 'which country is the buyer from?'), answer it directly and concisely in one short paragraph, then go straight to the CTA. Do not add a second paragraph explaining why you can't share more in writing — it adds friction and over-explains. Keep the reply tight: answer + CTA only. Example used in practice:
+
+> Hi Alain,
+> The buyer is US-based. Committed capital, actively looking at consumer brands in North America including Canada.
+> Feel free to grab a time here if that sounds of interest: <https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital>
+>
+> Best,
+> Lukas Maxen
+> Head of Corporate Development, Larsen Digital
