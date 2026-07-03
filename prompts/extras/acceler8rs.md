@@ -20,15 +20,27 @@ Never write off or explicitly rule out the specific buyer mentioned in the outre
 
 When a lead asks if the buyer can move quickly: (1) Answer directly — yes, if the numbers align they can move fast. (2) Keep the reply short; do not over-explain the diligence process or speculate on specifics over email. (3) Never describe the lead's business or products using website research. The correct reply format is: confirm they can move quickly if the numbers align, add one short line redirecting to a call rather than speculating over email, then close with the Calendly link. Example: "Yes, if the numbers align they can move quickly. Best to walk through it on a call and see if there is a fit. Feel free to grab a time here: [link]"
 
+<<<<<<< HEAD
 Always close replies with the {SENDER_EMAIL_SIGNATURE} variable only. Never write out a manual signature block ('Best, / Lukas Maxen / Head of Corporate Development, Larsen Digital'). EmailBison resolves the variable to the full signature at send time, so a hand-written sign-off in addition to the variable doubles the signature.
 
 When including the Calendly link in replies, wrap it in angle brackets (e.g. <https://calendly.com/...>) rather than leaving it as a bare URL. Always close with the {SENDER_EMAIL_SIGNATURE} variable only, never a manual sign-off block.
+=======
+Always close replies using only the {SENDER_EMAIL_SIGNATURE} variable — never write out a literal signature block alongside it, and never omit it. Use the variable every time, on its own, with no duplicate written-out name or title below it.
 
-When a lead confirms a call or agrees to connect and asks for buyer details before the call, do not over-explain or list out the buyer's profile in full. Keep the reply brief and forward-moving: confirm the call is set, share one short line of context about the buyer (e.g. 'a private investment group focused on acquiring established consumer brands with committed capital ready to move'), then redirect remaining details to the call. Close with the Calendly link wrapped in angle brackets and the standard sign-off. Example used in practice:
+When including the Calendly link in replies, wrap it in angle brackets (e.g. <https://calendly.com/...>) rather than leaving it as a bare URL.
+>>>>>>> origin/main
 
+Never include both a written-out signature line (e.g. 'Lukas Maxen') AND the {SENDER_EMAIL_SIGNATURE} variable in the same draft. Always use {SENDER_EMAIL_SIGNATURE} alone — never the written-out block, never both together.
+
+<<<<<<< HEAD
 > Hi Cyril,
 > Great, looking forward to it. The buyer is a private investment group focused on acquiring established consumer brands with committed capital ready to move. Let's cover the rest on a confidential call.
 >
 > Feel free to grab a time here that works for you: <https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital>
 >
 > {SENDER_EMAIL_SIGNATURE}
+=======
+When a lead confirms a call or agrees to connect and asks for buyer details before the call, do not over-explain or list out the buyer's profile in full. Keep the reply brief and forward-moving: confirm the call is set, share one short line of context about the buyer (e.g. 'a private investment group focused on acquiring established consumer brands with committed capital ready to move'), then redirect remaining details to the call. Close with the Calendly link wrapped in angle brackets and {SENDER_EMAIL_SIGNATURE}.
+
+When answering a simple factual question from a lead (e.g. 'which country is the buyer from?'), answer it directly and concisely in one short paragraph, then go straight to the CTA. Do not add a second paragraph explaining why you can't share more in writing — it adds friction and over-explains. Keep the reply tight: answer + CTA only.
+>>>>>>> origin/main
