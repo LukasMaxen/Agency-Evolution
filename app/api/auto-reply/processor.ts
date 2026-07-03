@@ -409,6 +409,44 @@ function isBulkNewsletter(subject: string, message: string): boolean {
 }
 
 /**
+ * Per-workspace hard suppression rules. A reply matching one of these is silently
+ * closed (status='read') before it can be forwarded, auto-sent, or routed to
+ * #reply-approval / #manual-replies. Deterministic and zero Claude cost.
+ *
+ * Added 2026-07-03 on request:
+ *   - Statera Capital: EmailBison "You got N new message(s)" notification stubs.
+ *   - GN Motion: any reply mentioning Peter Gerasimov (in any field).
+ *
+ * Returns a skip-reason string when the reply should be suppressed, else null.
+ */
+function workspaceSuppressionReason(
+  workspaceSlug: string,
+  reply: Record<string, any>,
+  messageText: string
+): string | null {
+  const subject = (reply.subject ?? "").toString();
+
+  if (workspaceSlug === "statera-capital") {
+    // "You got 1 new message", "You've got 2 new messages", "You have 1 new message", etc.
+    if (/you(?:'ve| have)?\s*(?:got\s+)?\d+\s+new messages?/i.test(`${subject}\n${messageText}`)) {
+      return "statera_new_message_notification";
+    }
+  }
+
+  if (workspaceSlug === "gn-motion") {
+    const haystack = [reply.lead_name, reply.lead_email, reply.lead_company, subject, messageText]
+      .filter(Boolean)
+      .join("\n")
+      .toLowerCase();
+    if (haystack.includes("peter gerasimov")) {
+      return "gn_motion_peter_gerasimov";
+    }
+  }
+
+  return null;
+}
+
+/**
  * Scans the message for email addresses that differ from the lead on record.
  * Returns a warning string if a different sender is detected.
  */
@@ -781,6 +819,19 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ intent: "no_action", skipped_reason: "bulk_newsletter" }), replyId]);
     return;
+  }
+
+  // ── Pre-filter 1c: Per-workspace hard suppression ────────────────────────────
+  // Client-specific stubs/contacts that must never reach forwarding, reply-approval,
+  // or manual-replies (Statera "N new messages" notifications; GN Motion Peter
+  // Gerasimov). Runs before forwarding so these are never surfaced anywhere.
+  {
+    const suppressReason = workspaceSuppressionReason(workspaceSlug, reply, messageText);
+    if (suppressReason) {
+      await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ intent: "no_action", skipped_reason: suppressReason }), replyId]);
+      return;
+    }
   }
 
   // ── Pre-filter 2: Own outbound email echoed back ──────────────────────────────
