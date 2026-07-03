@@ -100,6 +100,11 @@ async function sendViaEmailBison(
     console.error("[slack-events] Missing EmailBison fields, cannot send");
     return false;
   }
+  // Final signature guard at the send gate. Guarantees no approval-sent email ever
+  // carries a hand-written sign-off alongside {SENDER_EMAIL_SIGNATURE} — including
+  // drafts stored before the normalize fix shipped, or by any un-normalized path.
+  // Idempotent for already-clean drafts.
+  if (body) body = normalizeSignature(body);
   // Recipient resolution: prefer override (set when forward/redirect detected),
   // fall back to lead. Never use to_email, that is OUR sender address.
   const recipientEmail = reply.preferred_recipient_email ?? reply.lead_email;
