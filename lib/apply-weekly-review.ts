@@ -63,69 +63,44 @@ export function resolveTargetPath(target: string): string | null {
 }
 
 /**
- * Use Claude to merge proposed patterns into an existing markdown file.
- * Returns the full new file content, or null on error.
+ * Managed heading under which weekly-review and send-time learnings are appended.
+ * Created once at the end of the target file and reused thereafter, so every new
+ * entry accumulates beneath it and the newest rule always wins if it overrides an
+ * older one.
  */
-export async function applyPatternsToFile(
+export const LEARNINGS_HEADING = "## Weekly Review Learnings (auto-applied, apply always)";
+
+/**
+ * Deterministically append approved patterns to a markdown rule file and return
+ * the full new file content.
+ *
+ * This replaces the previous "ask Claude to regenerate the whole file" merge,
+ * which timed out or hit the 16k output-token cap on large files (e.g.
+ * CONTEXT_Replies.md, ~14k tokens) and had no truncation guard, so a clipped
+ * response could silently overwrite existing rules. Appending is pure string
+ * work: it cannot time out, truncate, or delete existing content, and costs no
+ * tokens. Each pattern becomes a dated subsection under LEARNINGS_HEADING.
+ *
+ * dateStr is passed in (YYYY-MM-DD) so this stays pure and testable.
+ */
+export function appendPatternsToFile(
   existingContent: string,
   patterns: WeeklyReviewPattern[],
-  threadComments: string
-): Promise<string | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  threadComments: string,
+  dateStr: string
+): string {
+  const entries = patterns
+    .map(p => `### ${dateStr}: ${p.title.trim()}\n\n${p.proposed_rule_change.trim()}`)
+    .join("\n\n");
 
-  const systemPrompt = `You are editing a markdown documentation file. You will receive the current full file contents and one or more proposed rule changes. Apply each proposed change to the file by inserting or modifying text in the right section. Preserve all existing content exactly. Add the new content under the most appropriate existing heading, or create a new subsection if needed.
+  const note = threadComments.trim()
+    ? `\n\n_Reviewer notes: ${threadComments.trim().replace(/\s+/g, " ")}_`
+    : "";
 
-OUTPUT: the complete new file content, nothing else. No preamble, no fences, no commentary. Just the full file as it should look after your edits.`;
+  const base = existingContent.replace(/\s+$/, "");
+  const heading = existingContent.includes(LEARNINGS_HEADING) ? "" : `\n\n${LEARNINGS_HEADING}`;
 
-  const patternsBlock = patterns.map((p, i) =>
-    `Pattern ${i + 1}: ${p.title}\nTarget: ${p.target_file}\nConfidence: ${p.confidence}\nProposed rule change:\n${p.proposed_rule_change}`
-  ).join("\n\n---\n\n");
-
-  const userMessage = `EXISTING FILE CONTENT:
-${existingContent}
-
-PROPOSED PATTERN(S) TO APPLY:
-${patternsBlock}
-
-${threadComments ? `HUMAN INSTRUCTIONS FROM THE REVIEW THREAD (apply these as filters or refinements):\n${threadComments}\n\n` : ""}Output the full revised file content now.`;
-
-  const applyController = new AbortController();
-  const applyTimeout = setTimeout(() => applyController.abort(), 120_000);
-
-  let response: Response;
-  try {
-    response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 16000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userMessage }],
-      }),
-      signal: applyController.signal,
-    });
-  } catch (err: any) {
-    if (err?.name === "AbortError") console.error("[apply-patterns] Claude timed out after 120s");
-    else console.error("[apply-patterns] Claude fetch error:", err?.message);
-    return null;
-  } finally {
-    clearTimeout(applyTimeout);
-  }
-  if (!response.ok) {
-    console.error("[apply-patterns] Claude error:", response.status, await response.text());
-    return null;
-  }
-  const data = await response.json();
-  const text = (data.content?.[0]?.text ?? "").trim();
-  // If the model wrapped the file in fences, strip them.
-  const fenced = text.match(/^```[a-z]*\n([\s\S]*?)\n```$/);
-  return fenced ? fenced[1] : text;
+  return `${base}${heading}\n\n${entries}${note}\n`;
 }
 
 /**
@@ -138,7 +113,8 @@ export async function commitReviewPatterns(
   patterns: WeeklyReviewPattern[],
   threadComments: string,
   reviewerName: string,
-  commitFooter: string
+  commitFooter: string,
+  dateStr: string
 ): Promise<ApplyResult> {
   const patternsByFile = new Map<string, WeeklyReviewPattern[]>();
   const skippedTargets: string[] = [];
@@ -163,11 +139,7 @@ export async function commitReviewPatterns(
       continue;
     }
 
-    const newContent = await applyPatternsToFile(file.content, filePatterns, threadComments);
-    if (!newContent) {
-      failed.push(`${filePath}: Claude could not generate the merged file`);
-      continue;
-    }
+    const newContent = appendPatternsToFile(file.content, filePatterns, threadComments, dateStr);
     if (newContent === file.content) {
       console.log(`[apply-weekly-review] No changes generated for ${filePath}, skipping`);
       continue;

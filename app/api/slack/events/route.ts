@@ -820,12 +820,13 @@ async function applyWeeklyReview(reviewTs: string, channel: string, reviewerName
     return;
   }
 
-  // Resolve targets, merge, and commit via the shared apply core.
+  // Resolve targets, append, and commit via the shared apply core.
   const { applied, failed, skippedTargets } = await commitReviewPatterns(
     patterns,
     threadComments,
     reviewerName,
-    "Reviewed via #feedback-review weekly review."
+    "Reviewed via #feedback-review weekly review.",
+    new Date().toISOString().slice(0, 10)
   );
 
   // Only mark as applied if at least one file actually committed. Otherwise leave

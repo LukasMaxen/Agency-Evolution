@@ -438,7 +438,8 @@ async function autoApplyClientReview(opts: {
     patterns,
     "",
     `${name} auto-apply (no human gate)`,
-    `Auto-applied from ${slug} feedback review (client-managed, no human gate).`
+    `Auto-applied from ${slug} feedback review (client-managed, no human gate).`,
+    new Date().toISOString().slice(0, 10)
   );
 
   if (applied.length > 0) {
