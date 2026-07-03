@@ -516,6 +516,10 @@ async function approveReplyDraft(draft: ReplyDraftRow, slackUserId: string, chan
     return;
   }
 
+  // Strip any hand-written sign-off so the sent email and the sent_emails log below
+  // both carry only {SENDER_EMAIL_SIGNATURE} (never a duplicated signature).
+  draft.body = normalizeSignature(draft.body);
+
   const sent = await sendViaEmailBison(
     reply,
     reply.email_bison_api_key,
@@ -620,6 +624,10 @@ async function approveFollowUpDraft(draft: FollowUpDraftRow, slackUserId: string
     return;
   }
   const reply = replyResult.rows[0];
+
+  // Strip any hand-written sign-off so the sent email and the sent_emails log below
+  // both carry only {SENDER_EMAIL_SIGNATURE} (never a duplicated signature).
+  if (draft.body) draft.body = normalizeSignature(draft.body);
 
   const sent = await sendViaEmailBison(
     reply,
