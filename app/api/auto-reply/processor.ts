@@ -434,11 +434,14 @@ function workspaceSuppressionReason(
   }
 
   if (workspaceSlug === "gn-motion") {
-    const haystack = [reply.lead_name, reply.lead_email, reply.lead_company, subject, messageText]
+    const raw = [reply.lead_name, reply.lead_email, reply.lead_company, subject, messageText]
       .filter(Boolean)
       .join("\n")
       .toLowerCase();
-    if (haystack.includes("peter gerasimov")) {
+    // Normalise separators so email/handle forms (peter.gerasimov@, peter_gerasimov,
+    // petergerasimov) match the name too, not just the spaced "Peter Gerasimov".
+    const normalized = raw.replace(/[^a-z0-9]+/g, " ");
+    if (normalized.includes("peter gerasimov") || raw.includes("petergerasimov")) {
       return "gn_motion_peter_gerasimov";
     }
   }
