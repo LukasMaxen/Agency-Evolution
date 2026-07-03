@@ -24,7 +24,7 @@ import {
   WeeklyReviewPattern,
   WeeklyReviewSummary,
   resolveTargetPath,
-  applyPatternsToFile,
+  appendPatternsToFile,
   commitReviewPatterns,
 } from "@/lib/apply-weekly-review";
 import {
@@ -229,12 +229,17 @@ async function learnFromSendApproval(
       target_file: decision.target_file,
       confidence: "high",
     };
-    const newContent = await applyPatternsToFile(file.content, [syntheticPattern], feedback.join("\n\n"));
-    if (!newContent || newContent === file.content) {
+    const newContent = appendPatternsToFile(
+      file.content,
+      [syntheticPattern],
+      feedback.join("\n\n"),
+      new Date().toISOString().slice(0, 10)
+    );
+    if (newContent === file.content) {
       await postToSlack({
         channel,
         threadTs: ts,
-        text: `Tried to bake the rule into \`${targetPath}\` but Claude returned no change. Skipping.`,
+        text: `Tried to bake the rule into \`${targetPath}\` but produced no change. Skipping.`,
       });
       return;
     }
