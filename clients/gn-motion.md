@@ -21,6 +21,9 @@ reply_rules:
 - Lead writes in French: respond entirely in French. Close with "Bien cordialement."
 - Lead redirected us to a colleague (via email): email that colleague directly using referral as opener
 
+auto_suppressed:
+- Peter Gerasimov: any reply mentioning this name in any field (lead name, email, company, subject, body) is auto-suppressed by the processor pre-filter and never reaches #reply-approval or #manual-replies. Enforced in code (workspaceSuppressionReason), not a drafting rule.
+
 never:
 - Never say "free" — always "complimentary"
 - Never say "efficacy" for cosmetics

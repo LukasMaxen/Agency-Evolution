@@ -47,6 +47,9 @@ never (all types):
 - Never include specific deal metrics (operator client names, engineer counts, revenue figures, EBITDA margins, team size) in a reply body unless the lead explicitly asked and the metric is in the approved teaser. If you are unsure, send only the teaser link and let them read it. Do not add context or commentary beyond what was in the original cold email.
 - Never apologize for an email landing in spam. Simply follow up as normal.
 
+auto_suppressed:
+- "You got N new message(s)" notification stubs (e.g. "You got 1 new message", "You have 2 new messages"): auto-suppressed by the processor pre-filter and never routed to #reply-approval or #manual-replies. Enforced in code (workspaceSuppressionReason), not a drafting rule.
+
 fu_context: |
   TYPE 1 (Sell Side Advisory) FU angles: the buyer Svetlin represents has committed capital and a clear brief — most owners they approach weren't actively looking but took the call out of curiosity. A follow-up call is low commitment and confidential. Re-engagement: "the buyer is still actively looking in your sector."
   TYPE 2 (TelcoLab) FU angles: exclusive mandate with a specific telecom software platform. The process is live. PE firms and strategics who missed the teaser are missing an active deal — the window for engagement is real.
