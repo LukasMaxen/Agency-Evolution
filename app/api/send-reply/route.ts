@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
+import { normalizeSignature } from "@/lib/slack-approval";
 
 // Resolve EmailBison merge tags with real lead data
 function resolveMergeTags(body: string, leadName: string, leadEmail: string, leadCompany: string | null, leadTitle: string | null): string {
@@ -61,9 +62,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Sender email ID missing from reply" }, { status: 400 });
     }
 
+    // Strip any hand-written sign-off so only {SENDER_EMAIL_SIGNATURE} is sent,
+    // never a duplicated signature. Applies to manual composer sends too.
+    const cleanMessage = normalizeSignature(message);
+
     // Resolve merge tags in the message
     const resolvedMessage = resolveMergeTags(
-      message,
+      cleanMessage,
       reply.lead_name,
       reply.lead_email,
       reply.lead_company,
