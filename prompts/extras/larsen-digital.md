@@ -319,3 +319,11 @@ This is a negative reference. The draft below was rejected. Do not replicate thi
 - Open with a warm, natural line that shows genuine familiarity with what they've built — one specific, accurate observation, written like a human made it.
 - Use a case study that mirrors their category or stage.
 - Keep the language plain and direct. If it sounds like a pitch deck, rewrite it.
+
+## Weekly Review Learnings (auto-applied, apply always)
+
+### 2026-07-07: Send-time learning from Kasper Zacho
+
+When closing a reply that hands off to a calendar link, end with a warm closing line such as 'Wish you best of luck with the call!' before the signature. Do not end the email on the calendar link line alone.
+
+_Reviewer notes: Hi Thorben, Impressive! That is a different level, love to hear it. At €100M there is a lot more to talk about in terms of deal structure, valuation, and the right type of buyer. Definitely worth a proper conversation. I will get you set up with Lukas Maxen, our Head of Corporate Development, he handles all of our M&A conversations and is the right person to go through this with you. Feel free to grab a time here: <https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital|calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital> Wish you best of luck with the call! {SENDER_EMAIL_SIGNATURE}_
