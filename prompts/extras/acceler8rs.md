@@ -29,3 +29,11 @@ Never include both a written-out signature line (e.g. 'Lukas Maxen') AND the {SE
 When a lead confirms a call or agrees to connect and asks for buyer details before the call, do not over-explain or list out the buyer's profile in full. Keep the reply brief and forward-moving: confirm the call is set, share one short line of context about the buyer (e.g. 'a private investment group focused on acquiring established consumer brands with committed capital ready to move'), then redirect remaining details to the call. Close with the Calendly link wrapped in angle brackets and {SENDER_EMAIL_SIGNATURE}.
 
 When answering a simple factual question from a lead (e.g. 'which country is the buyer from?'), answer it directly and concisely in one short paragraph, then go straight to the CTA. Do not add a second paragraph explaining why you can't share more in writing — it adds friction and over-explains. Keep the reply tight: answer + CTA only.
+
+## Weekly Review Learnings (auto-applied, apply always)
+
+### 2026-07-07: Send-time learning from Kasper Zacho
+
+Never include the Acceler8rs company LinkedIn URL (linkedin.com/company/acceler8rs) or the Acceler8rs website URL (acceleratorsgrp.com) in reply drafts. Only the sender's personal LinkedIn profile may be shared for identity verification purposes.
+
+_Reviewer notes: dont share "<https://www.linkedin.com/company/acceler8rs|linkedin.com/company/acceler8rs>." and "<http://acceleratorsgrp.com|acceleratorsgrp.com>" Hi Mimosa, Completely reasonable ask. I'm Lukas Maxen, Head of Corporate at Larsen Digital. You can verify me on LinkedIn here: <https://www.linkedin.com/in/lukasmaxen|linkedin.com/in/lukasmaxen> We work with a private investment group actively acquiring established consumer brands, and SÜK's purpose-driven identity and repeat-purchase workwear model is exactly the kind of thing they are looking at. If that checks out and you are open to a short confidential conversation, feel free to grab a time here: <https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital|calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital> {SENDER_EMAIL_SIGNATURE}_
