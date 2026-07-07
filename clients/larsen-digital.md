@@ -225,6 +225,8 @@ _What's being pitched: Larsen Digital's M&A-focused growth and exit service for 
 
 **Case studies to reference:**
 - Headwaters Studio: £60k/year → £1M+/year in 24 months
+- $0 → $850k/month in 4 months (US brands); $152k → $1.1M/month in 13 months
+- NEVER reference "Motel Margarita" or "KyiKyi" — not approved Larsen Digital case studies. Hard rule, also enforced in the REPLY QUICK REFERENCE block above.
 
 **Client cap framing (when relevant):**
 "We only take on 15 clients at a time" — this is a Larsen Digital differentiator. Do not use for Acceler8rs.
