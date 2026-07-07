@@ -4,6 +4,21 @@ Running record of significant actions, decisions, and corrections. Append to the
 
 ---
 
+## 2026-07-07
+
+### Reply-approval backlog cleared (catch-up run)
+
+Kasper was overwhelmed by the #reply-approval queue. Cleared all pending drafts received since Fri Jul 3, auto-sending the safe ones and holding the risky ones for manual review. Scope excluded GN Motion / Peter Gerasimov per standing rule.
+
+- **29 pending drafts** in scope (acceler8rs 12, larsen-digital 13, act-capital 2, statera-capital 2). All were already `action=auto_send` drafts sitting in approval only because of the daily review quota.
+- **25 sent** via EmailBison (replicated the Slack approve→send path: normalizeSignature, sent_emails insert, replies→replied, reply_drafts→sent, FU record with `next_fu_due=NULL` so no surprise follow-ups). `reviewed_by='kasper-catchup'`.
+- **4 held** for manual review (left in awaiting_approval): Abdullah/Rightangled (leaning not-interested + "range of acquirers" framing violation), Deborah/Heaven Skincare (thread already ended, unprompted booking push), Luanne/Oro Sports (unsupported "you and Lukas are already connected" claim), Martin/Hole in the Wall (unverified phone number in draft).
+- **3 content fixes before send**: Don/STAX and Jennifer/TruKid had fabricated time slots ("Tuesday 10am AEST", "Wednesday 11am PST") stripped to Calendly-only; Priscilla had an odd "best of luck with the call" line removed.
+
+### Bug found: approval drafts store Slack-style links that break when sent
+
+`reply_drafts.body` often stores links as `<https://url>` or `<https://url|label>` (Slack mrkdwn). The send path (`bodyToHtml` → `linkifyHtml`, regex `https?://[^\s<]+`) captures the trailing `>` / `|label` into the `href`, producing a dead Calendly/teaser link. ~15 of the 29 drafts were affected. Worked around this run by normalizing every URL to plain form before send (`<(url)(\|...)?>` → `url`). **This affects the normal Slack approve flow too and should be fixed at source** (strip brackets in the drafter, or fix `linkifyHtml` to drop a trailing `>`).
+
 ## 2026-05-05
 
 ### Reply system overhaul
