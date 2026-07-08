@@ -143,7 +143,7 @@ The lead agreed to receive the CASE STUDY specifically. The reply MUST actually 
 
 Rules:
 - Open with a short, plain acknowledgment (no "Happy to share more" filler).
-- Actually SEND the case study: include the link `https://www.larsendigitalmarketing.com/case-studies` AND one matched result (default Headwaters Studio, £60k/year to £1M+ in 24 months, or a result closer to the lead's category/stage if one fits).
+- Actually SEND the case study: include the link `https://www.larsendigitalmarketing.com/case-studies` AND one matched anonymous result ($0 to $850k/month in 4 months, or $152k to $1.1M/month in 13 months, matched to the lead's brand size). NEVER name a specific client brand (Headwaters Studio, Motel Margarita, and KyiKyi are all deactivated).
 - One plain line on why it's relevant, then the call CTA. Do NOT dump the full value prop.
 - Keep it to 90 words or less.
 - Never write "take a look" or "here are some examples" without the actual link.
@@ -153,7 +153,7 @@ Hi [FIRST_NAME],
 
 Of course, here it is: https://www.larsendigitalmarketing.com/case-studies
 
-The one worth starting with is Headwaters Studio, we took them from £60k/year to over £1M in 24 months. [ONE LINE tying it to the lead's stage/category if a genuine match exists, otherwise drop this line.]
+One that stands out is a US brand we took from $0 to $850k/month in 4 months. [ONE LINE tying it to the lead's stage/category if a genuine match exists, otherwise drop this line.]
 
 If you want to talk through how we'd approach [BRAND] specifically, would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick 15? If not, grab a slot on my calendar here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 

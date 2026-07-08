@@ -18,7 +18,7 @@ Run this before pushing any sequence update or launching a new campaign. Check e
 ## Audience & Currency
 
 - [ ] Currency matches audience: £ for UK campaigns, $ for US/global
-- [ ] Case studies match currency (Motel Margarita + KyiKyi = UK £, General = US $)
+- [ ] Case studies match currency (£ for UK campaigns, $ for US/global) and are anonymous, never name a client brand. Headwaters Studio, Motel Margarita, and KyiKyi are deactivated and must not appear.
 - [ ] ICP and targeting match the copy angle
 
 ## Structure
