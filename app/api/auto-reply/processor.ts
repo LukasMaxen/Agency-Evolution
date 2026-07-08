@@ -147,9 +147,14 @@ async function fetchRecentApprovedExamples(
        LIMIT $3`,
       [workspaceSlug, excludeLeadEmail, limit]
     );
-    if (r.rows.length === 0) return "";
+    // Drop any past reply that referenced a now-deactivated case study. Without this
+    // filter, a reply sent before a case study was banned keeps getting fed back as a
+    // "match this voice" example for up to 14 days, re-seeding the banned name into new
+    // drafts long after the ban (the exact reason KyiKyi/Headwaters kept resurfacing).
+    const cleanRows = r.rows.filter(row => !containsBannedCaseStudy(row.sent_body || ""));
+    if (cleanRows.length === 0) return "";
 
-    const examples = r.rows.map((row, i) => {
+    const examples = cleanRows.map((row, i) => {
       const inbound = (row.inbound || "")
         .replace(/On \w+,? \w+ \d+,? \d{4}[\s\S]*/, "")
         .split("\n")
@@ -167,7 +172,7 @@ OUR APPROVED REPLY (sent):
 ${sent}`;
     }).join("\n\n");
 
-    return `POSITIVE EXAMPLES (the last ${r.rows.length} approved replies for this workspace, match this voice and structure unless the current lead's situation requires deviating, do NOT copy specifics verbatim, learn the pattern):
+    return `POSITIVE EXAMPLES (the last ${cleanRows.length} approved replies for this workspace, match this voice and structure unless the current lead's situation requires deviating, do NOT copy specifics verbatim, learn the pattern):
 
 ${examples}
 
@@ -947,7 +952,15 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     : detectAlternateSender(messageText, reply.lead_email);
 
   // ── System prompt ─────────────────────────────────────────────────────────────
-  const systemPrompt = `You are the reply agent for Maxen Partners, a cold email agency managing outbound campaigns for M&A advisors, PE firms, franchise brands, and creative agencies. Your job is to draft replies that read like they came from a senior person who carefully read the whole thread — not an AI working through a checklist.
+  const systemPrompt = `You are the reply agent for Maxen Partners, a cold email agency managing outbound campaigns for M&A advisors, PE firms, franchise brands, and creative agencies. Your job is to draft replies that read like they came from a senior person who carefully read the whole thread, not an AI working through a checklist.
+
+## TONE (this comes before every other rule about what to say)
+
+Write like a warm, considerate human replying to another human. The person on the other end is a real founder or operator who took the time to respond, treat them that way. Be kind, plain, and genuinely helpful. Sound like a thoughtful person, not a clever one.
+
+Do NOT try to sound smart, impressive, or interesting. No clever openers, no MBA vocabulary, no showing off that you noticed something about their business. If a sentence exists to make US look sharp rather than to help THEM, cut it. A reply that is warm, clear, and short beats one that is clever every single time.
+
+Read the ENTIRE thread before writing a single word. Everything already said, everything already offered, everything they already told you. Your reply must fit naturally as the next message in that specific conversation. If you would not understand your own reply reading the thread top to bottom, rewrite it.
 
 Every reply is sent AS the client's sender (e.g. Jeff Zanardi from ACT Capital, Nicklas Larsen from Larsen Digital, Svetlin Petrov from Statera Capital). You are not Maxen Partners. You are that person. Write in first person as them. Never refer to the sender by name as a subject ("Nicklas works with" is wrong. "I work with" is right. Always).
 
@@ -961,7 +974,7 @@ Every reply is sent AS the client's sender (e.g. Jeff Zanardi from ACT Capital, 
 
 4. CHECK THE RECIPIENT. If the reply was sent by someone other than the lead on record (different name, "forwarded to me by", reply from a different email address), set recipient_email and recipient_name to that person. Address them directly.
 
-5. USE THE LEAD COMPANY CONTEXT BLOCK. This is the most important personalization input. The block gives you EXIT SIGNALS, the attributes that make this brand attractive to a strategic or PE buyer (own manufacturing, consumable LTV, patented IP, premium pricing, category buyer interest, etc.). You MUST reference at least ONE specific exit signal from this block in the opener of the reply. The reference must be concrete, drawn from a visible detail on their site.
+5. USE THE LEAD COMPANY CONTEXT BLOCK WHERE IT GENUINELY HELPS. The block gives you EXIT SIGNALS, the attributes that make this brand attractive to a strategic or PE buyer (own manufacturing, consumable LTV, patented IP, premium pricing, category buyer interest, etc.). Reference ONE concrete detail from it when it makes the reply more relevant to what the lead actually asked, and weave it in naturally. Do NOT force a clever observation about their business into the opener of every reply just to prove you did your homework. If the lead asked a plain question or said a plain yes, a plain, warm, direct answer serves them better than a personalized hook. Never lead with a hook that reads as "look what I noticed about you."
 
 CRITICAL FRAMING. The reason we reach out to a brand is because something about THEIR brand makes us think they could exit well. NEVER frame it as "we focus on [category] brands" or "we work with [category]". We do NOT focus on categories, we focus on brands that look exit-worthy. The right framing is "what made [BRAND] stand out" or "what stood out about [BRAND]" followed by the specific exit signal. The signal can be one of:
    - their product is consumable / generates repeat purchase / strong LTV
@@ -1501,6 +1514,20 @@ ${messageText.slice(0, 8000)}`;
       [result.recipient_email, result.recipient_name ?? null, replyId]);
     replyWithCreds.preferred_recipient_email = result.recipient_email;
     replyWithCreds.preferred_recipient_name = result.recipient_name ?? null;
+  }
+
+  // ── Deactivated case study backstop ──────────────────────────────────────────
+  // Last line of defence: if a drafted body still references a banned case study
+  // (stale client-file line, recycled example, or model hallucination slipped
+  // through the prompt), never send it. Route to a human with the offending name
+  // named so they can swap in an approved reference. See BANNED_CASE_STUDIES.
+  if (result.reply_body) {
+    const banned = containsBannedCaseStudy(result.reply_body);
+    if (banned) {
+      result.action = "manual";
+      result.manual_reason = `Draft referenced a deactivated case study ("${banned}"). Blocked from sending. Rewrite with an approved reference before sending.`;
+      console.warn(`[auto-reply] Blocked banned case study "${banned}" in draft for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
+    }
   }
 
   // ── Route ─────────────────────────────────────────────────────────────────────
