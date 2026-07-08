@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { normalizeSignature } from "@/lib/slack-approval";
+import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
 
 // Resolve EmailBison merge tags with real lead data
 function resolveMergeTags(body: string, leadName: string, leadEmail: string, leadCompany: string | null, leadTitle: string | null): string {
@@ -60,6 +61,17 @@ export async function POST(req: NextRequest) {
 
     if (!senderEmailId) {
       return NextResponse.json({ error: "Sender email ID missing from reply" }, { status: 400 });
+    }
+
+    // Deactivated case-study guard at the send gate. Blocks any deactivated case
+    // study (Headwaters/KyiKyi/Motel Margarita) from reaching a lead, even from the
+    // manual composer. See lib/banned-case-studies.ts.
+    const bannedInMessage = containsBannedCaseStudy(message);
+    if (bannedInMessage) {
+      return NextResponse.json(
+        { error: `Reply references a deactivated case study ("${bannedInMessage}"). Remove it and use an approved anonymous result before sending.` },
+        { status: 422 }
+      );
     }
 
     // Strip any hand-written sign-off so only {SENDER_EMAIL_SIGNATURE} is sent,

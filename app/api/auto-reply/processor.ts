@@ -23,6 +23,7 @@ import {
 } from "@/lib/calendly-slot-suggestions";
 import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
 import { sanitizeJsonControlChars } from "@/lib/utils";
+import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,24 +53,6 @@ const CLIENT_FILE_ALIASES: Record<string, string> = {
 // sonaro-ai removed 2026-06-17: onboarded onto bot. Approval channel routed to
 // C0BATJ48BL3 (#reply-management) via workspaces.slack_approval_channel column.
 const SKIP_WORKSPACES = new Set(["itg-group", "sro-consulting"]);
-
-// Case studies that are deactivated everywhere and must never appear in any drafted
-// reply, for any client. Deterministic backstop: even if a stale client-file line, a
-// recycled positive example, or the model itself reintroduces one, the guard below
-// catches it and routes the draft to a human instead of sending. Names are matched
-// case-insensitively with flexible spacing (see containsBannedCaseStudy).
-// See clients/_deactivated-case-studies.md for the archive + restore instructions.
-const BANNED_CASE_STUDIES = ["motel margarita", "kyikyi", "kyi kyi", "headwaters"];
-
-/** True if the text references any deactivated case study (name match, spacing-tolerant). */
-function containsBannedCaseStudy(text: string): string | null {
-  if (!text) return null;
-  const normalized = text.toLowerCase().replace(/[^a-z0-9]+/g, " ");
-  for (const name of BANNED_CASE_STUDIES) {
-    if (normalized.includes(name.replace(/[^a-z0-9]+/g, " "))) return name;
-  }
-  return null;
-}
 
 // Minimum 2000 — replies load up to 8 thread messages + system prompt + client file.
 // Below 2000, Claude truncates mid-reply and the 80-char body guard routes everything to manual.
