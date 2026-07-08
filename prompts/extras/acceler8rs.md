@@ -37,3 +37,9 @@ When answering a simple factual question from a lead (e.g. 'which country is the
 Never include the Acceler8rs company LinkedIn URL (linkedin.com/company/acceler8rs) or the Acceler8rs website URL (acceleratorsgrp.com) in reply drafts. Only the sender's personal LinkedIn profile may be shared for identity verification purposes.
 
 _Reviewer notes: dont share "<https://www.linkedin.com/company/acceler8rs|linkedin.com/company/acceler8rs>." and "<http://acceleratorsgrp.com|acceleratorsgrp.com>" Hi Mimosa, Completely reasonable ask. I'm Lukas Maxen, Head of Corporate at Larsen Digital. You can verify me on LinkedIn here: <https://www.linkedin.com/in/lukasmaxen|linkedin.com/in/lukasmaxen> We work with a private investment group actively acquiring established consumer brands, and SÜK's purpose-driven identity and repeat-purchase workwear model is exactly the kind of thing they are looking at. If that checks out and you are open to a short confidential conversation, feel free to grab a time here: <https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital|calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital> {SENDER_EMAIL_SIGNATURE}_
+
+### 2026-07-08: Send-time learning from Kasper Zacho
+
+When including a calendar CTA, frame it as 'Feel free to grab a time here and we can walk through what a conversation actually looks like' followed by the calendar link — do not use bare 'Feel free to grab a time here:' with just a link. The framing sets expectations and reduces friction for skeptical sellers.
+
+_Reviewer notes: good but wf is this cta: Feel free to grab a time here and we can walk through what a conversation actually looks like we still need a cta you idiot_
