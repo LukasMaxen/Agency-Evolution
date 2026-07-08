@@ -53,6 +53,24 @@ const CLIENT_FILE_ALIASES: Record<string, string> = {
 // C0BATJ48BL3 (#reply-management) via workspaces.slack_approval_channel column.
 const SKIP_WORKSPACES = new Set(["itg-group", "sro-consulting"]);
 
+// Case studies that are deactivated everywhere and must never appear in any drafted
+// reply, for any client. Deterministic backstop: even if a stale client-file line, a
+// recycled positive example, or the model itself reintroduces one, the guard below
+// catches it and routes the draft to a human instead of sending. Names are matched
+// case-insensitively with flexible spacing (see containsBannedCaseStudy).
+// See clients/_deactivated-case-studies.md for the archive + restore instructions.
+const BANNED_CASE_STUDIES = ["motel margarita", "kyikyi", "kyi kyi", "headwaters"];
+
+/** True if the text references any deactivated case study (name match, spacing-tolerant). */
+function containsBannedCaseStudy(text: string): string | null {
+  if (!text) return null;
+  const normalized = text.toLowerCase().replace(/[^a-z0-9]+/g, " ");
+  for (const name of BANNED_CASE_STUDIES) {
+    if (normalized.includes(name.replace(/[^a-z0-9]+/g, " "))) return name;
+  }
+  return null;
+}
+
 // Minimum 2000 — replies load up to 8 thread messages + system prompt + client file.
 // Below 2000, Claude truncates mid-reply and the 80-char body guard routes everything to manual.
 // 3000 gives headroom for the reasoning fields (questions_to_answer, personal_hook, pivot_line).
@@ -901,12 +919,17 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // isolation. A single negative answer to a qualifying question or a one-off
   // objection is the lead continuing to engage, not withdrawing, so it should
   // never be silently closed as not_interested.
+  // "Prior interest" requires a REAL buying signal: a confirmed interested flag, a
+  // booked meeting, or an earlier interested/interested_urgent classification. A single
+  // past needs_info/neutral does NOT count — those are questions, not interest, and
+  // treating them as interest is what caused ordinary "no thanks" replies to be held
+  // open and dumped into #manual-replies instead of closing (fixed 2026-07-08).
   const priorInterest = await pool.query(
     `SELECT 1 FROM replies
      WHERE workspace_slug = $1 AND lead_email = $2 AND id <> $3
        AND ( interested = TRUE
           OR meeting_booked = TRUE
-          OR ai_analysis->>'intent' IN ('interested','interested_urgent','needs_info') )
+          OR ai_analysis->>'intent' IN ('interested','interested_urgent') )
      LIMIT 1`,
     [workspaceSlug, reply.lead_email, replyId]
   );
