@@ -441,3 +441,11 @@ Subject: [subject]
 ## Internal Notes
 
 Similar model to Acceler8rs but different positioning (8-figure exit focus). Keep Larsen Digital and Acceler8rs messaging separate, different senders. Both clients now share the same two Calendly links: operating partner intro (default) and M&A conversation (sell-side/exit, taken by Lukas Maxen).
+
+## Weekly Review Learnings (auto-applied, apply always)
+
+### 2026-07-08: Send-time learning from Kasper Zacho
+
+NEVER mention Headwater in any reply or draft for Larsen Digital.
+
+_Reviewer notes: This is the correspondence btw up to down: sounds interesting On Tue, Jul 7, 2026 at 9:04 AM Nicklas Larsen <<mailto:nicklasl@agencylarsendigital.com|nicklasl@agencylarsendigital.com>> wrote: > Hi Michael, > > Last year, we took a brand from zero to 1M a month. Built the entire growth engine, scaled it as a full operating partner, then positioned it for a strong exit. The whole journey is in a case study. > > Mind if I send it over? > > Best, > Nicklas Larsen > Founder, Larsen Digital > > P.S. Not relevant? Just say so. > > On Thu, Jun 25, 2026 12:22:52 PM Nicklas Larsen <<mailto:nicklasl@agencylarsendigital.com|nicklasl@agencylarsendigital.com>> wrote: > > > Hi Michael, > > > > Following up on my email from last week. > > Is growth, exiting, or fundraising on your radar currently? > > > > Best, > > Nicklas Larsen > > Founder, Larsen Digital > > > > On Wed, Jun 17, 2026 9:50:33 AM Nicklas Larsen <<mailto:nicklasl@agencylarsendigital.com|nicklasl@agencylarsendigital.com>> wrote: > > > >> Hi Michael, > >> > >> RESILIÉLLE COSMETICS looks set up for an institutional exit in the next 2-4 years. > >> > >> We embed as fractional operators to scale enterprise value before an exit, with most of our compensation tied to our performance. Our current DTC portfolio is at ~$90M/yr run rate, and I think your brand would fit well into our model. > >> > >> Worth a 20-min call? > >> > >> Best, > >> Nicklas Larsen > >> Founder, Larsen Digital Please read this and redo your reply, we gotta do better WTF IS THIS "The last email asked if I could send over the case study. Since you said it sounds interesting, sending it now." are you retarded? NEVER MENTION HEADWATER FOR LARSEN!!!!_
