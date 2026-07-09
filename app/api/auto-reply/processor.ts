@@ -1318,23 +1318,12 @@ ${messageText.slice(0, 8000)}`;
   if (result.reply_body) result.reply_body = sanitizeDashes(result.reply_body);
   if (result.manual_reason) result.manual_reason = sanitizeDashes(result.manual_reason);
 
-  // Safety net: a not_interested verdict on a thread where the lead already showed
-  // interest should NOT silently close. The classifier is instructed to avoid this
-  // (see threadInterestDirective), but if it still lands here, surface it to a human
-  // in #manual-replies rather than closing the conversation behind their back.
-  // hard_no still closes — that is a definitive disqualification, not a soft no.
-  if (result.intent === "not_interested" && threadHasInterest) {
-    await pool.query(`UPDATE replies SET status = 'awaiting_manual', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
-      [JSON.stringify({ intent: result.intent, auto_replied: false, skipped_reason: "not_interested_in_interested_thread_manual" }), replyId]);
-    await postManual(workspaceSlug, {
-      text: `Possible soft-no in an interested thread, ${workspaceSlug} / ${reply.lead_name}`,
-      blocks: buildCard("Lead was interested earlier, read as not_interested now", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", {
-        reason: "This lead showed interest earlier in the thread, but this latest message read as not_interested. Decide whether to nurture or let it close.",
-        intent: result.intent,
-      }),
-    });
-    return;
-  }
+  // Any not_interested / hard_no closes silently, ALWAYS. Per explicit instruction
+  // (2026-07-09): a lead who says no or "not interested" must never be routed to
+  // #manual-replies, even if they showed interest earlier in the thread. Just close
+  // it and move on. The old "surface soft-no in an interested thread to a human"
+  // safety net was removed because it was filling #manual-replies with declines.
+  // Falls through to the hard gate below, which sets status='read' with no Slack post.
 
   // Hard gate: not_interested and hard_no are NEVER replied to, regardless of Claude's action.
   // The pre-filter catches most of these for free; this catches any that slip through to Claude.
