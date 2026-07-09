@@ -19,6 +19,7 @@ import {
 } from "@/lib/slack-approval";
 import { daysUntilNextStep } from "@/lib/template-replies";
 import { sanitizeJsonControlChars } from "@/lib/utils";
+import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
 import { readFileFromGitHub, commitFileToGitHub } from "@/lib/github-commit";
 import {
   WeeklyReviewPattern,
@@ -72,7 +73,13 @@ interface FollowUpDraftRow {
 }
 
 function linkifyHtml(text: string): string {
-  return text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+  // Strip Slack-style link markup (<url|label> or <url>) to a plain URL BEFORE
+  // linkifying. Without this, the URL regex below swallows the "|label>" tail and
+  // produces a broken href that 404s (the "Calendly page not found" bug).
+  return text
+    .replace(/<((?:https?|mailto):[^|>\s]+)\|[^>]*>/g, "$1")
+    .replace(/<((?:https?|mailto):[^|>\s]+)>/g, "$1")
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
 }
 
 function bodyToHtml(body: string): string {
@@ -98,6 +105,14 @@ async function sendViaEmailBison(
 ): Promise<boolean> {
   if (!reply.email_bison_reply_id || !reply.sender_email_id || !apiKey || !instanceUrl) {
     console.error("[slack-events] Missing EmailBison fields, cannot send");
+    return false;
+  }
+  // Deactivated case-study guard at the send gate. Blocks a banned case study
+  // (Headwaters/KyiKyi/Motel Margarita) even if the Slack regenerate path or an
+  // old stored draft reintroduced it after a human approved. See lib/banned-case-studies.ts.
+  const bannedInBody = containsBannedCaseStudy(body);
+  if (bannedInBody) {
+    console.error(`[slack-events] BLOCKED send: draft references deactivated case study "${bannedInBody}" (reply ${reply.email_bison_reply_id})`);
     return false;
   }
   // Final signature guard at the send gate. Guarantees no approval-sent email ever

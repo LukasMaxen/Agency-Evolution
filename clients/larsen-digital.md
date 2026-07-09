@@ -35,8 +35,9 @@ reply_rules:
 - Lead shows general interest (no specific timeframe): send Calendly. Use the live slots from LIVE CALENDAR AVAILABILITY block if present.
 - Lead asks for meeting in a specific human-stated timeframe ("next week", "this week", "Monday morning", "Tuesday afternoon"): route to manual. A human picks the actual slot and confirms.
 - Lead asks about fees: do not volunteer pricing or fee structure. Reply: "Happy to walk you through the details on a quick call." Do NOT say "fully performance-based, no upfront fee or retainer" — this is factually inaccurate and must never appear in any reply.
-- Lead asks for case studies: mention Headwaters Studio (£60k/year to £1M+ in 24 months)
-- Lead said YES to the case-study offer (cold email step 3 asked "Want me to send over the case study?" and lead replied "yes please do" / "sure" / "send it over"): they said yes to the CASE STUDY specifically. You MUST actually send it, the link (https://www.larsendigitalmarketing.com/case-studies) plus one matched result (Headwaters Studio, £60k/year to £1M+ in 24 months, or a closer category match). Then propose the call. Do NOT fire the generic "what we do" overview, that drops the exact thing they asked for. See CASE-STUDY-YES pattern in the workspace learnings.
+- Lead asks for case studies: share the case studies page (https://www.larsendigitalmarketing.com/case-studies) and reference one anonymous US result matched to their brand size: $0 to $850k/month in 4 months, or $152k to $1.1M/month in 13 months. Never name a specific client brand.
+- HARD RULE (non-negotiable): NEVER reference "Motel Margarita", "KyiKyi", or "Headwaters Studio" as case studies, clients, or results, in any reply, follow-up, or forward. All three are deactivated (cross-client leak) and are NOT approved Larsen Digital references. The ONLY approved case-study results are the anonymous US numbers: $0 to $850k/month in 4 months, and $152k to $1.1M/month in 13 months, plus the case studies page (https://www.larsendigitalmarketing.com/case-studies). Never use a named brand. If tempted to cite one, use one of these anonymous results instead.
+- Lead said YES to the case-study offer (cold email step 3 asked "Want me to send over the case study?" and lead replied "yes please do" / "sure" / "send it over"): they said yes to the CASE STUDY specifically. You MUST actually send it, the link (https://www.larsendigitalmarketing.com/case-studies) plus one matched anonymous result ($0 to $850k/month in 4 months, or $152k to $1.1M/month in 13 months, matched to their brand size). Then propose the call. Do NOT fire the generic "what we do" overview, that drops the exact thing they asked for. See CASE-STUDY-YES pattern in the workspace learnings.
 - Lead already booked: confirm in 2 lines max. Flag meeting_booked = true. Stop FU sequence.
 - Lead asks what we do: give a concise human overview (we work with DTC consumer brands to drive growth across Meta, Google, Email and TikTok, and build toward a clean exit through our M&A team, which has closed over $1.2B in consumer transactions). Include a relevant case study link. Do not dump the full pitch.
 - Lead says "sure", "yes", "send me more info", or agrees to connect: they are saying yes to information, not agreeing to a call. Share the overview of how we work and a relevant case study first, then propose specific times. Never skip straight to booking.
@@ -116,7 +117,7 @@ never:
 
 fu_context: |
   Nicklas Larsen runs Larsen Digital — DTC brand growth with a built-in exit strategy. 250M+ in Shopify revenue managed. M&A team has closed over $1.2B in consumer transactions.
-  Case studies (use exact numbers): Headwaters Studio (£60k/year to £1M+ in 24 months). $0 to $850k/month in 4 months is available for US brands.
+  Case studies (anonymous only, never name a brand): $0 to $850k/month in 4 months, and $152k to $1.1M/month in 13 months. Case studies page: https://www.larsendigitalmarketing.com/case-studies
   Key differentiator: "We only take on 15 brands at a time" — use this in FU2 to create genuine scarcity without pressure language. Always say "your brand," never {COMPANY}.
   FU angle progression: FU2 = case study matched to their brand size/stage. FU4 = the exit angle — brands that grow without an exit strategy often undervalue themselves when they eventually sell. Nicklas helps build toward a clean 8-figure exit from day one. Every FU must include the Calendly link: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 
@@ -223,7 +224,8 @@ _What's being pitched: Larsen Digital's M&A-focused growth and exit service for 
 - Results: $0 → $850k/month in 4 months; $152k → $1.1M/month in 13 months
 
 **Case studies to reference:**
-- Headwaters Studio: £60k/year → £1M+/year in 24 months
+- $0 → $850k/month in 4 months (US brands); $152k → $1.1M/month in 13 months (anonymous, never name a brand)
+- NEVER reference "Motel Margarita", "KyiKyi", or "Headwaters Studio", none are approved Larsen Digital case studies (all deactivated, cross-client leak). Hard rule, also enforced in the REPLY QUICK REFERENCE block above and coded as a backstop in processor.ts.
 
 **Client cap framing (when relevant):**
 "We only take on 15 clients at a time" — this is a Larsen Digital differentiator. Do not use for Acceler8rs.
@@ -441,11 +443,3 @@ Subject: [subject]
 ## Internal Notes
 
 Similar model to Acceler8rs but different positioning (8-figure exit focus). Keep Larsen Digital and Acceler8rs messaging separate, different senders. Both clients now share the same two Calendly links: operating partner intro (default) and M&A conversation (sell-side/exit, taken by Lukas Maxen).
-
-## Weekly Review Learnings (auto-applied, apply always)
-
-### 2026-07-08: Send-time learning from Kasper Zacho
-
-NEVER mention Headwater in any reply or draft for Larsen Digital.
-
-_Reviewer notes: This is the correspondence btw up to down: sounds interesting On Tue, Jul 7, 2026 at 9:04 AM Nicklas Larsen <<mailto:nicklasl@agencylarsendigital.com|nicklasl@agencylarsendigital.com>> wrote: > Hi Michael, > > Last year, we took a brand from zero to 1M a month. Built the entire growth engine, scaled it as a full operating partner, then positioned it for a strong exit. The whole journey is in a case study. > > Mind if I send it over? > > Best, > Nicklas Larsen > Founder, Larsen Digital > > P.S. Not relevant? Just say so. > > On Thu, Jun 25, 2026 12:22:52 PM Nicklas Larsen <<mailto:nicklasl@agencylarsendigital.com|nicklasl@agencylarsendigital.com>> wrote: > > > Hi Michael, > > > > Following up on my email from last week. > > Is growth, exiting, or fundraising on your radar currently? > > > > Best, > > Nicklas Larsen > > Founder, Larsen Digital > > > > On Wed, Jun 17, 2026 9:50:33 AM Nicklas Larsen <<mailto:nicklasl@agencylarsendigital.com|nicklasl@agencylarsendigital.com>> wrote: > > > >> Hi Michael, > >> > >> RESILIÉLLE COSMETICS looks set up for an institutional exit in the next 2-4 years. > >> > >> We embed as fractional operators to scale enterprise value before an exit, with most of our compensation tied to our performance. Our current DTC portfolio is at ~$90M/yr run rate, and I think your brand would fit well into our model. > >> > >> Worth a 20-min call? > >> > >> Best, > >> Nicklas Larsen > >> Founder, Larsen Digital Please read this and redo your reply, we gotta do better WTF IS THIS "The last email asked if I could send over the case study. Since you said it sounds interesting, sending it now." are you retarded? NEVER MENTION HEADWATER FOR LARSEN!!!!_

@@ -143,7 +143,7 @@ The lead agreed to receive the CASE STUDY specifically. The reply MUST actually 
 
 Rules:
 - Open with a short, plain acknowledgment (no "Happy to share more" filler).
-- Actually SEND the case study: include the link `https://www.larsendigitalmarketing.com/case-studies` AND one matched result (default Headwaters Studio, £60k/year to £1M+ in 24 months, or a result closer to the lead's category/stage if one fits).
+- Actually SEND the case study: include the link `https://www.larsendigitalmarketing.com/case-studies` AND one matched anonymous result ($0 to $850k/month in 4 months, or $152k to $1.1M/month in 13 months, matched to the lead's brand size). NEVER name a specific client brand (Headwaters Studio, Motel Margarita, and KyiKyi are all deactivated).
 - One plain line on why it's relevant, then the call CTA. Do NOT dump the full value prop.
 - Keep it to 90 words or less.
 - Never write "take a look" or "here are some examples" without the actual link.
@@ -153,7 +153,7 @@ Hi [FIRST_NAME],
 
 Of course, here it is: https://www.larsendigitalmarketing.com/case-studies
 
-The one worth starting with is Headwaters Studio, we took them from £60k/year to over £1M in 24 months. [ONE LINE tying it to the lead's stage/category if a genuine match exists, otherwise drop this line.]
+One that stands out is a US brand we took from $0 to $850k/month in 4 months. [ONE LINE tying it to the lead's stage/category if a genuine match exists, otherwise drop this line.]
 
 If you want to talk through how we'd approach [BRAND] specifically, would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick 15? If not, grab a slot on my calendar here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 
@@ -319,29 +319,3 @@ This is a negative reference. The draft below was rejected. Do not replicate thi
 - Open with a warm, natural line that shows genuine familiarity with what they've built — one specific, accurate observation, written like a human made it.
 - Use a case study that mirrors their category or stage.
 - Keep the language plain and direct. If it sounds like a pitch deck, rewrite it.
-
-## Weekly Review Learnings (auto-applied, apply always)
-
-### 2026-07-07: Send-time learning from Kasper Zacho
-
-When closing a reply that hands off to a calendar link, end with a warm closing line such as 'Wish you best of luck with the call!' before the signature. Do not end the email on the calendar link line alone.
-
-_Reviewer notes: Hi Thorben, Impressive! That is a different level, love to hear it. At €100M there is a lot more to talk about in terms of deal structure, valuation, and the right type of buyer. Definitely worth a proper conversation. I will get you set up with Lukas Maxen, our Head of Corporate Development, he handles all of our M&A conversations and is the right person to go through this with you. Feel free to grab a time here: <https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital|calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital> Wish you best of luck with the call! {SENDER_EMAIL_SIGNATURE}_
-
-### 2026-07-07: Send-time learning from Kasper Zacho
-
-When including a Calendly or calendar link in a reply, format it as a Slack hyperlink using the syntax <URL|display_text> (e.g. <https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital|calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital>) rather than a plain URL. Why: the client sends replies via Slack and wants links rendered cleanly as clickable text.
-
-_Reviewer notes: send this: Hi Stefanie, Happy to share more before we get on a call. The buyer is a private investment group actively acquiring consumer brands with committed capital ready to move. On structure they are open to both full acquisitions and majority buyouts where the founder keeps a meaningful stake, so it does not have to be a full exit. What attracts them to a brand like moonbird is the combination of a growing DTC business with a clear product mission. Beyond that the specifics of how they see the fit are better covered on a confidential call, as there is only so much we can share in writing at this stage. I'll get you set up with Lukas Maxen, our Head of Corporate Development, he handles all of our M&A conversations: <https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital|calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital> {SENDER_EMAIL_SIGNATURE}_
-
-### 2026-07-07: Send-time learning from Kasper Zacho
-
-When including the Calendly link (https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital), always format it as a Slack-style hyperlink: <URL|URL> — i.e. <https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital|calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital>. Do not render it as a bare URL.
-
-_Reviewer notes: send this: Hi Joey, I'll get you set up with Lukas Maxen, our Head of Corporate Development, he handles all of our M&A conversations. Feel free to grab a time here: <https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital|calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital> {SENDER_EMAIL_SIGNATURE}_
-
-### 2026-07-07: Send-time learning from Kasper Zacho
-
-When hyperlinking URLs in replies for this workspace, always format them as Slack-style inline links using the pipe syntax: <URL|display-text> where display-text is the bare domain+path without 'https://www.' (e.g. <https://www.larsendigitalmarketing.com/case-studies|larsendigitalmarketing.com/case-studies>). Apply this to both the case studies link and the Calendly booking link. The canonical Calendly link for this workspace is: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner — display as calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner.
-
-_Reviewer notes: Send this exactly: Hi Chris, Happy to cover all of that. On case studies, here is a good starting point: <https://www.larsendigitalmarketing.com/case-studies|larsendigitalmarketing.com/case-studies> On how we engage, we come in as a fractional operating partner covering paid acquisition, retention, and conversion. We work alongside the existing team rather than replacing it. On fees, yes performance tied economics are core to how we structure engagements. There is typically a base component and a performance fee tied to revenue or profit added, so our incentives stay aligned with yours. On category conflicts, happy to address that on a call once we know more about Stryve's specific situation. On references, we can arrange those once there is mutual interest confirmed on both sides. If that covers enough ground, feel free to grab a time here: <https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner|calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner> {SENDER_EMAIL_SIGNATURE}_

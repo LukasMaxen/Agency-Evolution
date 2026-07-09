@@ -901,7 +901,7 @@ Do NOT: "If anything changes down the road feel free to reach out and best of lu
 >
 > 3. Exit — When the time is right, we manage the M&A process through our investment banking partners.
 >
-> [Brief case study line — e.g. "KyiKyi went from £13k to £140k/month in 60 days."]
+> [Brief case study line, anonymous only, e.g. "One US brand went from $0 to $850k/month in 4 months." Never name a client brand. Headwaters Studio, Motel Margarita, and KyiKyi are all deactivated.]
 >
 > Worth a quick call to map out a path for [Company]? [Calendly link]
 >

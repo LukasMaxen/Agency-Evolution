@@ -111,7 +111,7 @@ pathfinder_more_detail_templates: |
 
 fu_context: |
   Acceler8rs is a 3-phase DTC brand growth system: grow profitably, scale with an operating partner, then exit at 8 figures.
-  Case studies (use exact numbers — specificity builds trust): Motel Margarita (£25k to £102k/month in 90 days), KyiKyi (£13k to £140k/month in 60 days), Headwaters Studio (£60k/year to £1M+ in 24 months). UK campaigns use £, US use $.
+  Case studies (anonymous only, never name a brand): a US brand went from $6,342 to $93,210/month in 4 months (3.75x ROAS). UK campaigns use £, US use $. Never reference Headwaters Studio, Motel Margarita, or KyiKyi (all deactivated).
   Strongest differentiator line: "Most agencies help you grow OR help you sell. We do both." Use this in FU2 if the brand seems at a growth stage with no exit plan yet.
   FU angles: FU2 = case study most relevant to their brand type. FU4 = the exit angle — "brands that focus only on growth often leave significant value on the table when they eventually sell." Always say "your brand," never the company variable. Case study link: https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
 
@@ -220,10 +220,8 @@ _What's being pitched: Scale a Shopify brand to 7-figures, then position and exe
 - This is non-negotiable across all Acceler8rs scripts
 
 **Case studies to reference:**
-- Motel Margarita: £25k → £102k/month in 90 days (UK client — use £)
-- KyiKyi: £13k → £140k/month in 60 days (UK client — use £)
-- Headwaters Studio: £60k/year → £1M+/24 months (UK client — use £)
-- General: Brand from $6,342 to $93,210/month in 4 months (3.75x ROAS) (US client — use $)
+- General: Brand from $6,342 to $93,210/month in 4 months (3.75x ROAS) (US client — use $), anonymous, never name the brand
+- NEVER reference "Headwaters Studio", "Motel Margarita", or "KyiKyi", all deactivated (cross-client leak). Also coded as a backstop in processor.ts.
 
 **Currency rules:**
 - UK campaigns: use £ for all case study figures

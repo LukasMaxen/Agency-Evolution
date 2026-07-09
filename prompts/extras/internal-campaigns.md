@@ -9,8 +9,8 @@
 - Write like a real person, short and direct. No padding, no flattery.
 - Never make geographic assumptions about the lead or claim to work with firms in their area unless you know this for a fact.
 - Never use the buy-side calendar link for sell-side advisor outreach. Use the correct link based on the campaign context:
-  - Agency Evolution / sell-side advisor outreach: <https://calendly.com/lukasm-acceler8rs/intro-meeting-clone>
-  - Buy-side / PE buyer outreach: <https://calendly.com/lukasm-acceler8rs/m-a-consultation-clone>
+  - Agency Evolution / sell-side advisor outreach: <https://calendly.com/lukasmaxen/m-a-consultation>
+  - Buy-side / PE buyer outreach: <https://calendly.com/lukasmaxen/buy-side-mandate-conversation>
 - Keep it to one or two lines max when the lead has already agreed to a call. Just confirm and share the link.
 - Never add unsolicited information after the lead has agreed to connect.
 
@@ -41,7 +41,7 @@
 When a lead has already agreed to a call, use this exact format:
 
 > Hi Steve,
-> Great, feel free to grab a time here: <https://calendly.com/lukasm-acceler8rs/intro-meeting-clone>
+> Great, feel free to grab a time here: <https://calendly.com/lukasmaxen/m-a-consultation>
 > Looking forward to it.
 > {SENDER_EMAIL_SIGNATURE}
 
@@ -55,7 +55,7 @@ When a lead has already agreed to a call, use this exact format:
 
 ## Buy-Side / PE Buyer Outreach
 
-**Calendar link:** <https://calendly.com/lukasm-acceler8rs/m-a-consultation-clone>
+**Calendar link:** <https://calendly.com/lukasmaxen/buy-side-mandate-conversation>
 
 Apply the same three-line rule: if the lead has agreed to a call, confirm, share the correct buy-side link, and close. Do not pitch again.
 
@@ -76,7 +76,7 @@ When a lead asks multiple detailed questions before agreeing to a call, apply th
 > On hard-tech, we do not specialize in it but we can absolutely source within that mandate if you give us the specifics.
 > Pricing wise it is simple, pay per relevant introduction.
 > Easiest to just hop on a call and go through it properly.
-> <https://calendly.com/lukasm-acceler8rs/m-a-consultation-clone>
+> <https://calendly.com/lukasmaxen/buy-side-mandate-conversation>
 > {SENDER_EMAIL_SIGNATURE}
 
 **Rules applied in this draft:**
