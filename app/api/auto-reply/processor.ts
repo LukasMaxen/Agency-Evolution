@@ -558,7 +558,10 @@ async function sendToEmailBison(reply: Record<string, any>, body: string, ccEmai
   const recipientEmail = reply.preferred_recipient_email ?? reply.lead_email;
   const recipientName = reply.preferred_recipient_name ?? reply.lead_name ?? null;
 
-  const linkify = (t: string) => t.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+  const linkify = (t: string) => t
+    .replace(/<((?:https?|mailto):[^|>\s]+)\|[^>]*>/g, "$1")
+    .replace(/<((?:https?|mailto):[^|>\s]+)>/g, "$1")
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
   const htmlBody = body.split("\n\n")
     .map(p => `<p style="margin:0 0 16px 0;">${linkify(p.replace(/\n/g, "<br>"))}</p>`)
     .join("");
@@ -610,7 +613,10 @@ async function forwardToClient(reply: Record<string, any>, forwardTo: string, cc
   const ebLink = `${url}/inbox/replies/${reply.id}`;
   const leadLine = [reply.lead_name, reply.lead_company].filter(Boolean).join(" at ") || reply.lead_email;
   const body = `FYI, new inbound reply from ${leadLine}.\n\nOpen in EmailBison to read the full thread and respond.\n\n${ebLink}`;
-  const linkify = (t: string) => t.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+  const linkify = (t: string) => t
+    .replace(/<((?:https?|mailto):[^|>\s]+)\|[^>]*>/g, "$1")
+    .replace(/<((?:https?|mailto):[^|>\s]+)>/g, "$1")
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
   const htmlBody = body.split("\n\n").map(p => `<p style="margin:0 0 16px 0;">${linkify(p.replace(/\n/g, "<br>"))}</p>`).join("");
 
   const ccList = (ccEmails ?? "").split(",").map(e => e.trim()).filter(Boolean).map(email_address => ({ name: null, email_address }));

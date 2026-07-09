@@ -73,7 +73,13 @@ interface FollowUpDraftRow {
 }
 
 function linkifyHtml(text: string): string {
-  return text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+  // Strip Slack-style link markup (<url|label> or <url>) to a plain URL BEFORE
+  // linkifying. Without this, the URL regex below swallows the "|label>" tail and
+  // produces a broken href that 404s (the "Calendly page not found" bug).
+  return text
+    .replace(/<((?:https?|mailto):[^|>\s]+)\|[^>]*>/g, "$1")
+    .replace(/<((?:https?|mailto):[^|>\s]+)>/g, "$1")
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
 }
 
 function bodyToHtml(body: string): string {

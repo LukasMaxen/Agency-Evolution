@@ -89,7 +89,10 @@ export async function POST(req: NextRequest) {
 
     // Convert URLs to clickable links
     const linkify = (text: string) =>
-      text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+      text
+        .replace(/<((?:https?|mailto):[^|>\s]+)\|[^>]*>/g, "$1")
+        .replace(/<((?:https?|mailto):[^|>\s]+)>/g, "$1")
+        .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
 
     // Convert plain text to HTML paragraphs with explicit spacing and clickable links
     const htmlMessage = resolvedMessage
