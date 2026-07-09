@@ -437,6 +437,13 @@ function workspaceSuppressionReason(
     if (/you(?:'ve| have)?\s*(?:got\s+)?\d+\s+new messages?/i.test(`${subject}\n${messageText}`)) {
       return "statera_new_message_notification";
     }
+    // Piers Dunhill campaign (2026-07-09): the @dunhillventures.io persona inbox
+    // (pd@, danielle@, jason@) is pure noise (LinkedIn, newsletters, spam). Suppress
+    // every reply on that persona so none of it reaches reply-approval / manual-replies.
+    const sender = (reply.sender_email ?? "").toString().toLowerCase();
+    if (sender.endsWith("@dunhillventures.io") || /@dunhillventures\.io\b/.test(`${subject}\n${messageText}`.toLowerCase())) {
+      return "statera_piers_dunhill";
+    }
   }
 
   if (workspaceSlug === "gn-motion") {
@@ -447,8 +454,11 @@ function workspaceSuppressionReason(
     // Normalise separators so email/handle forms (peter.gerasimov@, peter_gerasimov,
     // petergerasimov) match the name too, not just the spaced "Peter Gerasimov".
     const normalized = raw.replace(/[^a-z0-9]+/g, " ");
-    if (normalized.includes("peter gerasimov") || raw.includes("petergerasimov")) {
-      return "gn_motion_peter_gerasimov";
+    // Suppress anything Peter (peter@gnmotion.co) is engaged with — as sender, CC, or
+    // mentioned anywhere in the thread — plus the original Peter Gerasimov name match.
+    // Added peter@gnmotion.co 2026-07-09 on request: his threads were flooding the chats.
+    if (normalized.includes("peter gerasimov") || raw.includes("petergerasimov") || raw.includes("peter@gnmotion.co")) {
+      return "gn_motion_peter";
     }
   }
 
