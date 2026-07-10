@@ -272,6 +272,42 @@ async function fetchEBThread(
   }
 }
 
+// ─── Reply CC fetch ──────────────────────────────────────────────────────────
+// Reads the people CC'd on the inbound reply directly from EmailBison. Leads
+// routinely loop in an agent, lawyer, or colleague via CC and say "talk to them" —
+// their address lives in the CC header, never in the body, so the body-only
+// detectAlternateSender misses it and the reply misroutes to the original sender
+// (the Shawn/Andy incident, 2026-07-10). Surfacing the CC list to the drafter lets
+// a referral handover route to the right person. Returns [] on any failure.
+async function fetchReplyCc(
+  instanceUrl: string,
+  apiKey: string,
+  ebReplyId: string | number | null
+): Promise<Array<{ name: string | null; address: string }>> {
+  if (!instanceUrl || !apiKey || !ebReplyId) return [];
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8_000);
+    let res: Response;
+    try {
+      res = await fetch(`${instanceUrl}/api/replies/${ebReplyId}`, {
+        headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) return [];
+    const data = await res.json();
+    const cc = (data?.data?.cc ?? data?.cc ?? []) as Array<{ name?: string | null; address?: string }>;
+    return cc
+      .filter(c => c && typeof c.address === "string" && c.address.includes("@"))
+      .map(c => ({ name: c.name ?? null, address: (c.address as string).toLowerCase() }));
+  } catch {
+    return [];
+  }
+}
+
 // ─── Self-critique pass ────────────────────────────────────────────────────────
 
 async function callClaudeCritique(
@@ -900,7 +936,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // Reads all messages (inbound + outbound) from EB so manual replies sent by
   // Kasper inside EmailBison are included. Falls back to "No prior messages."
   // if EB is unreachable — processor still drafts, just without thread context.
-  const [ebThread, leadEnrichment] = await Promise.all([
+  const [ebThread, leadEnrichment, replyCc] = await Promise.all([
     fetchEBThread(
       workspace.email_bison_instance_url ?? "",
       workspace.email_bison_api_key ?? "",
@@ -908,7 +944,19 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
       reply.email_bison_reply_id ?? null
     ),
     fetchLeadEnrichment(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_lead_id ?? null),
+    fetchReplyCc(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_reply_id ?? null),
   ]);
+
+  // People CC'd on this reply (agent, lawyer, colleague the lead may hand us to).
+  // Exclude our own sender and the lead themselves so only genuine third parties remain.
+  const ccThirdParties = replyCc.filter(c =>
+    c.address !== (reply.lead_email ?? "").toLowerCase() &&
+    c.address !== (reply.sender_email ?? "").toLowerCase() &&
+    !c.address.startsWith("noreply") && !c.address.startsWith("no-reply")
+  );
+  const ccBlock = ccThirdParties.length > 0
+    ? `PEOPLE CC'd ON THE LEAD'S REPLY (real addresses from the email header — the lead may be handing you to one of them):\n${ccThirdParties.map(c => `- ${c.name ?? "(no name)"} <${c.address}>`).join("\n")}\nIf the lead points you to one of these people ("I've cc'd my agent", "talk to [Name]", "looping in [Name]"), this is a REFERRAL HANDOVER: set recipient_email to that person's EXACT address from this list, address them by first name, and CC the original sender (${reply.lead_email}). Never address a person here without also setting recipient_email to their address — otherwise the reply goes to the wrong inbox.\n\n`
+    : "";
 
   const threadHistory = ebThread.messages.length > 0
     ? ebThread.messages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body.slice(0, 1200)}`).join("\n\n")
@@ -1061,7 +1109,7 @@ Route to manual when a lead asks for a meeting in a specific human-stated timefr
 CRITICAL — DO NOT INVENT REASONS TO ESCALATE: If a lead says "yes", "sure", "please send it over", "send me the teaser", "I'm interested", or any clear affirmative — draft the reply and set action to auto_send. Do not route to manual because you imagine a scenario (NDA, data room, legal process) that is not explicitly stated in the lead's message. Only escalate to manual for the three cases above (phone with number, specific day+time without always_send_calendly, specific human-stated meeting window). Everything else: draft it and send it.
 
 REFERRAL HANDOVER PATTERN: When the lead forwards/passes you to a colleague ("@Gilbert have an initial conversation", "looping in our COO", "let's bring in [Name]"), do all of this:
-1. Set recipient_email and recipient_name to the new person they pointed you to (the colleague, not the original lead).
+1. Set recipient_email and recipient_name to the new person they pointed you to (the colleague, not the original lead). Their exact address is almost always in the "PEOPLE CC'd ON THE LEAD'S REPLY" block in the user message — use it verbatim. NEVER greet a person without setting recipient_email to their address; addressing "Andy" while leaving recipient_email unset sends the reply to the wrong inbox.
 2. Greet the new person by first name.
 3. Briefly acknowledge the intro from the original sender in one short line.
 4. Keep the reply SHORT. The colleague has been pre-greenlit, do not dump info, do not pitch the full value prop, do not list case studies.
@@ -1264,7 +1312,7 @@ Do not confirm a single slot, always offer both.
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${ccBlock}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
@@ -1496,6 +1544,29 @@ ${messageText.slice(0, 8000)}`;
   if (result.flag_meeting_booked) {
     await pool.query(`UPDATE replies SET meeting_booked = TRUE WHERE id = $1`, [replyId]);
     await pool.query(`UPDATE follow_ups SET meeting_booked = TRUE, next_fu_due = NULL, outcome = 'booked' WHERE reply_id = $1`, [replyId]);
+  }
+
+  // Referral-CC backstop: if the draft greets a CC'd third party by first name but
+  // recipient_email was NOT set to their address, set it here (and CC the original
+  // lead). Guarantees a "Hi Andy" reply reaches Andy even if the model addressed him
+  // without setting the recipient — the exact Shawn/Andy misroute. Deterministic.
+  if (ccThirdParties.length > 0 && result.reply_body) {
+    const greetMatch = result.reply_body.match(/^\s*(?:hi|hello|hey|dear)\s+([a-z][a-z'\-]+)/i);
+    const greetedFirst = greetMatch?.[1]?.toLowerCase();
+    const recipLower = (result.recipient_email ?? "").toLowerCase();
+    const recipIsCc = ccThirdParties.some(c => c.address === recipLower);
+    if (greetedFirst && !recipIsCc) {
+      const match = ccThirdParties.find(c => (c.name ?? "").toLowerCase().split(/\s+/)[0] === greetedFirst);
+      if (match) {
+        result.recipient_email = match.address;
+        result.recipient_name = match.name ?? result.recipient_name;
+        const leadLower = (reply.lead_email ?? "").toLowerCase();
+        if (leadLower && !(result.cc_emails ?? []).map(e => e.toLowerCase()).includes(leadLower)) {
+          result.cc_emails = [...(result.cc_emails ?? []), reply.lead_email];
+        }
+        console.log(`[auto-reply] Referral-CC backstop: routed to CC'd ${match.address} (greeted "${greetedFirst}"), CC lead ${reply.lead_email}`);
+      }
+    }
   }
 
   // Persist recipient override BEFORE routing — approval path reads it from DB later.
