@@ -1546,6 +1546,29 @@ ${messageText.slice(0, 8000)}`;
     await pool.query(`UPDATE follow_ups SET meeting_booked = TRUE, next_fu_due = NULL, outcome = 'booked' WHERE reply_id = $1`, [replyId]);
   }
 
+  // Referral-CC backstop: if the draft greets a CC'd third party by first name but
+  // recipient_email was NOT set to their address, set it here (and CC the original
+  // lead). Guarantees a "Hi Andy" reply reaches Andy even if the model addressed him
+  // without setting the recipient — the exact Shawn/Andy misroute. Deterministic.
+  if (ccThirdParties.length > 0 && result.reply_body) {
+    const greetMatch = result.reply_body.match(/^\s*(?:hi|hello|hey|dear)\s+([a-z][a-z'\-]+)/i);
+    const greetedFirst = greetMatch?.[1]?.toLowerCase();
+    const recipLower = (result.recipient_email ?? "").toLowerCase();
+    const recipIsCc = ccThirdParties.some(c => c.address === recipLower);
+    if (greetedFirst && !recipIsCc) {
+      const match = ccThirdParties.find(c => (c.name ?? "").toLowerCase().split(/\s+/)[0] === greetedFirst);
+      if (match) {
+        result.recipient_email = match.address;
+        result.recipient_name = match.name ?? result.recipient_name;
+        const leadLower = (reply.lead_email ?? "").toLowerCase();
+        if (leadLower && !(result.cc_emails ?? []).map(e => e.toLowerCase()).includes(leadLower)) {
+          result.cc_emails = [...(result.cc_emails ?? []), reply.lead_email];
+        }
+        console.log(`[auto-reply] Referral-CC backstop: routed to CC'd ${match.address} (greeted "${greetedFirst}"), CC lead ${reply.lead_email}`);
+      }
+    }
+  }
+
   // Persist recipient override BEFORE routing — approval path reads it from DB later.
   // Previously this was inside the auto_send branch, so approved drafts sent to wrong address.
   if (result.recipient_email) {
