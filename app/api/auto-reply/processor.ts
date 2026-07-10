@@ -272,6 +272,42 @@ async function fetchEBThread(
   }
 }
 
+// ─── Reply CC fetch ──────────────────────────────────────────────────────────
+// Reads the people CC'd on the inbound reply directly from EmailBison. Leads
+// routinely loop in an agent, lawyer, or colleague via CC and say "talk to them" —
+// their address lives in the CC header, never in the body, so the body-only
+// detectAlternateSender misses it and the reply misroutes to the original sender
+// (the Shawn/Andy incident, 2026-07-10). Surfacing the CC list to the drafter lets
+// a referral handover route to the right person. Returns [] on any failure.
+async function fetchReplyCc(
+  instanceUrl: string,
+  apiKey: string,
+  ebReplyId: string | number | null
+): Promise<Array<{ name: string | null; address: string }>> {
+  if (!instanceUrl || !apiKey || !ebReplyId) return [];
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8_000);
+    let res: Response;
+    try {
+      res = await fetch(`${instanceUrl}/api/replies/${ebReplyId}`, {
+        headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) return [];
+    const data = await res.json();
+    const cc = (data?.data?.cc ?? data?.cc ?? []) as Array<{ name?: string | null; address?: string }>;
+    return cc
+      .filter(c => c && typeof c.address === "string" && c.address.includes("@"))
+      .map(c => ({ name: c.name ?? null, address: (c.address as string).toLowerCase() }));
+  } catch {
+    return [];
+  }
+}
+
 // ─── Self-critique pass ────────────────────────────────────────────────────────
 
 async function callClaudeCritique(
