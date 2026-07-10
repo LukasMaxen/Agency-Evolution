@@ -1089,6 +1089,8 @@ Apply the human feedback as the priority. Keep what is already good in the origi
 HARD RULES (always apply, even during revision):
 - Write in first person always — never refer to the sender by name as the subject of a sentence
 - ${CALENDLY_SLOT_PROMPT_RULE}
+- ONE call-to-action only. Never stitch two CTA sentences together (the exact failure to avoid: "Worth 15 minutes to see if there is something worth exploring?" immediately followed by "let's grab 15 minutes to discuss growth and valuation/exit options"). Write a single, clean invitation, then the calendar line. If two sentences both ask for a call, delete one.
+- NEVER imply you proposed specific times. Do not write "Would either of these work?", "either of these", "the times below", "these slots", "let me know which works", or anything implying you offered times, UNLESS a LIVE CALENDAR AVAILABILITY block with real slot strings is present in this prompt AND you use those exact strings. You cannot see the calendar. With no LIVE CALENDAR AVAILABILITY block, the ONLY calendar line is a natural lead-in plus the Calendly link, e.g. "Feel free to grab a time here: <link>".
 - Reference something specific from the lead's message — not generic
 - No AI filler phrases ("Sounds great", "I'd love to", "Excited to show you")
 - End with {SENDER_EMAIL_SIGNATURE} on its own line, nothing before it
