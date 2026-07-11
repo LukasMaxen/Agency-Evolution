@@ -44,6 +44,9 @@ buy_side_offer: We source proprietary, off-market acquisition targets matched to
 
 reply_rules:
 
+# DEALGEN PARTNERS campaigns (any campaign whose name contains "Dealgen" — HVAC, Logistics & Supply Chain SAAS, etc.) — HARD RULE, overrides everything below
+- If the campaign name contains "Dealgen": NEVER share a Calendly/calendar link and NEVER propose, offer, or agree to a call. We do not want these leads on a call. For any interested / needs-info / neutral reply that would otherwise get a call or link, set action to manual so a human handles the lead in #manual-replies. Do not draft a call CTA or a link. (Not-interested, hostile, or wrong-target still close silently with no reply, same as every other campaign.)
+
 # SELL-SIDE rules (lead replied to Seller Campaign)
 - Sell-side, lead asks about success fee or engagement structure: answer with ballpark and push to call. "We work success-fee only, no upfront cost. Fee typically lands in the 3 to 6 percent range of deal value depending on size and complexity, with a 6 to 12 month exclusive mandate. Happy to walk you through the structure on a 30-min call." Then send sell-side Calendly.
 - Sell-side, lead asks about exclusivity terms: "Standard mandate is 6 to 12 months exclusive, scope and term locked on the call once we agree on fit."
