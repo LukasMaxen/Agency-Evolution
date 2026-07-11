@@ -1592,6 +1592,17 @@ ${messageText.slice(0, 8000)}`;
     }
   }
 
+  // ── Dealgen Partners backstop ────────────────────────────────────────────────
+  // Dealgen Partners campaigns must never get an auto-reply with a call/calendar
+  // (2026-07-10 instruction: "we do not want them on a call"). Force any reply-worthy
+  // Dealgen draft to #manual-replies for a human. Hard-close intents already closed
+  // silently above, so this only catches interested/needs_info/neutral auto-sends.
+  if (/dealgen/i.test((reply.campaign ?? "").toString()) && result.action === "auto_send") {
+    result.action = "manual";
+    result.manual_reason = result.manual_reason ?? "Dealgen Partners campaign: no call or calendar link. Human handles this lead directly.";
+    console.log(`[auto-reply] Dealgen campaign — routed to manual (no call/calendar) for ${replyId} (${reply.campaign})`);
+  }
+
   // ── Route ─────────────────────────────────────────────────────────────────────
 
   if (result.action === "auto_send" && result.reply_body) {
