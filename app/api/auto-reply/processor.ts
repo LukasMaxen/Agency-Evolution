@@ -694,7 +694,13 @@ async function forwardToClient(reply: Record<string, any>, forwardTo: string, cc
 
 // ─── Slack helpers ─────────────────────────────────────────────────────────────
 
+// Workspaces that must NEVER surface a card in #manual-replies or #reply-approval.
+// Hahnbeck is client-handled (forward-only): every reply is forwarded to their own
+// inbox, so nothing about it should ever appear in our Slack channels (2026-07-12).
+const SILENT_SLACK_WORKSPACES = new Set(["hahnbeck"]);
+
 async function postManual(workspaceSlug: string, payload: { blocks: object[]; text: string }): Promise<void> {
+  if (SILENT_SLACK_WORKSPACES.has(workspaceSlug)) return; // never post Hahnbeck to Slack
   // Per-workspace override routes manual-replies to the same channel as that workspace's
   // approval cards (e.g. Sonaro's #reply-management). NULL override → global #manual-replies.
   const overrideChannel = await approvalChannelFor(workspaceSlug);
@@ -1422,7 +1428,11 @@ ${messageText.slice(0, 8000)}`;
   // Special case: if EmailBison refuses because no contact is attached (off-campaign
   // inbound, deleted lead, etc.), post to #manual-replies so a teammate can attach
   // the lead in EmailBison or mark interested manually in EmailBison's UI.
-  if (["interested", "interested_urgent"].includes(result.intent)) {
+  // Forward workspaces (Hahnbeck) skip back-sync entirely: the client handles the
+  // reply from their own inbox, so we never need to mark-interested for the CSM count,
+  // and we must never surface the "EmailBison refused" alert to #manual-replies for
+  // them. The reply flows straight to the forward branch below (2026-07-12).
+  if (["interested", "interested_urgent"].includes(result.intent) && !workspace.forward_replies_to_email) {
     try {
       const bs = await backsyncInterestedToEmailBison(replyId);
       if (bs.skipped && bs.skipped !== "already_interested") {
