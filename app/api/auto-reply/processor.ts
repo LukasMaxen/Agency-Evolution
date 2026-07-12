@@ -895,6 +895,20 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     }
   }
 
+  // ── Pre-filter 1c-2: GN Motion — Peter looped in via CC ──────────────────────
+  // workspaceSuppressionReason only sees the body/fields, but Peter is usually only
+  // in the CC HEADER (not the body), so those were slipping into #manual-replies /
+  // #reply-approval (reported 2026-07-12). Fetch the reply's CC from EmailBison and
+  // suppress if peter@gnmotion.co is on it. Only fires for gn-motion.
+  if (workspaceSlug === "gn-motion") {
+    const cc = await fetchReplyCc(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_reply_id ?? null);
+    if (cc.some(c => c.address === "peter@gnmotion.co")) {
+      await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ intent: "no_action", skipped_reason: "gn_motion_peter_cc" }), replyId]);
+      return;
+    }
+  }
+
   // ── Pre-filter 2: Own outbound email echoed back ──────────────────────────────
   // EmailBison occasionally fires a LEAD_REPLIED webhook whose body is our own
   // outbound cold email (the "From:" header matches our sender, not the lead).
