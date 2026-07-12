@@ -47,10 +47,6 @@ Once interest is confirmed → send the links, nothing more.
 
 **Always use `{SENDER_EMAIL_SIGNATURE}` for the signature — do not write out any closing text around it, and do not add any additional closing lines before or after it.** Use only the variable, nothing else for the sign-off block.
 
-**Always wrap the Calendly link in angle brackets**, not as plain text:
-
-> `<https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting>`
-
 ### Correct behavior
 
 The correct closing pattern for any reply where a call is being scheduled or offered looks like this:
