@@ -74,9 +74,8 @@ The correct closing pattern for any reply where a call is being scheduled or off
 - Avoid phrases like "caught our eye", "strong platform", "committed to excellence", "exactly what buyers look for", "genuine buyer interest", "strong foundation", "clear path to scale", "tick the right boxes", and any other language that sounds like it came from a pitch deck or CIM.
 - Do not write sentences that a real person would never say in a casual email.
 - Keep it short. Acknowledge what they said, address it directly, then move to the call.
-- Always end with the calendar link: <https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting>
+- Always end with the calendar link: https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting
 - When referencing the calendar link, always describe it as a **quick call** — never specify the duration. Use language like "grab a time for a quick call here" regardless of what the Calendly URL says.
-- Always wrap the Calendly link in angle brackets, not as plain text.
 - Always use `{SENDER_EMAIL_SIGNATURE}` for the sign-off — never write out the signature manually and never add any closing text around the variable.
 - **Do not lean on a single buyer being interested.** Reference the broader network: say "our network of buyers" rather than implying one specific buyer has identified this company.
 - **Lead with the value of a quick conversation to determine mutual fit.** Frame the call as a low-pressure fit-check for both sides, not as a pitch driven by buyer urgency or interest.
@@ -196,7 +195,6 @@ Example of correct behavior for sending a teaser:
 | Describing business model details, partnerships, platform features, or anything they did not tell you directly | Proves the lead's suspicion right that this is generic research-based outreach |
 | Specifying the call duration (e.g. "45-minute call") | Always say "quick call" — never reference the duration |
 | Writing out the signature manually or adding closing text around `{SENDER_EMAIL_SIGNATURE}` | Use only the variable — nothing else |
-| Pasting the Calendly link as plain text without angle brackets | Always wrap in angle brackets: `<https://...>` |
 | Implying a single specific buyer has identified or is interested in the lead | Always reference the broader buyer network — "our network of buyers" |
 | Leading with buyer interest as the primary hook | Frame the call as a low-pressure fit-check for both sides, not as a buyer-driven pitch |
 | Over-explaining when the lead has already agreed to a call | Once interest is confirmed, send the links and nothing more |
