@@ -308,6 +308,47 @@ async function fetchReplyCc(
   }
 }
 
+/**
+ * Returns EVERY participant address on the reply (from + to + cc), lowercased.
+ * Used to suppress a contact who is involved in a thread in ANY position, not just
+ * the CC — e.g. Peter emailing internally about an account shows up as the `from`,
+ * not the CC (Zalina incident, 2026-07-14). Returns [] on any failure.
+ */
+async function fetchReplyAllAddresses(
+  instanceUrl: string,
+  apiKey: string,
+  ebReplyId: string | number | null
+): Promise<string[]> {
+  if (!instanceUrl || !apiKey || !ebReplyId) return [];
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8_000);
+    let res: Response;
+    try {
+      res = await fetch(`${instanceUrl}/api/replies/${ebReplyId}`, {
+        headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) return [];
+    const data = await res.json();
+    const item = data?.data ?? data ?? {};
+    const out: string[] = [];
+    if (typeof item.from_email_address === "string") out.push(item.from_email_address);
+    for (const key of ["to_emails", "to", "cc"]) {
+      for (const p of (item[key] ?? [])) {
+        const a = p?.address ?? p?.email_address;
+        if (typeof a === "string") out.push(a);
+      }
+    }
+    return out.filter(a => a.includes("@")).map(a => a.toLowerCase());
+  } catch {
+    return [];
+  }
+}
+
 // ─── Self-critique pass ────────────────────────────────────────────────────────
 
 async function callClaudeCritique(
@@ -901,16 +942,17 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     }
   }
 
-  // ── Pre-filter 1c-2: GN Motion — Peter looped in via CC ──────────────────────
-  // workspaceSuppressionReason only sees the body/fields, but Peter is usually only
-  // in the CC HEADER (not the body), so those were slipping into #manual-replies /
-  // #reply-approval (reported 2026-07-12). Fetch the reply's CC from EmailBison and
-  // suppress if peter@gnmotion.co is on it. Only fires for gn-motion.
+  // ── Pre-filter 1c-2: GN Motion — Peter involved anywhere ─────────────────────
+  // workspaceSuppressionReason only sees the body/fields, but Peter shows up in the
+  // email HEADERS, not the body: as the CC (reported 2026-07-12) OR as the sender/
+  // recipient (Peter emailing internally about an account, Zalina, 2026-07-14). Fetch
+  // all participant addresses (from + to + cc) and suppress if peter@gnmotion.co is
+  // anywhere among them. Only fires for gn-motion.
   if (workspaceSlug === "gn-motion") {
-    const cc = await fetchReplyCc(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_reply_id ?? null);
-    if (cc.some(c => c.address === "peter@gnmotion.co")) {
+    const addrs = await fetchReplyAllAddresses(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_reply_id ?? null);
+    if (addrs.includes("peter@gnmotion.co")) {
       await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
-        [JSON.stringify({ intent: "no_action", skipped_reason: "gn_motion_peter_cc" }), replyId]);
+        [JSON.stringify({ intent: "no_action", skipped_reason: "gn_motion_peter" }), replyId]);
       return;
     }
   }
