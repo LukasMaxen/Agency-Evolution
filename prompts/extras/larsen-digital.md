@@ -319,3 +319,11 @@ This is a negative reference. The draft below was rejected. Do not replicate thi
 - Open with a warm, natural line that shows genuine familiarity with what they've built — one specific, accurate observation, written like a human made it.
 - Use a case study that mirrors their category or stage.
 - Keep the language plain and direct. If it sounds like a pitch deck, rewrite it.
+
+## Weekly Review Learnings (auto-applied, apply always)
+
+### 2026-07-16: Send-time learning from Lukas Maxen
+
+Structure all replies using the Acknowledge → Answer → Ask framework: (1) Acknowledge the lead's message warmly and briefly (e.g. thank them, apologise if relevant), (2) Answer the specific question or prompt they raised (e.g. confirm availability), (3) Ask — close with a clear CTA such as booking a call. Never add qualifiers like 'if this is relevant' when the lead has already expressed interest or asked for a meeting — treat their stated intent at face value and focus the reply on moving to the next step.
+
+_Reviewer notes: It’s a bit too long. Just focus it on getting the meeting booked • It shouldn’t say “if this is relevant.” She has asked for a meeting. It’s very out of place to then ask if this is relevant. She’s literally saying, “I would love to learn more about your approach!” Why are we saying “if this is relevant”? We use this framework: acknowledge, answer, ask. 1. We acknowledge: we say, “Hi Michelle, thank you for following up. Apologies for letting this slip!” Something along those lines. 2. You answer the question. The question in this case is, “If your availability has changed?” We answer that by saying, “I had some time this following week or the week after. 3. Third section is asking, which I already kind of went through, but ask her to book in the meeting on our account_
