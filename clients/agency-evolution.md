@@ -11,8 +11,8 @@ All campaigns on the EmailBison workspace `internal-campaigns` are Maxen Group's
 
 **Contact:** Lukas Maxen, Founder, Maxen Group
 **Timezone:** CET UTC+1
-**Sell-side Calendly:** https://calendly.com/lukasmaxen/m-a-consultation
-**Buy-side Calendly:** https://calendly.com/lukasmaxen/buy-side-mandate-conversation
+**Sell-side Calendly:** https://calendly.com/lukasm-acceler8rs/m-a-consultation
+**Buy-side Calendly:** https://calendly.com/lukasm-acceler8rs/buy-side-mandate-conversation
 
 ---
 
@@ -29,7 +29,7 @@ always_send_calendly: false
 
 sell_side_campaigns:
 - Seller Campaign
-sell_side_calendly: https://calendly.com/lukasmaxen/m-a-consultation
+sell_side_calendly: https://calendly.com/lukasm-acceler8rs/m-a-consultation
 sell_side_offer: We represent the seller. We find the right acquirer for your brand (strategic or PE) and run the process. No upfront cost, success-fee only.
 
 buy_side_campaigns:
@@ -39,7 +39,7 @@ buy_side_campaigns:
 - PE Buyer Campaign (VP/Associate)
 - PE Buyer Campaign (Directors)
 - PE Buyer Campaign (Partners)
-buy_side_calendly: https://calendly.com/lukasmaxen/buy-side-mandate-conversation
+buy_side_calendly: https://calendly.com/lukasm-acceler8rs/buy-side-mandate-conversation
 buy_side_offer: We source proprietary, off-market acquisition targets matched to your mandate. $1M to $10M EBITDA. Success-fee only on closed deals. Consumer/ecom focus for Ecom variant, broader sectors for Broad variant.
 
 reply_rules:
