@@ -19,16 +19,32 @@ export const BANNED_CASE_STUDIES = [
   "headwaters",
 ];
 
+// The deactivated case studies' NUMERIC signatures. Drafts sometimes cite the results
+// WITHOUT the brand name (e.g. "£25k to £102k a month in 90 days"), which the name
+// check misses (Aurra London incident, 2026-07-17). These figure patterns are the
+// specific £ numbers for each retired case study and do NOT overlap the approved
+// anonymous US results ($0→$850k/mo in 4 months, $152k→$1.1M/mo in 13 months), so
+// they will not false-positive on a legitimate reply. Label describes which study.
+const BANNED_CASE_STUDY_FIGURES: Array<{ label: string; re: RegExp }> = [
+  { label: "motel-margarita-figures", re: /25k[^.]{0,15}102k|102k[^.]{0,20}90\s*days/i },
+  { label: "kyikyi-figures", re: /13k[^.]{0,15}140k|140k[^.]{0,20}60\s*days/i },
+  { label: "headwaters-figures", re: /60k[^.]{0,15}(?:£1m|1m|1\s*million)[^.]{0,20}24\s*months|60k\s*(?:a|per|\/)?\s*year[^.]{0,25}(?:£1m|1m)/i },
+];
+
 /**
- * Returns the matched banned case-study name if the text references one, else null.
- * Matching is case-insensitive and tolerant of spacing/punctuation, so email/handle
- * forms and reformatted names ("Kyi-Kyi", "KYIKYI", "Headwaters Studio") still match.
+ * Returns the matched banned case-study (name or figure signature) if the text
+ * references one, else null. Matching is case-insensitive and tolerant of spacing/
+ * punctuation, so name forms ("Kyi-Kyi", "Headwaters Studio") and the results cited
+ * without the name ("£25k to £102k a month in 90 days") are both caught.
  */
 export function containsBannedCaseStudy(text: string): string | null {
   if (!text) return null;
   const normalized = text.toLowerCase().replace(/[^a-z0-9]+/g, " ");
   for (const name of BANNED_CASE_STUDIES) {
     if (normalized.includes(name.replace(/[^a-z0-9]+/g, " "))) return name;
+  }
+  for (const { label, re } of BANNED_CASE_STUDY_FIGURES) {
+    if (re.test(text)) return label;
   }
   return null;
 }
