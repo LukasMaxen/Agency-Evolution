@@ -157,10 +157,11 @@ Example of correct behavior for this scenario:
 
 - Send the correct teaser link for the relevant mandate.
 - Keep the email short. Teaser link, calendar link, done.
-- Active sell-side mandates and links:
-  - Tequila: <https://www.actcapitaladvisors.com/open-deals/high-growth-premium-tequila-company/>
-  - Excavation: <https://www.actcapitaladvisors.com/open-deals/highly-profitable-excavation-civil-construction-company-in-the-southern-atlantic-region/>
-  - General Contractor: <https://www.actcapitaladvisors.com/open-deals/highly-profitable-general-contractor-and-construction/>
+- Active sell-side mandates and links (match by sector; send a plain URL, no angle brackets):
+  - Tequila (spirits, beverage, alcohol): https://www.actcapitaladvisors.com/open-deals/high-growth-premium-tequila-company/
+  - Excavation (civil construction, earthwork, grading): https://www.actcapitaladvisors.com/open-deals/highly-profitable-excavation-civil-construction-company-in-the-southern-atlantic-region/
+  - General Contractor (construction, design-build): https://www.actcapitaladvisors.com/open-deals/highly-profitable-general-contractor-and-construction/
+  - Landscaping (landscape, lawn care, grounds maintenance, outdoor infrastructure, hardscape, irrigation): https://www.actcapitaladvisors.com/open-deals/profitable-full-service-landscape-construction-maintenance-outdoor-infrastructure-platform/
 
 Example of correct behavior for sending a teaser:
 
