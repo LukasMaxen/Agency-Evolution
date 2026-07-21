@@ -11,12 +11,13 @@ always_send_calendly: false
 
 campaign_types_in_this_account:
 - "Sell Side Advisory" / "Northern Cali" / "Contractor Acquisition (Strategic buyer outreach from owners)" = sell_side_advisory. Jeff represents a buyer. Lead is a business owner. Goal: get them on a call. NO teaser. Send Calendly only.
-- "Tequila Acquisition" / "Excavation" / "Contractor Acquisition" (emailing PE firms/buyers) = mandate_buyer. Jeff represents a company for sale. Lead is a PE firm or investor. Send correct teaser + Calendly.
+- "Tequila Acquisition" / "Excavation" / "Contractor Acquisition" / "Landscaping" (emailing PE firms/buyers) = mandate_buyer. Jeff represents a company for sale. Lead is a PE firm or investor. Send correct teaser + Calendly.
 
 mandate_teasers:
 - Tequila: https://www.actcapitaladvisors.com/open-deals/high-growth-premium-tequila-company/ (triggers: tequila, spirits, beverage, alcohol)
 - Excavation: https://www.actcapitaladvisors.com/open-deals/highly-profitable-excavation-civil-construction-company-in-the-southern-atlantic-region/ (triggers: excavation, civil construction, earthwork, grading)
 - General Contractor: https://www.actcapitaladvisors.com/open-deals/highly-profitable-general-contractor-and-construction/ (triggers: general contractor, construction, design-build)
+- Landscaping: https://www.actcapitaladvisors.com/open-deals/profitable-full-service-landscape-construction-maintenance-outdoor-infrastructure-platform/ (triggers: landscape, landscaping, lawn care, grounds maintenance, outdoor infrastructure, hardscape, irrigation, turf)
 - NDA is embedded within each teaser page. Always send teaser link and note NDA is accessible through it.
 
 reply_rules:
