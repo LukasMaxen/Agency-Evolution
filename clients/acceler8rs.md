@@ -24,6 +24,7 @@ always_send_calendly: false
 
 reply_rules:
 - CAMPAIGN CHECK FIRST: if the campaign name contains "Pathfinder", this is sell-side / M&A (see campaign_routing). Never use more_info_template, never pitch the 3-phase growth system, never send the operating-partner link. Reply as an acquisition conversation and use calendly_ma.
+- NEVER describe the lead's brand back to them or invent a reason it "stood out" / why the buyer is interested. Do NOT reference their product model, category, positioning, or any "angle" (e.g. "consumable, repeat-purchase model", "clean home positioning", "pet-safe angle"). You have NOT been told these, they come from web research, and on a buy-side deal the buyer's actual criteria are confidential and unknown to you. Acknowledge their interest in one line, give at most one line on the buyer (private investment group, committed capital, founder-friendly), then move to the confidential call and the link. This is the single most common failure on this campaign, treat it as a hard rule.
 - Always say "your brand" never the company name variable
 - Lead asks about cost/fee: redirect to a call — "Happy to walk through the structure on a quick call, it depends on where your brand is and what the goal is." Do NOT say "performance-based only, no upfront fee" — this is factually incorrect. Actual pricing is $3,500/month retainer + 10% of profitable ad spend, with a 90-day profitable-on-Meta guarantee.
 - Lead interested in a call: send Calendly

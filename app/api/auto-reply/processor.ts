@@ -47,11 +47,11 @@ interface AutoReplyResult {
 
 const CLIENT_FILE_ALIASES: Record<string, string> = {
   "internal-campaigns": "agency-evolution",
-  // Acceler8rs accounts now represent Larsen Digital (2026-07-22). The only difference
-  // from the larsen-digital workspace is the sender signature, which the
-  // {SENDER_EMAIL_SIGNATURE} variable resolves correctly. So acceler8rs draws Larsen's
-  // wording, case studies, links, and rules from the larsen-digital client file + extras.
-  "acceler8rs": "larsen-digital",
+  // NOTE: acceler8rs is intentionally NOT aliased to larsen-digital. It runs a live
+  // buy-side "Pathfinder" acquisition campaign (we represent a buyer looking to acquire
+  // the lead's brand) that has no equivalent in the Larsen DTC-growth playbook, so a
+  // wholesale alias would mis-pitch growth to acquisition leads. acceler8rs keeps its
+  // own clients/acceler8rs.md + prompts/extras/acceler8rs.md.
 };
 
 // Workspaces that skip auto-reply entirely (handled externally, churned, or excluded).
@@ -1391,19 +1391,10 @@ Do not confirm a single slot, always offer both.
     ? `ESTABLISHED INTEREST IN THIS THREAD: This lead already showed interest earlier in this conversation (see THREAD HISTORY). Judge this new message in the context of that demonstrated interest, NOT in isolation. A negative answer to a qualifying question, a single objection, a raised concern, or "the rest is not a fit" is the lead CONTINUING to qualify and engage, so classify it as needs_info or neutral and draft a reply that addresses the concern and keeps the conversation moving. Only use not_interested or hard_no if THIS message is an explicit, unambiguous withdrawal of interest (e.g. "stop contacting me", "remove me", "we've decided not to proceed", "definitely not interested"). When in doubt in an interested thread, draft a reply rather than closing.\n\n`
     : "";
 
-  // Acceler8rs represents Larsen Digital and draws the entire Larsen playbook via the
-  // CLIENT_FILE_ALIASES mapping, but Lukas Maxen is the SENDER on acceler8rs accounts,
-  // so he can never hand off M&A calls to himself. The Larsen client file's "I'll set
-  // you up with Lukas Maxen" hand-off line is Larsen-only (Nicklas is the sender there).
-  // This overrides it for acceler8rs while keeping every other Larsen rule unchanged.
-  const accelerSenderOverride = workspaceSlug === "acceler8rs"
-    ? `SENDER OVERRIDE (this is an Acceler8rs account): the person signing this email IS Lukas Maxen himself. NEVER write a hand-off line such as "I'll set you up with Lukas Maxen", "our Head of Corporate Development", or "he handles all of our M&A and capital markets conversations" — you cannot hand a call off to yourself. When the M&A / sell-side Calendly link applies, frame it directly in the first person as the M&A / capital markets track and send the link, with NO third-person reference to Lukas. Every other rule, all wording, and all case studies from the Larsen Digital playbook still apply unchanged.\n\n`
-    : "";
-
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${accelerSenderOverride}${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${ccBlock}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${ccBlock}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
