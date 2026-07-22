@@ -1419,7 +1419,7 @@ Do not confirm a single slot, always offer both.
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${ccBlock}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${accelerSenderOverride}${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${ccBlock}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
