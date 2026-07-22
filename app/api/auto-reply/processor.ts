@@ -260,7 +260,16 @@ async function fetchEBThread(
       .map((item: any) => {
         const isSent = item.folder === "Sent";
         const raw = item.text_body ? item.text_body : stripHtmlForThread(item.html_body || "");
-        const cutAt = raw.search(/On \w+,? \w+ \d+,? \d{4}.* wrote:|wrote:/);
+        // Trim the quoted-reply chain. Match a REAL attribution header only — a
+        // Gmail/Apple "On <date> ... wrote:" line, an Outlook "Original Message"
+        // divider, or a "From:/Sent:" header block — anchored to a line start.
+        // Previously a bare "|wrote:" alternative matched the word anywhere in the
+        // lead's own text and chopped real content, leaving the thread fragmentary
+        // and out of order to the drafter (root cause of the garbled-reply report,
+        // 2026-07-22).
+        const cutAt = raw.search(
+          /(?:^|\n)\s*(?:On[\s\S]{0,200}?\bwrote:|-{2,}\s*Original Message\s*-{2,}|From:\s[\s\S]{0,200}?\nSent:\s)/i
+        );
         const body = (cutAt > 0 ? raw.slice(0, cutAt) : raw).trim();
         return {
           dir: (isSent ? "outbound" : "inbound") as "inbound" | "outbound",
@@ -1032,7 +1041,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     : "";
 
   const threadHistory = ebThread.messages.length > 0
-    ? ebThread.messages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body.slice(0, 1200)}`).join("\n\n")
+    ? ebThread.messages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 16).replace("T", " ")}: ${m.body.slice(0, 1200)}`).join("\n\n")
     : "No prior messages.";
 
   const coldEmailBody = ebThread.coldEmailBody;
