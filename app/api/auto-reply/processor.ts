@@ -82,6 +82,39 @@ function readWorkspaceExtras(resolvedSlug: string): string {
 }
 
 /**
+ * Matches a REAL quoted-reply attribution header at the start of a line:
+ *   - Gmail/Apple:  "On <date>, <name> wrote:"
+ *   - Outlook:      "From: ...\nDate: ..." or "From: ...\nSent: ..."
+ *   - Outlook:      "-----Original Message-----" / a long "____" divider
+ * Deliberately does NOT match a bare "wrote:" anywhere in the text, which used to chop
+ * real content out of thread messages.
+ */
+const QUOTED_HEADER_RE =
+  /(?:^|\n)[ \t>]*(?:On[\s\S]{0,200}?\bwrote:|-{2,}\s*Original Message\s*-{2,}|_{5,}|From:[ \t]*\S.*\r?\n[ \t]*(?:Sent|Date):[ \t]*\S.*)/i;
+
+/**
+ * Splits an inbound email into the lead's NEW text and the quoted chain beneath it.
+ *
+ * This is load-bearing for thread awareness. EmailBison's /api/replies endpoint only
+ * ever returns actual replies, never the original campaign send, so on a first reply
+ * fetchEBThread returns nothing and the drafter had no idea what the cold email said.
+ * It then re-pitched the offer back to a lead who had already read it (the Enviroscent
+ * incident, 2026-07-22). The cold email IS present, quoted inside the lead's own reply,
+ * so we recover it here and surface it to the drafter explicitly.
+ */
+function splitQuotedReply(text: string): { newText: string; quotedChain: string | null } {
+  if (!text) return { newText: "", quotedChain: null };
+  const idx = text.search(QUOTED_HEADER_RE);
+  if (idx <= 0) return { newText: text, quotedChain: null };
+  const newText = text.slice(0, idx).trim();
+  const quotedChain = text.slice(idx).trim();
+  // If the split leaves nothing meaningful as the lead's own words, treat the whole
+  // message as new text rather than risk hiding what they actually said.
+  if (newText.length < 2) return { newText: text, quotedChain: quotedChain || null };
+  return { newText, quotedChain: quotedChain || null };
+}
+
+/**
  * Resolves which client-file / extras slug a reply should draft from. Normally this is
  * just the workspace slug (or its CLIENT_FILE_ALIASES entry), but acceler8rs is split by
  * campaign: its buy-side "Pathfinder" acquisition campaign keeps the acceler8rs playbook,
@@ -274,16 +307,10 @@ async function fetchEBThread(
       .map((item: any) => {
         const isSent = item.folder === "Sent";
         const raw = item.text_body ? item.text_body : stripHtmlForThread(item.html_body || "");
-        // Trim the quoted-reply chain. Match a REAL attribution header only — a
-        // Gmail/Apple "On <date> ... wrote:" line, an Outlook "Original Message"
-        // divider, or a "From:/Sent:" header block — anchored to a line start.
-        // Previously a bare "|wrote:" alternative matched the word anywhere in the
-        // lead's own text and chopped real content, leaving the thread fragmentary
-        // and out of order to the drafter (root cause of the garbled-reply report,
-        // 2026-07-22).
-        const cutAt = raw.search(
-          /(?:^|\n)\s*(?:On[\s\S]{0,200}?\bwrote:|-{2,}\s*Original Message\s*-{2,}|From:\s[\s\S]{0,200}?\nSent:\s)/i
-        );
+        // Trim the quoted-reply chain so each thread entry holds only its own text.
+        // Uses the shared QUOTED_HEADER_RE (real attribution headers only, never a
+        // bare "wrote:" which used to chop real content mid-message).
+        const cutAt = raw.search(QUOTED_HEADER_RE);
         const body = (cutAt > 0 ? raw.slice(0, cutAt) : raw).trim();
         return {
           dir: (isSent ? "outbound" : "inbound") as "inbound" | "outbound",
@@ -1056,11 +1083,20 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     ? `PEOPLE CC'd ON THE LEAD'S REPLY (real addresses from the email header — the lead may be handing you to one of them):\n${ccThirdParties.map(c => `- ${c.name ?? "(no name)"} <${c.address}>`).join("\n")}\nIf the lead points you to one of these people ("I've cc'd my agent", "talk to [Name]", "looping in [Name]"), this is a REFERRAL HANDOVER: set recipient_email to that person's EXACT address from this list, address them by first name, and CC the original sender (${reply.lead_email}). Never address a person here without also setting recipient_email to their address — otherwise the reply goes to the wrong inbox.\n\n`
     : "";
 
+  // Recover the prior chain quoted inside the lead's own reply. EmailBison never returns
+  // the original campaign send from /api/replies, so on a first reply this is the ONLY
+  // source of what we already told this lead. Without it the drafter re-pitches the offer
+  // to someone who already read it (Enviroscent, 2026-07-22).
+  const { newText: leadNewText, quotedChain } = splitQuotedReply(messageText);
+
   const threadHistory = ebThread.messages.length > 0
     ? ebThread.messages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 16).replace("T", " ")}: ${m.body.slice(0, 1200)}`).join("\n\n")
-    : "No prior messages.";
+    : quotedChain
+      ? "No separate thread records for this lead. The chain quoted inside their reply is reproduced above under PREVIOUS EMAIL(S) WE SENT — treat that as what has already been said."
+      : "No prior messages.";
 
-  const coldEmailBody = ebThread.coldEmailBody;
+  // EB's Sent folder first, then the chain quoted in the lead's reply.
+  const coldEmailBody = ebThread.coldEmailBody ?? (quotedChain ? quotedChain.slice(0, 2000) : null);
 
   // ── Thread interest anchor ────────────────────────────────────────────────────
   // Has this lead shown interest EARLIER in this thread (a prior interested flag,
@@ -1346,7 +1382,12 @@ Fill in questions_to_answer, personal_hook, and pivot_line BEFORE writing reply_
 }`;
 
   const coldEmailBlock = coldEmailBody
-    ? `ORIGINAL COLD EMAIL SENT TO THIS LEAD (what they are responding to):\n${coldEmailBody}\n\n`
+    ? `PREVIOUS EMAIL(S) WE SENT TO THIS LEAD — THEY HAVE ALREADY READ THIS:
+${coldEmailBody}
+
+CRITICAL: everything above was ALREADY SENT to this lead. They read it and replied. Do NOT restate, paraphrase, or re-pitch any of it — not the offer, not the buyer description, not the revenue range, not the structure/terms, not the reason we reached out. Repeating it is the single clearest sign the reply was written without reading the thread. Your reply must ADVANCE the conversation from here: answer what they actually asked, add something they do not already know, and move to the next step.
+
+`
     : "";
 
   // ── Lead company research (fetch + Haiku-summarize website) ──────────────────
@@ -1427,7 +1468,11 @@ From: ${reply.lead_name} <${reply.lead_email}>
 Company: ${reply.lead_company ?? "unknown"} | Title: ${reply.lead_title ?? "unknown"}
 Campaign: ${reply.campaign ?? "unknown"}
 Subject: ${reply.subject ?? ""}
+${quotedChain ? `
+WHAT THE LEAD ACTUALLY WROTE JUST NOW (this is the ONLY new information from them — everything below it in the full email is our own previous message quoted back):
+${leadNewText}
 
+FULL RAW EMAIL (their new text, then their signature, then the quoted chain of what WE already sent):` : ""}
 ${messageText.slice(0, 8000)}`;
 
   // ── Append per-workspace learnings to the system prompt ──────────────────────
