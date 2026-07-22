@@ -47,11 +47,11 @@ interface AutoReplyResult {
 
 const CLIENT_FILE_ALIASES: Record<string, string> = {
   "internal-campaigns": "agency-evolution",
-  // NOTE: acceler8rs is intentionally NOT aliased to larsen-digital. It runs a live
-  // buy-side "Pathfinder" acquisition campaign (we represent a buyer looking to acquire
-  // the lead's brand) that has no equivalent in the Larsen DTC-growth playbook, so a
-  // wholesale alias would mis-pitch growth to acquisition leads. acceler8rs keeps its
-  // own clients/acceler8rs.md + prompts/extras/acceler8rs.md.
+  // Acceler8rs accounts now represent Larsen Digital (2026-07-22). The only difference
+  // from the larsen-digital workspace is the sender signature, which the
+  // {SENDER_EMAIL_SIGNATURE} variable resolves correctly. So acceler8rs draws Larsen's
+  // wording, case studies, links, and rules from the larsen-digital client file + extras.
+  "acceler8rs": "larsen-digital",
 };
 
 // Workspaces that skip auto-reply entirely (handled externally, churned, or excluded).
@@ -77,9 +77,23 @@ function readFile(filePath: string): string {
  * commit accumulated feedback patterns here without modifying the core
  * system prompt or the client file. Returns "" if no extras file exists.
  */
-function readWorkspaceExtras(workspaceSlug: string): string {
-  const slug = CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
-  return readFile(path.join(process.cwd(), "prompts", "extras", `${slug}.md`)).trim();
+function readWorkspaceExtras(resolvedSlug: string): string {
+  return readFile(path.join(process.cwd(), "prompts", "extras", `${resolvedSlug}.md`)).trim();
+}
+
+/**
+ * Resolves which client-file / extras slug a reply should draft from. Normally this is
+ * just the workspace slug (or its CLIENT_FILE_ALIASES entry), but acceler8rs is split by
+ * campaign: its buy-side "Pathfinder" acquisition campaign keeps the acceler8rs playbook,
+ * while every other (growth/exit) campaign now represents Larsen Digital and draws
+ * Larsen's wording + case studies. The sender signature differs but is handled by the
+ * {SENDER_EMAIL_SIGNATURE} variable at send time. (Confirmed by Kasper 2026-07-22.)
+ */
+function resolveClientSlug(workspaceSlug: string, campaign: string | null | undefined): string {
+  if (workspaceSlug === "acceler8rs" && !/pathfinder/i.test(String(campaign ?? ""))) {
+    return "larsen-digital";
+  }
+  return CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
 }
 
 /**
@@ -998,7 +1012,9 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   }
 
   // ── Forwarding path ───────────────────────────────────────────────────────────
-  const fileSlug = CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
+  // acceler8rs is split by campaign: Pathfinder (buy-side) keeps its own file, every
+  // other acceler8rs campaign represents Larsen Digital. See resolveClientSlug.
+  const fileSlug = resolveClientSlug(workspaceSlug, reply.campaign);
   const clientFileRaw = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
   if (!clientFileRaw) {
     console.error("[auto-reply] Client file not found:", workspaceSlug);
@@ -1391,10 +1407,19 @@ Do not confirm a single slot, always offer both.
     ? `ESTABLISHED INTEREST IN THIS THREAD: This lead already showed interest earlier in this conversation (see THREAD HISTORY). Judge this new message in the context of that demonstrated interest, NOT in isolation. A negative answer to a qualifying question, a single objection, a raised concern, or "the rest is not a fit" is the lead CONTINUING to qualify and engage, so classify it as needs_info or neutral and draft a reply that addresses the concern and keeps the conversation moving. Only use not_interested or hard_no if THIS message is an explicit, unambiguous withdrawal of interest (e.g. "stop contacting me", "remove me", "we've decided not to proceed", "definitely not interested"). When in doubt in an interested thread, draft a reply rather than closing.\n\n`
     : "";
 
+  // acceler8rs growth campaigns now represent Larsen Digital (resolveClientSlug maps
+  // them to the larsen-digital file), but Lukas Maxen is the acceler8rs SENDER, so the
+  // Larsen file's "I'll set you up with Lukas Maxen" M&A hand-off line must be
+  // suppressed here (he can't hand a call off to himself). Fires only on that path,
+  // never for real Larsen accounts (Nicklas is the sender there) or acceler8rs Pathfinder.
+  const accelerSenderOverride = workspaceSlug === "acceler8rs" && fileSlug === "larsen-digital"
+    ? `SENDER OVERRIDE (this is an Acceler8rs account, sender is Lukas Maxen himself): NEVER write a hand-off line such as "I'll set you up with Lukas Maxen", "our Head of Corporate Development", or "he handles all of our M&A and capital markets conversations" — you cannot hand a call off to yourself. When the M&A / sell-side Calendly link applies, frame it directly in the first person and send the link, with NO third-person reference to Lukas. Every other rule, all wording, and all case studies still apply unchanged.\n\n`
+    : "";
+
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${ccBlock}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${accelerSenderOverride}${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${ccBlock}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
@@ -1409,7 +1434,7 @@ ${messageText.slice(0, 8000)}`;
   // Loaded from prompts/extras/<slug>.md so the weekly-review handler can
   // auto-commit approved feedback patterns without touching the core prompt.
   // Cache invalidation cost is per-workspace, not global.
-  const workspaceExtras = readWorkspaceExtras(workspaceSlug);
+  const workspaceExtras = readWorkspaceExtras(fileSlug);
   const effectiveSystemPrompt = workspaceExtras
     ? `${systemPrompt}\n\n## WORKSPACE-SPECIFIC LEARNINGS (${workspaceSlug})\n\n${workspaceExtras}`
     : systemPrompt;
