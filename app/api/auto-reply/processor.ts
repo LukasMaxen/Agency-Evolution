@@ -47,6 +47,11 @@ interface AutoReplyResult {
 
 const CLIENT_FILE_ALIASES: Record<string, string> = {
   "internal-campaigns": "agency-evolution",
+  // Acceler8rs accounts now represent Larsen Digital (2026-07-22). The only difference
+  // from the larsen-digital workspace is the sender signature, which the
+  // {SENDER_EMAIL_SIGNATURE} variable resolves correctly. So acceler8rs draws Larsen's
+  // wording, case studies, links, and rules from the larsen-digital client file + extras.
+  "acceler8rs": "larsen-digital",
 };
 
 // Workspaces that skip auto-reply entirely (handled externally, churned, or excluded).
@@ -255,7 +260,16 @@ async function fetchEBThread(
       .map((item: any) => {
         const isSent = item.folder === "Sent";
         const raw = item.text_body ? item.text_body : stripHtmlForThread(item.html_body || "");
-        const cutAt = raw.search(/On \w+,? \w+ \d+,? \d{4}.* wrote:|wrote:/);
+        // Trim the quoted-reply chain. Match a REAL attribution header only — a
+        // Gmail/Apple "On <date> ... wrote:" line, an Outlook "Original Message"
+        // divider, or a "From:/Sent:" header block — anchored to a line start.
+        // Previously a bare "|wrote:" alternative matched the word anywhere in the
+        // lead's own text and chopped real content, leaving the thread fragmentary
+        // and out of order to the drafter (root cause of the garbled-reply report,
+        // 2026-07-22).
+        const cutAt = raw.search(
+          /(?:^|\n)\s*(?:On[\s\S]{0,200}?\bwrote:|-{2,}\s*Original Message\s*-{2,}|From:\s[\s\S]{0,200}?\nSent:\s)/i
+        );
         const body = (cutAt > 0 ? raw.slice(0, cutAt) : raw).trim();
         return {
           dir: (isSent ? "outbound" : "inbound") as "inbound" | "outbound",
@@ -942,17 +956,23 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     }
   }
 
-  // ── Pre-filter 1c-2: GN Motion — Peter involved anywhere ─────────────────────
-  // workspaceSuppressionReason only sees the body/fields, but Peter shows up in the
-  // email HEADERS, not the body: as the CC (reported 2026-07-12) OR as the sender/
-  // recipient (Peter emailing internally about an account, Zalina, 2026-07-14). Fetch
-  // all participant addresses (from + to + cc) and suppress if peter@gnmotion.co is
-  // anywhere among them. Only fires for gn-motion.
-  if (workspaceSlug === "gn-motion") {
+  // ── Pre-filter 1c-2: header-based suppression (Peter / Piers involved anywhere) ─
+  // workspaceSuppressionReason only sees the body/fields, but the suppressed contact
+  // often shows up ONLY in the email HEADERS (from/to/cc), never the body:
+  //   - GN Motion: peter@gnmotion.co as CC (2026-07-12) or sender (Zalina, 2026-07-14).
+  //   - Statera: the Piers Dunhill persona (@dunhillventures.io) CC'd on a Teams-invite
+  //     thread where OUR sender_email is a different persona (Proximo, 2026-07-22).
+  // Fetch all participant addresses (from + to + cc) and suppress if the contact is
+  // anywhere among them. Only fires for the two affected workspaces.
+  if (workspaceSlug === "gn-motion" || workspaceSlug === "statera-capital") {
     const addrs = await fetchReplyAllAddresses(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_reply_id ?? null);
-    if (addrs.includes("peter@gnmotion.co")) {
+    const hit =
+      (workspaceSlug === "gn-motion" && addrs.includes("peter@gnmotion.co")) ? "gn_motion_peter" :
+      (workspaceSlug === "statera-capital" && addrs.some(a => a.endsWith("@dunhillventures.io"))) ? "statera_piers_dunhill" :
+      null;
+    if (hit) {
       await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
-        [JSON.stringify({ intent: "no_action", skipped_reason: "gn_motion_peter" }), replyId]);
+        [JSON.stringify({ intent: "no_action", skipped_reason: hit }), replyId]);
       return;
     }
   }
@@ -1021,7 +1041,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     : "";
 
   const threadHistory = ebThread.messages.length > 0
-    ? ebThread.messages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body.slice(0, 1200)}`).join("\n\n")
+    ? ebThread.messages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 16).replace("T", " ")}: ${m.body.slice(0, 1200)}`).join("\n\n")
     : "No prior messages.";
 
   const coldEmailBody = ebThread.coldEmailBody;
