@@ -35,6 +35,7 @@ reply_rules:
 - Pathfinder lead asks for more detail before booking a call: always include the M&A calendar link directly in the reply so they can book without a follow-up exchange. Never make them ask again. See the approved Pathfinder more-detail templates below for tone and structure.
 
 never:
+- Never describe the lead's brand back to them, compliment it, or state why it "stood out" / caught interest. No product-model, category, positioning, or "angle" references pulled from research. Interest is a given (they replied); do not justify it with invented specifics.
 - Never guarantee specific revenue outcomes
 - Never use {COMPANY} — always "your brand"
 - Never mention pricing before they ask
