@@ -47,6 +47,11 @@ interface AutoReplyResult {
 
 const CLIENT_FILE_ALIASES: Record<string, string> = {
   "internal-campaigns": "agency-evolution",
+  // Acceler8rs accounts now represent Larsen Digital (2026-07-22). The only difference
+  // from the larsen-digital workspace is the sender signature, which the
+  // {SENDER_EMAIL_SIGNATURE} variable resolves correctly. So acceler8rs draws Larsen's
+  // wording, case studies, links, and rules from the larsen-digital client file + extras.
+  "acceler8rs": "larsen-digital",
 };
 
 // Workspaces that skip auto-reply entirely (handled externally, churned, or excluded).
@@ -942,17 +947,23 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     }
   }
 
-  // ── Pre-filter 1c-2: GN Motion — Peter involved anywhere ─────────────────────
-  // workspaceSuppressionReason only sees the body/fields, but Peter shows up in the
-  // email HEADERS, not the body: as the CC (reported 2026-07-12) OR as the sender/
-  // recipient (Peter emailing internally about an account, Zalina, 2026-07-14). Fetch
-  // all participant addresses (from + to + cc) and suppress if peter@gnmotion.co is
-  // anywhere among them. Only fires for gn-motion.
-  if (workspaceSlug === "gn-motion") {
+  // ── Pre-filter 1c-2: header-based suppression (Peter / Piers involved anywhere) ─
+  // workspaceSuppressionReason only sees the body/fields, but the suppressed contact
+  // often shows up ONLY in the email HEADERS (from/to/cc), never the body:
+  //   - GN Motion: peter@gnmotion.co as CC (2026-07-12) or sender (Zalina, 2026-07-14).
+  //   - Statera: the Piers Dunhill persona (@dunhillventures.io) CC'd on a Teams-invite
+  //     thread where OUR sender_email is a different persona (Proximo, 2026-07-22).
+  // Fetch all participant addresses (from + to + cc) and suppress if the contact is
+  // anywhere among them. Only fires for the two affected workspaces.
+  if (workspaceSlug === "gn-motion" || workspaceSlug === "statera-capital") {
     const addrs = await fetchReplyAllAddresses(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_reply_id ?? null);
-    if (addrs.includes("peter@gnmotion.co")) {
+    const hit =
+      (workspaceSlug === "gn-motion" && addrs.includes("peter@gnmotion.co")) ? "gn_motion_peter" :
+      (workspaceSlug === "statera-capital" && addrs.some(a => a.endsWith("@dunhillventures.io"))) ? "statera_piers_dunhill" :
+      null;
+    if (hit) {
       await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
-        [JSON.stringify({ intent: "no_action", skipped_reason: "gn_motion_peter" }), replyId]);
+        [JSON.stringify({ intent: "no_action", skipped_reason: hit }), replyId]);
       return;
     }
   }
