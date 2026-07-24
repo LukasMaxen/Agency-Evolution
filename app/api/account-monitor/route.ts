@@ -227,6 +227,8 @@ export async function GET(req: NextRequest) {
           WHERE eb.bounced_at >= NOW() - ($1 || ' days')::interval
             AND eb.sender_email IS NOT NULL
             AND eb.sender_email != ''
+            AND eb.lead_email IS NOT NULL
+            AND eb.lead_email != ''
             ${wsFilterB}
           GROUP BY eb.sender_email, eb.workspace_slug
 
