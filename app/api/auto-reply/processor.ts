@@ -10,6 +10,7 @@ import {
   quoteForSlack,
   slugToName as slugToNameShared,
   sanitizeDashes,
+  normalizeSignature,
 } from "@/lib/slack-approval";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { backsyncInterestedToEmailBison } from "@/lib/emailbison-backsync";
@@ -22,6 +23,7 @@ import {
 } from "@/lib/calendly-slot-suggestions";
 import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
 import { sanitizeJsonControlChars } from "@/lib/utils";
+import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,6 +47,11 @@ interface AutoReplyResult {
 
 const CLIENT_FILE_ALIASES: Record<string, string> = {
   "internal-campaigns": "agency-evolution",
+  // Acceler8rs accounts now represent Larsen Digital (2026-07-22). The only difference
+  // from the larsen-digital workspace is the sender signature, which the
+  // {SENDER_EMAIL_SIGNATURE} variable resolves correctly. So acceler8rs draws Larsen's
+  // wording, case studies, links, and rules from the larsen-digital client file + extras.
+  "acceler8rs": "larsen-digital",
 };
 
 // Workspaces that skip auto-reply entirely (handled externally, churned, or excluded).
@@ -70,9 +77,56 @@ function readFile(filePath: string): string {
  * commit accumulated feedback patterns here without modifying the core
  * system prompt or the client file. Returns "" if no extras file exists.
  */
-function readWorkspaceExtras(workspaceSlug: string): string {
-  const slug = CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
-  return readFile(path.join(process.cwd(), "prompts", "extras", `${slug}.md`)).trim();
+function readWorkspaceExtras(resolvedSlug: string): string {
+  return readFile(path.join(process.cwd(), "prompts", "extras", `${resolvedSlug}.md`)).trim();
+}
+
+/**
+ * Matches a REAL quoted-reply attribution header at the start of a line:
+ *   - Gmail/Apple:  "On <date>, <name> wrote:"
+ *   - Outlook:      "From: ...\nDate: ..." or "From: ...\nSent: ..."
+ *   - Outlook:      "-----Original Message-----" / a long "____" divider
+ * Deliberately does NOT match a bare "wrote:" anywhere in the text, which used to chop
+ * real content out of thread messages.
+ */
+const QUOTED_HEADER_RE =
+  /(?:^|\n)[ \t>]*(?:On[\s\S]{0,200}?\bwrote:|-{2,}\s*Original Message\s*-{2,}|_{5,}|From:[ \t]*\S.*\r?\n[ \t]*(?:Sent|Date):[ \t]*\S.*)/i;
+
+/**
+ * Splits an inbound email into the lead's NEW text and the quoted chain beneath it.
+ *
+ * This is load-bearing for thread awareness. EmailBison's /api/replies endpoint only
+ * ever returns actual replies, never the original campaign send, so on a first reply
+ * fetchEBThread returns nothing and the drafter had no idea what the cold email said.
+ * It then re-pitched the offer back to a lead who had already read it (the Enviroscent
+ * incident, 2026-07-22). The cold email IS present, quoted inside the lead's own reply,
+ * so we recover it here and surface it to the drafter explicitly.
+ */
+function splitQuotedReply(text: string): { newText: string; quotedChain: string | null } {
+  if (!text) return { newText: "", quotedChain: null };
+  const idx = text.search(QUOTED_HEADER_RE);
+  if (idx <= 0) return { newText: text, quotedChain: null };
+  const newText = text.slice(0, idx).trim();
+  const quotedChain = text.slice(idx).trim();
+  // If the split leaves nothing meaningful as the lead's own words, treat the whole
+  // message as new text rather than risk hiding what they actually said.
+  if (newText.length < 2) return { newText: text, quotedChain: quotedChain || null };
+  return { newText, quotedChain: quotedChain || null };
+}
+
+/**
+ * Resolves which client-file / extras slug a reply should draft from. Normally this is
+ * just the workspace slug (or its CLIENT_FILE_ALIASES entry), but acceler8rs is split by
+ * campaign: its buy-side "Pathfinder" acquisition campaign keeps the acceler8rs playbook,
+ * while every other (growth/exit) campaign now represents Larsen Digital and draws
+ * Larsen's wording + case studies. The sender signature differs but is handled by the
+ * {SENDER_EMAIL_SIGNATURE} variable at send time. (Confirmed by Kasper 2026-07-22.)
+ */
+function resolveClientSlug(workspaceSlug: string, campaign: string | null | undefined): string {
+  if (workspaceSlug === "acceler8rs" && !/pathfinder/i.test(String(campaign ?? ""))) {
+    return "larsen-digital";
+  }
+  return CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
 }
 
 /**
@@ -128,9 +182,14 @@ async function fetchRecentApprovedExamples(
        LIMIT $3`,
       [workspaceSlug, excludeLeadEmail, limit]
     );
-    if (r.rows.length === 0) return "";
+    // Drop any past reply that referenced a now-deactivated case study. Without this
+    // filter, a reply sent before a case study was banned keeps getting fed back as a
+    // "match this voice" example for up to 14 days, re-seeding the banned name into new
+    // drafts long after the ban (the exact reason KyiKyi/Headwaters kept resurfacing).
+    const cleanRows = r.rows.filter(row => !containsBannedCaseStudy(row.sent_body || ""));
+    if (cleanRows.length === 0) return "";
 
-    const examples = r.rows.map((row, i) => {
+    const examples = cleanRows.map((row, i) => {
       const inbound = (row.inbound || "")
         .replace(/On \w+,? \w+ \d+,? \d{4}[\s\S]*/, "")
         .split("\n")
@@ -148,7 +207,7 @@ OUR APPROVED REPLY (sent):
 ${sent}`;
     }).join("\n\n");
 
-    return `POSITIVE EXAMPLES (the last ${r.rows.length} approved replies for this workspace, match this voice and structure unless the current lead's situation requires deviating, do NOT copy specifics verbatim, learn the pattern):
+    return `POSITIVE EXAMPLES (the last ${cleanRows.length} approved replies for this workspace, match this voice and structure unless the current lead's situation requires deviating, do NOT copy specifics verbatim, learn the pattern):
 
 ${examples}
 
@@ -248,7 +307,10 @@ async function fetchEBThread(
       .map((item: any) => {
         const isSent = item.folder === "Sent";
         const raw = item.text_body ? item.text_body : stripHtmlForThread(item.html_body || "");
-        const cutAt = raw.search(/On \w+,? \w+ \d+,? \d{4}.* wrote:|wrote:/);
+        // Trim the quoted-reply chain so each thread entry holds only its own text.
+        // Uses the shared QUOTED_HEADER_RE (real attribution headers only, never a
+        // bare "wrote:" which used to chop real content mid-message).
+        const cutAt = raw.search(QUOTED_HEADER_RE);
         const body = (cutAt > 0 ? raw.slice(0, cutAt) : raw).trim();
         return {
           dir: (isSent ? "outbound" : "inbound") as "inbound" | "outbound",
@@ -262,6 +324,83 @@ async function fetchEBThread(
     return { messages, coldEmailBody };
   } catch {
     return empty;
+  }
+}
+
+// ─── Reply CC fetch ──────────────────────────────────────────────────────────
+// Reads the people CC'd on the inbound reply directly from EmailBison. Leads
+// routinely loop in an agent, lawyer, or colleague via CC and say "talk to them" —
+// their address lives in the CC header, never in the body, so the body-only
+// detectAlternateSender misses it and the reply misroutes to the original sender
+// (the Shawn/Andy incident, 2026-07-10). Surfacing the CC list to the drafter lets
+// a referral handover route to the right person. Returns [] on any failure.
+async function fetchReplyCc(
+  instanceUrl: string,
+  apiKey: string,
+  ebReplyId: string | number | null
+): Promise<Array<{ name: string | null; address: string }>> {
+  if (!instanceUrl || !apiKey || !ebReplyId) return [];
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8_000);
+    let res: Response;
+    try {
+      res = await fetch(`${instanceUrl}/api/replies/${ebReplyId}`, {
+        headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) return [];
+    const data = await res.json();
+    const cc = (data?.data?.cc ?? data?.cc ?? []) as Array<{ name?: string | null; address?: string }>;
+    return cc
+      .filter(c => c && typeof c.address === "string" && c.address.includes("@"))
+      .map(c => ({ name: c.name ?? null, address: (c.address as string).toLowerCase() }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Returns EVERY participant address on the reply (from + to + cc), lowercased.
+ * Used to suppress a contact who is involved in a thread in ANY position, not just
+ * the CC — e.g. Peter emailing internally about an account shows up as the `from`,
+ * not the CC (Zalina incident, 2026-07-14). Returns [] on any failure.
+ */
+async function fetchReplyAllAddresses(
+  instanceUrl: string,
+  apiKey: string,
+  ebReplyId: string | number | null
+): Promise<string[]> {
+  if (!instanceUrl || !apiKey || !ebReplyId) return [];
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8_000);
+    let res: Response;
+    try {
+      res = await fetch(`${instanceUrl}/api/replies/${ebReplyId}`, {
+        headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) return [];
+    const data = await res.json();
+    const item = data?.data ?? data ?? {};
+    const out: string[] = [];
+    if (typeof item.from_email_address === "string") out.push(item.from_email_address);
+    for (const key of ["to_emails", "to", "cc"]) {
+      for (const p of (item[key] ?? [])) {
+        const a = p?.address ?? p?.email_address;
+        if (typeof a === "string") out.push(a);
+      }
+    }
+    return out.filter(a => a.includes("@")).map(a => a.toLowerCase());
+  } catch {
+    return [];
   }
 }
 
@@ -288,7 +427,7 @@ CRITERIA:
 1. answered_question: Did the reply directly address every specific question or request in the lead's message? If the lead asked something specific (a question, a request for info, a scheduling preference), it must be answered.
 2. genuine_acknowledgment: ONLY applies if the lead's message contained a question or a concern (not a bare yes, agreement, or "sure let's chat"). If so, does the reply open by naming the SPECIFIC question or concern the lead raised, in a way that reads as genuine and could not be pasted onto any other reply? Superficial acknowledgments FAIL: "Great question", "Good question", "Thanks for flagging", "I completely understand", "I hear you", "Totally get it", "Fair point" used on its own, or any generic empathy line. If the lead's message had no question or concern (a plain yes/agreement), mark this true (not applicable).
 3. has_personal_hook: Does the reply reference something concrete and specific to this lead or their company — from their message, their company name, their location, or the LEAD CONTEXT block? Generic replies that could go to anyone fail this. Only mark false if enrichment data was provided in the LEAD CONTEXT block and the reply ignores it entirely.
-4. clean_opener: Does the reply avoid banned openers? Banned: "Great", "Sounds great", "Thanks for", "Hope this", "I'd love to", "Excited to", "I appreciate", any variation of these as the first word or first sentence.${hasBanList ? `
+4. clean_opener: Does the reply avoid banned openers? Banned: "Great", "Sounds great", "Thanks for", "Hope this", "I'd love to", "Excited to", "I appreciate", any variation of these as the first word or first sentence. ALSO banned: opening with a formal self-introduction ("I'm [Name], Head of [Title]", "My name is...") or a formal firm description ("We work with a private investment group", "We are a...", "We help..."), even when the lead asked who you are or how you got their info. The reply must answer the lead's actual question first, casually, not lead with a bio or company pitch. Mark false if the opener introduces the sender or the firm before engaging what the lead said.${hasBanList ? `
 5. no_banned_phrases: Does the reply avoid all phrases and constructions explicitly listed as banned in the WORKSPACE EXTRAS block in the user message? Check for exact matches and close paraphrases.` : ""}
 
 VERDICT LOGIC:
@@ -408,6 +547,57 @@ function isBulkNewsletter(subject: string, message: string): boolean {
 }
 
 /**
+ * Per-workspace hard suppression rules. A reply matching one of these is silently
+ * closed (status='read') before it can be forwarded, auto-sent, or routed to
+ * #reply-approval / #manual-replies. Deterministic and zero Claude cost.
+ *
+ * Added 2026-07-03 on request:
+ *   - Statera Capital: EmailBison "You got N new message(s)" notification stubs.
+ *   - GN Motion: any reply mentioning Peter Gerasimov (in any field).
+ *
+ * Returns a skip-reason string when the reply should be suppressed, else null.
+ */
+function workspaceSuppressionReason(
+  workspaceSlug: string,
+  reply: Record<string, any>,
+  messageText: string
+): string | null {
+  const subject = (reply.subject ?? "").toString();
+
+  if (workspaceSlug === "statera-capital") {
+    // "You got 1 new message", "You've got 2 new messages", "You have 1 new message", etc.
+    if (/you(?:'ve| have)?\s*(?:got\s+)?\d+\s+new messages?/i.test(`${subject}\n${messageText}`)) {
+      return "statera_new_message_notification";
+    }
+    // Piers Dunhill campaign (2026-07-09): the @dunhillventures.io persona inbox
+    // (pd@, danielle@, jason@) is pure noise (LinkedIn, newsletters, spam). Suppress
+    // every reply on that persona so none of it reaches reply-approval / manual-replies.
+    const sender = (reply.sender_email ?? "").toString().toLowerCase();
+    if (sender.endsWith("@dunhillventures.io") || /@dunhillventures\.io\b/.test(`${subject}\n${messageText}`.toLowerCase())) {
+      return "statera_piers_dunhill";
+    }
+  }
+
+  if (workspaceSlug === "gn-motion") {
+    const raw = [reply.lead_name, reply.lead_email, reply.lead_company, subject, messageText]
+      .filter(Boolean)
+      .join("\n")
+      .toLowerCase();
+    // Normalise separators so email/handle forms (peter.gerasimov@, peter_gerasimov,
+    // petergerasimov) match the name too, not just the spaced "Peter Gerasimov".
+    const normalized = raw.replace(/[^a-z0-9]+/g, " ");
+    // Suppress anything Peter (peter@gnmotion.co) is engaged with — as sender, CC, or
+    // mentioned anywhere in the thread — plus the original Peter Gerasimov name match.
+    // Added peter@gnmotion.co 2026-07-09 on request: his threads were flooding the chats.
+    if (normalized.includes("peter gerasimov") || raw.includes("petergerasimov") || raw.includes("peter@gnmotion.co")) {
+      return "gn_motion_peter";
+    }
+  }
+
+  return null;
+}
+
+/**
  * Scans the message for email addresses that differ from the lead on record.
  * Returns a warning string if a different sender is detected.
  */
@@ -510,7 +700,10 @@ async function sendToEmailBison(reply: Record<string, any>, body: string, ccEmai
   const recipientEmail = reply.preferred_recipient_email ?? reply.lead_email;
   const recipientName = reply.preferred_recipient_name ?? reply.lead_name ?? null;
 
-  const linkify = (t: string) => t.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+  const linkify = (t: string) => t
+    .replace(/<((?:https?|mailto):[^|>\s]+)\|[^>]*>/g, "$1")
+    .replace(/<((?:https?|mailto):[^|>\s]+)>/g, "$1")
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
   const htmlBody = body.split("\n\n")
     .map(p => `<p style="margin:0 0 16px 0;">${linkify(p.replace(/\n/g, "<br>"))}</p>`)
     .join("");
@@ -562,7 +755,10 @@ async function forwardToClient(reply: Record<string, any>, forwardTo: string, cc
   const ebLink = `${url}/inbox/replies/${reply.id}`;
   const leadLine = [reply.lead_name, reply.lead_company].filter(Boolean).join(" at ") || reply.lead_email;
   const body = `FYI, new inbound reply from ${leadLine}.\n\nOpen in EmailBison to read the full thread and respond.\n\n${ebLink}`;
-  const linkify = (t: string) => t.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+  const linkify = (t: string) => t
+    .replace(/<((?:https?|mailto):[^|>\s]+)\|[^>]*>/g, "$1")
+    .replace(/<((?:https?|mailto):[^|>\s]+)>/g, "$1")
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
   const htmlBody = body.split("\n\n").map(p => `<p style="margin:0 0 16px 0;">${linkify(p.replace(/\n/g, "<br>"))}</p>`).join("");
 
   const ccList = (ccEmails ?? "").split(",").map(e => e.trim()).filter(Boolean).map(email_address => ({ name: null, email_address }));
@@ -594,7 +790,13 @@ async function forwardToClient(reply: Record<string, any>, forwardTo: string, cc
 
 // ─── Slack helpers ─────────────────────────────────────────────────────────────
 
+// Workspaces that must NEVER surface a card in #manual-replies or #reply-approval.
+// Hahnbeck is client-handled (forward-only): every reply is forwarded to their own
+// inbox, so nothing about it should ever appear in our Slack channels (2026-07-12).
+const SILENT_SLACK_WORKSPACES = new Set(["hahnbeck"]);
+
 async function postManual(workspaceSlug: string, payload: { blocks: object[]; text: string }): Promise<void> {
+  if (SILENT_SLACK_WORKSPACES.has(workspaceSlug)) return; // never post Hahnbeck to Slack
   // Per-workspace override routes manual-replies to the same channel as that workspace's
   // approval cards (e.g. Sonaro's #reply-management). NULL override → global #manual-replies.
   const overrideChannel = await approvalChannelFor(workspaceSlug);
@@ -782,6 +984,40 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     return;
   }
 
+  // ── Pre-filter 1c: Per-workspace hard suppression ────────────────────────────
+  // Client-specific stubs/contacts that must never reach forwarding, reply-approval,
+  // or manual-replies (Statera "N new messages" notifications; GN Motion Peter
+  // Gerasimov). Runs before forwarding so these are never surfaced anywhere.
+  {
+    const suppressReason = workspaceSuppressionReason(workspaceSlug, reply, messageText);
+    if (suppressReason) {
+      await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ intent: "no_action", skipped_reason: suppressReason }), replyId]);
+      return;
+    }
+  }
+
+  // ── Pre-filter 1c-2: header-based suppression (Peter / Piers involved anywhere) ─
+  // workspaceSuppressionReason only sees the body/fields, but the suppressed contact
+  // often shows up ONLY in the email HEADERS (from/to/cc), never the body:
+  //   - GN Motion: peter@gnmotion.co as CC (2026-07-12) or sender (Zalina, 2026-07-14).
+  //   - Statera: the Piers Dunhill persona (@dunhillventures.io) CC'd on a Teams-invite
+  //     thread where OUR sender_email is a different persona (Proximo, 2026-07-22).
+  // Fetch all participant addresses (from + to + cc) and suppress if the contact is
+  // anywhere among them. Only fires for the two affected workspaces.
+  if (workspaceSlug === "gn-motion" || workspaceSlug === "statera-capital") {
+    const addrs = await fetchReplyAllAddresses(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_reply_id ?? null);
+    const hit =
+      (workspaceSlug === "gn-motion" && addrs.includes("peter@gnmotion.co")) ? "gn_motion_peter" :
+      (workspaceSlug === "statera-capital" && addrs.some(a => a.endsWith("@dunhillventures.io"))) ? "statera_piers_dunhill" :
+      null;
+    if (hit) {
+      await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ intent: "no_action", skipped_reason: hit }), replyId]);
+      return;
+    }
+  }
+
   // ── Pre-filter 2: Own outbound email echoed back ──────────────────────────────
   // EmailBison occasionally fires a LEAD_REPLIED webhook whose body is our own
   // outbound cold email (the "From:" header matches our sender, not the lead).
@@ -803,7 +1039,9 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   }
 
   // ── Forwarding path ───────────────────────────────────────────────────────────
-  const fileSlug = CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
+  // acceler8rs is split by campaign: Pathfinder (buy-side) keeps its own file, every
+  // other acceler8rs campaign represents Larsen Digital. See resolveClientSlug.
+  const fileSlug = resolveClientSlug(workspaceSlug, reply.campaign);
   const clientFileRaw = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
   if (!clientFileRaw) {
     console.error("[auto-reply] Client file not found:", workspaceSlug);
@@ -823,7 +1061,7 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // Reads all messages (inbound + outbound) from EB so manual replies sent by
   // Kasper inside EmailBison are included. Falls back to "No prior messages."
   // if EB is unreachable — processor still drafts, just without thread context.
-  const [ebThread, leadEnrichment] = await Promise.all([
+  const [ebThread, leadEnrichment, replyCc] = await Promise.all([
     fetchEBThread(
       workspace.email_bison_instance_url ?? "",
       workspace.email_bison_api_key ?? "",
@@ -831,13 +1069,34 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
       reply.email_bison_reply_id ?? null
     ),
     fetchLeadEnrichment(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_lead_id ?? null),
+    fetchReplyCc(workspace.email_bison_instance_url ?? "", workspace.email_bison_api_key ?? "", reply.email_bison_reply_id ?? null),
   ]);
 
-  const threadHistory = ebThread.messages.length > 0
-    ? ebThread.messages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 10)}: ${m.body.slice(0, 1200)}`).join("\n\n")
-    : "No prior messages.";
+  // People CC'd on this reply (agent, lawyer, colleague the lead may hand us to).
+  // Exclude our own sender and the lead themselves so only genuine third parties remain.
+  const ccThirdParties = replyCc.filter(c =>
+    c.address !== (reply.lead_email ?? "").toLowerCase() &&
+    c.address !== (reply.sender_email ?? "").toLowerCase() &&
+    !c.address.startsWith("noreply") && !c.address.startsWith("no-reply")
+  );
+  const ccBlock = ccThirdParties.length > 0
+    ? `PEOPLE CC'd ON THE LEAD'S REPLY (real addresses from the email header — the lead may be handing you to one of them):\n${ccThirdParties.map(c => `- ${c.name ?? "(no name)"} <${c.address}>`).join("\n")}\nIf the lead points you to one of these people ("I've cc'd my agent", "talk to [Name]", "looping in [Name]"), this is a REFERRAL HANDOVER: set recipient_email to that person's EXACT address from this list, address them by first name, and CC the original sender (${reply.lead_email}). Never address a person here without also setting recipient_email to their address — otherwise the reply goes to the wrong inbox.\n\n`
+    : "";
 
-  const coldEmailBody = ebThread.coldEmailBody;
+  // Recover the prior chain quoted inside the lead's own reply. EmailBison never returns
+  // the original campaign send from /api/replies, so on a first reply this is the ONLY
+  // source of what we already told this lead. Without it the drafter re-pitches the offer
+  // to someone who already read it (Enviroscent, 2026-07-22).
+  const { newText: leadNewText, quotedChain } = splitQuotedReply(messageText);
+
+  const threadHistory = ebThread.messages.length > 0
+    ? ebThread.messages.map((m) => `[${m.dir === "inbound" ? "LEAD" : "US"}] ${new Date(m.sent_at).toISOString().slice(0, 16).replace("T", " ")}: ${m.body.slice(0, 1200)}`).join("\n\n")
+    : quotedChain
+      ? "No separate thread records for this lead. The chain quoted inside their reply is reproduced above under PREVIOUS EMAIL(S) WE SENT — treat that as what has already been said."
+      : "No prior messages.";
+
+  // EB's Sent folder first, then the chain quoted in the lead's reply.
+  const coldEmailBody = ebThread.coldEmailBody ?? (quotedChain ? quotedChain.slice(0, 2000) : null);
 
   // ── Thread interest anchor ────────────────────────────────────────────────────
   // Has this lead shown interest EARLIER in this thread (a prior interested flag,
@@ -846,12 +1105,17 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // isolation. A single negative answer to a qualifying question or a one-off
   // objection is the lead continuing to engage, not withdrawing, so it should
   // never be silently closed as not_interested.
+  // "Prior interest" requires a REAL buying signal: a confirmed interested flag, a
+  // booked meeting, or an earlier interested/interested_urgent classification. A single
+  // past needs_info/neutral does NOT count — those are questions, not interest, and
+  // treating them as interest is what caused ordinary "no thanks" replies to be held
+  // open and dumped into #manual-replies instead of closing (fixed 2026-07-08).
   const priorInterest = await pool.query(
     `SELECT 1 FROM replies
      WHERE workspace_slug = $1 AND lead_email = $2 AND id <> $3
        AND ( interested = TRUE
           OR meeting_booked = TRUE
-          OR ai_analysis->>'intent' IN ('interested','interested_urgent','needs_info') )
+          OR ai_analysis->>'intent' IN ('interested','interested_urgent') )
      LIMIT 1`,
     [workspaceSlug, reply.lead_email, replyId]
   );
@@ -869,7 +1133,15 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     : detectAlternateSender(messageText, reply.lead_email);
 
   // ── System prompt ─────────────────────────────────────────────────────────────
-  const systemPrompt = `You are the reply agent for Maxen Partners, a cold email agency managing outbound campaigns for M&A advisors, PE firms, franchise brands, and creative agencies. Your job is to draft replies that read like they came from a senior person who carefully read the whole thread — not an AI working through a checklist.
+  const systemPrompt = `You are the reply agent for Maxen Partners, a cold email agency managing outbound campaigns for M&A advisors, PE firms, franchise brands, and creative agencies. Your job is to draft replies that read like they came from a senior person who carefully read the whole thread, not an AI working through a checklist.
+
+## TONE (this comes before every other rule about what to say)
+
+Write like a warm, considerate human replying to another human. The person on the other end is a real founder or operator who took the time to respond, treat them that way. Be kind, plain, and genuinely helpful. Sound like a thoughtful person, not a clever one.
+
+Do NOT try to sound smart, impressive, or interesting. No clever openers, no MBA vocabulary, no showing off that you noticed something about their business. If a sentence exists to make US look sharp rather than to help THEM, cut it. A reply that is warm, clear, and short beats one that is clever every single time.
+
+Read the ENTIRE thread before writing a single word. Everything already said, everything already offered, everything they already told you. Your reply must fit naturally as the next message in that specific conversation. If you would not understand your own reply reading the thread top to bottom, rewrite it.
 
 Every reply is sent AS the client's sender (e.g. Jeff Zanardi from ACT Capital, Nicklas Larsen from Larsen Digital, Svetlin Petrov from Statera Capital). You are not Maxen Partners. You are that person. Write in first person as them. Never refer to the sender by name as a subject ("Nicklas works with" is wrong. "I work with" is right. Always).
 
@@ -877,13 +1149,13 @@ Every reply is sent AS the client's sender (e.g. Jeff Zanardi from ACT Capital, 
 
 1. READ THE REPLY QUICK REFERENCE. It tells you the campaign type, Calendly link, teasers, and rules for this exact client. Every client is different. The REPLY QUICK REFERENCE overrides everything below.
 
-2. READ THE THREAD HISTORY AND ORIGINAL EMAIL. Know what was already said and what was offered. Never repeat a link, stat, case study, or value prop already in the thread. If the teaser was already sent, do not send it again — acknowledge it and pull to a call.
+2. READ THE THREAD HISTORY AND ORIGINAL EMAIL, TOP TO BOTTOM. Know what was already said and what was offered. This is non-negotiable: before you write, list to yourself what has already been sent (links, stats, case studies, value props, questions we already asked). NEVER repeat any of it. If a stat, link, case study, or value prop already appears anywhere in the thread, it is off limits, reference it as "as I mentioned" at most, never restate it. If the teaser or case study was already sent, do not send it again, acknowledge it and move the conversation forward. Repeating something the lead already read is the clearest sign a reply was written by a bot that did not read the thread.
 
 3. READ WHAT THE LEAD ACTUALLY WROTE. Respond to their message, not the category of their message. If they asked a specific question, answer it. If they gave a time window, do not pretend they did not.
 
 4. CHECK THE RECIPIENT. If the reply was sent by someone other than the lead on record (different name, "forwarded to me by", reply from a different email address), set recipient_email and recipient_name to that person. Address them directly.
 
-5. USE THE LEAD COMPANY CONTEXT BLOCK. This is the most important personalization input. The block gives you EXIT SIGNALS, the attributes that make this brand attractive to a strategic or PE buyer (own manufacturing, consumable LTV, patented IP, premium pricing, category buyer interest, etc.). You MUST reference at least ONE specific exit signal from this block in the opener of the reply. The reference must be concrete, drawn from a visible detail on their site.
+5. USE THE LEAD COMPANY CONTEXT BLOCK WHERE IT GENUINELY HELPS. The block gives you EXIT SIGNALS, the attributes that make this brand attractive to a strategic or PE buyer (own manufacturing, consumable LTV, patented IP, premium pricing, category buyer interest, etc.). Reference ONE concrete detail from it when it makes the reply more relevant to what the lead actually asked, and weave it in naturally. Do NOT force a clever observation about their business into the opener of every reply just to prove you did your homework. If the lead asked a plain question or said a plain yes, a plain, warm, direct answer serves them better than a personalized hook. Never lead with a hook that reads as "look what I noticed about you."
 
 CRITICAL FRAMING. The reason we reach out to a brand is because something about THEIR brand makes us think they could exit well. NEVER frame it as "we focus on [category] brands" or "we work with [category]". We do NOT focus on categories, we focus on brands that look exit-worthy. The right framing is "what made [BRAND] stand out" or "what stood out about [BRAND]" followed by the specific exit signal. The signal can be one of:
    - their product is consumable / generates repeat purchase / strong LTV
@@ -914,7 +1186,7 @@ HARD LENGTH CAP. Every reply body (everything between "Hi [name]" and "{SENDER_E
 
 Structure budget: greeting line, then 3 to 5 short paragraphs, then the slot or Calendly line. Each paragraph should add genuine value for the reader, not pad the reply.
 
-Mirror their length and energy. A one-line "Sure" gets a short response. A specific question ("why are you interested in my company") justifies a fuller reply that answers it properly. Lead with one specific reason this lead matters (drawn from LEAD COMPANY CONTEXT EXIT SIGNALS). Then say what we do. Then the value-rich CTA (mapping their EV multiple range, operational levers, deal structures). Then the no-pressure closer. Then slots.
+Mirror their length and energy. A one-line "Sure" gets a short, warm response, not a pitch. A specific question ("why are you interested in my company") justifies a fuller reply that answers it properly and honestly. When a fuller reply is warranted: answer what they asked first, say plainly what we do, then a simple no-pressure invitation to a call. Keep the language everyday. Do not dress the call up as "mapping EV multiples / operational levers / deal structures", just offer a genuine conversation about their options.
 
 Start with the substance, and make the first body line acknowledge what the lead actually said. Do not default to a stock opener regardless of context. Examples:
 - Lead asked for more info ("send me details", "tell me more", "share more info"): "Happy to share more." fits.
@@ -937,6 +1209,8 @@ The goal is a 30-minute call. Every reply should move toward it. When you send t
 If they already said yes to a call: do not re-pitch. Do not ask "Worth a quick call?" again. They said yes. Send the link and stop.
 
 If they said no: stop. No reply at all. Not even an acknowledgment unless they asked to be removed from the list.
+
+CLASSIFYING A DECLINE (read carefully, this controls whether we bother a human). If the lead declines, passes, says it is not relevant, not a fit, not the right time in a final way, or otherwise shows no interest AND asks no genuine question, classify it as not_interested. Do NOT soften a clear no into neutral or needs_info to keep the conversation alive, that just drafts a reply to someone who said no or dumps it on a human. Only use needs_info when the lead genuinely asks something or challenges a premise and a reply is actually warranted. Only use neutral when the message is truly unclear. The single exception: if this same lead already showed real interest earlier in this thread (see ESTABLISHED INTEREST block if present), treat a later objection as continued engagement per that block.
 
 ## THE TRIPLE A FRAMEWORK (use whenever the lead asks a question or raises a concern)
 
@@ -969,7 +1243,7 @@ Route to manual when a lead asks for a meeting in a specific human-stated timefr
 CRITICAL — DO NOT INVENT REASONS TO ESCALATE: If a lead says "yes", "sure", "please send it over", "send me the teaser", "I'm interested", or any clear affirmative — draft the reply and set action to auto_send. Do not route to manual because you imagine a scenario (NDA, data room, legal process) that is not explicitly stated in the lead's message. Only escalate to manual for the three cases above (phone with number, specific day+time without always_send_calendly, specific human-stated meeting window). Everything else: draft it and send it.
 
 REFERRAL HANDOVER PATTERN: When the lead forwards/passes you to a colleague ("@Gilbert have an initial conversation", "looping in our COO", "let's bring in [Name]"), do all of this:
-1. Set recipient_email and recipient_name to the new person they pointed you to (the colleague, not the original lead).
+1. Set recipient_email and recipient_name to the new person they pointed you to (the colleague, not the original lead). Their exact address is almost always in the "PEOPLE CC'd ON THE LEAD'S REPLY" block in the user message — use it verbatim. NEVER greet a person without setting recipient_email to their address; addressing "Andy" while leaving recipient_email unset sends the reply to the wrong inbox.
 2. Greet the new person by first name.
 3. Briefly acknowledge the intro from the original sender in one short line.
 4. Keep the reply SHORT. The colleague has been pre-greenlit, do not dump info, do not pitch the full value prop, do not list case studies.
@@ -982,6 +1256,7 @@ REFERRAL HANDOVER PATTERN: When the lead forwards/passes you to a colleague ("@G
 - Never use em dashes or en dashes. Restructure the sentence instead.
 - Never use colons in body copy. The only colon allowed is the one before a URL link.
 - Never open with: "Hope this finds you well", "Thanks for reaching out", "I appreciate you taking the time", "Sounds great!", "I'd love to", "Excited to"
+- Never open with a formal self-introduction ("I'm [Name], Head of [Title]", "My name is...") or a formal "we work with a private investment group" / "we are a..." / "we help..." company statement, EVEN when the lead asks who you are or how you got their information. Nobody replies to an email by introducing themselves like a pitch. Answer their actual question directly and casually, in the natural flow of what they said, and let {SENDER_EMAIL_SIGNATURE} handle the identity. Lead with the answer to their question, never with a bio or a description of the firm.
 - Never confirm times or fabricate availability
 - Never reply to a not-interested or hard-no lead
 - Never send a teaser that does not match the campaign, default to a call if unsure
@@ -989,7 +1264,7 @@ REFERRAL HANDOVER PATTERN: When the lead forwards/passes you to a colleague ("@G
 - Never end with "Best," or any name, the signature variable handles everything
 - Never pad a short yes-reply into multiple paragraphs
 - Never repeat a stat, link, or angle already in the thread
-- Never list multiple case studies or revenue trajectories inline (Motel Margarita went from X to Y, KyiKyi did Z, etc). Single brief reference at most. Save the case study dump for the call.
+- Never list multiple case studies or revenue trajectories inline (e.g. "Brand A went from X to Y, Brand B did Z"). Single brief reference at most. Save the case study dump for the call.
 - Never recite our M&A track record stats unprompted ("$1B+ in CPG transactions", "closed X deals"). BUT it is OK and encouraged to mention "M&A bankers as co-advisors" as the mechanism for how we get founders the best exit, just without the specific stat dump. Phrase as a credibility hook, not a stats dump.
 - Never explain our pricing model unless explicitly asked
 - Never list 3-phase models or operational breakdowns in the body. If the lead asked for info, give one plain sentence about what we do (we help founders maximize the value of their brand at exit), then tie it to their brand's exit signal, then go to slot.
@@ -1107,7 +1382,12 @@ Fill in questions_to_answer, personal_hook, and pivot_line BEFORE writing reply_
 }`;
 
   const coldEmailBlock = coldEmailBody
-    ? `ORIGINAL COLD EMAIL SENT TO THIS LEAD (what they are responding to):\n${coldEmailBody}\n\n`
+    ? `PREVIOUS EMAIL(S) WE SENT TO THIS LEAD — THEY HAVE ALREADY READ THIS:
+${coldEmailBody}
+
+CRITICAL: everything above was ALREADY SENT to this lead. They read it and replied. Do NOT restate, paraphrase, or re-pitch any of it — not the offer, not the buyer description, not the revenue range, not the structure/terms, not the reason we reached out. Repeating it is the single clearest sign the reply was written without reading the thread. Your reply must ADVANCE the conversation from here: answer what they actually asked, add something they do not already know, and move to the next step.
+
+`
     : "";
 
   // ── Lead company research (fetch + Haiku-summarize website) ──────────────────
@@ -1168,10 +1448,19 @@ Do not confirm a single slot, always offer both.
     ? `ESTABLISHED INTEREST IN THIS THREAD: This lead already showed interest earlier in this conversation (see THREAD HISTORY). Judge this new message in the context of that demonstrated interest, NOT in isolation. A negative answer to a qualifying question, a single objection, a raised concern, or "the rest is not a fit" is the lead CONTINUING to qualify and engage, so classify it as needs_info or neutral and draft a reply that addresses the concern and keeps the conversation moving. Only use not_interested or hard_no if THIS message is an explicit, unambiguous withdrawal of interest (e.g. "stop contacting me", "remove me", "we've decided not to proceed", "definitely not interested"). When in doubt in an interested thread, draft a reply rather than closing.\n\n`
     : "";
 
+  // acceler8rs growth campaigns now represent Larsen Digital (resolveClientSlug maps
+  // them to the larsen-digital file), but Lukas Maxen is the acceler8rs SENDER, so the
+  // Larsen file's "I'll set you up with Lukas Maxen" M&A hand-off line must be
+  // suppressed here (he can't hand a call off to himself). Fires only on that path,
+  // never for real Larsen accounts (Nicklas is the sender there) or acceler8rs Pathfinder.
+  const accelerSenderOverride = workspaceSlug === "acceler8rs" && fileSlug === "larsen-digital"
+    ? `SENDER OVERRIDE (this is an Acceler8rs account, sender is Lukas Maxen himself): NEVER write a hand-off line such as "I'll set you up with Lukas Maxen", "our Head of Corporate Development", or "he handles all of our M&A and capital markets conversations" — you cannot hand a call off to yourself. When the M&A / sell-side Calendly link applies, frame it directly in the first person and send the link, with NO third-person reference to Lukas. Every other rule, all wording, and all case studies still apply unchanged.\n\n`
+    : "";
+
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${accelerSenderOverride}${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${ccBlock}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
@@ -1179,14 +1468,18 @@ From: ${reply.lead_name} <${reply.lead_email}>
 Company: ${reply.lead_company ?? "unknown"} | Title: ${reply.lead_title ?? "unknown"}
 Campaign: ${reply.campaign ?? "unknown"}
 Subject: ${reply.subject ?? ""}
+${quotedChain ? `
+WHAT THE LEAD ACTUALLY WROTE JUST NOW (this is the ONLY new information from them — everything below it in the full email is our own previous message quoted back):
+${leadNewText}
 
+FULL RAW EMAIL (their new text, then their signature, then the quoted chain of what WE already sent):` : ""}
 ${messageText.slice(0, 8000)}`;
 
   // ── Append per-workspace learnings to the system prompt ──────────────────────
   // Loaded from prompts/extras/<slug>.md so the weekly-review handler can
   // auto-commit approved feedback patterns without touching the core prompt.
   // Cache invalidation cost is per-workspace, not global.
-  const workspaceExtras = readWorkspaceExtras(workspaceSlug);
+  const workspaceExtras = readWorkspaceExtras(fileSlug);
   const effectiveSystemPrompt = workspaceExtras
     ? `${systemPrompt}\n\n## WORKSPACE-SPECIFIC LEARNINGS (${workspaceSlug})\n\n${workspaceExtras}`
     : systemPrompt;
@@ -1235,23 +1528,12 @@ ${messageText.slice(0, 8000)}`;
   if (result.reply_body) result.reply_body = sanitizeDashes(result.reply_body);
   if (result.manual_reason) result.manual_reason = sanitizeDashes(result.manual_reason);
 
-  // Safety net: a not_interested verdict on a thread where the lead already showed
-  // interest should NOT silently close. The classifier is instructed to avoid this
-  // (see threadInterestDirective), but if it still lands here, surface it to a human
-  // in #manual-replies rather than closing the conversation behind their back.
-  // hard_no still closes — that is a definitive disqualification, not a soft no.
-  if (result.intent === "not_interested" && threadHasInterest) {
-    await pool.query(`UPDATE replies SET status = 'awaiting_manual', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
-      [JSON.stringify({ intent: result.intent, auto_replied: false, skipped_reason: "not_interested_in_interested_thread_manual" }), replyId]);
-    await postManual(workspaceSlug, {
-      text: `Possible soft-no in an interested thread, ${workspaceSlug} / ${reply.lead_name}`,
-      blocks: buildCard("Lead was interested earlier, read as not_interested now", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", {
-        reason: "This lead showed interest earlier in the thread, but this latest message read as not_interested. Decide whether to nurture or let it close.",
-        intent: result.intent,
-      }),
-    });
-    return;
-  }
+  // Any not_interested / hard_no closes silently, ALWAYS. Per explicit instruction
+  // (2026-07-09): a lead who says no or "not interested" must never be routed to
+  // #manual-replies, even if they showed interest earlier in the thread. Just close
+  // it and move on. The old "surface soft-no in an interested thread to a human"
+  // safety net was removed because it was filling #manual-replies with declines.
+  // Falls through to the hard gate below, which sets status='read' with no Slack post.
 
   // Hard gate: not_interested and hard_no are NEVER replied to, regardless of Claude's action.
   // The pre-filter catches most of these for free; this catches any that slip through to Claude.
@@ -1278,7 +1560,11 @@ ${messageText.slice(0, 8000)}`;
   // Special case: if EmailBison refuses because no contact is attached (off-campaign
   // inbound, deleted lead, etc.), post to #manual-replies so a teammate can attach
   // the lead in EmailBison or mark interested manually in EmailBison's UI.
-  if (["interested", "interested_urgent"].includes(result.intent)) {
+  // Forward workspaces (Hahnbeck) skip back-sync entirely: the client handles the
+  // reply from their own inbox, so we never need to mark-interested for the CSM count,
+  // and we must never surface the "EmailBison refused" alert to #manual-replies for
+  // them. The reply flows straight to the forward branch below (2026-07-12).
+  if (["interested", "interested_urgent"].includes(result.intent) && !workspace.forward_replies_to_email) {
     try {
       const bs = await backsyncInterestedToEmailBison(replyId);
       if (bs.skipped && bs.skipped !== "already_interested") {
@@ -1399,9 +1685,11 @@ ${messageText.slice(0, 8000)}`;
     if (revised) result.reply_body = sanitizeDashes(revised);
   }
 
-  // Signature guard
-  if (result.action === "auto_send" && result.reply_body && !/\{SENDER_EMAIL_SIGNATURE\}/i.test(result.reply_body)) {
-    result.reply_body = result.reply_body.trimEnd() + "\n\n{SENDER_EMAIL_SIGNATURE}";
+  // Signature guard: strip any hand-written sign-off and guarantee exactly one
+  // {SENDER_EMAIL_SIGNATURE} at the end, so EmailBison's resolved signature never
+  // doubles up with a manual sign-off the model may have added.
+  if (result.reply_body) {
+    result.reply_body = normalizeSignature(result.reply_body);
   }
 
   // DB flags
@@ -1414,6 +1702,29 @@ ${messageText.slice(0, 8000)}`;
     await pool.query(`UPDATE follow_ups SET meeting_booked = TRUE, next_fu_due = NULL, outcome = 'booked' WHERE reply_id = $1`, [replyId]);
   }
 
+  // Referral-CC backstop: if the draft greets a CC'd third party by first name but
+  // recipient_email was NOT set to their address, set it here (and CC the original
+  // lead). Guarantees a "Hi Andy" reply reaches Andy even if the model addressed him
+  // without setting the recipient — the exact Shawn/Andy misroute. Deterministic.
+  if (ccThirdParties.length > 0 && result.reply_body) {
+    const greetMatch = result.reply_body.match(/^\s*(?:hi|hello|hey|dear)\s+([a-z][a-z'\-]+)/i);
+    const greetedFirst = greetMatch?.[1]?.toLowerCase();
+    const recipLower = (result.recipient_email ?? "").toLowerCase();
+    const recipIsCc = ccThirdParties.some(c => c.address === recipLower);
+    if (greetedFirst && !recipIsCc) {
+      const match = ccThirdParties.find(c => (c.name ?? "").toLowerCase().split(/\s+/)[0] === greetedFirst);
+      if (match) {
+        result.recipient_email = match.address;
+        result.recipient_name = match.name ?? result.recipient_name;
+        const leadLower = (reply.lead_email ?? "").toLowerCase();
+        if (leadLower && !(result.cc_emails ?? []).map(e => e.toLowerCase()).includes(leadLower)) {
+          result.cc_emails = [...(result.cc_emails ?? []), reply.lead_email];
+        }
+        console.log(`[auto-reply] Referral-CC backstop: routed to CC'd ${match.address} (greeted "${greetedFirst}"), CC lead ${reply.lead_email}`);
+      }
+    }
+  }
+
   // Persist recipient override BEFORE routing — approval path reads it from DB later.
   // Previously this was inside the auto_send branch, so approved drafts sent to wrong address.
   if (result.recipient_email) {
@@ -1421,6 +1732,31 @@ ${messageText.slice(0, 8000)}`;
       [result.recipient_email, result.recipient_name ?? null, replyId]);
     replyWithCreds.preferred_recipient_email = result.recipient_email;
     replyWithCreds.preferred_recipient_name = result.recipient_name ?? null;
+  }
+
+  // ── Deactivated case study backstop ──────────────────────────────────────────
+  // Last line of defence: if a drafted body still references a banned case study
+  // (stale client-file line, recycled example, or model hallucination slipped
+  // through the prompt), never send it. Route to a human with the offending name
+  // named so they can swap in an approved reference. See BANNED_CASE_STUDIES.
+  if (result.reply_body) {
+    const banned = containsBannedCaseStudy(result.reply_body);
+    if (banned) {
+      result.action = "manual";
+      result.manual_reason = `Draft referenced a deactivated case study ("${banned}"). Blocked from sending. Rewrite with an approved reference before sending.`;
+      console.warn(`[auto-reply] Blocked banned case study "${banned}" in draft for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
+    }
+  }
+
+  // ── Dealgen Partners backstop ────────────────────────────────────────────────
+  // Dealgen Partners campaigns must never get an auto-reply with a call/calendar
+  // (2026-07-10 instruction: "we do not want them on a call"). Force any reply-worthy
+  // Dealgen draft to #manual-replies for a human. Hard-close intents already closed
+  // silently above, so this only catches interested/needs_info/neutral auto-sends.
+  if (/dealgen/i.test((reply.campaign ?? "").toString()) && result.action === "auto_send") {
+    result.action = "manual";
+    result.manual_reason = result.manual_reason ?? "Dealgen Partners campaign: no call or calendar link. Human handles this lead directly.";
+    console.log(`[auto-reply] Dealgen campaign — routed to manual (no call/calendar) for ${replyId} (${reply.campaign})`);
   }
 
   // ── Route ─────────────────────────────────────────────────────────────────────

@@ -18,12 +18,12 @@ TYPE 1 — Sell Side Advisory (campaign names contain "Sell Side Advisory"):
 
 TYPE 2 — TelcoLab (campaign names contain "TelcoLab"):
   offer: Exclusive sell-side mandate for telecom software platform. Svetlin represents the company for sale. Lead is a PE firm or strategic acquirer.
-  goal: Send teaser + NDA + Calendly. Always include both links in the same reply.
+  goal: Send teaser + Calendly. Always include both links in the same reply.
   teaser: https://drive.google.com/file/d/1xehkwXNsLErIqOvvA-l9bY2FZGRQ4E0z/view?usp=sharing
-  nda: https://docsend.com/view/c6ctbjq7aru85f3y
   calendly: https://calendar.app.google/4FDNviVwZBCwcnzm6
-  reply: Send teaser + NDA + Calendly. Nothing else. No personal hook, no deal summary, no extra lines. They read the cold email — that is why they are asking for the teaser.
-  if teaser already sent: skip teaser, send NDA only + Calendly. Example: "Here is the NDA: [nda]. Once executed we will share the full CIM. Feel free to grab a time: [calendly]"
+  NDA: do NOT send the NDA link. NDA is handled on the call, not over email.
+  reply: Send teaser + Calendly. Nothing else. No NDA, no personal hook, no deal summary, no extra lines. They read the cold email — that is why they are asking for the teaser.
+  if teaser already sent: skip teaser, send Calendly only. Example: "Feel free to grab a time here: [calendly]"
 
 TYPE 3 — ZEBS (campaign names contain "Zebs" or "ZEBS"):
   offer: EdTech Seed Round investment. 300k+ pilot revenue, EU accreditation, 25 countries. Use zebs-ibs.md for full details.
@@ -46,6 +46,9 @@ never (all types):
 - Never add anything beyond the three links when sending the teaser. No personal hook, no deal summary, no extra lines.
 - Never include specific deal metrics (operator client names, engineer counts, revenue figures, EBITDA margins, team size) in a reply body unless the lead explicitly asked and the metric is in the approved teaser. If you are unsure, send only the teaser link and let them read it. Do not add context or commentary beyond what was in the original cold email.
 - Never apologize for an email landing in spam. Simply follow up as normal.
+
+auto_suppressed:
+- "You got N new message(s)" notification stubs (e.g. "You got 1 new message", "You have 2 new messages"): auto-suppressed by the processor pre-filter and never routed to #reply-approval or #manual-replies. Enforced in code (workspaceSuppressionReason), not a drafting rule.
 
 fu_context: |
   TYPE 1 (Sell Side Advisory) FU angles: the buyer Svetlin represents has committed capital and a clear brief — most owners they approach weren't actively looking but took the call out of curiosity. A follow-up call is low commitment and confidential. Re-engagement: "the buyer is still actively looking in your sector."

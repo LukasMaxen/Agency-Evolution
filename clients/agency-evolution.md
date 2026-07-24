@@ -11,8 +11,8 @@ All campaigns on the EmailBison workspace `internal-campaigns` are Maxen Group's
 
 **Contact:** Lukas Maxen, Founder, Maxen Group
 **Timezone:** CET UTC+1
-**Sell-side Calendly:** https://calendly.com/lukasmaxen/m-a-consultation
-**Buy-side Calendly:** https://calendly.com/lukasmaxen/buy-side-mandate-conversation
+**Sell-side Calendly:** https://calendly.com/lukasm-acceler8rs/m-a-consultation
+**Buy-side Calendly:** https://calendly.com/lukasm-acceler8rs/buy-side-mandate-conversation
 
 ---
 
@@ -29,7 +29,7 @@ always_send_calendly: false
 
 sell_side_campaigns:
 - Seller Campaign
-sell_side_calendly: https://calendly.com/lukasmaxen/m-a-consultation
+sell_side_calendly: https://calendly.com/lukasm-acceler8rs/m-a-consultation
 sell_side_offer: We represent the seller. We find the right acquirer for your brand (strategic or PE) and run the process. No upfront cost, success-fee only.
 
 buy_side_campaigns:
@@ -39,10 +39,13 @@ buy_side_campaigns:
 - PE Buyer Campaign (VP/Associate)
 - PE Buyer Campaign (Directors)
 - PE Buyer Campaign (Partners)
-buy_side_calendly: https://calendly.com/lukasmaxen/buy-side-mandate-conversation
+buy_side_calendly: https://calendly.com/lukasm-acceler8rs/buy-side-mandate-conversation
 buy_side_offer: We source proprietary, off-market acquisition targets matched to your mandate. $1M to $10M EBITDA. Success-fee only on closed deals. Consumer/ecom focus for Ecom variant, broader sectors for Broad variant.
 
 reply_rules:
+
+# DEALGEN PARTNERS campaigns (any campaign whose name contains "Dealgen" — HVAC, Logistics & Supply Chain SAAS, etc.) — HARD RULE, overrides everything below
+- If the campaign name contains "Dealgen": NEVER share a Calendly/calendar link and NEVER propose, offer, or agree to a call. We do not want these leads on a call. For any interested / needs-info / neutral reply that would otherwise get a call or link, set action to manual so a human handles the lead in #manual-replies. Do not draft a call CTA or a link. (Not-interested, hostile, or wrong-target still close silently with no reply, same as every other campaign.)
 
 # SELL-SIDE rules (lead replied to Seller Campaign)
 - Sell-side, lead asks about success fee or engagement structure: answer with ballpark and push to call. "We work success-fee only, no upfront cost. Fee typically lands in the 3 to 6 percent range of deal value depending on size and complexity, with a 6 to 12 month exclusive mandate. Happy to walk you through the structure on a 30-min call." Then send sell-side Calendly.

@@ -210,3 +210,11 @@ When a lead shares a product URL or names a specific product they want used for 
 ## Example CTA (use as template)
 
 > "If you are interested in getting a project underway, let's outline the scope over a quick meeting and we'll be able to give you a final quote. Are you available DATE or DATE? If not, I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email"
+
+## Weekly Review Learnings (auto-applied, apply always)
+
+### 2026-07-03: Send-time learning from Kasper Zacho
+
+When a lead gives a vague timing response (e.g. 'maybe next week', 'I'm traveling'), acknowledge their specific context naturally (e.g. name the business trip), add a soft 'no worries' buffer before the CTA to reduce pressure, and close with a warm forward-looking line (e.g. 'Looking forward to speaking soon') before the signature. Why: this framing feels more human and considerate, which fits the GN Motion tone and improves the chance the lead follows through on booking.
+
+_Reviewer notes: Hi Esther, Thanks for letting me know. I hope your business trip goes well. No worries at all. If you already know your availability, feel free to book a time that works best for you here: <https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email|app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email> Looking forward to speaking soon. {SENDER_EMAIL_SIGNATURE}_

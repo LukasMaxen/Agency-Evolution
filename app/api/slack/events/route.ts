@@ -13,17 +13,19 @@ import {
   getChannelName,
   bareChannelName,
   sanitizeDashes,
+  normalizeSignature,
   quoteForSlack,
   FEEDBACK_REVIEW_CHANNEL,
 } from "@/lib/slack-approval";
 import { daysUntilNextStep } from "@/lib/template-replies";
 import { sanitizeJsonControlChars } from "@/lib/utils";
+import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
 import { readFileFromGitHub, commitFileToGitHub } from "@/lib/github-commit";
 import {
   WeeklyReviewPattern,
   WeeklyReviewSummary,
   resolveTargetPath,
-  applyPatternsToFile,
+  appendPatternsToFile,
   commitReviewPatterns,
 } from "@/lib/apply-weekly-review";
 import {
@@ -71,7 +73,13 @@ interface FollowUpDraftRow {
 }
 
 function linkifyHtml(text: string): string {
-  return text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+  // Strip Slack-style link markup (<url|label> or <url>) to a plain URL BEFORE
+  // linkifying. Without this, the URL regex below swallows the "|label>" tail and
+  // produces a broken href that 404s (the "Calendly page not found" bug).
+  return text
+    .replace(/<((?:https?|mailto):[^|>\s]+)\|[^>]*>/g, "$1")
+    .replace(/<((?:https?|mailto):[^|>\s]+)>/g, "$1")
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
 }
 
 function bodyToHtml(body: string): string {
@@ -99,6 +107,19 @@ async function sendViaEmailBison(
     console.error("[slack-events] Missing EmailBison fields, cannot send");
     return false;
   }
+  // Deactivated case-study guard at the send gate. Blocks a banned case study
+  // (Headwaters/KyiKyi/Motel Margarita) even if the Slack regenerate path or an
+  // old stored draft reintroduced it after a human approved. See lib/banned-case-studies.ts.
+  const bannedInBody = containsBannedCaseStudy(body);
+  if (bannedInBody) {
+    console.error(`[slack-events] BLOCKED send: draft references deactivated case study "${bannedInBody}" (reply ${reply.email_bison_reply_id})`);
+    return false;
+  }
+  // Final signature guard at the send gate. Guarantees no approval-sent email ever
+  // carries a hand-written sign-off alongside {SENDER_EMAIL_SIGNATURE} — including
+  // drafts stored before the normalize fix shipped, or by any un-normalized path.
+  // Idempotent for already-clean drafts.
+  if (body) body = normalizeSignature(body);
   // Recipient resolution: prefer override (set when forward/redirect detected),
   // fall back to lead. Never use to_email, that is OUR sender address.
   const recipientEmail = reply.preferred_recipient_email ?? reply.lead_email;
@@ -228,12 +249,17 @@ async function learnFromSendApproval(
       target_file: decision.target_file,
       confidence: "high",
     };
-    const newContent = await applyPatternsToFile(file.content, [syntheticPattern], feedback.join("\n\n"));
-    if (!newContent || newContent === file.content) {
+    const newContent = appendPatternsToFile(
+      file.content,
+      [syntheticPattern],
+      feedback.join("\n\n"),
+      new Date().toISOString().slice(0, 10)
+    );
+    if (newContent === file.content) {
       await postToSlack({
         channel,
         threadTs: ts,
-        text: `Tried to bake the rule into \`${targetPath}\` but Claude returned no change. Skipping.`,
+        text: `Tried to bake the rule into \`${targetPath}\` but produced no change. Skipping.`,
       });
       return;
     }
@@ -505,6 +531,10 @@ async function approveReplyDraft(draft: ReplyDraftRow, slackUserId: string, chan
     return;
   }
 
+  // Strip any hand-written sign-off so the sent email and the sent_emails log below
+  // both carry only {SENDER_EMAIL_SIGNATURE} (never a duplicated signature).
+  draft.body = normalizeSignature(draft.body);
+
   const sent = await sendViaEmailBison(
     reply,
     reply.email_bison_api_key,
@@ -609,6 +639,10 @@ async function approveFollowUpDraft(draft: FollowUpDraftRow, slackUserId: string
     return;
   }
   const reply = replyResult.rows[0];
+
+  // Strip any hand-written sign-off so the sent email and the sent_emails log below
+  // both carry only {SENDER_EMAIL_SIGNATURE} (never a duplicated signature).
+  if (draft.body) draft.body = normalizeSignature(draft.body);
 
   const sent = await sendViaEmailBison(
     reply,
@@ -819,12 +853,13 @@ async function applyWeeklyReview(reviewTs: string, channel: string, reviewerName
     return;
   }
 
-  // Resolve targets, merge, and commit via the shared apply core.
+  // Resolve targets, append, and commit via the shared apply core.
   const { applied, failed, skippedTargets } = await commitReviewPatterns(
     patterns,
     threadComments,
     reviewerName,
-    "Reviewed via #feedback-review weekly review."
+    "Reviewed via #feedback-review weekly review.",
+    new Date().toISOString().slice(0, 10)
   );
 
   // Only mark as applied if at least one file actually committed. Otherwise leave
@@ -1054,6 +1089,8 @@ Apply the human feedback as the priority. Keep what is already good in the origi
 HARD RULES (always apply, even during revision):
 - Write in first person always — never refer to the sender by name as the subject of a sentence
 - ${CALENDLY_SLOT_PROMPT_RULE}
+- ONE call-to-action only. Never stitch two CTA sentences together (the exact failure to avoid: "Worth 15 minutes to see if there is something worth exploring?" immediately followed by "let's grab 15 minutes to discuss growth and valuation/exit options"). Write a single, clean invitation, then the calendar line. If two sentences both ask for a call, delete one.
+- NEVER imply you proposed specific times. Do not write "Would either of these work?", "either of these", "the times below", "these slots", "let me know which works", or anything implying you offered times, UNLESS a LIVE CALENDAR AVAILABILITY block with real slot strings is present in this prompt AND you use those exact strings. You cannot see the calendar. With no LIVE CALENDAR AVAILABILITY block, the ONLY calendar line is a natural lead-in plus the Calendly link, e.g. "Feel free to grab a time here: <link>".
 - Reference something specific from the lead's message — not generic
 - No AI filler phrases ("Sounds great", "I'd love to", "Excited to show you")
 - End with {SENDER_EMAIL_SIGNATURE} on its own line, nothing before it
@@ -1098,7 +1135,7 @@ Produce the revised draft now.`;
     return;
   }
 
-  const newBody = sanitizeDashes(regen.result.body);
+  const newBody = normalizeSignature(sanitizeDashes(regen.result.body));
   const newSubject = regen.result.subject ? sanitizeDashes(regen.result.subject) : draft.subject;
 
   // Guard: reject a regenerated body that is too short — same truncation risk as the main processor.
@@ -1225,7 +1262,7 @@ Produce the revised follow-up draft now.`;
     return;
   }
 
-  const newBody = sanitizeDashes(regen.result.body);
+  const newBody = normalizeSignature(sanitizeDashes(regen.result.body));
   const newSubject = regen.result.subject ? sanitizeDashes(regen.result.subject) : draft.subject;
 
   // Guard: reject a regenerated body that is too short.

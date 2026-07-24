@@ -901,7 +901,7 @@ Do NOT: "If anything changes down the road feel free to reach out and best of lu
 >
 > 3. Exit — When the time is right, we manage the M&A process through our investment banking partners.
 >
-> [Brief case study line — e.g. "KyiKyi went from £13k to £140k/month in 60 days."]
+> [Brief case study line, anonymous only, e.g. "One US brand went from $0 to $850k/month in 4 months." Never name a client brand. Headwaters Studio, Motel Margarita, and KyiKyi are all deactivated.]
 >
 > Worth a quick call to map out a path for [Company]? [Calendly link]
 >
@@ -1120,3 +1120,11 @@ The AI-suggested replies in the dashboard often violate tone rules. Common issue
 - Calendar confirmation replies that re-pitch the value → don't, just confirm the time
 - Booking CTA and time slots merged into one paragraph → split them, slots paragraph starts with "If so,"
 - Confirmation replies that add "if anything shifts" or rescheduling language → remove, the lead has already acted
+
+## Weekly Review Learnings (auto-applied, apply always)
+
+### 2026-07-03: Universal rule proposed by Kasper Zacho
+
+Always end replies with {SENDER_EMAIL_SIGNATURE} only, on its own line. Never write out a name, title, or company in the signature. Never include a sign-off (e.g. 'Best,') before {SENDER_EMAIL_SIGNATURE}. Never include both a written-out signature and {SENDER_EMAIL_SIGNATURE}. Why: the variable renders the full signature automatically — duplicating it or adding a manual sign-off creates redundancy and looks unprofessional.
+
+_Reviewer notes: <@U0934U2HEKX>_

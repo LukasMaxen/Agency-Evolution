@@ -4,8 +4,10 @@ import fs from "fs";
 import path from "path";
 import {
   sanitizeDashes,
+  normalizeSignature,
 } from "@/lib/slack-approval";
 import { checkRateLimit } from "@/lib/rate-limiter";
+import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
 import {
   daysUntilNextStep,
 } from "@/lib/template-replies";
@@ -149,6 +151,15 @@ async function sendReplyToEmailBison(
 
   if (!instanceUrl || !apiKey || !emailBisonReplyId || !senderEmailId) {
     console.error("[fu-process] Missing EmailBison fields for reply", reply.id);
+    return false;
+  }
+
+  // Deactivated case-study guard at the send gate. Blocks a banned case study
+  // (Headwaters/KyiKyi/Motel Margarita) from going out in a follow-up. See
+  // lib/banned-case-studies.ts.
+  const bannedInBody = containsBannedCaseStudy(body);
+  if (bannedInBody) {
+    console.error(`[fu-process] BLOCKED send: follow-up references deactivated case study "${bannedInBody}" (reply ${reply.id})`);
     return false;
   }
 
@@ -445,10 +456,9 @@ Draft FU step ${nextStep} now.`;
     }
   }
 
-  // Signature guard: append if Claude omitted it.
-  if (!/\{SENDER_EMAIL_SIGNATURE\}/i.test(draft.body)) {
-    draft.body = draft.body.trimEnd() + "\n\n{SENDER_EMAIL_SIGNATURE}";
-  }
+  // Signature guard: strip any hand-written sign-off and guarantee exactly one
+  // {SENDER_EMAIL_SIGNATURE} at the end so it never doubles EmailBison's resolved signature.
+  draft.body = normalizeSignature(draft.body);
 
   // FU emails auto-send directly — no approval queue.
   const sent = await sendReplyToEmailBison(reply, draft.body);
