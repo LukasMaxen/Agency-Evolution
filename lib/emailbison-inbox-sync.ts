@@ -46,6 +46,36 @@ function extractCleanBody(textBody: string): string {
   return clean.join("\n").trim();
 }
 
+// Extract the lead's email address from a bounce DSN body.
+// DSN formats differ by provider:
+//   Gmail:   "Your message to foo@bar.com has been blocked"
+//            "delivering your message to foo@bar.com"
+//            "Your message wasn't delivered to foo@bar.com"
+//   Postfix: "<foo@bar.com>: host ..."
+//   SMTP:    "(foo@bar.com:blocked)"
+// Returns null when no match or when the matched address looks like a
+// daemon/system address (postmaster, mailer-daemon, etc.).
+function extractLeadEmailFromDsn(textBody: string | null): string | null {
+  if (!textBody) return null;
+  const DAEMON = /^(postmaster|mailer-daemon|noreply|no-reply|bounce|bounces|bounce-handler)@/i;
+
+  // Pattern 1: Gmail/Google phrasing
+  const gmailMatch = textBody.match(
+    /(?:delivering your message to|Your message (?:to|wasn't delivered to))\s+([\w.+\-]+@[\w.\-]+\.\w+)/i
+  );
+  if (gmailMatch && !DAEMON.test(gmailMatch[1])) return gmailMatch[1].toLowerCase();
+
+  // Pattern 2: Postfix / PPE angle-bracket format  <email@domain>:
+  const angleMatch = textBody.match(/<([\w.+\-]+@[\w.\-]+\.\w+)>/);
+  if (angleMatch && !DAEMON.test(angleMatch[1])) return angleMatch[1].toLowerCase();
+
+  // Pattern 3: SMTP response parenthetical  (email@domain:something)
+  const parenMatch = textBody.match(/\(([\w.+\-]+@[\w.\-]+\.\w+)[):]/);
+  if (parenMatch && !DAEMON.test(parenMatch[1])) return parenMatch[1].toLowerCase();
+
+  return null;
+}
+
 let running = false;
 
 // Anything older than this is left alone — protects against backfilling
@@ -233,8 +263,9 @@ export async function runEmailBisonInboxSync(): Promise<void> {
           });
 
           const senderEmail = item.primary_to_email_address ?? null;
-          const reason = (item.text_body ?? "").slice(0, 500);
-          const rowId = `bounce-poll-${ws.slug}-${item.id}`;
+          const leadEmail   = extractLeadEmailFromDsn(item.text_body);
+          const reason      = (item.text_body ?? "").slice(0, 1000);
+          const rowId       = `bounce-poll-${ws.slug}-${item.id}`;
 
           const ins = await pool.query(
             `INSERT INTO email_bounces (
@@ -247,8 +278,8 @@ export async function runEmailBisonInboxSync(): Promise<void> {
              ON CONFLICT (id) DO NOTHING`,
             [
               rowId, ws.slug,
-              null, null, "",
-              cls.category,                // bounce_type mirrors category so legacy dashboards light up
+              leadEmail, null, "",
+              cls.category,
               receivedAt,
               senderEmail,
               item.sender_email_id ?? null,

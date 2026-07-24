@@ -264,14 +264,15 @@ export async function GET(req: NextRequest) {
         GROUP BY sender_email, workspace_slug
       ),
       burn_counts AS (
-        -- New enriched bounces carry sender_email directly, so we join by
-        -- sender_email (more accurate than the legacy lead_email path).
-        -- Legacy webhook-path rows have no bounce_category, so they are
-        -- naturally excluded from this count.
+        -- Counts unique leads that triggered a domain_burn signal per sender.
+        -- Gmail retry cascades (same lead bouncing 2-3x over 48h) are collapsed
+        -- to 1 by COUNT(DISTINCT lead_email). For older rows where lead_email
+        -- was not yet stored, eb_reply_uuid or the row id act as fallback
+        -- unique keys so each historical event still counts once.
         SELECT
           eb.sender_email,
           eb.workspace_slug,
-          COUNT(*)::int AS burns
+          COUNT(DISTINCT COALESCE(eb.lead_email, eb.eb_reply_uuid, eb.id))::int AS burns
         FROM email_bounces eb
         INNER JOIN active_senders sa
           ON  sa.sender_email   = eb.sender_email
