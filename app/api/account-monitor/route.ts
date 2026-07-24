@@ -209,17 +209,24 @@ export async function GET(req: NextRequest) {
         GROUP BY es.sender_email, es.workspace_slug
       ),
       bounce_counts AS (
-        -- Two-path total: poll-ingested rows carry sender_email directly,
-        -- legacy webhook rows have lead_email only and need an emails_sent
-        -- join to recover the sender. Without this UNION the poll-path
-        -- bounces are invisible to the bounce_rate metric.
+        -- Counts unique leads whose email address bounced per sender.
+        -- Retry cascades (Gmail retrying a soft bounce 2-3x within 48h)
+        -- and multi-step sequences hitting the same bad address are
+        -- collapsed to 1 by COUNT(DISTINCT lead_email). Warmup probe
+        -- rows (lead_email IS NULL) are excluded by both path filters.
+        --
+        -- Two paths to recover sender attribution:
+        -- Path A: rows where the webhook stored sender_email directly
+        --   (new rows post-fix, and any poll rows that also have lead_email)
+        -- Path B: old webhook rows that predate the sender_email fix;
+        --   sender is recovered by joining to the emails_sent table.
         SELECT sender_email, workspace_slug, SUM(c)::int AS bounces
         FROM (
-          -- Path A: poll rows (sender_email present directly on the bounce)
+          -- Path A: bounce row already has sender_email
           SELECT
             eb.sender_email,
             eb.workspace_slug,
-            COUNT(*)::int AS c
+            COUNT(DISTINCT eb.lead_email)::int AS c
           FROM email_bounces eb
           INNER JOIN active_senders sa
             ON  sa.sender_email   = eb.sender_email
@@ -234,11 +241,11 @@ export async function GET(req: NextRequest) {
 
           UNION ALL
 
-          -- Path B: legacy webhook rows (lead_email join)
+          -- Path B: old webhook rows without sender_email; recover via join
           SELECT
             es.sender_email,
             es.workspace_slug,
-            COUNT(eb.id)::int AS c
+            COUNT(DISTINCT eb.lead_email)::int AS c
           FROM emails_sent es
           JOIN email_bounces eb
             ON  eb.workspace_slug = es.workspace_slug

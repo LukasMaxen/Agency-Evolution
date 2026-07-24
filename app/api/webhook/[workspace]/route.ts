@@ -332,22 +332,33 @@ export async function POST(
 
     // ── EMAIL_BOUNCED ─────────────────────────────────────────────────────────
     if (eventType === "EMAIL_BOUNCED") {
-      const lead     = body.data?.lead;
-      const campaign = body.data?.campaign;
-      const bounceId = `bounce-${slug}-${lead?.id ?? ""}-${Date.now()}`;
+      const lead        = body.data?.lead;
+      const campaign    = body.data?.campaign;
+      const senderEmail = body.data?.sender_email;
+      const bounceId    = `bounce-${slug}-${lead?.id ?? ""}-${Date.now()}`;
+
+      // EB's webhook does not send DSN content so we cannot run the full
+      // bounce classifier here. Map the coarse bounce_type EB does send to
+      // our bounce_category where possible; unrecognised values stay null.
+      const ebType = (body.data?.bounce_type ?? "") as string;
+      const bounceCategory: string | null =
+        ebType === "hard" ? "data_failure" :
+        ebType === "soft" ? "soft"         : null;
 
       await pool.query(
         `INSERT INTO email_bounces (
           id, workspace_slug, lead_email, lead_name,
-          campaign_name, bounce_type, bounced_at
-        ) VALUES ($1,$2,$3,$4,$5,$6,NOW())
+          campaign_name, sender_email, bounce_type, bounce_category, bounced_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
         ON CONFLICT (id) DO NOTHING`,
         [
           bounceId, slug,
           lead?.email ?? "",
           `${lead?.first_name ?? ""} ${lead?.last_name ?? ""}`.trim(),
           campaign?.name ?? "",
-          body.data?.bounce_type ?? "unknown",
+          senderEmail?.email ?? null,
+          ebType || "unknown",
+          bounceCategory,
         ]
       );
 
