@@ -708,7 +708,7 @@ function SenderTable({
     const BURN_MAX           = 0.5;
     const BOUNCE_MAX         = 2.0;
     const REPLY_MIN          = 1.0;
-    const REPLY_CRITICAL     = 0.5;
+    const REPLY_CRITICAL     = 0.45;
     const CRITICAL_MIN_SEND  = 200;
     const PROVISIONAL_FLOOR  = 20;
     let accStatus: string;
@@ -912,7 +912,7 @@ function SenderTable({
     // Hardcoded 200/50 used to be 7d-only: at 24h a 59-send domain with
     // 0 replies would tip Low reply while a 49-send domain with 0 replies
     // (genuinely the same signal) would fall through to Healthy.
-    if (d.avgScore !== null && d.avgScore < 98)                          return <PillBadge text="Low health" tone="amber" />;
+    if (d.avgScore !== null && d.avgScore < 98)                          return <PillBadge text="Low health" tone="red" />;
     if (d.totalSent >= thresholds.criticalMinSend  && d.replyRate < 0.5) return <PillBadge text="Critical reply" tone="red" />;
     if (d.bounceRate >= 2)                                               return <PillBadge text="List issue" tone="amber" />;
     if (d.totalSent >= thresholds.provisionalFloor && d.replyRate < 1)   return <PillBadge text="Low reply" tone="amber" />;

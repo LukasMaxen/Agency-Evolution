@@ -32,7 +32,7 @@ import { checkMxMissing } from "@/lib/dns-mx-cache";
 
 // Rate-based thresholds are time-independent (a 2% bounce is a 2% bounce
 // whether measured over a day or a month) so these stay constant.
-const REPLY_RATE_CRITICAL = 0.5;   // < this is critical_low_replies (red)
+const REPLY_RATE_CRITICAL = 0.45;  // < this is critical_low_replies (red); 0.45 floor means 0.5% displayed never flags critical
 const REPLY_RATE_MIN      = 1.0;   // < this is low_replies (yellow); >= is healthy
 const BOUNCE_RATE_MAX     = 2.0;
 const BURN_RATE_MAX       = 0.5;
