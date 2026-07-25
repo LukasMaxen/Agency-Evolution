@@ -189,10 +189,6 @@ export async function GET(req: NextRequest) {
           warming_since,
           attached_campaigns_count,
           eb_sender_id,
-          daily_limit,
-          warmup_daily_limit,
-          tags,
-          eb_created_at,
           warmup_score,
           provider_type
         FROM sender_accounts
@@ -326,10 +322,6 @@ export async function GET(req: NextRequest) {
         sa.warming_since,
         sa.attached_campaigns_count,
         sa.eb_sender_id,
-        sa.daily_limit,
-        sa.warmup_daily_limit,
-        sa.tags,
-        sa.eb_created_at,
         sa.warmup_score,
         sa.provider_type,
         COALESCE(sc.emails_sent, 0)                                                       AS emails_sent,
@@ -370,10 +362,6 @@ export async function GET(req: NextRequest) {
       warming_since:            string | null;
       attached_campaigns_count: number | null;
       eb_sender_id:             number | null;
-      daily_limit:              number | null;
-      warmup_daily_limit:       number | null;
-      tags:                     string[] | null;
-      eb_created_at:            string | null;
       warmup_score:             number | null;
       provider_type:            string | null;
       emails_sent:              number;
@@ -411,10 +399,6 @@ export async function GET(req: NextRequest) {
         disconnected: isDisconnected,
       });
 
-      // tags may come back as a plain JS array from pg JSONB
-      const rawTags = r.tags;
-      const tags: string[] | null = Array.isArray(rawTags) ? rawTags.map(String) : null;
-
       return {
         sender_email:             r.sender_email,
         workspace_slug:           r.workspace_slug,
@@ -423,10 +407,6 @@ export async function GET(req: NextRequest) {
         warming_since:            r.warming_since ?? null,
         attached_campaigns_count: r.attached_campaigns_count ?? null,
         eb_sender_id:             r.eb_sender_id ?? null,
-        daily_limit:              r.daily_limit ?? null,
-        warmup_daily_limit:       r.warmup_daily_limit ?? null,
-        tags,
-        eb_created_at:            r.eb_created_at ?? null,
         warmup_score:             r.warmup_score != null ? parseFloat(r.warmup_score) : null,
         provider_type:            r.provider_type ?? null,
         emails_sent:              sent,
