@@ -337,6 +337,14 @@ export async function POST(
       const senderEmail = body.data?.sender_email;
       const bounceId    = `bounce-${slug}-${lead?.id ?? ""}-${Date.now()}`;
 
+      // Warmup probe bounces have no campaign attached. EB fires EMAIL_BOUNCED
+      // for warmup seed address bounces the same as outreach bounces, but we
+      // have no business tracking them — they inflate bounce rates and are not
+      // real outreach leads. Skip them entirely.
+      if (!campaign?.name) {
+        return NextResponse.json({ ok: true, event: "EMAIL_BOUNCED", note: "warmup_probe_skipped" });
+      }
+
       // EB's webhook does not send DSN content so we cannot run the full
       // bounce classifier here. Map the coarse bounce_type EB does send to
       // our bounce_category where possible; unrecognised values stay null.

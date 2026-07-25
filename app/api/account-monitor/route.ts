@@ -187,7 +187,14 @@ export async function GET(req: NextRequest) {
           status                   AS conn_status,
           warmup_enabled,
           warming_since,
-          attached_campaigns_count
+          attached_campaigns_count,
+          eb_sender_id,
+          daily_limit,
+          warmup_daily_limit,
+          tags,
+          eb_created_at,
+          warmup_score,
+          provider_type
         FROM sender_accounts
         WHERE provider_type IS NOT NULL
           AND provider_type !~* '(microsoft|office365|outlook)'
@@ -202,7 +209,7 @@ export async function GET(req: NextRequest) {
         INNER JOIN active_senders sa
           ON  sa.sender_email   = es.sender_email
           AND sa.workspace_slug = es.workspace_slug
-        WHERE es.sent_at >= NOW() - ($1 || ' days')::interval
+        WHERE es.sent_at >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
           AND es.sender_email IS NOT NULL
           AND es.sender_email != ''
           ${wsFilter}
@@ -226,7 +233,7 @@ export async function GET(req: NextRequest) {
           JOIN emails_sent es
             ON  es.workspace_slug = eb.workspace_slug
             AND es.lead_email     = eb.lead_email
-            AND es.sent_at        >= NOW() - ($1 || ' days')::interval
+            AND es.sent_at        >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
           INNER JOIN active_senders sa
             ON  sa.sender_email   = eb.sender_email
             AND sa.workspace_slug = eb.workspace_slug
@@ -249,7 +256,7 @@ export async function GET(req: NextRequest) {
           INNER JOIN active_senders sa
             ON  sa.sender_email   = es.sender_email
             AND sa.workspace_slug = es.workspace_slug
-          WHERE es.sent_at >= NOW() - ($1 || ' days')::interval
+          WHERE es.sent_at >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
             AND es.sender_email IS NOT NULL
             AND es.sender_email != ''
             ${wsFilter}
@@ -268,7 +275,7 @@ export async function GET(req: NextRequest) {
         JOIN emails_sent es
           ON  es.workspace_slug = eb.workspace_slug
           AND es.lead_email     = eb.lead_email
-          AND es.sent_at        >= NOW() - ($1 || ' days')::interval
+          AND es.sent_at        >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
         INNER JOIN active_senders sa
           ON  sa.sender_email   = eb.sender_email
           AND sa.workspace_slug = eb.workspace_slug
@@ -302,7 +309,7 @@ export async function GET(req: NextRequest) {
           workspace_slug,
           COUNT(DISTINCT lead_email)::int AS replies
         FROM replies
-        WHERE received_at >= NOW() - ($1 || ' days')::interval
+        WHERE received_at >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
           AND COALESCE(tracked_reply, TRUE) = TRUE
           AND sender_email IS NOT NULL AND sender_email != ''
           AND lead_email   IS NOT NULL AND lead_email   != ''
@@ -318,6 +325,13 @@ export async function GET(req: NextRequest) {
         sa.warmup_enabled,
         sa.warming_since,
         sa.attached_campaigns_count,
+        sa.eb_sender_id,
+        sa.daily_limit,
+        sa.warmup_daily_limit,
+        sa.tags,
+        sa.eb_created_at,
+        sa.warmup_score,
+        sa.provider_type,
         COALESCE(sc.emails_sent, 0)                                                       AS emails_sent,
         COALESCE(bc.bounces, 0)                                                           AS bounces,
         COALESCE(bn.burns,   0)                                                           AS burns,
@@ -355,6 +369,13 @@ export async function GET(req: NextRequest) {
       warmup_enabled:           boolean;
       warming_since:            string | null;
       attached_campaigns_count: number | null;
+      eb_sender_id:             number | null;
+      daily_limit:              number | null;
+      warmup_daily_limit:       number | null;
+      tags:                     string[] | null;
+      eb_created_at:            string | null;
+      warmup_score:             number | null;
+      provider_type:            string | null;
       emails_sent:              number;
       bounces:                  number;
       burns:                    number;
@@ -390,6 +411,10 @@ export async function GET(req: NextRequest) {
         disconnected: isDisconnected,
       });
 
+      // tags may come back as a plain JS array from pg JSONB
+      const rawTags = r.tags;
+      const tags: string[] | null = Array.isArray(rawTags) ? rawTags.map(String) : null;
+
       return {
         sender_email:             r.sender_email,
         workspace_slug:           r.workspace_slug,
@@ -397,6 +422,13 @@ export async function GET(req: NextRequest) {
         warmup_enabled:           r.warmup_enabled === true,
         warming_since:            r.warming_since ?? null,
         attached_campaigns_count: r.attached_campaigns_count ?? null,
+        eb_sender_id:             r.eb_sender_id ?? null,
+        daily_limit:              r.daily_limit ?? null,
+        warmup_daily_limit:       r.warmup_daily_limit ?? null,
+        tags,
+        eb_created_at:            r.eb_created_at ?? null,
+        warmup_score:             r.warmup_score != null ? parseFloat(r.warmup_score) : null,
+        provider_type:            r.provider_type ?? null,
         emails_sent:              sent,
         bounces, burns, replies,
         bounce_rate:              bounceRate,
@@ -620,7 +652,7 @@ export async function GET(req: NextRequest) {
     const recentSendsRes = await pool.query(
       `SELECT workspace_slug, COUNT(*)::int AS sends
          FROM emails_sent
-        WHERE sent_at >= NOW() - ($1 || ' days')::interval
+        WHERE sent_at >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
         GROUP BY workspace_slug`,
       [CHURN_WINDOW_DAYS]
     );

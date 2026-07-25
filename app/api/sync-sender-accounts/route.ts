@@ -47,7 +47,16 @@ export async function POST(req: NextRequest) {
 
       try {
         // 2. Fetch ALL sender emails from EmailBison (paginate if needed)
-        const ebSenders: { id: number; email: string; warmup_enabled: boolean; status: string; provider_type: string | null }[] = [];
+        const ebSenders: {
+          id: number;
+          email: string;
+          warmup_enabled: boolean;
+          status: string;
+          provider_type: string | null;
+          daily_limit: number | null;
+          tags: string[] | null;
+          eb_created_at: string | null;
+        }[] = [];
         let page = 1;
         let hasMore = true;
 
@@ -87,6 +96,9 @@ export async function POST(req: NextRequest) {
       warmup_enabled: s.warmup_enabled ?? false,
       status:         s.status ?? "active",
       provider_type:  s.type ?? null,
+      daily_limit:    typeof s.daily_limit === "number" ? s.daily_limit : null,
+      tags:           Array.isArray(s.tags) ? s.tags.map(String) : null,
+      eb_created_at:  s.created_at ?? null,
     }))
   );
 
@@ -104,17 +116,27 @@ export async function POST(req: NextRequest) {
 
         for (const sender of ebSenders) {
           const upsertResult = await pool.query(
-            `INSERT INTO sender_accounts (workspace_slug, email, eb_sender_id, warmup_enabled, status, provider_type, synced_at)
-             VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            `INSERT INTO sender_accounts
+               (workspace_slug, email, eb_sender_id, warmup_enabled, status, provider_type,
+                daily_limit, tags, eb_created_at, synced_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
              ON CONFLICT (workspace_slug, email)
              DO UPDATE SET
                eb_sender_id   = EXCLUDED.eb_sender_id,
                warmup_enabled = EXCLUDED.warmup_enabled,
                status         = EXCLUDED.status,
                provider_type  = EXCLUDED.provider_type,
+               daily_limit    = COALESCE(EXCLUDED.daily_limit, sender_accounts.daily_limit),
+               tags           = COALESCE(EXCLUDED.tags, sender_accounts.tags),
+               eb_created_at  = COALESCE(EXCLUDED.eb_created_at, sender_accounts.eb_created_at),
                synced_at      = NOW()
              RETURNING (xmax = 0) AS inserted`,
-            [slug, sender.email, sender.id, sender.warmup_enabled, sender.status, sender.provider_type]
+            [
+              slug, sender.email, sender.id, sender.warmup_enabled, sender.status, sender.provider_type,
+              sender.daily_limit,
+              sender.tags ? JSON.stringify(sender.tags) : null,
+              sender.eb_created_at,
+            ]
           );
 
           if (upsertResult.rows[0]?.inserted) added++;
@@ -148,14 +170,16 @@ export async function POST(req: NextRequest) {
             const wBody = await wRes.json();
             for (const row of (wBody?.data ?? [])) {
               if (!row?.id) continue;
-              const score = (typeof row.warmup_score === "number") ? row.warmup_score : null;
-              const enabled = row.warmup_enabled === true;
+              const score       = (typeof row.warmup_score === "number") ? row.warmup_score : null;
+              const enabled     = row.warmup_enabled === true;
+              const warmupLimit = (typeof row.daily_limit === "number") ? row.daily_limit : null;
               const res = await pool.query(
                 `UPDATE sender_accounts
-                   SET warmup_score   = $1,
-                       warmup_enabled = $2
-                 WHERE workspace_slug = $3 AND eb_sender_id = $4`,
-                [score, enabled, slug, row.id]
+                   SET warmup_score        = $1,
+                       warmup_enabled      = $2,
+                       warmup_daily_limit  = COALESCE($3, warmup_daily_limit)
+                 WHERE workspace_slug = $4 AND eb_sender_id = $5`,
+                [score, enabled, warmupLimit, slug, row.id]
               );
               if (res.rowCount && res.rowCount > 0) wupdated++;
             }
