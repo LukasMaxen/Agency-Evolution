@@ -210,23 +210,16 @@ export async function GET(req: NextRequest) {
       ),
       bounce_counts AS (
         -- Counts unique leads whose email address bounced per sender.
-        -- Retry cascades (Gmail retrying a soft bounce 2-3x within 48h)
-        -- and multi-step sequences hitting the same bad address are
-        -- collapsed to 1 by COUNT(DISTINCT lead_email). Warmup probe
-        -- rows (lead_email IS NULL) are excluded by both path filters.
-        --
-        -- Two paths to recover sender attribution:
-        -- Path A: rows where the webhook stored sender_email directly
-        --   (new rows post-fix, and any poll rows that also have lead_email)
-        -- Path B: old webhook rows that predate the sender_email fix;
-        --   sender is recovered by joining to the emails_sent table.
-        SELECT sender_email, workspace_slug, SUM(c)::int AS bounces
+        -- Two paths recover sender attribution, then UNION (not UNION ALL)
+        -- deduplicates (sender, lead) pairs that appear in both paths.
+        -- This handles the common case where EB fires both a poll-path row
+        -- (sender_email set, lead_email set) and a webhook-path row
+        -- (lead_email set, sender_email null) for the same bounce event.
+        -- Without UNION the same lead would be counted twice via SUM.
+        SELECT sender_email, workspace_slug, COUNT(DISTINCT lead_email)::int AS bounces
         FROM (
           -- Path A: bounce row already has sender_email
-          SELECT
-            eb.sender_email,
-            eb.workspace_slug,
-            COUNT(DISTINCT eb.lead_email)::int AS c
+          SELECT eb.sender_email, eb.workspace_slug, eb.lead_email
           FROM email_bounces eb
           INNER JOIN active_senders sa
             ON  sa.sender_email   = eb.sender_email
@@ -237,15 +230,11 @@ export async function GET(req: NextRequest) {
             AND eb.lead_email IS NOT NULL
             AND eb.lead_email != ''
             ${wsFilterB}
-          GROUP BY eb.sender_email, eb.workspace_slug
 
-          UNION ALL
+          UNION
 
           -- Path B: old webhook rows without sender_email; recover via join
-          SELECT
-            es.sender_email,
-            es.workspace_slug,
-            COUNT(DISTINCT eb.lead_email)::int AS c
+          SELECT es.sender_email, es.workspace_slug, eb.lead_email
           FROM emails_sent es
           JOIN email_bounces eb
             ON  eb.workspace_slug = es.workspace_slug
@@ -259,8 +248,7 @@ export async function GET(req: NextRequest) {
             AND es.sender_email IS NOT NULL
             AND es.sender_email != ''
             ${wsFilter}
-          GROUP BY es.sender_email, es.workspace_slug
-        ) all_paths
+        ) all_pairs
         GROUP BY sender_email, workspace_slug
       ),
       burn_counts AS (
