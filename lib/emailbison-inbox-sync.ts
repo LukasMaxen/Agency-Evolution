@@ -67,14 +67,18 @@ function extractLeadEmailFromDsn(textBody: string | null): string | null {
   const patterns: RegExp[] = [
     // Gmail / Google Workspace (most common)
     /(?:delivering your message to|Your message (?:to|wasn't delivered to))\s+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    // "couldn't be delivered to email" (Gmail variant)
+    /couldn't be delivered to\s+([\w.+\-]+@[\w.\-]+\.\w+)/i,
     // Microsoft 365 group distribution alias
     /Your message to the Microsoft 365 group\s+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    // Microsoft 365 forwarding failure (lead's mailbox tried to forward)
+    /couldn't be forwarded from\s+([\w.+\-]+@[\w.\-]+\.\w+)/i,
     // EOP / Outlook: email immediately before <mailto: link
     /([\w.+\-]+@[\w.\-]+\.\w+)<mailto:/i,
     // "Failed to deliver to 'email'" (various mailers)
     /Failed to deliver to ['"]?([\w.+\-]+@[\w.\-]+\.\w+)/i,
-    // Exim / sendmail: "The following address(es) failed:\n  email"
-    /The following address(?:es)? failed:[\s\S]{0,100}\n[ \t]+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    // Exim / sendmail: "The following address(es) failed:\n\n  email"
+    /The following address(?:es)? failed:[\s\S]{0,200}?[ \t]+([\w.+\-]+@[\w.\-]+\.\w+)/i,
     // Dunhill-style: "email address :\n-- email"
     /email address\s*:?\s*\n[ \t]*-+[ \t]*([\w.+\-]+@[\w.\-]+\.\w+)/i,
     // Mail-Delivery-Service quoted header: "To: email"
