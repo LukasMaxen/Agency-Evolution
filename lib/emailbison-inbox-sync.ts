@@ -287,6 +287,17 @@ export async function runEmailBisonInboxSync(): Promise<void> {
           const reason      = (item.text_body ?? "").slice(0, 1000);
           const rowId       = `bounce-poll-${ws.slug}-${item.id}`;
 
+          // Warmup probe guard: if we cannot identify the recipient, or if
+          // there is no matching outreach record in emails_sent, this bounce
+          // came from EB's warmup seed network. Skip it — warmup probes
+          // inflate bounce/burn rates and are not real campaign leads.
+          if (!leadEmail) continue;
+          const hasOutreach = await pool.query(
+            "SELECT 1 FROM emails_sent WHERE workspace_slug = $1 AND lead_email = $2 LIMIT 1",
+            [ws.slug, leadEmail]
+          );
+          if (hasOutreach.rows.length === 0) continue;
+
           const ins = await pool.query(
             `INSERT INTO email_bounces (
                id, workspace_slug, lead_email, lead_name, campaign_name,
