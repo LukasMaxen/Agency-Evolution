@@ -47,32 +47,48 @@ function extractCleanBody(textBody: string): string {
 }
 
 // Extract the lead's email address from a bounce DSN body.
-// DSN formats differ by provider:
-//   Gmail:   "Your message to foo@bar.com has been blocked"
-//            "delivering your message to foo@bar.com"
-//            "Your message wasn't delivered to foo@bar.com"
-//   Postfix: "<foo@bar.com>: host ..."
-//   SMTP:    "(foo@bar.com:blocked)"
-// Returns null when no match or when the matched address looks like a
-// daemon/system address (postmaster, mailer-daemon, etc.).
+// Handles all DSN formats seen across the fleet:
+//   Gmail:        "Your message to foo@bar.com" / "delivering your message to"
+//   M365 group:   "Your message to the Microsoft 365 group foo@bar.com"
+//   EOP/Outlook:  "foo@bar.com<mailto:foo@bar.com>" (email before mailto link)
+//   "Delivery has failed to these recipients": same mailto pattern
+//   PPE/Postfix:  "<foo@bar.com>:" angle bracket
+//   Exim:         "The following address(es) failed:\n  foo@bar.com"
+//   Dunhill-style: "email address :\n-- foo@bar.com"
+//   Mail-Delivery-Service: "To: foo@bar.com" in quoted headers
+//   "Failed to deliver to 'foo@bar.com'"
+// Returns null when no match or address looks like a daemon/system address.
 function extractLeadEmailFromDsn(textBody: string | null): string | null {
   if (!textBody) return null;
   const DAEMON = /^(postmaster|mailer-daemon|noreply|no-reply|bounce|bounces|bounce-handler)@/i;
 
-  // Pattern 1: Gmail/Google phrasing
-  const gmailMatch = textBody.match(
-    /(?:delivering your message to|Your message (?:to|wasn't delivered to))\s+([\w.+\-]+@[\w.\-]+\.\w+)/i
-  );
-  if (gmailMatch && !DAEMON.test(gmailMatch[1])) return gmailMatch[1].toLowerCase();
+  const EMAIL = /[\w.+\-]+@[\w.\-]+\.\w+/;
 
-  // Pattern 2: Postfix / PPE angle-bracket format  <email@domain>:
-  const angleMatch = textBody.match(/<([\w.+\-]+@[\w.\-]+\.\w+)>/);
-  if (angleMatch && !DAEMON.test(angleMatch[1])) return angleMatch[1].toLowerCase();
+  const patterns: RegExp[] = [
+    // Gmail / Google Workspace (most common)
+    /(?:delivering your message to|Your message (?:to|wasn't delivered to))\s+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    // Microsoft 365 group distribution alias
+    /Your message to the Microsoft 365 group\s+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    // EOP / Outlook: email immediately before <mailto: link
+    /([\w.+\-]+@[\w.\-]+\.\w+)<mailto:/i,
+    // "Failed to deliver to 'email'" (various mailers)
+    /Failed to deliver to ['"]?([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    // Exim / sendmail: "The following address(es) failed:\n  email"
+    /The following address(?:es)? failed:[\s\S]{0,100}\n[ \t]+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    // Dunhill-style: "email address :\n-- email"
+    /email address\s*:?\s*\n[ \t]*-+[ \t]*([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    // Mail-Delivery-Service quoted header: "To: email"
+    /\bTo:[ \t]+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    // Postfix / PPE angle-bracket: <email>
+    /<([\w.+\-]+@[\w.\-]+\.\w+)>/,
+    // SMTP response parenthetical: (email:something)
+    /\(([\w.+\-]+@[\w.\-]+\.\w+)[):]/,
+  ];
 
-  // Pattern 3: SMTP response parenthetical  (email@domain:something)
-  const parenMatch = textBody.match(/\(([\w.+\-]+@[\w.\-]+\.\w+)[):]/);
-  if (parenMatch && !DAEMON.test(parenMatch[1])) return parenMatch[1].toLowerCase();
-
+  for (const re of patterns) {
+    const m = textBody.match(re);
+    if (m?.[1] && !DAEMON.test(m[1]) && EMAIL.test(m[1])) return m[1].toLowerCase();
+  }
   return null;
 }
 
