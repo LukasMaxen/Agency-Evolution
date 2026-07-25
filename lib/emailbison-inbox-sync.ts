@@ -62,31 +62,31 @@ function extractLeadEmailFromDsn(textBody: string | null): string | null {
   if (!textBody) return null;
   const DAEMON = /^(postmaster|mailer-daemon|noreply|no-reply|bounce|bounces|bounce-handler)@/i;
 
-  const EMAIL = /[\w.+\-]+@[\w.\-]+\.\w+/;
+  const EMAIL = /[\w.+'\-]+@[\w.\-]+\.\w+/;
 
   const patterns: RegExp[] = [
     // Gmail / Google Workspace (most common)
-    /(?:delivering your message to|Your message (?:to|wasn't delivered to))\s+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    /(?:delivering your message to|Your message (?:to|wasn't delivered to))\s+([\w.+'\-]+@[\w.\-]+\.\w+)/i,
     // "couldn't be delivered to email" (Gmail variant)
-    /couldn't be delivered to\s+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    /couldn't be delivered to\s+([\w.+'\-]+@[\w.\-]+\.\w+)/i,
     // Microsoft 365 group distribution alias
-    /Your message to the Microsoft 365 group\s+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    /Your message to the Microsoft 365 group\s+([\w.+'\-]+@[\w.\-]+\.\w+)/i,
     // Microsoft 365 forwarding failure (lead's mailbox tried to forward)
-    /couldn't be forwarded from\s+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    /couldn't be forwarded from\s+([\w.+'\-]+@[\w.\-]+\.\w+)/i,
     // EOP / Outlook: email immediately before <mailto: link
-    /([\w.+\-]+@[\w.\-]+\.\w+)<mailto:/i,
+    /([\w.+'\-]+@[\w.\-]+\.\w+)<mailto:/i,
     // "Failed to deliver to 'email'" (various mailers)
-    /Failed to deliver to ['"]?([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    /Failed to deliver to ['"]?([\w.+'\-]+@[\w.\-]+\.\w+)/i,
     // Exim / sendmail: "The following address(es) failed:\n\n  email"
-    /The following address(?:es)? failed:[\s\S]{0,200}?[ \t]+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    /The following address(?:es)? failed:[\s\S]{0,200}?[ \t]+([\w.+'\-]+@[\w.\-]+\.\w+)/i,
     // Dunhill-style: "email address :\n-- email"
-    /email address\s*:?\s*\n[ \t]*-+[ \t]*([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    /email address\s*:?\s*\n[ \t]*-+[ \t]*([\w.+'\-]+@[\w.\-]+\.\w+)/i,
     // Mail-Delivery-Service quoted header: "To: email"
-    /\bTo:[ \t]+([\w.+\-]+@[\w.\-]+\.\w+)/i,
+    /\bTo:[ \t]+([\w.+'\-]+@[\w.\-]+\.\w+)/i,
     // Postfix / PPE angle-bracket: <email>
-    /<([\w.+\-]+@[\w.\-]+\.\w+)>/,
+    /<([\w.+'\-]+@[\w.\-]+\.\w+)>/,
     // SMTP response parenthetical: (email:something)
-    /\(([\w.+\-]+@[\w.\-]+\.\w+)[):]/,
+    /\(([\w.+'\-]+@[\w.\-]+\.\w+)[):]/,
   ];
 
   for (const re of patterns) {
