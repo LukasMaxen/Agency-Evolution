@@ -128,11 +128,11 @@ export async function register() {
     }
   };
 
-  // Run once 45s after boot (let other timers settle first), then every 6h
+  // Run once 45s after boot (let other timers settle first), then every 1h
   setTimeout(() => void runSenderSync("initial"), 45_000);
-  setInterval(() => void runSenderSync("periodic"), 6 * 60 * 60_000);
+  setInterval(() => void runSenderSync("periodic"), 60 * 60_000);
 
-  console.log("[instrumentation] sender account sync started, 6h interval");
+  console.log("[instrumentation] sender account sync started, 1h interval");
 
   // ── 6. Slack health monitor ───────────────────────────────────────────────
   // Watchdog for the approval-card pipeline. Detects a dead deployed bot token
