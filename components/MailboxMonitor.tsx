@@ -1126,8 +1126,8 @@ function SenderTable({
               </th>
               {tab === "active" ? [
                 { h: "Sender",      w: "19%", align: "left"   },
-                { h: "Send/day",    w: "6%",  align: "right"  },
-                { h: "Warmup/day",  w: "6%",  align: "right"  },
+                { h: "Send/day",    w: "6%",  align: "center" },
+                { h: "Warmup/day",  w: "6%",  align: "center" },
                 { h: "Campaigns",   w: "10%", align: "left"   },
                 { h: "Sends",       w: "5%",  align: "right"  },
                 { h: "Reply",       w: "5%",  align: "right"  },
@@ -1139,13 +1139,13 @@ function SenderTable({
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
-                  padding: "8px 8px", textAlign: align as any,
+                  padding: "8px 10px", textAlign: align as any,
                   textTransform: "uppercase", letterSpacing: "0.04em", width: w,
                 }}>{h}</th>
               )) : [
                 { h: "Sender",        w: "15%", align: "left"   },
-                { h: "Send/day",      w: "5%",  align: "right"  },
-                { h: "Warmup/day",    w: "5%",  align: "right"  },
+                { h: "Send/day",      w: "5%",  align: "center" },
+                { h: "Warmup/day",    w: "5%",  align: "center" },
                 { h: "Campaigns",     w: "8%",  align: "left"   },
                 { h: "Sends",         w: "5%",  align: "right"  },
                 { h: "Reply",         w: "5%",  align: "right"  },
@@ -1158,7 +1158,7 @@ function SenderTable({
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
-                  padding: "8px 8px", textAlign: align as any,
+                  padding: "8px 10px", textAlign: align as any,
                   textTransform: "uppercase", letterSpacing: "0.04em", width: w,
                 }}>{h}</th>
               ))}
@@ -1209,7 +1209,7 @@ function SenderTable({
                     style={{ cursor: "pointer", borderBottom: "0.5px solid #ede9e3", background: domBg }}
                   >
                     {/* Checkbox */}
-                    <td style={{ padding: "10px 10px", textAlign: "center" }} onClick={e => e.stopPropagation()}>
+                    <td style={{ padding: "8px 10px", textAlign: "center" }} onClick={e => e.stopPropagation()}>
                       <input type="checkbox" checked={isChecked}
                         onChange={e => {
                           const next = new Set(selectedDomains);
@@ -1220,22 +1220,22 @@ function SenderTable({
                       />
                     </td>
                     {/* Domain name */}
-                    <td style={{ padding: "10px 10px", fontWeight: 500, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "8px 10px", fontWeight: 500, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                         {d.domain}
                         <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 400 }}>· {d.senders.length} {d.senders.length === 1 ? "sender" : "senders"}</span>
                       </span>
                     </td>
                     {/* Send/day aggregate */}
-                    <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
+                    <td style={{ padding: "8px 10px", textAlign: "center", color: "#374151", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
                       {domainLimitDisplay(d.senders, "daily_limit")}
                     </td>
                     {/* Warmup/day aggregate */}
-                    <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
+                    <td style={{ padding: "8px 10px", textAlign: "center", color: "#374151", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
                       {domainLimitDisplay(d.senders, "warmup_daily_limit")}
                     </td>
                     {/* Campaigns */}
-                    <td style={{ padding: "10px 10px" }}>
+                    <td style={{ padding: "8px 10px" }}>
                       {d.fullyDisconnected ? <PillBadge text="All disconnected" tone="indigo" />
                        : d.disconnected > 0 ? <PillBadge text={`${d.disconnected} disconnected`} tone="indigo" />
                        : tab === "warming_only"
@@ -1246,24 +1246,24 @@ function SenderTable({
                     </td>
                     {tab === "active" ? (
                       <>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>{fmt(d.totalSent)}</td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: parseFloat(d.replyRate.toFixed(1)) >= 1 ? "#15803D" : parseFloat(d.replyRate.toFixed(1)) >= 0.5 ? "#D97706" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>{fmt(d.totalSent)}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: parseFloat(d.replyRate.toFixed(1)) >= 1 ? "#15803D" : parseFloat(d.replyRate.toFixed(1)) >= 0.5 ? "#D97706" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.replyRate)}
                         </td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.bounceRate < 2 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: d.bounceRate < 2 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.bounceRate)}
                         </td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: d.burnRate < 0.5 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: d.burnRate < 0.5 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.burnRate)}
                         </td>
                         <td style={{
-                          padding: "10px 10px", textAlign: "right",
+                          padding: "8px 10px", textAlign: "right",
                           color: d.disconnected > 0 || d.avgScore === null ? "#9ca3af"
                                : d.avgScore >= 98 ? "#15803D"
                                : d.avgScore >= 90 ? "#D97706" : "#B91C1C",
                           fontWeight: 500,
                         }}>{d.disconnected > 0 || d.avgScore === null ? "—" : `${d.avgScore}%`}</td>
-                        <td style={{ padding: "10px 10px" }}>
+                        <td style={{ padding: "8px 10px" }}>
                           {domainStatusBadge(d)}
                         </td>
                       </>
@@ -1275,24 +1275,24 @@ function SenderTable({
                             purpose — these numbers are historical and the
                             only color that should drive attention on this
                             tab is warmup health. */}
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>{fmt(d.totalSent)}</td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>{fmt(d.totalSent)}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.replyRate)}
                         </td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.bounceRate)}
                         </td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.burnRate)}
                         </td>
                         <td style={{
-                          padding: "10px 10px", textAlign: "right",
+                          padding: "8px 10px", textAlign: "right",
                           color: d.avgScore === null ? "#9ca3af"
                                : d.avgScore >= 98 ? "#15803D"
                                : d.avgScore >= 90 ? "#D97706" : "#B91C1C",
                           fontWeight: 500,
                         }}>{d.avgScore === null ? "—" : `${d.avgScore}%`}</td>
-                        <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {(() => {
                             const days = d.senders.map(s => s.warming_days ?? 0).filter(n => n > 0);
                             if (days.length === 0) return <span style={{ color: "#9ca3af" }}>—</span>;
@@ -1304,7 +1304,7 @@ function SenderTable({
                         {/* Rejoin status: is the domain safe to put back in
                             outbound? Driven by warmup health using the same
                             tiers we use elsewhere. */}
-                        <td style={{ padding: "10px 10px" }}>
+                        <td style={{ padding: "8px 10px" }}>
                           {d.avgScore === null              ? <PillBadge text="No data"        tone="grey"  />
                            : d.avgScore >= 98               ? <PillBadge text="Ready to rejoin" tone="green" />
                            : d.avgScore >= 90               ? <PillBadge text="Almost ready"   tone="amber" />
@@ -1312,7 +1312,7 @@ function SenderTable({
                         </td>
                       </>
                     )}
-                    <td style={{ padding: "10px 10px", textAlign: "center" }} onClick={e => e.stopPropagation()}>
+                    <td style={{ padding: "8px 10px", textAlign: "center" }} onClick={e => e.stopPropagation()}>
                       {(() => {
                         const acting = domainAction[d.domain];
                         if (d.disconnected > 0) {
@@ -1441,11 +1441,11 @@ function SenderTable({
                           {s.email}
                         </td>
                         {/* Send/day (read-only) */}
-                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "8px 10px", textAlign: "center", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {sndLimit != null ? sndLimit : <span style={{ color: "#9ca3af" }}>—</span>}
                         </td>
                         {/* Warmup/day (read-only) */}
-                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "8px 10px", textAlign: "center", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {wrmLimit != null ? wrmLimit : <span style={{ color: "#9ca3af" }}>—</span>}
                         </td>
                         {/* Campaigns */}
