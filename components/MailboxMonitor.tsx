@@ -956,7 +956,7 @@ function SenderTable({
     // sender hit the threshold or had any burn event, which flipped whole
     // domains over a single Barracuda/Mimecast block. The domain rollup
     // now judges by average so the rest of the senders can absorb noise.
-    const anyBurnFlagged = burnRate >= 0.5;
+    const anyBurnFlagged = burnRate >= BURN_MAX && totalSent >= BURN_MIN_SAMPLE;
 
     return {
       domain: dom, senders: sortedList, disconnected, notWarming,
