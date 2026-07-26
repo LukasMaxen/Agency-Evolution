@@ -1306,13 +1306,30 @@ function SenderTable({
                         style={{ cursor: "pointer" }}
                       />
                     </td>
-                    {/* Domain name */}
+                    {/* Domain name with status dot indicator */}
                     <td style={{ padding: "8px 10px", fontWeight: 500, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                        {/* Dot indicator color matches domain severity */}
+                        <span style={{
+                          width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+                          background:
+                            d.disconnected > 0 || d.mxMissing ? "#6366F1" :
+                            d.anyBurnFlagged || d.notWarming > 0 || (d.avgScore !== null && d.avgScore < 98) ? "#E24B4A" :
+                            d.bounceRate >= 2 ? "#D97706" :
+                            d.accStatus === "low_replies" ? "#D97706" :
+                            d.totalSent < 20 ? "#9CA3AF" :
+                            "#15803D",
+                        }} />
                         {d.domain}
-                        <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 400 }}>· {d.senders.length} {d.senders.length === 1 ? "sender" : "senders"}</span>
+                        <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 400 }}>{d.senders.length} senders</span>
                       </span>
                     </td>
+                    {/* Status badge — now right after the sender name */}
+                    {tab === "active" && (
+                      <td style={{ padding: "8px 10px" }}>
+                        {domainStatusBadge(d)}
+                      </td>
+                    )}
                     {/* Send/day aggregate */}
                     <td style={{ padding: "8px 10px", textAlign: "center", color: "#374151", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
                       {domainLimitDisplay(d.senders, "daily_limit")}
@@ -1328,7 +1345,7 @@ function SenderTable({
                        : tab === "warming_only"
                          ? <PillBadge text="All warming only" tone="amber" />
                          : d.attachedMin === d.attachedMax
-                           ? <PillBadge text={`In ${d.attachedMin} ${d.attachedMin === 1 ? "campaign" : "campaigns"}`} tone="green" />
+                           ? <PillBadge text={`In ${d.attachedMin} campaigns`} tone="green" />
                            : <PillBadge text={`In ${d.attachedMin}-${d.attachedMax} campaigns`} tone="amber" />}
                     </td>
                     {tab === "active" ? (
@@ -1350,9 +1367,6 @@ function SenderTable({
                                : d.avgScore >= 90 ? "#D97706" : "#B91C1C",
                           fontWeight: 500,
                         }}>{d.disconnected > 0 || d.avgScore === null ? "—" : `${d.avgScore}%`}</td>
-                        <td style={{ padding: "8px 10px" }}>
-                          {domainStatusBadge(d)}
-                        </td>
                       </>
                     ) : (
                       <>
@@ -1471,7 +1485,7 @@ function SenderTable({
                                 display: "inline-flex", alignItems: "center", gap: 5,
                               }}>
                               {acting === "pause_outbound" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
-                              Pause outbound
+                              {shouldPause ? "Move to warming only" : "Pause outbound"}
                             </button>
                           );
                         }
