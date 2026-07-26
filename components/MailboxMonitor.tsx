@@ -1248,7 +1248,6 @@ function SenderTable({
               </th>
               {tab === "active" ? [
                 { h: "Sender",      w: "18%", align: "left"   },
-                { h: "Status",      w: "9%",  align: "left"   },
                 { h: "Send/day",    w: "6%",  align: "center" },
                 { h: "Warmup/day",  w: "6%",  align: "center" },
                 { h: "Campaigns",   w: "9%",  align: "left"   },
@@ -1257,6 +1256,7 @@ function SenderTable({
                 { h: "Bounce",      w: "5%",  align: "right"  },
                 { h: "Burn",        w: "5%",  align: "right"  },
                 { h: "Warmup",      w: "6%",  align: "right"  },
+                { h: "Status",      w: "9%",  align: "left"   },
                 { h: "Actions",     w: "13%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
@@ -1359,12 +1359,6 @@ function SenderTable({
                         <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 400 }}>{d.senders.length} senders</span>
                       </span>
                     </td>
-                    {/* Status badge — now right after the sender name */}
-                    {tab === "active" && (
-                      <td style={{ padding: "8px 10px" }}>
-                        {domainStatusBadge(d)}
-                      </td>
-                    )}
                     {/* Send/day aggregate */}
                     <td style={{ padding: "8px 10px", textAlign: "center", color: "#374151", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
                       {domainLimitDisplay(d.senders, "daily_limit")}
@@ -1447,6 +1441,12 @@ function SenderTable({
                            :                                  <PillBadge text="Keep warming"   tone="red"   />}
                         </td>
                       </>
+                    )}
+                    {/* Status badge — before Actions */}
+                    {tab === "active" && (
+                      <td style={{ padding: "8px 10px" }}>
+                        {domainStatusBadge(d)}
+                      </td>
                     )}
                     <td style={{ padding: "8px 10px", textAlign: "center" }} onClick={e => e.stopPropagation()}>
                       {(() => {
@@ -1576,12 +1576,6 @@ function SenderTable({
                         <td style={{ padding: "8px 10px 8px 36px", color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>
                           {s.email}
                         </td>
-                        {/* Status badge — matches column order (after Sender, before Send/day) */}
-                        {tab === "active" && (
-                          <td style={{ padding: "8px 10px" }}>
-                            {senderStatusBadge(s, d.mxMissing)}
-                          </td>
-                        )}
                         {/* Send/day (read-only) */}
                         <td style={{ padding: "8px 10px", textAlign: "center", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {sndLimit != null ? sndLimit : <span style={{ color: "#9ca3af" }}>—</span>}
@@ -1671,6 +1665,12 @@ function SenderTable({
                                :                                                 <PillBadge text="Keep warming"   tone="red"   />}
                             </td>
                           </>
+                        )}
+                        {/* Status badge — before Actions */}
+                        {tab === "active" && (
+                          <td style={{ padding: "8px 10px" }}>
+                            {senderStatusBadge(s, d.mxMissing)}
+                          </td>
                         )}
                         <td style={{ padding: "8px 10px", textAlign: "center" }}>
                           {disconnected ? (() => {
