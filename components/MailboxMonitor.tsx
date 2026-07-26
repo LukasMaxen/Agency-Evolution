@@ -79,6 +79,8 @@ interface WarmupSender {
   warming_days:             number | null;
   ready_to_rejoin:          boolean;
   attached_campaigns_count: number | null;
+  daily_limit:              number | null;
+  warmup_daily_limit:       number | null;
 }
 interface WarmupWsAgg {
   slug:             string;
@@ -120,6 +122,8 @@ interface Sender {
   burn_rate:                number;
   acc_status:               string;
   confidence:               string;
+  daily_limit:              number | null;
+  warmup_daily_limit:       number | null;
 }
 
 interface Workspace {
@@ -519,6 +523,72 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
 
 // ── Sender table (level 2) ────────────────────────────────────────────
 
+// Inline editable limit cell. Shows current value in a small input;
+// displays a "Set" button when the value has changed. Saves on click or Enter.
+function LimitCell({
+  value, max, senderEmail, workspaceSlug, field, onSaved,
+}: {
+  value:         number | null;
+  max?:          number;
+  senderEmail:   string;
+  workspaceSlug: string;
+  field:         "daily_limit" | "warmup_daily_limit";
+  onSaved:       (field: "daily_limit" | "warmup_daily_limit", v: number) => void;
+}) {
+  const [input,  setInput]  = useState(value != null ? String(value) : "");
+  const [saving, setSaving] = useState(false);
+  const original = value != null ? String(value) : "";
+  const isDirty  = input !== original && input !== "";
+
+  async function save() {
+    const v = parseInt(input, 10);
+    if (isNaN(v) || v < 0 || (max != null && v > max)) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/account-monitor/sender-settings", {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ sender_email: senderEmail, workspace_slug: workspaceSlug, [field]: v }),
+      });
+      const j = await res.json();
+      if (res.ok && j.ok) {
+        onSaved(field, v);
+        setInput(String(v));
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+      <input
+        type="number"
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => { if (e.key === "Enter") save(); }}
+        min={0}
+        max={max}
+        style={{
+          width: 46, padding: "2px 5px", fontSize: 11,
+          border: `0.5px solid ${isDirty ? "#A5B4FC" : "#d1d5db"}`,
+          borderRadius: 4, fontFamily: "inherit", background: "#fafafa",
+          color: "#374151", outline: "none",
+        }}
+        placeholder="—"
+      />
+      {isDirty && !saving && (
+        <button onClick={save} style={{
+          fontSize: 10, padding: "2px 6px", borderRadius: 4,
+          background: "#EEF2FF", color: "#3730A3", border: "0.5px solid #A5B4FC",
+          cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+        }}>Set</button>
+      )}
+      {saving && <Loader2 size={10} className="animate-spin" style={{ color: "#6366f1" }} />}
+    </div>
+  );
+}
+
 type Tab = "active" | "warming_only";
 
 interface DomainGroup {
@@ -570,6 +640,11 @@ function SenderTable({
   const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "pause_outbound_and_warmup" | "enable_warmup" | null>>({});
   const [domainAction, setDomainAction] = useState<Record<string, "enable_warmup" | "pause_outbound" | "attach_to_all" | null>>({});
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
+  const [localLimits, setLocalLimits] = useState<Record<string, { daily_limit?: number; warmup_daily_limit?: number }>>({});
+
+  function onLimitSaved(email: string, field: "daily_limit" | "warmup_daily_limit", v: number) {
+    setLocalLimits(prev => ({ ...prev, [email]: { ...prev[email], [field]: v } }));
+  }
 
   const isDisconnected = (s: Sender) => s.conn_status === "Not connected";
   // Warming-only includes senders that are unattached (attached=0) AND
@@ -969,15 +1044,17 @@ function SenderTable({
           <thead>
             <tr style={{ background: "#f8f7f5", borderBottom: "0.5px solid #ede9e3" }}>
               {tab === "active" ? [
-                { h: "Sender",         w: "21%", align: "left" },
-                { h: "Campaigns",      w: "11%", align: "left" },
-                { h: "Sends",          w: "7%",  align: "right" },
-                { h: "Reply",          w: "7%",  align: "right" },
-                { h: "Bounce",         w: "7%",  align: "right" },
-                { h: "Burn",           w: "7%",  align: "right" },
-                { h: "Warmup health",  w: "9%",  align: "right" },
-                { h: "Status",         w: "14%", align: "left" },
-                { h: "Action",         w: "17%", align: "center" },
+                { h: "Sender",        w: "17%", align: "left"   },
+                { h: "Campaigns",     w: "10%", align: "left"   },
+                { h: "Sends",         w: "6%",  align: "right"  },
+                { h: "Reply",         w: "6%",  align: "right"  },
+                { h: "Bounce",        w: "6%",  align: "right"  },
+                { h: "Burn",          w: "6%",  align: "right"  },
+                { h: "Warmup",        w: "8%",  align: "right"  },
+                { h: "Status",        w: "11%", align: "left"   },
+                { h: "Send/day",      w: "10%", align: "left"   },
+                { h: "Warmup/day",    w: "10%", align: "left"   },
+                { h: "Action",        w: "10%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -985,22 +1062,18 @@ function SenderTable({
                   textTransform: "uppercase", letterSpacing: "0.04em", width: w,
                 }}>{h}</th>
               )) : [
-                // Warming-only tab keeps the same deliverability metrics as
-                // Active so the operator can see how the domain WAS doing
-                // before pause without re-attaching to find out. Status
-                // column is replaced by "Rejoin status" which answers the
-                // only question that matters here: is this safe to put back
-                // in outbound? (driven by warmup health).
-                { h: "Sender",         w: "19%", align: "left"   },
-                { h: "Campaigns",      w: "10%", align: "left"   },
-                { h: "Sends",          w: "6%",  align: "right"  },
-                { h: "Reply",          w: "6%",  align: "right"  },
-                { h: "Bounce",         w: "6%",  align: "right"  },
-                { h: "Burn",           w: "6%",  align: "right"  },
-                { h: "Warmup",         w: "8%",  align: "right"  },
-                { h: "Days warming",   w: "8%",  align: "right"  },
-                { h: "Rejoin status",  w: "16%", align: "left"   },
-                { h: "Action",         w: "15%", align: "center" },
+                { h: "Sender",        w: "16%", align: "left"   },
+                { h: "Campaigns",     w: "9%",  align: "left"   },
+                { h: "Sends",         w: "6%",  align: "right"  },
+                { h: "Reply",         w: "6%",  align: "right"  },
+                { h: "Bounce",        w: "6%",  align: "right"  },
+                { h: "Burn",          w: "6%",  align: "right"  },
+                { h: "Warmup",        w: "7%",  align: "right"  },
+                { h: "Days warming",  w: "7%",  align: "right"  },
+                { h: "Rejoin status", w: "9%",  align: "left"   },
+                { h: "Send/day",      w: "10%", align: "left"   },
+                { h: "Warmup/day",    w: "10%", align: "left"   },
+                { h: "Action",        w: "8%",  align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -1467,6 +1540,8 @@ export function MailboxMonitor() {
           burn_rate:                a?.burn_rate  ?? 0,
           acc_status:               a?.status     ?? "insufficient_data",
           confidence:               a?.confidence ?? "insufficient",
+          daily_limit:              s.daily_limit,
+          warmup_daily_limit:       s.warmup_daily_limit,
         };
       });
 

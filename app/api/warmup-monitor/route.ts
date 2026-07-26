@@ -51,7 +51,9 @@ export async function GET() {
          warmup_score,
          warming_since,
          attached_campaigns_count,
-         provider_type
+         provider_type,
+         daily_limit,
+         warmup_daily_limit
        FROM sender_accounts
       WHERE workspace_slug = ANY($1::text[])
         AND provider_type IS NOT NULL
@@ -71,6 +73,8 @@ export async function GET() {
       warming_days:             number | null;
       ready_to_rejoin:          boolean;
       attached_campaigns_count: number | null;
+      daily_limit:              number | null;
+      warmup_daily_limit:       number | null;
     }
 
     const senders: SenderRow[] = sendersRes.rows.map(r => {
@@ -93,6 +97,8 @@ export async function GET() {
         warming_days:             warmingDays,
         ready_to_rejoin:          warmingDays !== null && warmingDays >= READY_DAYS,
         attached_campaigns_count: r.attached_campaigns_count,
+        daily_limit:              r.daily_limit ?? null,
+        warmup_daily_limit:       r.warmup_daily_limit ?? null,
       };
     });
 
