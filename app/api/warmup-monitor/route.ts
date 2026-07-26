@@ -25,8 +25,9 @@ import pool from "@/lib/db";
 
 export async function GET() {
   try {
-    const CHURN_WINDOW_DAYS = 7;
-    const READY_DAYS        = 14;
+    const CHURN_WINDOW_DAYS  = 7;
+    const READY_MIN_DAYS     = 3;    // minimum warming days before rejoining
+    const READY_SCORE_FLOOR  = 98;   // warmup score must be back above threshold
 
     // Active workspaces (any send in the last 7 days). Anything else is
     // treated as churned and hidden, same rule as /api/account-monitor.
@@ -95,7 +96,8 @@ export async function GET() {
         warmup_score:             scoreNum,
         warming_since:            r.warming_since ?? null,
         warming_days:             warmingDays,
-        ready_to_rejoin:          warmingDays !== null && warmingDays >= READY_DAYS,
+        ready_to_rejoin:          warmingDays !== null && warmingDays >= READY_MIN_DAYS
+                                    && scoreNum !== null && scoreNum >= READY_SCORE_FLOOR,
         attached_campaigns_count: r.attached_campaigns_count,
         daily_limit:              r.daily_limit ?? null,
         warmup_daily_limit:       r.warmup_daily_limit ?? null,
@@ -233,7 +235,7 @@ export async function GET() {
       senders,
       summary,
       workspaces,
-      thresholds: { readyDays: READY_DAYS, churnWindowDays: CHURN_WINDOW_DAYS },
+      thresholds: { readyMinDays: READY_MIN_DAYS, readyScoreFloor: READY_SCORE_FLOOR, churnWindowDays: CHURN_WINDOW_DAYS },
     });
   } catch (err: any) {
     console.error("[warmup-monitor] error:", err);
