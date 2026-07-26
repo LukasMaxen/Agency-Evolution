@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, Fragment } from "react";
 import {
-  RefreshCw, Loader2, Flame, ChevronLeft, ChevronUp, ChevronDown, Plus,
+  RefreshCw, Loader2, Flame, ChevronLeft, Plus,
+  Send, Users, Bell, Activity, MessageCircle, Shield,
 } from "lucide-react";
 import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
 
@@ -327,33 +328,52 @@ function fmt(n: number) {
   return n.toLocaleString("en-US");
 }
 
-// Stat card used by the SummaryPanel. The colour band only fires when
-// the metric crosses an obvious bad threshold, so a panel that's mostly
-// neutral grey reads as "things are fine" at a glance.
+// Stat card used by the SummaryPanel. Icon + label on top row, large value
+// below, optional sub text on its own line. Colour band on the left edge
+// fires only when the metric crosses a bad threshold.
 function Stat({
-  label, value, sub, color, accent,
+  label, value, sub, subColor, color, accent, icon,
 }: {
-  label: string; value: string | number; sub?: string;
+  label: string; value: string | number; sub?: string; subColor?: string;
   color?: string; accent?: "good" | "warn" | "bad" | "info";
+  icon?: React.ReactNode;
 }) {
   const accentBg = accent === "good" ? "#15803D"
                  : accent === "warn" ? "#D97706"
                  : accent === "bad"  ? "#B91C1C"
                  : accent === "info" ? "#3730A3"
                  : undefined;
+  const iconBg   = accent === "good" ? "#EAF3DE"
+                 : accent === "warn" ? "#FEF3C7"
+                 : accent === "bad"  ? "#FCEBEB"
+                 : accent === "info" ? "#EEF2FF"
+                 : "#F3F4F6";
+  const iconColor = accent === "good" ? "#15803D"
+                  : accent === "warn" ? "#D97706"
+                  : accent === "bad"  ? "#B91C1C"
+                  : accent === "info" ? "#3730A3"
+                  : "#6B7280";
   return (
     <div style={{
       background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 10,
-      padding: "10px 14px", position: "relative", overflow: "hidden",
+      padding: "12px 14px", position: "relative", overflow: "hidden",
     }}>
       {accentBg && (
         <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: accentBg }} />
       )}
-      <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 4, fontWeight: 500 }}>{label}</p>
-      <p style={{ fontSize: 18, fontWeight: 600, color: color ?? "#111827", fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
+        {icon && (
+          <span style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            width: 26, height: 26, borderRadius: "50%", background: iconBg, color: iconColor, flexShrink: 0,
+          }}>{icon}</span>
+        )}
+        <p style={{ fontSize: 10, color: "#9ca3af", fontWeight: 500, lineHeight: 1.2 }}>{label}</p>
+      </div>
+      <p style={{ fontSize: 20, fontWeight: 600, color: color ?? "#111827", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
         {value}
-        {sub && <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400, marginLeft: 6 }}>{sub}</span>}
       </p>
+      {sub && <p style={{ fontSize: 11, color: subColor ?? "#9ca3af", fontWeight: 400, marginTop: 4 }}>{sub}</p>}
     </div>
   );
 }
@@ -387,16 +407,38 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
   // omitted here — they all live in the DomainStatusStrip below. Each Stat
   // card colours only on its own metric so a healthy warmup avg never shows
   // a red accent because of an unrelated domain status count.
+  const warmupSub = totals.warmupHealthAvg === null ? undefined
+    : totals.warmupHealthAvg >= 99 ? "Excellent"
+    : totals.warmupHealthAvg >= 98 ? "Great"
+    : totals.warmupHealthAvg >= 95 ? "Good"
+    : totals.warmupHealthAvg >= 90 ? "Fair"
+    : "Needs attention";
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
-      <Stat label="Emails sent"   value={fmt(totals.totalSent)} />
-      <Stat label="Total senders" value={fmt(totals.total)} />
-      <Stat label="Active"        value={fmt(totals.active)}      sub={totals.dailyCapacity > 0 ? `(${fmt(totals.dailyCapacity)}/day capacity)` : undefined} />
-      <Stat label="Warming only"  value={fmt(totals.warmingOnly)} />
-      <Stat label="Warmup health" value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"} color={healthColor} />
-      <Stat label="Reply rate"    value={pct(totals.replyRate)}  color={replyColor} sub={totals.totalSent > 0 ? `${fmt(totals.totalReplies)} replies` : undefined} />
-      <Stat label="Bounce rate"   value={pct(totals.bounceRate)} color={bounceColor} sub={totals.totalSent > 0 ? `${fmt(totals.totalBounces)} bounces` : undefined} />
-      <Stat label="Burn rate"     value={pct(totals.burnRate)}   color={burnColor}   sub={totals.totalSent > 0 ? `${fmt(totals.totalBurns)} burns` : undefined} />
+      <Stat label="Emails sent"    value={fmt(totals.totalSent)}  icon={<Send size={13} />} />
+      <Stat label="Total senders"  value={fmt(totals.total)}      icon={<Users size={13} />} />
+      <Stat label="Active (sending)" value={fmt(totals.active)}
+        sub={totals.dailyCapacity > 0 ? `${fmt(totals.dailyCapacity)}/day capacity` : undefined}
+        icon={<span style={{ width: 10, height: 10, borderRadius: "50%", background: "#15803D", display: "inline-block" }} />}
+        accent="good" />
+      <Stat label="Warming only"   value={fmt(totals.warmingOnly)} icon={<Bell size={13} />} />
+      <Stat label="Warmup health"  value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"}
+        color={healthColor} subColor={healthColor} sub={warmupSub}
+        accent={totals.warmupHealthAvg === null ? undefined : totals.warmupHealthAvg >= 98 ? "good" : totals.warmupHealthAvg >= 90 ? "warn" : "bad"}
+        icon={<Activity size={13} />} />
+      <Stat label="Reply rate"     value={pct(totals.replyRate)}  color={replyColor}
+        sub={totals.totalSent > 0 ? `${fmt(totals.totalReplies)} replies` : undefined}
+        accent={totals.totalSent === 0 ? undefined : parseFloat(totals.replyRate.toFixed(1)) >= 1 ? "good" : parseFloat(totals.replyRate.toFixed(1)) >= 0.5 ? "warn" : "bad"}
+        icon={<MessageCircle size={13} />} />
+      <Stat label="Bounce rate"    value={pct(totals.bounceRate)} color={bounceColor}
+        sub={totals.totalSent > 0 ? `${fmt(totals.totalBounces)} bounces` : undefined}
+        accent={totals.totalSent === 0 ? undefined : totals.bounceRate < 2 ? "good" : "bad"}
+        icon={<Shield size={13} />} />
+      <Stat label="Burn rate"      value={pct(totals.burnRate)}   color={burnColor}
+        sub={totals.totalSent > 0 ? `${fmt(totals.totalBurns)} burns` : undefined}
+        accent={totals.totalSent === 0 ? undefined : totals.burnRate < 0.5 ? "good" : "bad"}
+        icon={<Flame size={13} />} />
     </div>
   );
 }
@@ -422,13 +464,13 @@ function DomainStatusStrip({ totals }: { totals: Totals }) {
   if (visible.length === 0) return null;
   return (
     <div style={{
-      display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14,
-      padding: "8px 10px", background: "#ffffff",
+      display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, marginBottom: 14,
+      padding: "8px 12px", background: "#ffffff",
       border: "0.5px solid #ede9e3", borderRadius: 10,
     }}>
-      <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 500, alignSelf: "center", marginRight: 4 }}>DOMAIN STATUS</span>
+      <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 600, letterSpacing: "0.05em", marginRight: 2 }}>Domain Status</span>
       {visible.map(t => (
-        <PillBadge key={t.label} text={`${t.count} ${t.label.toLowerCase()}`} tone={t.tone} />
+        <PillBadge key={t.label} text={`${t.label} (${t.count})`} tone={t.tone} />
       ))}
     </div>
   );
@@ -695,6 +737,12 @@ function SenderTable({
       refresh();
     } catch {
       setBulkModal(prev => prev ? { ...prev, saving: false } : null);
+    }
+  }
+
+  async function pauseAllFlagged(flagged: DomainGroup[]) {
+    for (const d of flagged) {
+      await runDomainBatch(d.domain, d.senders, "pause_outbound");
     }
   }
 
@@ -1113,6 +1161,42 @@ function SenderTable({
         </div>
       )}
 
+      {/* Attention banner: surfaces domains that need to be paused before the table,
+          so the operator sees the problem count immediately without scanning. */}
+      {tab === "active" && (() => {
+        const flagged = domainGroups.filter(d => {
+          const domCritReplyAction = d.totalSent >= 200 && d.replyRate < 0.5;
+          const shouldPause = d.anyBurnFlagged || domCritReplyAction || (d.avgScore !== null && d.avgScore < 98);
+          const eligible = d.senders.filter(s => !isDisconnected(s) && (s.attached_campaigns_count ?? 0) > 0 && s.warming_since == null).length;
+          return shouldPause && eligible > 0;
+        });
+        if (flagged.length === 0) return null;
+        const totalEligible = flagged.reduce((sum, d) =>
+          sum + d.senders.filter(s => !isDisconnected(s) && (s.attached_campaigns_count ?? 0) > 0 && s.warming_since == null).length, 0);
+        return (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+            padding: "10px 14px", marginBottom: 8,
+            background: "#FCEBEB", border: "0.5px solid #F09595", borderRadius: 8,
+          }}>
+            <span style={{ fontSize: 12, color: "#B91C1C", fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 14 }}>⚠</span>
+              {totalEligible} sender{totalEligible !== 1 ? "s" : ""} need to be moved to warming only
+            </span>
+            <button
+              onClick={() => pauseAllFlagged(flagged)}
+              style={{
+                fontSize: 11, padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit",
+                background: "#B91C1C", color: "#fff", border: "none", fontWeight: 500,
+                display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
+              }}>
+              <Flame size={11} />
+              Move all {totalEligible} to warming only
+            </button>
+          </div>
+        );
+      })()}
+
       <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 12, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
           <thead>
@@ -1128,17 +1212,17 @@ function SenderTable({
                 />
               </th>
               {tab === "active" ? [
-                { h: "Sender",      w: "19%", align: "left"   },
+                { h: "Sender",      w: "18%", align: "left"   },
+                { h: "Status",      w: "9%",  align: "left"   },
                 { h: "Send/day",    w: "6%",  align: "center" },
                 { h: "Warmup/day",  w: "6%",  align: "center" },
-                { h: "Campaigns",   w: "10%", align: "left"   },
+                { h: "Campaigns",   w: "9%",  align: "left"   },
                 { h: "Sends",       w: "5%",  align: "right"  },
                 { h: "Reply",       w: "5%",  align: "right"  },
                 { h: "Bounce",      w: "5%",  align: "right"  },
                 { h: "Burn",        w: "5%",  align: "right"  },
                 { h: "Warmup",      w: "6%",  align: "right"  },
-                { h: "Status",      w: "9%",  align: "left"   },
-                { h: "Action",      w: "13%", align: "center" },
+                { h: "Actions",     w: "13%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
