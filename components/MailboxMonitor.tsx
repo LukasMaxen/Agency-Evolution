@@ -1045,7 +1045,7 @@ function SenderTable({
       case "critical_low_replies": return <PillBadge text="Low reply"   tone="red" />;
       case "list_issue":           return <PillBadge text="List issue"  tone="amber" />;
       case "low_replies":          return <PillBadge text="Low reply"   tone="amber" />;
-      case "insufficient_data":    return <PillBadge text="No data"     tone="grey" />;
+      case "insufficient_data":    return <PillBadge text="Insufficient data"     tone="grey" />;
       case "healthy":              return <PillBadge text="Healthy"     tone="green" />;
       default:                     return <PillBadge text={status}      tone="grey" />;
     }
@@ -1065,7 +1065,7 @@ function SenderTable({
     if (s.acc_status === "critical_low_replies") return <PillBadge text="Critical reply" tone="red" />;
     if (s.acc_status === "low_replies")          return <PillBadge text="Low reply"    tone="amber" />;
     if (s.acc_status === "list_issue")           return <PillBadge text="List issue"   tone="amber" />;
-    if (s.acc_status === "insufficient_data")    return <PillBadge text="No data"      tone="grey" />;
+    if (s.acc_status === "insufficient_data")    return <PillBadge text="Insufficient data"      tone="grey" />;
     return <PillBadge text="Healthy" tone="green" />;
   };
 
@@ -1104,7 +1104,7 @@ function SenderTable({
     // All rate-based checks below require enough volume to be statistically
     // meaningful. Below criticalMinSend (200) a single bounce or zero replies
     // is noise, not a signal — show No data instead.
-    if (d.totalSent < thresholds.criticalMinSend)                        return <PillBadge text="No data" tone="grey" />;
+    if (d.totalSent < thresholds.criticalMinSend)                        return <PillBadge text="Insufficient data" tone="grey" />;
     if (d.replyRate < 0.5)                                               return <PillBadge text="Critical reply" tone="red" />;
     if (d.bounceRate >= 2)                                               return <PillBadge text="List issue" tone="amber" />;
     if (d.replyRate < 1)                                                 return <PillBadge text="Low reply" tone="amber" />;
@@ -1310,8 +1310,8 @@ function SenderTable({
               // warmup health. Disconnected and MX-missing still tint
               // because those are reachability problems, not historical
               // outbound metrics.
-              const domCritReply = tab === "active" && d.totalSent >= 200 && d.replyRate < 0.5;
-              const domListIssue = tab === "active" && d.bounceRate >= 2;
+              const domCritReply = tab === "active" && d.totalSent >= thresholds.criticalMinSend && d.replyRate < 0.5;
+              const domListIssue = tab === "active" && d.totalSent >= thresholds.criticalMinSend && d.bounceRate >= 2;
               const domLowHealth = d.avgScore !== null && d.avgScore < 98;
               const showHistoricalSignals = tab === "active";
               // Low-reply-only domains (0.5%-1% reply with no other
@@ -1443,7 +1443,7 @@ function SenderTable({
                             tiers we use elsewhere. */}
                         <td style={{ padding: "8px 10px" }}>
                           {d.readyToRejoin                  ? <PillBadge text="Ready to rejoin" tone="green" />
-                           : d.avgScore === null             ? <PillBadge text="No data"        tone="grey"  />
+                           : d.avgScore === null             ? <PillBadge text="Insufficient data"        tone="grey"  />
                            : d.avgScore >= 90               ? <PillBadge text="Almost ready"   tone="amber" />
                            :                                  <PillBadge text="Keep warming"   tone="red"   />}
                         </td>
@@ -1666,7 +1666,7 @@ function SenderTable({
                             {/* Rejoin status: green = warmup score recovered,
                                 amber = close, red = keep warming. */}
                             <td style={{ padding: "8px 10px" }}>
-                              {s.warmup_score === null || s.warmup_score === 0 ? <PillBadge text="No data"        tone="grey"  />
+                              {s.warmup_score === null || s.warmup_score === 0 ? <PillBadge text="Insufficient data"        tone="grey"  />
                                : s.warmup_score >= 98                          ? <PillBadge text="Ready to rejoin" tone="green" />
                                : s.warmup_score >= 90                          ? <PillBadge text="Almost ready"   tone="amber" />
                                :                                                 <PillBadge text="Keep warming"   tone="red"   />}
