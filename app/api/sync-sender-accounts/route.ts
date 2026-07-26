@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
               if (!row?.id) continue;
               const score       = (typeof row.warmup_score === "number") ? row.warmup_score : null;
               const enabled     = row.warmup_enabled === true;
-              const warmupLimit = (typeof row.daily_limit === "number") ? row.daily_limit : null;
+              const warmupLimit = (typeof row.warmup_daily_limit === "number") ? row.warmup_daily_limit : null;
               const res = await pool.query(
                 `UPDATE sender_accounts
                    SET warmup_score        = $1,
