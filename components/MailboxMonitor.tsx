@@ -166,6 +166,7 @@ interface Workspace {
   // (?day=today). Mirrors the "Emails Sent + Scheduled" column on the
   // EB Sending Schedule page. Null while loading or on fetch failure.
   scheduledToday:      number | null;
+  dailyCapacity:       number;
 }
 
 // Aggregated stats used by the SummaryPanel. Computed across all
@@ -201,6 +202,7 @@ interface Totals {
   // any workspace failed its EB fetch, so the UI surfaces "—" rather
   // than a misleadingly low number.
   scheduledToday:      number | null;
+  dailyCapacity:       number;
 }
 
 const DAILY_CAP_PER_SENDER = 20;
@@ -214,6 +216,7 @@ function aggregateTotals(workspaces: Workspace[]): Totals {
     listIssueDomains: 0, lowReplyDomains: 0, insufficientDomains: 0, healthyDomains: 0,
     mxMissingDomains: 0,
     scheduledToday: null,
+    dailyCapacity: 0,
   };
   let anySchedNull = false;
   let schedSum = 0;
@@ -237,6 +240,7 @@ function aggregateTotals(workspaces: Workspace[]): Totals {
     t.insufficientDomains += w.insufficientDomains;
     t.healthyDomains      += w.healthyDomains;
     t.mxMissingDomains    += w.mxMissingDomains;
+    t.dailyCapacity    += w.dailyCapacity;
     if (w.scheduledToday === null) anySchedNull = true;
     else schedSum += w.scheduledToday;
     if (w.warmupHealthAvg !== null) {
@@ -260,10 +264,10 @@ function aggregateTotals(workspaces: Workspace[]): Totals {
 //   60-80% amber — meaningful headroom worth launching into
 //   <  60% red   — under-utilised, mailboxes are paying rent for nothing
 // Used both per-card and as the page-level summary.
-function CapacityBar({ active, scheduledToday, compact }: {
-  active: number; scheduledToday: number | null; compact?: boolean;
+function CapacityBar({ active, scheduledToday, compact, dailyCapacity }: {
+  active: number; scheduledToday: number | null; compact?: boolean; dailyCapacity?: number;
 }) {
-  const cap = active * DAILY_CAP_PER_SENDER;
+  const cap = dailyCapacity ?? (active * DAILY_CAP_PER_SENDER);
   const sched = scheduledToday ?? 0;
   const utilPct = cap > 0 && scheduledToday !== null ? (sched / cap) * 100 : 0;
   const fillPct = Math.min(100, utilPct);
@@ -386,9 +390,9 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
       <Stat label="Emails sent"   value={fmt(totals.totalSent)} />
-      <Stat label="Total senders" value={fmt(totals.total)}       sub={`(${fmt(totals.total * 20)}/day capacity)`} />
-      <Stat label="Active"        value={fmt(totals.active)}      sub={`(${fmt(totals.active * 20)}/day capacity)`} />
-      <Stat label="Warming only"  value={fmt(totals.warmingOnly)} sub={`(${fmt(totals.warmingOnly * 20)}/day capacity)`} />
+      <Stat label="Total senders" value={fmt(totals.total)} />
+      <Stat label="Active"        value={fmt(totals.active)}      sub={totals.dailyCapacity > 0 ? `(${fmt(totals.dailyCapacity)}/day capacity)` : undefined} />
+      <Stat label="Warming only"  value={fmt(totals.warmingOnly)} />
       <Stat label="Warmup health" value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"} color={healthColor} />
       <Stat label="Reply rate"    value={pct(totals.replyRate)}  color={replyColor} sub={totals.totalSent > 0 ? `${fmt(totals.totalReplies)} replies` : undefined} />
       <Stat label="Bounce rate"   value={pct(totals.bounceRate)} color={bounceColor} sub={totals.totalSent > 0 ? `${fmt(totals.totalBounces)} bounces` : undefined} />
@@ -438,13 +442,16 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
     ? findWorkspace(workspaces, w.slug).name
     : w.slug;
 
-  // Severity ranking matches the source dashboards: disconnected outranks
-  // everything, then red-tier (not warming / low warmup health / burned
-  // domains / critical low replies), then amber, then green.
+  // Severity ranking: disconnected > red issues (on active senders) >
+  // all-warming (no active, not an error) > ready to rejoin > healthy.
+  // A workspace with no active senders gets a gray card, not green — it's
+  // not healthy (nothing is sending), just not currently actionable.
   const redCount = w.notWarming + w.lowHealthDomains + w.burnedDomains + w.criticalDomains;
+  const allWarming = w.active === 0 && w.warmingOnly > 0;
   const accent =
-    w.disconnected > 0 ? "#6366F1" :
-    redCount > 0       ? "#E24B4A" :
+    w.disconnected > 0  ? "#6366F1" :
+    redCount > 0        ? "#E24B4A" :
+    allWarming          ? "#9CA3AF" :
     w.readyToRejoin > 0 ? "#F59E0B" :
                           "#84C56A";
 
@@ -466,13 +473,18 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
           {w.disconnected > 0 ? (
             <PillBadge text={`${w.disconnected} disconnected`} tone="indigo" />
+          ) : allWarming ? (
+            <>
+              <PillBadge text="All warming" tone="grey" />
+              {w.readyToRejoin > 0 && <PillBadge text={`${w.readyToRejoin} ready to rejoin`} tone="amber" />}
+            </>
           ) : (
             <>
               {w.notWarming       > 0 && <PillBadge text={`${w.notWarming} not warming`} tone="red" />}
               {w.burnedDomains    > 0 && <PillBadge text={`${w.burnedDomains} burned`} tone="red" />}
               {w.criticalDomains  > 0 && <PillBadge text={`${w.criticalDomains} low reply`} tone="red" />}
               {w.lowHealthDomains > 0 && <PillBadge text={`${w.lowHealthDomains} low-health ${w.lowHealthDomains === 1 ? "domain" : "domains"}`} tone="red" />}
-              {w.readyToRejoin    > 0 && <PillBadge text={`${w.readyToRejoin} ready`} tone="green" />}
+              {w.readyToRejoin    > 0 && <PillBadge text={`${w.readyToRejoin} ready`} tone="amber" />}
               {redCount === 0 && <PillBadge text="All healthy" tone="green" />}
             </>
           )}
@@ -514,7 +526,7 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
           paddingRight reserves space so the percent text doesn't run
           under the absolutely-positioned "→" affordance bottom-right. */}
       <div style={{ marginTop: 12, paddingRight: 18 }}>
-        <CapacityBar active={w.active} scheduledToday={w.scheduledToday} compact />
+        <CapacityBar active={w.active} scheduledToday={w.scheduledToday} compact dailyCapacity={w.dailyCapacity} />
       </div>
       <span style={{ position: "absolute", bottom: 12, right: 14, fontSize: 11, color: "#9ca3af" }}>→</span>
     </div>
@@ -1050,7 +1062,7 @@ function SenderTable({
       </p>
       <SummaryPanel totals={aggregateTotals([ws])} days={days} />
       <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 10, padding: "10px 14px", marginBottom: 10 }}>
-        <CapacityBar active={ws.active} scheduledToday={ws.scheduledToday} />
+        <CapacityBar active={ws.active} scheduledToday={ws.scheduledToday} dailyCapacity={ws.dailyCapacity} />
       </div>
       <DomainStatusStrip totals={aggregateTotals([ws])} />
 
@@ -1113,40 +1125,40 @@ function SenderTable({
                 />
               </th>
               {tab === "active" ? [
-                { h: "Sender",        w: "16%", align: "left"   },
-                { h: "Send/day",      w: "7%",  align: "right"  },
-                { h: "Warmup/day",    w: "7%",  align: "right"  },
-                { h: "Campaigns",     w: "9%",  align: "left"   },
-                { h: "Sends",         w: "6%",  align: "right"  },
-                { h: "Reply",         w: "6%",  align: "right"  },
-                { h: "Bounce",        w: "6%",  align: "right"  },
-                { h: "Burn",          w: "6%",  align: "right"  },
-                { h: "Warmup",        w: "7%",  align: "right"  },
-                { h: "Status",        w: "10%", align: "left"   },
-                { h: "Action",        w: "14%", align: "center" },
+                { h: "Sender",      w: "19%", align: "left"   },
+                { h: "Send/day",    w: "6%",  align: "right"  },
+                { h: "Warmup/day",  w: "6%",  align: "right"  },
+                { h: "Campaigns",   w: "10%", align: "left"   },
+                { h: "Sends",       w: "5%",  align: "right"  },
+                { h: "Reply",       w: "5%",  align: "right"  },
+                { h: "Bounce",      w: "5%",  align: "right"  },
+                { h: "Burn",        w: "5%",  align: "right"  },
+                { h: "Warmup",      w: "6%",  align: "right"  },
+                { h: "Status",      w: "9%",  align: "left"   },
+                { h: "Action",      w: "13%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
-                  padding: "9px 10px", textAlign: align as any,
+                  padding: "8px 8px", textAlign: align as any,
                   textTransform: "uppercase", letterSpacing: "0.04em", width: w,
                 }}>{h}</th>
               )) : [
-                { h: "Sender",        w: "13%", align: "left"   },
-                { h: "Send/day",      w: "6%",  align: "right"  },
-                { h: "Warmup/day",    w: "6%",  align: "right"  },
+                { h: "Sender",        w: "15%", align: "left"   },
+                { h: "Send/day",      w: "5%",  align: "right"  },
+                { h: "Warmup/day",    w: "5%",  align: "right"  },
                 { h: "Campaigns",     w: "8%",  align: "left"   },
                 { h: "Sends",         w: "5%",  align: "right"  },
                 { h: "Reply",         w: "5%",  align: "right"  },
                 { h: "Bounce",        w: "5%",  align: "right"  },
                 { h: "Burn",          w: "5%",  align: "right"  },
                 { h: "Warmup",        w: "6%",  align: "right"  },
-                { h: "Days warming",  w: "7%",  align: "right"  },
-                { h: "Rejoin status", w: "11%", align: "left"   },
-                { h: "Action",        w: "16%", align: "center" },
+                { h: "Days warming",  w: "6%",  align: "right"  },
+                { h: "Rejoin status", w: "10%", align: "left"   },
+                { h: "Action",        w: "14%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
-                  padding: "9px 10px", textAlign: align as any,
+                  padding: "8px 8px", textAlign: align as any,
                   textTransform: "uppercase", letterSpacing: "0.04em", width: w,
                 }}>{h}</th>
               ))}
@@ -1210,7 +1222,6 @@ function SenderTable({
                     {/* Domain name */}
                     <td style={{ padding: "10px 10px", fontWeight: 500, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                         {d.domain}
                         <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 400 }}>· {d.senders.length} {d.senders.length === 1 ? "sender" : "senders"}</span>
                       </span>
@@ -1360,22 +1371,22 @@ function SenderTable({
                              d.anyBurnFlagged
                           || domCritReplyAction
                           || (d.avgScore !== null && d.avgScore < 98));
-                        if (shouldPause) {
-                          const eligible = d.senders.filter(s => !isDisconnected(s) && s.warmup_enabled && (s.attached_campaigns_count ?? 0) > 0 && s.warming_since == null).length;
-                          if (eligible > 0) {
-                            return (
-                              <button onClick={() => runDomainBatch(d.domain, d.senders, "pause_outbound")} disabled={!!acting}
-                                style={{
-                                  fontSize: 11, padding: "4px 10px", borderRadius: 6,
-                                  background: "#FCEBEB", color: "#B91C1C", border: "0.5px solid #F09595",
-                                  cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
-                                  display: "inline-flex", alignItems: "center", gap: 5,
-                                }}>
-                                {acting === "pause_outbound" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
-                                Pause outbound ({eligible})
-                              </button>
-                            );
-                          }
+                        const eligible = d.senders.filter(s => !isDisconnected(s) && (s.attached_campaigns_count ?? 0) > 0 && s.warming_since == null).length;
+                        if (tab === "active" && eligible > 0) {
+                          return (
+                            <button onClick={() => runDomainBatch(d.domain, d.senders, "pause_outbound")} disabled={!!acting}
+                              style={{
+                                fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                background: shouldPause ? "#FCEBEB" : "#F3F4F6",
+                                color: shouldPause ? "#B91C1C" : "#374151",
+                                border: shouldPause ? "0.5px solid #F09595" : "0.5px solid #D1D5DB",
+                                cursor: acting ? "wait" : "pointer", fontFamily: "inherit",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                              }}>
+                              {acting === "pause_outbound" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
+                              Pause outbound
+                            </button>
+                          );
                         }
                         const warmingOnlyCount = d.senders.filter(s => !isDisconnected(s) && ((s.attached_campaigns_count ?? 0) === 0 || s.warming_since != null)).length;
                         if (warmingOnlyCount > 0 && tab === "warming_only") {
@@ -1717,6 +1728,15 @@ export function MailboxMonitor() {
         mxMissingCountBySlug[slug] = c;
       }
 
+      // Sum daily_limit for active (non-paused, non-disconnected) senders per workspace.
+      // Falls back to DAILY_CAP_PER_SENDER (20) when limit not yet synced.
+      const dailyCapBySlug: Record<string, number> = {};
+      for (const s of senders) {
+        const isActive = (s.attached_campaigns_count ?? 0) > 0 && s.warming_since == null && s.conn_status !== "Not connected";
+        if (!isActive) continue;
+        dailyCapBySlug[s.workspace_slug] = (dailyCapBySlug[s.workspace_slug] ?? 0) + (s.daily_limit ?? DAILY_CAP_PER_SENDER);
+      }
+
       const workspaces: Workspace[] = warm.workspaces.map(w => {
         const a = accBySlug[w.slug];
         const sc = a?.statusCounts ?? {};
@@ -1745,6 +1765,7 @@ export function MailboxMonitor() {
           healthyDomains:       (sc.healthy ?? 0),
           mxMissingDomains:     mxMissingCountBySlug[w.slug] ?? 0,
           scheduledToday:       scheduledBySlug[w.slug] ?? null,
+          dailyCapacity:        dailyCapBySlug[w.slug] ?? 0,
         };
       }).sort((a, b) => {
         if (b.disconnected !== a.disconnected) return b.disconnected - a.disconnected;
@@ -1904,6 +1925,7 @@ export function MailboxMonitor() {
             <CapacityBar
               active={aggregateTotals(data.workspaces).active}
               scheduledToday={aggregateTotals(data.workspaces).scheduledToday}
+              dailyCapacity={aggregateTotals(data.workspaces).dailyCapacity}
             />
           </div>
           <DomainStatusStrip totals={aggregateTotals(data.workspaces)} />
