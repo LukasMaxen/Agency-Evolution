@@ -198,7 +198,6 @@ export async function GET() {
       if (s.conn_status === "Not connected") w.disconnected++;
       if (!s.warmup_enabled)         w.notWarming++;
       if (isWarmingOnly(s))          w.warmingOnly++;
-      if (s.ready_to_rejoin)         w.readyToRejoin++;
       if (hasScore(s)) {
         const slot = wsScoreSums[s.workspace_slug] ?? (wsScoreSums[s.workspace_slug] = { sum: 0, count: 0 });
         slot.sum += s.warmup_score as number;
@@ -207,6 +206,9 @@ export async function GET() {
     }
     for (const d of domainAggs) {
       if (d.lowHealth) wsMap[d.workspace_slug].lowHealthDomains++;
+      // ready_to_rejoin: count domains (not senders) where at least one sender qualifies
+      const domSenders = sendersByDomain[d.domain] ?? [];
+      if (domSenders.some(s => s.ready_to_rejoin)) wsMap[d.workspace_slug].readyToRejoin++;
     }
     for (const slug of Object.keys(wsMap)) {
       const slot = wsScoreSums[slug];
