@@ -416,13 +416,13 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
-      <Stat label="Emails sent"    value={fmt(totals.totalSent)}  icon={<Send size={13} />} />
-      <Stat label="Total senders"  value={fmt(totals.total)}      icon={<Users size={13} />} />
+      <Stat label="Emails sent"    value={fmt(totals.totalSent)}  icon={<Send size={13} />}  accent="info" />
+      <Stat label="Total senders"  value={fmt(totals.total)}      icon={<Users size={13} />} accent="info" />
       <Stat label="Active (sending)" value={fmt(totals.active)}
         sub={totals.dailyCapacity > 0 ? `${fmt(totals.dailyCapacity)}/day capacity` : undefined}
         icon={<span style={{ width: 10, height: 10, borderRadius: "50%", background: "#15803D", display: "inline-block" }} />}
         accent="good" />
-      <Stat label="Warming only"   value={fmt(totals.warmingOnly)} icon={<Bell size={13} />} />
+      <Stat label="Warming only"   value={fmt(totals.warmingOnly)} icon={<Bell size={13} />} accent="warn" />
       <Stat label="Warmup health"  value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"}
         color={healthColor} subColor={healthColor} sub={warmupSub}
         accent={totals.warmupHealthAvg === null ? undefined : totals.warmupHealthAvg >= 98 ? "good" : totals.warmupHealthAvg >= 90 ? "warn" : "bad"}
