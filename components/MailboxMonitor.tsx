@@ -894,7 +894,7 @@ function SenderTable({
     const PROVISIONAL_FLOOR  = 20;
     let accStatus: string;
     if (anyDisconnected)                                                                                                    accStatus = "disconnected";
-    else if (burnRate >= BURN_MAX && (totalSent >= BURN_MIN_SAMPLE || totalBurns >= 2))                                    accStatus = "burned";
+    else if (burnRate >= BURN_MAX && totalSent >= BURN_MIN_SAMPLE)                                                          accStatus = "burned";
     else if (totalSent < PROVISIONAL_FLOOR)                                                                                 accStatus = "insufficient_data";
     else if (replyRate < REPLY_CRITICAL && totalSent >= CRITICAL_MIN_SEND)                                                 accStatus = "critical_low_replies";
     else if (bounceRate >= BOUNCE_MAX)                                                                                      accStatus = "list_issue";
