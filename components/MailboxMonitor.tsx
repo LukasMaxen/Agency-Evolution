@@ -1077,22 +1077,53 @@ function SenderTable({
         })}
       </div>
 
+      {/* Bulk-selection action bar */}
+      {selectedDomains.size > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 8, background: "#EEF2FF", border: "0.5px solid #A5B4FC", borderRadius: 8 }}>
+          <span style={{ fontSize: 12, color: "#3730A3", fontWeight: 500, marginRight: 4 }}>
+            {selectedDomains.size} domain{selectedDomains.size > 1 ? "s" : ""} selected
+          </span>
+          <button onClick={() => setBulkModal({ type: "daily_limit", value: "", saving: false })} style={{
+            fontSize: 11, padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit",
+            background: "#3730A3", color: "#fff", border: "none", fontWeight: 500,
+          }}>Update Daily Limits</button>
+          <button onClick={() => setBulkModal({ type: "warmup_daily_limit", value: "", saving: false })} style={{
+            fontSize: 11, padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit",
+            background: "#3730A3", color: "#fff", border: "none", fontWeight: 500,
+          }}>Update Warmup Limits</button>
+          <button onClick={() => setSelectedDomains(new Set())} style={{
+            fontSize: 11, padding: "5px 10px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit",
+            background: "transparent", color: "#6b7280", border: "0.5px solid #d1d5db",
+          }}>Clear</button>
+        </div>
+      )}
+
       <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 12, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
           <thead>
             <tr style={{ background: "#f8f7f5", borderBottom: "0.5px solid #ede9e3" }}>
+              <th style={{ width: "3%", padding: "9px 10px", textAlign: "center" }}>
+                <input type="checkbox"
+                  checked={domainGroups.length > 0 && domainGroups.every(d => selectedDomains.has(d.domain))}
+                  onChange={e => {
+                    if (e.target.checked) setSelectedDomains(new Set(domainGroups.map(d => d.domain)));
+                    else setSelectedDomains(new Set());
+                  }}
+                  style={{ cursor: "pointer" }}
+                />
+              </th>
               {tab === "active" ? [
-                { h: "Sender",        w: "17%", align: "left"   },
-                { h: "Campaigns",     w: "10%", align: "left"   },
+                { h: "Sender",        w: "16%", align: "left"   },
+                { h: "Send/day",      w: "7%",  align: "right"  },
+                { h: "Warmup/day",    w: "7%",  align: "right"  },
+                { h: "Campaigns",     w: "9%",  align: "left"   },
                 { h: "Sends",         w: "6%",  align: "right"  },
                 { h: "Reply",         w: "6%",  align: "right"  },
                 { h: "Bounce",        w: "6%",  align: "right"  },
                 { h: "Burn",          w: "6%",  align: "right"  },
-                { h: "Warmup",        w: "8%",  align: "right"  },
-                { h: "Status",        w: "11%", align: "left"   },
-                { h: "Send/day",      w: "10%", align: "left"   },
-                { h: "Warmup/day",    w: "10%", align: "left"   },
-                { h: "Action",        w: "10%", align: "center" },
+                { h: "Warmup",        w: "7%",  align: "right"  },
+                { h: "Status",        w: "10%", align: "left"   },
+                { h: "Action",        w: "14%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -1100,18 +1131,18 @@ function SenderTable({
                   textTransform: "uppercase", letterSpacing: "0.04em", width: w,
                 }}>{h}</th>
               )) : [
-                { h: "Sender",        w: "16%", align: "left"   },
-                { h: "Campaigns",     w: "9%",  align: "left"   },
-                { h: "Sends",         w: "6%",  align: "right"  },
-                { h: "Reply",         w: "6%",  align: "right"  },
-                { h: "Bounce",        w: "6%",  align: "right"  },
-                { h: "Burn",          w: "6%",  align: "right"  },
-                { h: "Warmup",        w: "7%",  align: "right"  },
+                { h: "Sender",        w: "13%", align: "left"   },
+                { h: "Send/day",      w: "6%",  align: "right"  },
+                { h: "Warmup/day",    w: "6%",  align: "right"  },
+                { h: "Campaigns",     w: "8%",  align: "left"   },
+                { h: "Sends",         w: "5%",  align: "right"  },
+                { h: "Reply",         w: "5%",  align: "right"  },
+                { h: "Bounce",        w: "5%",  align: "right"  },
+                { h: "Burn",          w: "5%",  align: "right"  },
+                { h: "Warmup",        w: "6%",  align: "right"  },
                 { h: "Days warming",  w: "7%",  align: "right"  },
-                { h: "Rejoin status", w: "9%",  align: "left"   },
-                { h: "Send/day",      w: "10%", align: "left"   },
-                { h: "Warmup/day",    w: "10%", align: "left"   },
-                { h: "Action",        w: "8%",  align: "center" },
+                { h: "Rejoin status", w: "11%", align: "left"   },
+                { h: "Action",        w: "16%", align: "center" },
               ].map(({ h, w, align }) => (
                 <th key={h} style={{
                   fontSize: 10, fontWeight: 500, color: "#9ca3af",
@@ -1123,7 +1154,7 @@ function SenderTable({
           </thead>
           <tbody>
             {domainGroups.length === 0 && (
-              <tr><td colSpan={tab === "active" ? 9 : 10} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+              <tr><td colSpan={tab === "active" ? 12 : 13} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
                 No senders matching this filter.
               </td></tr>
             )}
@@ -1157,6 +1188,7 @@ function SenderTable({
                 domLowHealth        ? "#FCEBEB" :
                 domListIssue        ? "#FEF3C7" :
                                       "#fafafa";
+              const isChecked = selectedDomains.has(d.domain);
               return (
                 <Fragment key={d.domain}>
                   {/* Domain header row */}
@@ -1164,6 +1196,18 @@ function SenderTable({
                     onClick={() => setExpandedDomain(isExpanded ? null : d.domain)}
                     style={{ cursor: "pointer", borderBottom: "0.5px solid #ede9e3", background: domBg }}
                   >
+                    {/* Checkbox */}
+                    <td style={{ padding: "10px 10px", textAlign: "center" }} onClick={e => e.stopPropagation()}>
+                      <input type="checkbox" checked={isChecked}
+                        onChange={e => {
+                          const next = new Set(selectedDomains);
+                          e.target.checked ? next.add(d.domain) : next.delete(d.domain);
+                          setSelectedDomains(next);
+                        }}
+                        style={{ cursor: "pointer" }}
+                      />
+                    </td>
+                    {/* Domain name */}
                     <td style={{ padding: "10px 10px", fontWeight: 500, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                         {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -1171,7 +1215,15 @@ function SenderTable({
                         <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 400 }}>· {d.senders.length} {d.senders.length === 1 ? "sender" : "senders"}</span>
                       </span>
                     </td>
-                    {/* Campaigns column. */}
+                    {/* Send/day aggregate */}
+                    <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
+                      {domainLimitDisplay(d.senders, "daily_limit")}
+                    </td>
+                    {/* Warmup/day aggregate */}
+                    <td style={{ padding: "10px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
+                      {domainLimitDisplay(d.senders, "warmup_daily_limit")}
+                    </td>
+                    {/* Campaigns */}
                     <td style={{ padding: "10px 10px" }}>
                       {d.fullyDisconnected ? <PillBadge text="All disconnected" tone="indigo" />
                        : d.disconnected > 0 ? <PillBadge text={`${d.disconnected} disconnected`} tone="indigo" />
@@ -1367,11 +1419,25 @@ function SenderTable({
                       showHistoricalSignals && s.acc_status === "list_issue"          ? "#FFFBEB" :
                       tab === "warming_only" && s.ready_to_rejoin                     ? "#F0FDF4" :
                                                                                         "#ffffff";
+                    const sndLimit = localLimits[s.email]?.daily_limit        ?? s.daily_limit;
+                    const wrmLimit = localLimits[s.email]?.warmup_daily_limit ?? s.warmup_daily_limit;
                     return (
                       <tr key={d.domain + "::" + s.email} style={{ borderBottom: "0.5px solid #f3f4f6", background: senderBg }}>
+                        {/* Empty placeholder for checkbox column alignment */}
+                        <td />
+                        {/* Email */}
                         <td style={{ padding: "8px 10px 8px 36px", color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>
                           {s.email}
                         </td>
+                        {/* Send/day (read-only) */}
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
+                          {sndLimit != null ? sndLimit : <span style={{ color: "#9ca3af" }}>—</span>}
+                        </td>
+                        {/* Warmup/day (read-only) */}
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
+                          {wrmLimit != null ? wrmLimit : <span style={{ color: "#9ca3af" }}>—</span>}
+                        </td>
+                        {/* Campaigns */}
                         <td style={{ padding: "8px 10px" }}>
                           {disconnected
                             ? <PillBadge text="Disconnected" tone="indigo" />
@@ -1459,27 +1525,6 @@ function SenderTable({
                             </td>
                           </>
                         )}
-                        <td style={{ padding: "8px 10px" }}>
-                          <LimitCell
-                            key={`${s.email}::daily::${localLimits[s.email]?.daily_limit ?? s.daily_limit}`}
-                            value={localLimits[s.email]?.daily_limit ?? s.daily_limit}
-                            senderEmail={s.email}
-                            workspaceSlug={s.workspace_slug}
-                            field="daily_limit"
-                            onSaved={(f, v) => onLimitSaved(s.email, f, v)}
-                          />
-                        </td>
-                        <td style={{ padding: "8px 10px" }}>
-                          <LimitCell
-                            key={`${s.email}::warmup::${localLimits[s.email]?.warmup_daily_limit ?? s.warmup_daily_limit}`}
-                            value={localLimits[s.email]?.warmup_daily_limit ?? s.warmup_daily_limit}
-                            max={50}
-                            senderEmail={s.email}
-                            workspaceSlug={s.workspace_slug}
-                            field="warmup_daily_limit"
-                            onSaved={(f, v) => onLimitSaved(s.email, f, v)}
-                          />
-                        </td>
                         <td style={{ padding: "8px 10px", textAlign: "center" }}>
                           {disconnected ? (() => {
                             const wsInfo = findWorkspace(workspaces, s.workspace_slug);
