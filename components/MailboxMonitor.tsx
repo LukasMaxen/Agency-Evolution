@@ -691,6 +691,8 @@ function SenderTable({
       for (const s of targetSenders) overlay[s.email] = { ...(localLimits[s.email] ?? {}), [bulkModal.type]: v };
       setLocalLimits(prev => ({ ...prev, ...overlay }));
       setBulkModal(null);
+      setSelectedDomains(new Set());
+      refresh();
     } catch {
       setBulkModal(prev => prev ? { ...prev, saving: false } : null);
     }
