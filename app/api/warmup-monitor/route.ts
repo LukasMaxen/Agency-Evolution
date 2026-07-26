@@ -132,7 +132,7 @@ export async function GET() {
       const avg = reachableScored.length > 0
         ? Math.round(reachableScored.reduce((a, s) => a + (s.warmup_score as number), 0) / reachableScored.length * 10) / 10
         : null;
-      const hasActive = list.some(s => (s.attached_campaigns_count ?? 0) > 0);
+      const hasActive = list.some(s => (s.attached_campaigns_count ?? 0) > 0 && s.warming_since == null);
       return {
         workspace_slug: list[0].workspace_slug,
         domain:         dom,
