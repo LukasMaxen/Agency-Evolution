@@ -110,6 +110,18 @@ export async function POST(req: NextRequest) {
 
         const ebEmailSet = new Set(ebSenders.map(s => s.email));
 
+        // 3a. Sync workspace name from EB so renaming in EB reflects here automatically.
+        try {
+          const wsRes = await fetch(`${instanceUrl}/api/workspaces`, { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } });
+          if (wsRes.ok) {
+            const wsBody = await wsRes.json();
+            const ebName: string | undefined = wsBody?.data?.[0]?.name;
+            if (ebName) {
+              await pool.query(`UPDATE workspaces SET name = $1 WHERE slug = $2 AND name != $1`, [ebName, slug]);
+            }
+          }
+        } catch { /* non-fatal */ }
+
         // 3. Upsert all senders currently in EB
         let added = 0;
         let updated = 0;
