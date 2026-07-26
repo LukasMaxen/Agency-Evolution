@@ -55,6 +55,11 @@ function volumeThresholds(days: number) {
     // demands enough mass to suppress single-campaign noise, and a 24h
     // window with <30 sends just doesn't have signal yet.
     CRITICAL_MIN_SEND:       Math.max(30, Math.round(200 * scale)),
+    // Minimum sends before a single burn event can flip status to "burned".
+    // Below this, require 2+ distinct burn events. Prevents freshly-rejoined
+    // accounts from being flagged burned on one bounce from low-volume sending.
+    ACCT_BURN_MIN_SAMPLE:    Math.max(5,  Math.round(100 * scale)),
+    DOM_BURN_MIN_SAMPLE:     Math.max(10, Math.round(200 * scale)),
   };
 }
 
@@ -79,6 +84,7 @@ function classify(args: {
   fullMinSends:     number;
   provisionalFloor: number;
   criticalMinSend:  number;
+  burnMinSample:    number;
   burnCount: number;
   burnRate: number;
   bounceRate: number;
@@ -96,13 +102,16 @@ function classify(args: {
     };
   }
 
-  // Account-level: any single burn event counts (one Barracuda block on a
-  // 50-send sender is a real reputation hit). Domain rollup passes
-  // rateOnlyBurn=true so one struck-out sender does not flip the whole
-  // domain when the aggregate burn rate is still under 0.5%.
-  const burnFires = args.rateOnlyBurn
+  // A single burn event is only conclusive once we have enough volume to
+  // judge the rate. Below burnMinSample, require 2+ distinct burns before
+  // calling "burned" — one domain_burn from 25 sends is statistical noise
+  // (freshly-rejoined accounts look burned even though they haven't had a
+  // chance to build a real sample). Two events or adequate volume = real signal.
+  const rawBurnFires = args.rateOnlyBurn
     ? args.burnRate >= BURN_RATE_MAX
     : args.burnCount > 0 || args.burnRate >= BURN_RATE_MAX;
+  const burnFires = rawBurnFires &&
+    (args.sent >= args.burnMinSample || args.burnCount >= 2);
 
   // Below the provisional floor and no burn event: truly no signal.
   if (args.sent < args.provisionalFloor && !burnFires) {
@@ -404,6 +413,7 @@ export async function GET(req: NextRequest) {
         fullMinSends:     T.ACCOUNT_MIN_SEND,
         provisionalFloor: T.PROVISIONAL_FLOOR,
         criticalMinSend:  T.CRITICAL_MIN_SEND,
+        burnMinSample:    T.ACCT_BURN_MIN_SAMPLE,
         burnCount: burns,
         burnRate,
         bounceRate,
@@ -495,6 +505,7 @@ export async function GET(req: NextRequest) {
           fullMinSends,
           provisionalFloor: T.PROVISIONAL_FLOOR,
           criticalMinSend:  T.CRITICAL_MIN_SEND,
+          burnMinSample:    T.DOM_BURN_MIN_SAMPLE,
           burnCount: d.totalBurns,
           burnRate,
           bounceRate,

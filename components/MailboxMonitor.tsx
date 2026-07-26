@@ -833,19 +833,20 @@ function SenderTable({
     // Disconnected still inherits from "any sender disconnected".
     const anyDisconnected = list.some(isDisconnected);
     const BURN_MAX           = 0.5;
+    const BURN_MIN_SAMPLE    = 200;  // need this many sends before 1 burn can flag "burned"
     const BOUNCE_MAX         = 2.0;
     const REPLY_MIN          = 1.0;
     const REPLY_CRITICAL     = 0.45;
     const CRITICAL_MIN_SEND  = 200;
     const PROVISIONAL_FLOOR  = 20;
     let accStatus: string;
-    if (anyDisconnected)                                                                     accStatus = "disconnected";
-    else if (totalSent < PROVISIONAL_FLOOR && burnRate < BURN_MAX)                           accStatus = "insufficient_data";
-    else if (burnRate >= BURN_MAX)                                                           accStatus = "burned";
-    else if (replyRate < REPLY_CRITICAL && totalSent >= CRITICAL_MIN_SEND)                   accStatus = "critical_low_replies";
-    else if (bounceRate >= BOUNCE_MAX)                                                       accStatus = "list_issue";
-    else if (replyRate < REPLY_MIN)                                                          accStatus = "low_replies";
-    else                                                                                     accStatus = "healthy";
+    if (anyDisconnected)                                                                                                    accStatus = "disconnected";
+    else if (burnRate >= BURN_MAX && (totalSent >= BURN_MIN_SAMPLE || totalBurns >= 2))                                    accStatus = "burned";
+    else if (totalSent < PROVISIONAL_FLOOR)                                                                                 accStatus = "insufficient_data";
+    else if (replyRate < REPLY_CRITICAL && totalSent >= CRITICAL_MIN_SEND)                                                 accStatus = "critical_low_replies";
+    else if (bounceRate >= BOUNCE_MAX)                                                                                      accStatus = "list_issue";
+    else if (replyRate < REPLY_MIN)                                                                                         accStatus = "low_replies";
+    else                                                                                                                    accStatus = "healthy";
 
     // Sender severity tier — mirrors senderStatusBadge priority so the
     // sort order matches the Status pill the operator sees. Lower = worse.
