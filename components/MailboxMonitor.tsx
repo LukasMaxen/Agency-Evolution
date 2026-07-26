@@ -670,7 +670,8 @@ interface DomainGroup {
   // average across all senders. This flag drives the domain badge and
   // sort priority. (Name kept for blast radius; semantics changed from
   // "any sender flagged" to "domain rate flagged".)
-  anyBurnFlagged: boolean;
+  anyBurnFlagged:  boolean;
+  readyToRejoin:   boolean;
 }
 
 function SenderTable({
@@ -958,6 +959,12 @@ function SenderTable({
     // now judges by average so the rest of the senders can absorb noise.
     const anyBurnFlagged = burnRate >= BURN_MAX && totalSent >= BURN_MIN_SAMPLE;
 
+    // A domain is ready to rejoin only when at least one sender passes the
+    // warmup-monitor gate: score >= 98 AND warming_days >= 3 (READY_MIN_DAYS).
+    // Using s.ready_to_rejoin (set by warmup-monitor) keeps this aligned with
+    // the workspace card, which uses the same field.
+    const readyToRejoin = list.some(s => s.ready_to_rejoin);
+
     return {
       domain: dom, senders: sortedList, disconnected, notWarming,
       warmingOnly: list.filter(isWarmingOnly).length,
@@ -967,7 +974,7 @@ function SenderTable({
       accStatus, worstSev,
       fullyDisconnected: disconnected === list.length && list.length > 0,
       mxMissing: mxMissingDomains.has(dom),
-      anyBurnFlagged,
+      anyBurnFlagged, readyToRejoin,
     };
   }).sort((a, b) => {
     // Two sort models, same direction (worst first). Active uses the full
@@ -1201,13 +1208,10 @@ function SenderTable({
       })()}
 
       {tab === "warming_only" && (() => {
-        const ready = domainGroups.filter(d => {
-          const eligible = d.senders.filter(s => !isDisconnected(s) && ((s.attached_campaigns_count ?? 0) === 0 || s.warming_since != null)).length;
-          return d.avgScore !== null && d.avgScore >= 98 && eligible > 0;
-        });
+        const ready = domainGroups.filter(d => d.readyToRejoin);
         if (ready.length === 0) return null;
         const totalEligible = ready.reduce((sum, d) =>
-          sum + d.senders.filter(s => !isDisconnected(s) && ((s.attached_campaigns_count ?? 0) === 0 || s.warming_since != null)).length, 0);
+          sum + d.senders.filter(s => s.ready_to_rejoin).length, 0);
         return (
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
@@ -1435,8 +1439,8 @@ function SenderTable({
                             outbound? Driven by warmup health using the same
                             tiers we use elsewhere. */}
                         <td style={{ padding: "8px 10px" }}>
-                          {d.avgScore === null              ? <PillBadge text="No data"        tone="grey"  />
-                           : d.avgScore >= 98               ? <PillBadge text="Ready to rejoin" tone="green" />
+                          {d.readyToRejoin                  ? <PillBadge text="Ready to rejoin" tone="green" />
+                           : d.avgScore === null             ? <PillBadge text="No data"        tone="grey"  />
                            : d.avgScore >= 90               ? <PillBadge text="Almost ready"   tone="amber" />
                            :                                  <PillBadge text="Keep warming"   tone="red"   />}
                         </td>
