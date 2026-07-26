@@ -1541,6 +1541,12 @@ function SenderTable({
                         <td style={{ padding: "8px 10px 8px 36px", color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>
                           {s.email}
                         </td>
+                        {/* Status badge — matches column order (after Sender, before Send/day) */}
+                        {tab === "active" && (
+                          <td style={{ padding: "8px 10px" }}>
+                            {senderStatusBadge(s, d.mxMissing)}
+                          </td>
+                        )}
                         {/* Send/day (read-only) */}
                         <td style={{ padding: "8px 10px", textAlign: "center", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {sndLimit != null ? sndLimit : <span style={{ color: "#9ca3af" }}>—</span>}
@@ -1557,15 +1563,12 @@ function SenderTable({
                               ? (s.ready_to_rejoin
                                   ? <PillBadge text="Ready for outbound" tone="green" />
                                   : <PillBadge text="Warming only" tone="amber" />)
-                              : <PillBadge text={`In ${s.attached_campaigns_count} ${s.attached_campaigns_count === 1 ? "campaign" : "campaigns"}`} tone="green" />}
+                              : <PillBadge text={`In ${s.attached_campaigns_count} campaigns`} tone="green" />}
                         </td>
                         {tab === "active" ? (
                           <>
                             <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                               <div>{fmt(s.emails_sent)}</div>
-                              {/* Confidence indicator: full / provisional /
-                                  insufficient. A 3.0% reply rate on 12 sends
-                                  is noise; the badge tells you so. */}
                               <div style={{ fontSize: 9, color: "#9ca3af", marginTop: 1 }}>
                                 {s.confidence === "full"        ? "full"
                                  : s.confidence === "provisional" ? "provisional"
@@ -1589,9 +1592,6 @@ function SenderTable({
                               fontWeight: 500,
                             }}>
                               {s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
-                            </td>
-                            <td style={{ padding: "8px 10px" }}>
-                              {senderStatusBadge(s, d.mxMissing)}
                             </td>
                           </>
                         ) : (
