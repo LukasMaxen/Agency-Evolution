@@ -476,7 +476,7 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
           ) : allWarming ? (
             <>
               <PillBadge text="All warming" tone="grey" />
-              {w.readyToRejoin > 0 && <PillBadge text={`${w.readyToRejoin} ready to rejoin`} tone="amber" />}
+              {w.readyToRejoin > 0 && <PillBadge text={`${w.readyToRejoin} ready to rejoin`} tone="green" />}
             </>
           ) : (
             <>
@@ -484,8 +484,8 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
               {w.burnedDomains    > 0 && <PillBadge text={`${w.burnedDomains} burned`} tone="red" />}
               {w.criticalDomains  > 0 && <PillBadge text={`${w.criticalDomains} low reply`} tone="red" />}
               {w.lowHealthDomains > 0 && <PillBadge text={`${w.lowHealthDomains} low-health ${w.lowHealthDomains === 1 ? "domain" : "domains"}`} tone="red" />}
-              {w.readyToRejoin    > 0 && <PillBadge text={`${w.readyToRejoin} ready`} tone="amber" />}
-              {redCount === 0 && <PillBadge text="All healthy" tone="green" />}
+              {w.readyToRejoin    > 0 && <PillBadge text={`${w.readyToRejoin} ready to rejoin`} tone="green" />}
+              {redCount === 0 && w.readyToRejoin === 0 && <PillBadge text="All healthy" tone="green" />}
             </>
           )}
         </div>
