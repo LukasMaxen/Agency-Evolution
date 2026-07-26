@@ -1421,6 +1421,27 @@ function SenderTable({
                             </td>
                           </>
                         )}
+                        <td style={{ padding: "8px 10px" }}>
+                          <LimitCell
+                            key={`${s.email}::daily::${localLimits[s.email]?.daily_limit ?? s.daily_limit}`}
+                            value={localLimits[s.email]?.daily_limit ?? s.daily_limit}
+                            senderEmail={s.email}
+                            workspaceSlug={s.workspace_slug}
+                            field="daily_limit"
+                            onSaved={(f, v) => onLimitSaved(s.email, f, v)}
+                          />
+                        </td>
+                        <td style={{ padding: "8px 10px" }}>
+                          <LimitCell
+                            key={`${s.email}::warmup::${localLimits[s.email]?.warmup_daily_limit ?? s.warmup_daily_limit}`}
+                            value={localLimits[s.email]?.warmup_daily_limit ?? s.warmup_daily_limit}
+                            max={50}
+                            senderEmail={s.email}
+                            workspaceSlug={s.workspace_slug}
+                            field="warmup_daily_limit"
+                            onSaved={(f, v) => onLimitSaved(s.email, f, v)}
+                          />
+                        </td>
                         <td style={{ padding: "8px 10px", textAlign: "center" }}>
                           {disconnected ? (() => {
                             const wsInfo = findWorkspace(workspaces, s.workspace_slug);
