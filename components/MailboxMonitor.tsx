@@ -1578,6 +1578,55 @@ function SenderTable({
           </tbody>
         </table>
       </div>
+
+      {/* Bulk update modal */}
+      {bulkModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }} onClick={() => !bulkModal.saving && setBulkModal(null)}>
+          <div style={{
+            background: "#fff", borderRadius: 12, padding: "24px 28px", minWidth: 320,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: "0.5px solid #ede9e3",
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, fontSize: 14, color: "#111827", marginBottom: 6 }}>
+              {bulkModal.type === "daily_limit" ? "Update Daily Limits" : "Update Warmup Limits"}
+            </div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
+              {selectedDomains.size} domain{selectedDomains.size > 1 ? "s" : ""} selected.
+              {bulkModal.type === "warmup_daily_limit" ? " Max 50." : ""}
+            </div>
+            <input
+              type="number"
+              autoFocus
+              value={bulkModal.value}
+              min={0}
+              max={bulkModal.type === "warmup_daily_limit" ? 50 : undefined}
+              onChange={e => setBulkModal(prev => prev ? { ...prev, value: e.target.value } : null)}
+              onKeyDown={e => e.key === "Enter" && saveBulkLimits()}
+              placeholder={bulkModal.type === "daily_limit" ? "e.g. 30" : "e.g. 40"}
+              style={{
+                width: "100%", padding: "8px 10px", borderRadius: 6, border: "0.5px solid #d1d5db",
+                fontSize: 13, fontFamily: "inherit", marginBottom: 16, boxSizing: "border-box",
+              }}
+            />
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => setBulkModal(null)} disabled={bulkModal.saving} style={{
+                fontSize: 12, padding: "6px 14px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit",
+                background: "transparent", color: "#6b7280", border: "0.5px solid #d1d5db",
+              }}>Cancel</button>
+              <button onClick={saveBulkLimits} disabled={bulkModal.saving || bulkModal.value === ""} style={{
+                fontSize: 12, padding: "6px 14px", borderRadius: 6, cursor: bulkModal.saving ? "wait" : "pointer",
+                fontFamily: "inherit", background: "#3730A3", color: "#fff", border: "none", fontWeight: 500,
+                display: "inline-flex", alignItems: "center", gap: 6,
+              }}>
+                {bulkModal.saving && <Loader2 size={12} className="animate-spin" />}
+                Update limits
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
