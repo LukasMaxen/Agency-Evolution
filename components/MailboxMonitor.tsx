@@ -1414,7 +1414,6 @@ export function MailboxMonitor() {
   const [selected, setSelected]   = useState<Workspace | null>(null);
   const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [pulling, setPulling]     = useState(false);
-  const [syncing, setSyncing]     = useState(false);
   const [days, setDays]           = useState<1 | 7 | 14 | 30>(7);
 
   const load = useCallback(async () => {
@@ -1554,38 +1553,6 @@ export function MailboxMonitor() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // One-click "ensure every active sender is in every active campaign".
-  // Same endpoint as the Warmup Monitor's "Sync all to campaigns" — the
-  // guard there skips senders on domains with a peer currently warming,
-  // so paused-on-purpose mailboxes are not re-attached.
-  const syncAllToCampaigns = useCallback(async () => {
-    if (syncing) return;
-    const ok = window.confirm(
-      "This will attach every active, warmup-enabled, connected sender to every active campaign across all workspaces. Warming-only senders are skipped. Continue?"
-    );
-    if (!ok) return;
-    setSyncing(true);
-    setToast({ msg: "Syncing active senders to active campaigns…", type: "success" });
-    try {
-      const res = await fetch("/api/warmup-monitor/sync-campaigns", { method: "POST" });
-      const j = await res.json();
-      if (!res.ok || !j.ok) {
-        setToast({ msg: j.error ?? "Sync failed", type: "error" });
-        return;
-      }
-      const errCount = (j.workspaces ?? []).reduce((acc: number, w: any) => acc + (w.errors?.length ?? 0), 0);
-      setToast({
-        msg: `Synced ${j.total_attached} new attachment(s) across ${j.workspaces?.length ?? 0} workspaces${errCount > 0 ? ` · ${errCount} error(s)` : ""}.`,
-        type: errCount > 0 ? "error" : "success",
-      });
-      load();
-    } catch (err: any) {
-      setToast({ msg: err.message ?? "Network error", type: "error" });
-    } finally {
-      setSyncing(false);
-    }
-  }, [syncing, load]);
-
   const pullFromEB = useCallback(async (slug?: string) => {
     if (pulling) return;
     setPulling(true);
@@ -1660,33 +1627,14 @@ export function MailboxMonitor() {
               </button>
             ))}
           </div>
-          <button onClick={syncAllToCampaigns} disabled={syncing || loading}
-            title="Ensure every active sender is in every active campaign across all workspaces"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#15803D",
-              background: "#EAF3DE", border: "0.5px solid #C0DD97", borderRadius: 7,
-              padding: "6px 12px", cursor: syncing ? "wait" : "pointer", fontFamily: "inherit",
-            }}>
-            {syncing ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-            Sync all to campaigns
-          </button>
           <button onClick={() => pullFromEB(selected?.slug)} disabled={pulling || loading}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#3730A3",
               background: "#EEF2FF", border: "0.5px solid #A5B4FC", borderRadius: 7,
               padding: "6px 12px", cursor: pulling ? "wait" : "pointer", fontFamily: "inherit",
             }}>
-            {pulling ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+            {pulling || loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
             {selected ? "Sync this workspace from EB" : "Sync all from EB"}
-          </button>
-          <button onClick={load} disabled={loading}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151",
-              background: "#ffffff", border: "0.5px solid #d1d5db", borderRadius: 7,
-              padding: "6px 12px", cursor: "pointer", fontFamily: "inherit",
-            }}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
-            Refresh
           </button>
         </div>
       </div>
