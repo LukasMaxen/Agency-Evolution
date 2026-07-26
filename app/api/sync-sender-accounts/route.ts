@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
             [
               slug, sender.email, sender.id, sender.warmup_enabled, sender.status, sender.provider_type,
               sender.daily_limit,
-              sender.tags ? JSON.stringify(sender.tags) : null,
+              sender.tags ?? null,
               sender.eb_created_at,
             ]
           );
