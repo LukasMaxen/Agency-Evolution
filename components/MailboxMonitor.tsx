@@ -746,6 +746,12 @@ function SenderTable({
     }
   }
 
+  async function addAllReady(ready: DomainGroup[]) {
+    for (const d of ready) {
+      await runDomainBatch(d.domain, d.senders, "attach_to_all");
+    }
+  }
+
   const isDisconnected = (s: Sender) => s.conn_status === "Not connected";
   // Warming-only includes senders that are unattached (attached=0) AND
   // senders we've paused via the throttle action (warming_since != null).
@@ -1192,6 +1198,38 @@ function SenderTable({
               }}>
               <Flame size={11} />
               Move all {totalEligible} to warming only
+            </button>
+          </div>
+        );
+      })()}
+
+      {tab === "warming_only" && (() => {
+        const ready = domainGroups.filter(d => {
+          const eligible = d.senders.filter(s => !isDisconnected(s) && ((s.attached_campaigns_count ?? 0) === 0 || s.warming_since != null)).length;
+          return d.avgScore !== null && d.avgScore >= 98 && eligible > 0;
+        });
+        if (ready.length === 0) return null;
+        const totalEligible = ready.reduce((sum, d) =>
+          sum + d.senders.filter(s => !isDisconnected(s) && ((s.attached_campaigns_count ?? 0) === 0 || s.warming_since != null)).length, 0);
+        return (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+            padding: "10px 14px", marginBottom: 8,
+            background: "#F0FDF4", border: "0.5px solid #86EFAC", borderRadius: 8,
+          }}>
+            <span style={{ fontSize: 12, color: "#15803D", fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 14 }}>✓</span>
+              {totalEligible} sender{totalEligible !== 1 ? "s" : ""} are healthy and ready to rejoin outbound
+            </span>
+            <button
+              onClick={() => addAllReady(ready)}
+              style={{
+                fontSize: 11, padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit",
+                background: "#15803D", color: "#fff", border: "none", fontWeight: 500,
+                display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
+              }}>
+              <Plus size={11} />
+              Add all {totalEligible} back to campaigns
             </button>
           </div>
         );
