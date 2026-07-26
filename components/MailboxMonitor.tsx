@@ -1522,7 +1522,7 @@ function SenderTable({
                                 display: "inline-flex", alignItems: "center", gap: 5,
                               }}>
                               {acting === "pause_outbound" ? <Loader2 size={11} className="animate-spin" /> : <Flame size={11} />}
-                              {shouldPause ? "Move to warming only" : "Pause outbound"}
+                              Move to warming only
                             </button>
                           );
                         }
