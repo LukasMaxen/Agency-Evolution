@@ -1043,8 +1043,8 @@ function SenderTable({
                 showHistoricalSignals && d.anyBurnFlagged   ? "#FCEBEB" :
                 d.notWarming > 0                            ? "#FCEBEB" :
                 domCritReply                                ? "#FCEBEB" :
+                domLowHealth        ? "#FCEBEB" :
                 domListIssue        ? "#FEF3C7" :
-                domLowHealth        ? "#FEF3C7" :
                                       "#fafafa";
               return (
                 <Fragment key={d.domain}>
