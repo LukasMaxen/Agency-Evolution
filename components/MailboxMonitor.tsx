@@ -1120,8 +1120,6 @@ function SenderTable({
       <div style={{ background: "#ffffff", border: "0.5px solid #ede9e3", borderRadius: 10, padding: "10px 14px", marginBottom: 10 }}>
         <CapacityBar active={ws.active} scheduledToday={ws.scheduledToday} dailyCapacity={ws.dailyCapacity} />
       </div>
-      <DomainStatusStrip totals={aggregateTotals([ws])} />
-
       <div style={{ display: "flex", gap: 4, marginBottom: 10, borderBottom: "0.5px solid #ede9e3" }}>
         {([
           { key: "active",       label: "Active",       count: ws.active },
@@ -2066,7 +2064,6 @@ export function MailboxMonitor() {
               dailyCapacity={aggregateTotals(data.workspaces).dailyCapacity}
             />
           </div>
-          <DomainStatusStrip totals={aggregateTotals(data.workspaces)} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
             {data.workspaces.map(w => (
               <WorkspaceCard key={w.slug} w={w} onClick={() => setSelected(w)} />
