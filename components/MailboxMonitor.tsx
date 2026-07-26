@@ -640,10 +640,48 @@ function SenderTable({
   const [actionMap, setActionMap] = useState<Record<string, "attach_to_all" | "pause_outbound_and_warmup" | "enable_warmup" | null>>({});
   const [domainAction, setDomainAction] = useState<Record<string, "enable_warmup" | "pause_outbound" | "attach_to_all" | null>>({});
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
-  const [localLimits, setLocalLimits] = useState<Record<string, { daily_limit?: number; warmup_daily_limit?: number }>>({});
+  const [localLimits, setLocalLimits]         = useState<Record<string, { daily_limit?: number; warmup_daily_limit?: number }>>({});
+  const [selectedDomains, setSelectedDomains] = useState<Set<string>>(new Set());
+  const [bulkModal, setBulkModal]             = useState<{ type: "daily_limit" | "warmup_daily_limit"; value: string; saving: boolean } | null>(null);
 
   function onLimitSaved(email: string, field: "daily_limit" | "warmup_daily_limit", v: number) {
     setLocalLimits(prev => ({ ...prev, [email]: { ...prev[email], [field]: v } }));
+  }
+
+  function domainLimitDisplay(senders: Sender[], field: "daily_limit" | "warmup_daily_limit"): string {
+    const vals = senders
+      .map(s => localLimits[s.email]?.[field] ?? s[field])
+      .filter((v): v is number => v != null);
+    if (vals.length === 0) return "—";
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    return min === max ? String(min) : `${min}–${max}`;
+  }
+
+  async function saveBulkLimits() {
+    if (!bulkModal) return;
+    const v = parseInt(bulkModal.value, 10);
+    if (isNaN(v) || v < 0) return;
+    if (bulkModal.type === "warmup_daily_limit" && v > 50) return;
+    setBulkModal(prev => prev ? { ...prev, saving: true } : null);
+    const targetSenders = domainGroups
+      .filter(d => selectedDomains.has(d.domain))
+      .flatMap(d => d.senders);
+    try {
+      await Promise.all(targetSenders.map(s =>
+        fetch("/api/account-monitor/sender-settings", {
+          method:  "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ sender_email: s.email, workspace_slug: s.workspace_slug, [bulkModal.type]: v }),
+        })
+      ));
+      const overlay: Record<string, { daily_limit?: number; warmup_daily_limit?: number }> = {};
+      for (const s of targetSenders) overlay[s.email] = { ...(localLimits[s.email] ?? {}), [bulkModal.type]: v };
+      setLocalLimits(prev => ({ ...prev, ...overlay }));
+      setBulkModal(null);
+    } catch {
+      setBulkModal(prev => prev ? { ...prev, saving: false } : null);
+    }
   }
 
   const isDisconnected = (s: Sender) => s.conn_status === "Not connected";
@@ -1025,7 +1063,7 @@ function SenderTable({
           return (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => { setTab(t.key); setSelectedDomains(new Set()); }}
               style={{
                 fontSize: 12, fontWeight: selected ? 600 : 500,
                 color: selected ? "#111827" : "#6b7280",
