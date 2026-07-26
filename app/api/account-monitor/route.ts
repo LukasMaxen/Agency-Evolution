@@ -102,16 +102,15 @@ function classify(args: {
     };
   }
 
-  // A single burn event is only conclusive once we have enough volume to
-  // judge the rate. Below burnMinSample, require 2+ distinct burns before
-  // calling "burned" — one domain_burn from 25 sends is statistical noise
-  // (freshly-rejoined accounts look burned even though they haven't had a
-  // chance to build a real sample). Two events or adequate volume = real signal.
+  // Burn only fires once we have enough volume to trust the rate. A single
+  // domain_burn from 25 sends is statistical noise on freshly-rejoined accounts.
+  // Require burnMinSample sends — no count-based bypass, because summing
+  // per-sender burn counts across 5 senders inflates the total and would
+  // re-trigger the flag on the same low-volume pattern we're trying to ignore.
   const rawBurnFires = args.rateOnlyBurn
     ? args.burnRate >= BURN_RATE_MAX
     : args.burnCount > 0 || args.burnRate >= BURN_RATE_MAX;
-  const burnFires = rawBurnFires &&
-    (args.sent >= args.burnMinSample || args.burnCount >= 2);
+  const burnFires = rawBurnFires && args.sent >= args.burnMinSample;
 
   // Below the provisional floor and no burn event: truly no signal.
   if (args.sent < args.provisionalFloor && !burnFires) {
