@@ -410,6 +410,79 @@ async function fetchReplyAllAddresses(
   }
 }
 
+/**
+ * Thread-level guards that need the WHOLE conversation, not just the current reply.
+ * Fetches every message EmailBison has for the lead (Sent + Inbox) in one call and
+ * derives two signals:
+ *
+ *  - alreadyReplied: there is a Sent message NEWER than this inbound reply, i.e. a
+ *    human (Romain replying by hand) or a prior send already answered this lead after
+ *    they wrote in. Drafting again would double-reply. Applies to every workspace.
+ *
+ *  - peterInThread: peter@gnmotion.co appears as from/to/cc (or quoted) on ANY message
+ *    in the thread, not only the current inbound reply. Peter is often looped in on OUR
+ *    later Sent reply (Haley, 2026-07-27), so the current-reply-only check missed him.
+ *    Once Peter is in a thread it must never surface again (Kasper, hard rule). Only
+ *    scanned for gn-motion.
+ */
+async function fetchThreadGuards(
+  instanceUrl: string,
+  apiKey: string,
+  leadEmail: string,
+  currentReceivedAt: Date | string | null,
+  scanPeter: boolean
+): Promise<{ alreadyReplied: boolean; peterInThread: boolean }> {
+  const out = { alreadyReplied: false, peterInThread: false };
+  if (!instanceUrl || !apiKey || !leadEmail) return out;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10_000);
+    let res: Response;
+    try {
+      res = await fetch(`${instanceUrl}/api/replies?per_page=50&search=${encodeURIComponent(leadEmail)}`,
+        { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" }, signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) return out;
+    const data = await res.json();
+    const items: any[] = data?.data ?? [];
+    // already-replied: any Sent message strictly newer than this inbound reply (2s
+    // buffer so a near-simultaneous echo of our own send never trips it).
+    const cutoff = currentReceivedAt ? new Date(currentReceivedAt).getTime() : 0;
+    out.alreadyReplied = items.some(it =>
+      it.folder === "Sent" &&
+      new Date(it.date_sent || it.date_received || 0).getTime() > cutoff + 2000
+    );
+    if (scanPeter) {
+      for (const it of items) {
+        const addrs: string[] = [];
+        if (typeof it.from_email_address === "string") addrs.push(it.from_email_address);
+        for (const key of ["to_emails", "to", "cc"]) {
+          for (const p of (it[key] ?? [])) {
+            const a = p?.address ?? p?.email_address;
+            if (typeof a === "string") addrs.push(a);
+          }
+        }
+        let hit = addrs.map(a => a.toLowerCase()).includes("peter@gnmotion.co");
+        // The list payload may omit cc/to — fall back to a per-message detail fetch.
+        if (!hit && it.cc == null && it.to == null && it.to_emails == null && it.id != null) {
+          hit = (await fetchReplyAllAddresses(instanceUrl, apiKey, it.id)).includes("peter@gnmotion.co");
+        }
+        // Later replies quote the "Cc: Peter <peter@gnmotion.co>" header in the body.
+        if (!hit) {
+          const body = `${it.text_body ?? ""}${it.html_body ?? ""}`.toLowerCase();
+          if (body.includes("peter@gnmotion.co")) hit = true;
+        }
+        if (hit) { out.peterInThread = true; break; }
+      }
+    }
+    return out;
+  } catch {
+    return out;
+  }
+}
+
 // ─── Self-critique pass ────────────────────────────────────────────────────────
 
 async function callClaudeCritique(
@@ -1020,6 +1093,33 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     if (hit) {
       await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
         [JSON.stringify({ intent: "no_action", skipped_reason: hit }), replyId]);
+      return;
+    }
+  }
+
+  // ── Pre-filter 1c-3: thread-level guards (already-replied + Peter anywhere) ────
+  // Two things the current-reply-only checks above cannot see, because they need the
+  // full thread from EmailBison:
+  //   1. A human already replied by hand after the lead wrote in (Romain does this for
+  //      GN Motion, looping in Peter) — drafting again double-replies. All workspaces.
+  //   2. Peter (peter@gnmotion.co) entered the thread on a LATER message (e.g. CC'd on
+  //      our own Sent reply), not the current inbound one. Once Peter is in a thread it
+  //      must never surface again. gn-motion only.
+  {
+    const guards = await fetchThreadGuards(
+      workspace.email_bison_instance_url ?? "",
+      workspace.email_bison_api_key ?? "",
+      reply.lead_email ?? "",
+      reply.received_at ?? null,
+      workspaceSlug === "gn-motion",
+    );
+    const skip =
+      guards.peterInThread ? "gn_motion_peter" :
+      guards.alreadyReplied ? "already_replied" :
+      null;
+    if (skip) {
+      await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
+        [JSON.stringify({ intent: "no_action", skipped_reason: skip }), replyId]);
       return;
     }
   }
