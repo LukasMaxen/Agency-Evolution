@@ -12,14 +12,14 @@ calendly_ma: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital
 
 campaign_routing: |
   FIRST, check the campaign name. It decides which track this reply belongs to. The campaign overrides the lead-words routing below.
-  - Campaign name contains "Pathfinder": this is the SELL-SIDE / M&A campaign. The cold email opened by expressing acquisition interest in the lead's brand (e.g. subject "Acquisition interest in [Brand]"). Treat EVERY interested reply on this campaign as an M&A conversation from the first reply. Continue the acquisition conversation, do NOT pitch the 3-phase growth system, do NOT use more_info_template, do NOT send the operating-partner link. Use the M&A link (calendly_ma). Lukas takes these calls himself, so no hand-off line.
+  - Campaign name contains "Pathfinder": this is the BUY-SIDE acquisition campaign (we represent a buyer looking to acquire the lead's brand). The cold email opened by expressing acquisition interest in the lead's brand (e.g. subject "Acquisition interest in [Brand]"). Treat EVERY interested reply on this campaign as an acquisition conversation from the first reply. Continue the acquisition conversation, do NOT pitch the 3-phase growth system, do NOT use more_info_template, do NOT send the operating-partner link. Use the M&A link (calendly_ma). SENDER-AGNOSTIC: never name or assume who is sending or who takes the call, never write a named hand-off line, just share the M&A link warmly and close with {SENDER_EMAIL_SIGNATURE} (see the sender note at the top).
   - Any other campaign (the Growth & Exit Shopify campaigns): use the calendly_routing logic below (growth is the default).
 
 calendly_routing: |
   Two booking links. Only applies to non-Pathfinder (growth) campaigns. For Pathfinder, see campaign_routing above (always M&A).
   - Growth / operating partner interest (the default for almost every reply): send the operating partner link above.
   - Sell-side / M&A / exit conversation (lead explicitly wants to discuss actually selling or exiting their business now, i.e. Phase 3): send the M&A link.
-  - The sender for Acceler8rs is Lukas Maxen, who personally takes the M&A and capital markets calls, so no hand-off line is needed. Do NOT restate that this is the "M&A" or "capital markets" track. The outreach already established that (e.g. subject "Majority buyout opportunity"), so labelling the link that way is redundant and reads as templated. Just open naturally in response to the lead and share the M&A link warmly (e.g. "let's find a time" then the link).
+  - No named hand-off line (the sender varies by account, see the sender note at the top). Do NOT restate that this is the "M&A" or "capital markets" track. The outreach already established that (e.g. subject "Majority buyout opportunity"), so labelling the link that way is redundant and reads as templated. Just open naturally in response to the lead and share the M&A link warmly (e.g. "let's find a time" then the link).
 always_send_calendly: false
 
 reply_rules:
@@ -30,7 +30,7 @@ reply_rules:
 - Lead asks for "more info" / "send me details" / CTA was to send more info: use the approved more_info_template below. Do not send a booking link only — the CTA was to send information.
 - Lead asks for case studies: send https://docs.google.com/document/d/1CYV_nA_4-y_HYqtvCW-DfW9thmgZ2VjqHICJK1ZsQo0/edit?usp=sharing
 - Lead gives specific day/time: post to #manual-replies
-- Lead wants a sell-side / M&A / exit conversation (explicitly wants to discuss actually selling or exiting the business now, Phase 3, not growth): send the M&A link (calendly_ma above), not the operating partner link. Lukas takes those calls himself, so no hand-off line. Do NOT label the link as the "M&A" or "capital markets" track, the outreach already made that clear. Just open naturally and share the link warmly.
+- Lead wants a sell-side / M&A / exit conversation (explicitly wants to discuss actually selling or exiting the business now, Phase 3, not growth): send the M&A link (calendly_ma above), not the operating partner link. Sender-agnostic: no named hand-off line (see the sender note at the top). Do NOT label the link as the "M&A" or "capital markets" track, the outreach already made that clear. Just open naturally and share the link warmly.
 - Pathfinder lead asks for more detail before booking a call: always include the M&A calendar link directly in the reply so they can book without a follow-up exchange. Never make them ask again. See the approved Pathfinder more-detail templates below for tone and structure.
 
 never:
