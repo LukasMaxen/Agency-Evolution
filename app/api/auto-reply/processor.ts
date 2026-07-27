@@ -123,9 +123,15 @@ function splitQuotedReply(text: string): { newText: string; quotedChain: string 
  * {SENDER_EMAIL_SIGNATURE} variable at send time. (Confirmed by Kasper 2026-07-22.)
  */
 function resolveClientSlug(workspaceSlug: string, campaign: string | null | undefined): string {
-  if (workspaceSlug === "acceler8rs" && !/pathfinder/i.test(String(campaign ?? ""))) {
-    return "larsen-digital";
-  }
+  // Pathfinder is ONE campaign (buy-side: we represent a buyer acquiring the lead's
+  // brand) that runs across multiple workspaces/sender accounts (acceler8rs, larsen-
+  // digital, and any future ones). Route by campaign name FIRST so every Pathfinder
+  // reply draws the same Pathfinder playbook regardless of which workspace it sits in.
+  // The sending account (and therefore the signature) differs per campaign, so the
+  // playbook itself is written sender-agnostic and {SENDER_EMAIL_SIGNATURE} resolves it.
+  if (/pathfinder/i.test(String(campaign ?? ""))) return "acceler8rs";
+  // acceler8rs's non-Pathfinder (growth/exit) campaigns represent Larsen Digital.
+  if (workspaceSlug === "acceler8rs") return "larsen-digital";
   return CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
 }
 
