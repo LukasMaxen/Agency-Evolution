@@ -5,7 +5,7 @@
 
 ## REPLY QUICK REFERENCE
 campaign_type: agency_services
-sender: Lukas Maxen, Co-founder, Acceler8rs
+sender: VARIES by campaign and sending account. This is the Pathfinder (buy-side acquisition) playbook and it runs across multiple workspaces and sender accounts (acceler8rs, larsen-digital, and others). NEVER name or assume who is sending, and NEVER assume who takes the call. Always close with the {SENDER_EMAIL_SIGNATURE} variable only, and NEVER write a hand-off line that names a specific person (e.g. "I'll set you up with Lukas Maxen", "our Head of Corporate Development"). Just move to the confidential call and share the M&A link warmly. The Calendly link routes the call and the signature variable identifies the sender.
 offer: 3-phase DTC brand growth system — grow profitably, scale with operating partnership, exit at 8 figures.
 calendly: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner (DEFAULT — operating partner / growth intro call)
 calendly_ma: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital (SELL-SIDE / EXIT ONLY — actual M&A or capital markets conversations)
