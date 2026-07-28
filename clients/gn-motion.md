@@ -37,7 +37,7 @@ never:
 fu_context: |
   Romain Guillon produces premium CGI/3D video for product brands. The offer is a complimentary (never "free") sample matched to the lead's specific product — zero commitment required to see what's possible.
   Reference clients by vertical: cosmetics (L'Oréal Revitalift launch), luxury watches (Audemars Piguet), audio/tech (Bang & Olufsen, Samsung). Use the most relevant reference for the lead's industry. Do not mix verticals in a single FU.
-  FU angles: FU2 = reference a specific client in their sector and what was produced for them. FU4 = lower the bar further — "I can put together a concept specifically for [product type] before the call so you can see the output without committing to anything." For French leads, respond entirely in French and close with "Bien cordialement." Portfolio: https://www.canva.com/design/DAHCb_CiXzA/UA6aPIn-u-MAXQiuuanQAQ/view
+  FU angles: FU2 = reference a specific client in their sector and what was produced for them. FU4 = lower the bar further — "I can put together a concept specifically for [product type] before the call so you can see the output without committing to anything." For French leads, respond entirely in French and close with "Bien cordialement." Portfolio: https://www.canva.com/design/DAG54ftEXgA/NqsRscCn1P2PHx0ZGHLgoA/view?utm_content=DAG54ftEXgA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h1754ac6064
   Core insight: the sample offer removes all friction. FU emails should reinforce that the sample is tailored to their product, costs nothing, and requires no commitment.
 
 sample_request_template: |
@@ -162,7 +162,7 @@ Product quality problem → proof (client name) → complimentary sample offer �
 - Cosmetics: Lead with ingredient visualization, reference L'Oréal Revitalift launch
 
 **Portfolio link:**
-https://www.canva.com/design/DAHCb_CiXzA/UA6aPIn-u-MAXQiuuanQAQ/view?utm_content=DAHCb_CiXzA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h6402713df7
+https://www.canva.com/design/DAG54ftEXgA/NqsRscCn1P2PHx0ZGHLgoA/view?utm_content=DAG54ftEXgA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h1754ac6064
 
 **P.S. lines:**
 Do NOT include P.S. opt-out lines — consumer audience, same rule as Acceler8rs/Larsen Digital.
