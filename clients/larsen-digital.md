@@ -6,6 +6,7 @@
 ## REPLY QUICK REFERENCE
 campaign_type: agency_services
 sender: Nicklas Larsen, Founder, Larsen Digital
+based_in: Denmark (use this if a lead asks where we are/you are based or located. Do not say UK, do not name other countries as bases, do not invent additional markets unless documented elsewhere in this file)
 offer: DTC brand growth and exit planning. M&A team has closed over $1.2B in consumer transactions. Goal: 8-figure exit. 250M+ in Shopify revenue managed.
 calendly: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner (DEFAULT — operating partner / growth intro call)
 calendly_ma: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital (SELL-SIDE / EXIT ONLY — actual M&A or capital markets conversations)
@@ -133,6 +134,7 @@ fu_context: |
 | **Signed date** | [Date] |
 | **Primary contact** | Nicklas Larsen, Founder |
 | **Contact email** | [email] |
+| **Based in** | Denmark |
 | **Slack channel** | `#[channel-name]` |
 | **Calendly link (default)** | https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner |
 | **Calendly link (M&A / sell-side)** | https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital |
