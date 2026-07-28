@@ -15,9 +15,9 @@ always_send_calendly: false
 french_market: true (match language exactly if they reply in French)
 
 reply_rules:
-- Lead asks for our WEBSITE, web page, "your site", "your link", or where they can see us online: send the website (https://gnmotion.co/). If they also asked to see examples/work, include the portfolio link too. A request that mentions "website" or "web page" or "link" always gets gnmotion.co, never only the Canva portfolio.
-- Lead asks to see portfolio/examples/work samples: if the campaign is jewelry, send jewelry_portfolio. For all other campaigns, send portfolio. Always pair with an invite to call for the complimentary sample.
-- LINKS ARE VERBATIM: only ever send the exact website, portfolio, jewelry_portfolio, or calendly URLs listed above, copied character for character. NEVER generate, guess, shorten, or modify a Canva URL or any link. Inventing a portfolio link (a different /design/ id) sends the lead to a dead or wrong page. If you are not certain of the exact link, send the website (https://gnmotion.co/) instead.
+- Lead asks for our website, web page, "your site", "your link", OR to see our work / examples / portfolio: send the WEBSITE (https://gnmotion.co/). It shows the full body of work across every category, so it is the right answer for both "your website" and "let me see examples", and it never risks showing the wrong vertical. Pair it with an invite to a call for the complimentary sample.
+- NEVER send a category-specific Canva portfolio that mismatches the lead. Do NOT send jewelry_portfolio to a cosmetics, electronics, or any non-jewelry lead. Default to the website (gnmotion.co) in all cases. Only use jewelry_portfolio if the lead is specifically a jewelry brand asking to see jewelry work.
+- LINKS ARE VERBATIM: only ever send the exact website / calendly / portfolio URLs listed above, copied character for character. NEVER generate, guess, shorten, or modify a Canva URL or any link — inventing a link (a different /design/ id) sends the lead to a dead or wrong page. If you are not certain of the exact link, send the website (https://gnmotion.co/).
 - Lead asks about pricing: redirect to call. "Best to cover after a quick call so I can understand your specific product."
 - Lead interested in sample: send the sample request template (see below)
 - Lead gives phone number asking to be called: post to #manual-replies (Romain must call)
