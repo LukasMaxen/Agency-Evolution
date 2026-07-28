@@ -24,6 +24,7 @@ import {
 import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
 import { sanitizeJsonControlChars } from "@/lib/utils";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
+import { weSpokeLast } from "@/lib/reply-send-guard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -773,6 +774,15 @@ async function sendToEmailBison(reply: Record<string, any>, body: string, ccEmai
   const { email_bison_instance_url: url, email_bison_api_key: key, email_bison_reply_id: ebId, sender_email_id: senderId } = reply;
   if (!url || !key || !ebId || !senderId) {
     console.error("[auto-reply] Missing EmailBison fields for reply", reply.id);
+    return false;
+  }
+
+  // Hard send-time guard: never reply if WE already spoke last in this thread. Catches
+  // any double-send regardless of how we got here (stale run, re-processed row, late
+  // approval). Follow-ups do not use this path, so their intended "we spoke last" sends
+  // are unaffected. See lib/reply-send-guard.ts (Justin/SuperBonsai, 2026-07-24).
+  if (await weSpokeLast(url, key, reply.lead_email)) {
+    console.warn(`[auto-reply] Blocked reply to ${reply.lead_email}: we already sent the last message in this thread (reply ${reply.id}).`);
     return false;
   }
 

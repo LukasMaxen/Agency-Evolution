@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { normalizeSignature } from "@/lib/slack-approval";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
+import { weSpokeLast } from "@/lib/reply-send-guard";
 
 // Resolve EmailBison merge tags with real lead data
 function resolveMergeTags(body: string, leadName: string, leadEmail: string, leadCompany: string | null, leadTitle: string | null): string {
@@ -105,6 +106,16 @@ export async function POST(req: NextRequest) {
       name: toNameOverride ?? reply.lead_name ?? null,
       email_address: toEmailOverride ?? reply.lead_email,
     }];
+
+    // Hard send-time guard: refuse to send if WE already spoke last in this thread
+    // (a late approval, a re-submit, or a stale action). Prevents double-replying to a
+    // lead we already answered. See lib/reply-send-guard.ts.
+    if (await weSpokeLast(instanceUrl, apiKey, reply.lead_email)) {
+      return NextResponse.json(
+        { error: "Not sent: we already sent the last message in this thread (guard against double-reply).", skipped: "we_spoke_last" },
+        { status: 409 },
+      );
+    }
 
     // Send via EmailBison API
     const ebResponse = await fetch(
