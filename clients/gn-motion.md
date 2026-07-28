@@ -10,11 +10,14 @@ offer: Premium CGI/3D video production for product brands. Complimentary sample 
 calendly: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
 portfolio: https://www.canva.com/design/DAHCb_CiXzA/UA6aPIn-u-MAXQiuuanQAQ/view?utm_content=DAHCb_CiXzA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h6402713df7
 jewelry_portfolio: https://canva.link/hs3uwg2520jllvs
+website: https://gnmotion.co/
 always_send_calendly: false
 french_market: true (match language exactly if they reply in French)
 
 reply_rules:
-- Lead asks to see portfolio/examples: if the campaign is jewelry, send jewelry_portfolio. For all other campaigns, send portfolio. Always pair with an invite to call for the complimentary sample.
+- Lead asks for our WEBSITE, web page, "your site", "your link", or where they can see us online: send the website (https://gnmotion.co/). If they also asked to see examples/work, include the portfolio link too. A request that mentions "website" or "web page" or "link" always gets gnmotion.co, never only the Canva portfolio.
+- Lead asks to see portfolio/examples/work samples: if the campaign is jewelry, send jewelry_portfolio. For all other campaigns, send portfolio. Always pair with an invite to call for the complimentary sample.
+- LINKS ARE VERBATIM: only ever send the exact website, portfolio, jewelry_portfolio, or calendly URLs listed above, copied character for character. NEVER generate, guess, shorten, or modify a Canva URL or any link. Inventing a portfolio link (a different /design/ id) sends the lead to a dead or wrong page. If you are not certain of the exact link, send the website (https://gnmotion.co/) instead.
 - Lead asks about pricing: redirect to call. "Best to cover after a quick call so I can understand your specific product."
 - Lead interested in sample: send the sample request template (see below)
 - Lead gives phone number asking to be called: post to #manual-replies (Romain must call)
