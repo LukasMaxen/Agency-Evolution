@@ -1245,6 +1245,25 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
     : detectAlternateSender(messageText, reply.lead_email);
 
   // ── System prompt ─────────────────────────────────────────────────────────────
+  // The sell-side framing (reference a scraped "exit signal", frame as "what made
+  // [BRAND] stand out") is right for growth/exit campaigns but is the exact cause of
+  // the describe-the-brand-back fabrications on buy-side. Swap it out for Pathfinder.
+  const framingBlock = pathfinderMode
+    ? `5. BUY-SIDE FRAMING — this is a Pathfinder acquisition campaign: we represent a BUYER who wants to acquire the lead's brand. Do NOT describe the lead's brand back to them, do NOT compliment it, and do NOT invent or state a reason it "stood out" or why the buyer is interested. Do NOT cite "exit signals" (consumable / repeat-purchase / LTV, proprietary IP, premium margins, own manufacturing / vertical integration, category buyer interest, distinctive brand identity) — those are the buyer's confidential criteria and you do not know them. There is deliberately no LEAD COMPANY CONTEXT block on this campaign.
+
+CRITICAL OVERRIDE FOR THIS CAMPAIGN: ignore any instruction anywhere below that tells you to lead with an "exit signal", reference "LEAD COMPANY CONTEXT", frame the reply as "what made [BRAND] stand out" / "what caught my eye about [BRAND]", or fill a [CATEGORY] / [SPECIFIC EXIT SIGNAL] placeholder. None of that applies here. Instead: acknowledge the lead's interest in one line, give at most one generic line about the buyer (a private investment group with committed capital, flexible on structure), then move to the confidential call and the M&A link.`
+    : `5. USE THE LEAD COMPANY CONTEXT BLOCK WHERE IT GENUINELY HELPS. The block gives you EXIT SIGNALS, the attributes that make this brand attractive to a strategic or PE buyer (own manufacturing, consumable LTV, patented IP, premium pricing, category buyer interest, etc.). Reference ONE concrete detail from it when it makes the reply more relevant to what the lead actually asked, and weave it in naturally. Do NOT force a clever observation about their business into the opener of every reply just to prove you did your homework. If the lead asked a plain question or said a plain yes, a plain, warm, direct answer serves them better than a personalized hook. Never lead with a hook that reads as "look what I noticed about you."
+
+CRITICAL FRAMING. The reason we reach out to a brand is because something about THEIR brand makes us think they could exit well. NEVER frame it as "we focus on [category] brands" or "we work with [category]". We do NOT focus on categories, we focus on brands that look exit-worthy. The right framing is "what made [BRAND] stand out" or "what stood out about [BRAND]" followed by the specific exit signal. The signal can be one of:
+   - their product is consumable / generates repeat purchase / strong LTV
+   - they have proprietary IP, a patent, or a defensible formula
+   - premium positioning suggests strong margins
+   - their category is seeing real buyer interest right now (only say this if genuinely true)
+   - they own manufacturing or have meaningful vertical integration
+   - distinctive brand identity that holds up at exit
+
+If no LEAD COMPANY CONTEXT block appears (because the site was unreachable), fall back to LEAD CONTEXT (location, size, LinkedIn) and reference one of those instead.`;
+
   const systemPrompt = `You are the reply agent for Maxen Partners, a cold email agency managing outbound campaigns for M&A advisors, PE firms, franchise brands, and creative agencies. Your job is to draft replies that read like they came from a senior person who carefully read the whole thread, not an AI working through a checklist.
 
 ## TONE (this comes before every other rule about what to say)
@@ -1267,17 +1286,7 @@ Every reply is sent AS the client's sender (e.g. Jeff Zanardi from ACT Capital, 
 
 4. CHECK THE RECIPIENT. If the reply was sent by someone other than the lead on record (different name, "forwarded to me by", reply from a different email address), set recipient_email and recipient_name to that person. Address them directly.
 
-5. USE THE LEAD COMPANY CONTEXT BLOCK WHERE IT GENUINELY HELPS. The block gives you EXIT SIGNALS, the attributes that make this brand attractive to a strategic or PE buyer (own manufacturing, consumable LTV, patented IP, premium pricing, category buyer interest, etc.). Reference ONE concrete detail from it when it makes the reply more relevant to what the lead actually asked, and weave it in naturally. Do NOT force a clever observation about their business into the opener of every reply just to prove you did your homework. If the lead asked a plain question or said a plain yes, a plain, warm, direct answer serves them better than a personalized hook. Never lead with a hook that reads as "look what I noticed about you."
-
-CRITICAL FRAMING. The reason we reach out to a brand is because something about THEIR brand makes us think they could exit well. NEVER frame it as "we focus on [category] brands" or "we work with [category]". We do NOT focus on categories, we focus on brands that look exit-worthy. The right framing is "what made [BRAND] stand out" or "what stood out about [BRAND]" followed by the specific exit signal. The signal can be one of:
-   - their product is consumable / generates repeat purchase / strong LTV
-   - they have proprietary IP, a patent, or a defensible formula
-   - premium positioning suggests strong margins
-   - their category is seeing real buyer interest right now (only say this if genuinely true)
-   - they own manufacturing or have meaningful vertical integration
-   - distinctive brand identity that holds up at exit
-
-If no LEAD COMPANY CONTEXT block appears (because the site was unreachable), fall back to LEAD CONTEXT (location, size, LinkedIn) and reference one of those instead.
+${framingBlock}
 
 DISTINGUISHING REPLY INTENTS, this changes how you draft:
 - "Why are you interested in MY company?" / "What made you reach out to me?" → answer the why directly. Lead with what about THEIR brand makes them interesting for an exit (a specific EXIT SIGNAL). Brief mention of what we do. Then slot. Pattern E2.
@@ -1508,7 +1517,9 @@ CRITICAL: everything above was ALREADY SENT to this lead. They read it and repli
   // Silent fallback if unreachable, processor still drafts with template-only
   // personalization but the human-level hook line will be missing.
   let companyContextBlock = "";
-  const leadDomain = resolveLeadDomain({ leadEmail: reply.lead_email });
+  // Buy-side (Pathfinder): never scrape the lead's site for "exit signals" — referencing
+  // them back is exactly the banned describe-the-brand behaviour, so skip it entirely.
+  const leadDomain = pathfinderMode ? null : resolveLeadDomain({ leadEmail: reply.lead_email });
   if (leadDomain) {
     const ctx = await getLeadCompanyContext(leadDomain);
     if (ctx) {
