@@ -24,7 +24,7 @@ import {
 import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
 import { sanitizeJsonControlChars } from "@/lib/utils";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
-import { weSpokeLast } from "@/lib/reply-send-guard";
+import { weSpokeLast, alreadySentBody } from "@/lib/reply-send-guard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -777,12 +777,17 @@ async function sendToEmailBison(reply: Record<string, any>, body: string, ccEmai
     return false;
   }
 
-  // Hard send-time guard: never reply if WE already spoke last in this thread. Catches
-  // any double-send regardless of how we got here (stale run, re-processed row, late
-  // approval). Follow-ups do not use this path, so their intended "we spoke last" sends
-  // are unaffected. See lib/reply-send-guard.ts (Justin/SuperBonsai, 2026-07-24).
+  // Hard send-time guards: never reply if WE already spoke last in this thread, and never
+  // send a message identical to one we already sent this lead. Together they block any
+  // double-send regardless of how we got here (stale run, re-processed row, late
+  // approval). Follow-ups do not use this path, so their intended sends are unaffected.
+  // See lib/reply-send-guard.ts (Justin/SuperBonsai, 2026-07-24).
   if (await weSpokeLast(url, key, reply.lead_email)) {
     console.warn(`[auto-reply] Blocked reply to ${reply.lead_email}: we already sent the last message in this thread (reply ${reply.id}).`);
+    return false;
+  }
+  if (await alreadySentBody(reply.lead_email, body)) {
+    console.warn(`[auto-reply] Blocked reply to ${reply.lead_email}: identical message already sent to this lead (reply ${reply.id}).`);
     return false;
   }
 

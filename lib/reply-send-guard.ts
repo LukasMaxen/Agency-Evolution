@@ -1,17 +1,51 @@
-// Shared "did we speak last?" send-time guard.
+// Shared send-time guards against sending a reply we should not send.
 //
-// Returns true when the most recent message in the lead's EmailBison thread is one of
-// OUR sent replies (Sent folder), i.e. we already had the last word. Every REPLY path
-// must check this immediately before sending so we can never answer an email we already
-// replied to — the double-send that hit Justin/SuperBonsai (2026-07-24), where a stale
-// catch-up run re-sent a pitch to a lead who had already booked.
-//
-// Applied on: the auto-reply processor (sendToEmailBison), the Slack-approve / dashboard
-// proxy (/api/send-reply), and the manual catch-up tooling. NOT applied on the follow-up
+// TWO complementary checks, both applied immediately before every REPLY send (the
+// auto-reply processor's sendToEmailBison, the Slack-approve / dashboard proxy in
+// /api/send-reply, and the manual catch-up tooling). NEITHER is applied on the follow-up
 // path — follow-ups are SUPPOSED to send when we spoke last and the lead went quiet.
 //
-// Fails OPEN (returns false) on any error, so a transient EmailBison/network problem
-// never blocks a legitimate first reply.
+//  1. weSpokeLast — the most recent message in the thread is already ours (Sent). Blocks
+//     replying when we had the last word (e.g. a human replied by hand first).
+//
+//  2. alreadySentBody — we have already sent this exact message to this lead. This is the
+//     one that actually catches the Justin/SuperBonsai incident (2026-07-24): a stale
+//     catch-up run re-sent an identical pitch to a lead who had since replied "just
+//     booked", so the LEAD had spoken last (weSpokeLast would not fire) but the body was
+//     a duplicate of one already sent.
+//
+// Both fail OPEN (return false) on any error, so a transient EmailBison/DB/network
+// problem never blocks a legitimate first reply.
+
+import pool from "@/lib/db";
+
+/** Normalize a reply body so duplicate detection ignores signature/whitespace/case. */
+export function normalizeForDedup(body: string): string {
+  return (body || "")
+    .replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "")
+    .replace(/https?:\/\/\S+/g, "") // ignore link tracking-param differences
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * True if an identical reply body has already been sent to this lead in the last 30 days.
+ * Exact normalized match only, so it can never block a genuinely different reply.
+ */
+export async function alreadySentBody(leadEmail: string, body: string): Promise<boolean> {
+  const target = normalizeForDedup(body);
+  if (!leadEmail || target.length < 15) return false;
+  try {
+    const rows = await pool.query(
+      `SELECT body FROM sent_emails WHERE lead_email = $1 AND sent_at > NOW() - INTERVAL '30 days' ORDER BY sent_at DESC LIMIT 25`,
+      [leadEmail],
+    );
+    return rows.rows.some((r: { body: string }) => normalizeForDedup(r.body) === target);
+  } catch {
+    return false;
+  }
+}
 
 export async function weSpokeLast(
   instanceUrl: string,
