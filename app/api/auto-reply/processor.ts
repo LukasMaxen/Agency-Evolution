@@ -1148,6 +1148,12 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // acceler8rs is split by campaign: Pathfinder (buy-side) keeps its own file, every
   // other acceler8rs campaign represents Larsen Digital. See resolveClientSlug.
   const fileSlug = resolveClientSlug(workspaceSlug, reply.campaign);
+  // Pathfinder (buy-side) resolves to the acceler8rs playbook. In that mode we suppress
+  // the sell-side "what made [BRAND] stand out" framing and the website-scraped exit
+  // signals, which otherwise push the drafter to describe the lead's brand back and
+  // invent why it is attractive — banned on buy-side (the buyer's criteria are
+  // confidential and unknown). See framingBlock and companyContextBlock below.
+  const pathfinderMode = fileSlug === "acceler8rs";
   const clientFileRaw = readFile(path.join(process.cwd(), "clients", `${fileSlug}.md`));
   if (!clientFileRaw) {
     console.error("[auto-reply] Client file not found:", workspaceSlug);
