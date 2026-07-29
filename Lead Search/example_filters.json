@@ -1,0 +1,19 @@
+{
+  "person_titles": ["VP of Operations", "Director of Operations", "Head of Operations"],
+  "person_seniorities": ["vp", "director"],
+  "organization_num_employees_ranges": ["50,500"],
+  "organization_locations": ["United States"],
+  "q_organization_keyword_tags": ["logistics", "supply chain", "freight", "trucking"],
+
+  "relevance": {
+    "target_titles": ["VP of Operations", "Director of Operations", "Head of Operations", "COO"],
+    "target_keywords": ["logistics", "supply chain", "freight", "trucking"],
+    "exclude_titles": ["Assistant", "Intern", "Coordinator"],
+    "exclude_keywords": ["staffing", "recruiting agency"],
+    "threshold": 70
+  },
+
+  "max_results": 500,
+  "enrich_email": true,
+  "enrich_phone": false
+}
