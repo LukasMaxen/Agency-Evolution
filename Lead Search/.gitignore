@@ -1,0 +1,7 @@
+.env
+/output/
+seen_leads.db
+credits_log.json
+__pycache__/
+*.pyc
+venv/
