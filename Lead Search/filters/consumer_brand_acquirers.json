@@ -5,7 +5,6 @@
     "Director of Corporate Development",
     "Head of Corporate Development",
     "SVP Corporate Development",
-    "Chief Development Officer",
     "VP Mergers and Acquisitions",
     "Director of Mergers and Acquisitions",
     "Head of M&A",
@@ -44,8 +43,7 @@
       "Corporate Development",
       "Mergers and Acquisitions",
       "M&A",
-      "Strategy and Corporate Development",
-      "Chief Development Officer"
+      "Strategy and Corporate Development"
     ],
     "target_keywords": [
       "consumer products",
@@ -66,7 +64,20 @@
       "investment management",
       "asset management",
       "family office",
-      "search fund"
+      "search fund",
+      "deloitte",
+      "pwc",
+      "pricewaterhousecoopers",
+      "ernst & young",
+      "kpmg",
+      "accenture",
+      "mckinsey",
+      "bain & company",
+      "boston consulting",
+      "sgs sa",
+      "tüv",
+      "tuv rheinland",
+      " llp"
     ],
     "threshold": 70
   },
