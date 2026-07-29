@@ -10,6 +10,20 @@
       "COO",
       "Chief Operating Officer",
       "Operations Manager"
+    ],
+    "corp_dev_ma": [
+      "Corporate Development",
+      "VP of Corporate Development",
+      "Director of Corporate Development",
+      "Head of Corporate Development",
+      "SVP Corporate Development",
+      "Chief Development Officer",
+      "VP Mergers and Acquisitions",
+      "Director of Mergers and Acquisitions",
+      "Head of M&A",
+      "VP Strategy and Corporate Development",
+      "Director of Strategy and Corporate Development",
+      "Manager, Corporate Development"
     ]
   },
 
@@ -22,11 +36,13 @@
   "industry_keywords": {
     "logistics": ["logistics", "supply chain", "freight", "trucking", "3pl", "transportation"],
     "healthcare": ["healthcare", "medical", "hospital", "clinic", "health system"],
-    "manufacturing": ["manufacturing", "industrial", "factory", "production"]
+    "manufacturing": ["manufacturing", "industrial", "factory", "production"],
+    "consumer_products": ["consumer products", "consumer goods", "cpg", "consumer brands", "branded consumer products", "food and beverage", "personal care", "household products"]
   },
 
   "exclusion_presets": {
-    "staffing_agencies": ["staffing", "recruiting", "recruitment agency", "talent acquisition agency", "hr outsourcing"]
+    "staffing_agencies": ["staffing", "recruiting", "recruitment agency", "talent acquisition agency", "hr outsourcing"],
+    "investment_firms": ["private equity", "venture capital", "capital partners", "holding company", "holdings llc", "investment management", "asset management", "family office", "search fund"]
   },
 
   "employee_range_presets": {
