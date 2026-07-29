@@ -35,15 +35,9 @@ def enrich_records(client: ApolloClient, records: list, reveal_email=True, revea
 
     for i in range(0, len(records), BATCH_SIZE):
         batch = records[i : i + BATCH_SIZE]
-        details = [
-            {
-                "first_name": r.get("first_name"),
-                "last_name": r.get("last_name"),
-                "organization_name": r.get("company"),
-                "linkedin_url": r.get("linkedin_url"),
-            }
-            for r in batch
-        ]
+        # Match by Apollo's own person id (captured during the free search step)
+        # rather than name/org, since the search response obfuscates last names.
+        details = [{"id": r.get("apollo_id")} for r in batch]
         payload = {
             "details": details,
             "reveal_personal_emails": reveal_email,
@@ -54,6 +48,16 @@ def enrich_records(client: ApolloClient, records: list, reveal_email=True, revea
 
         for orig, match in zip(batch, matches):
             match = match or {}
+            org = match.get("organization") or {}
+            # Fill in fields the free search step only had as has_X booleans for.
+            orig["location"] = orig.get("location") or ", ".join(
+                filter(None, [match.get("city"), match.get("state"), match.get("country")])
+            )
+            orig["linkedin_url"] = orig.get("linkedin_url") or match.get("linkedin_url")
+            orig["company_domain"] = orig.get("company_domain") or org.get("primary_domain")
+            orig["employee_count"] = orig.get("employee_count") or org.get("estimated_num_employees")
+            orig["industry"] = orig.get("industry") or org.get("industry")
+
             if match.get("email"):
                 orig["email"] = match["email"]
                 email_count += 1
