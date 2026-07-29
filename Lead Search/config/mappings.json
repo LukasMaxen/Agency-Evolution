@@ -43,7 +43,19 @@
   "exclusion_presets": {
     "staffing_agencies": ["staffing", "recruiting", "recruitment agency", "talent acquisition agency", "hr outsourcing"],
     "investment_firms": ["private equity", "venture capital", "capital partners", "holding company", "holdings llc", "investment management", "asset management", "family office", "search fund"],
-    "professional_services": ["deloitte", "pwc", "pricewaterhousecoopers", "ernst & young", " ey ", "kpmg", "accenture", "mckinsey", "bain & company", "bcg", "boston consulting", "sgs sa", "tüv", "tuv rheinland", "law firm", "llp"]
+    "professional_services": ["deloitte", "pwc", "pricewaterhousecoopers", "ernst & young", " ey ", "kpmg", "accenture", "mckinsey", "bain & company", "bcg", "boston consulting", "sgs sa", "tüv", "tuv rheinland", "law firm", "llp", "west monroe", "wilson sonsini", "clifford chance", "alvarez & marsal"],
+    "known_non_cpg_companies": {
+      "_note": "High-confidence non-fits observed in real Apollo results for corp-dev/M&A title searches (banks, tech, telecom, consultancies, logistics, industrial B2B, testing labs, energy, hospitality, investment firms). Grows over time as new false positives are confirmed. Small/unfamiliar companies are deliberately left out rather than guessed at.",
+      "companies": [
+        "microsoft", "google", "at&t", "telefónica", "sunrise", "swiss post", "viatel technology group", "truecaller", "spotify", "amd", " hp ", "sap", "epam systems", "nagarro", "qad", "pdi technologies", "tao digital solutions", "citiustech", "stord", "neura robotics", "zebec network", "globaldata plc", "spate", "nomios group", "zebra technologies", "adevinta", " olx", "cargurus", "delivery hero", "zalando", "worldline", "payroc", "mypos", "block", "mastercard", "synchrony", "american express", "experian",
+        "deutsche bank", "bank pekao", "bancobpm", "unicaja", "groupe bpce", "aon", "assurant", "cowen inc", "mutares se", "aurelius", "ibla capital", "norwest", "act capital advisors", "dc advisory", "trium corporate finance",
+        "kuehne+nagel", "dfds", "ait worldwide logistics", "pls logistics", "rhenus logistics", "warehouse services, inc", "3pl finder", "dksh",
+        "sgs", "tentamus group", "accredited labs", "certania", "ellab", "mettler-toledo",
+        "basf", " dow ", "lanxess", "evonik", "elementis global", "eurochem", "ed&f man commodities", "solenis", "novonesis", "arxada", "schott", "o-i glass", "sealed air", "trillium flow", "vessco water", "almar water solutions", "bürkert", "armstrong international", "ipco", "tata steel", "ufp industries", "magnera corporation", "leggett & platt", "continental ag", "jabil", "medmix", "zenises", "linde",
+        "octopus energy", "totalenergies", "plenitude", " ewz ",
+        "accor", "b&b hotels", "rcn vakantieparken", "xanterra travel", "arbio", "aptive environmental", "classic collision", "kaizen collision", "restoration builders", "vector security", "colosseum dental", "dental beauty partners", "geers", "amedisys", "creative solutions in healthcare", "multipharma", "24 seven talent", "hawke media", "rx global", "event inc group", "hubert burda media", "sodexo", "loomis"
+      ]
+    }
   },
 
   "employee_range_presets": {
