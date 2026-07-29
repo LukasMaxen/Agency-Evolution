@@ -1,0 +1,38 @@
+{
+  "_comment": "Editable memory for the NL-to-filter translation. Add to these lists as you tell Claude Code 'remember that X means Y'. Apollo seniority values: owner, founder, c_suite, partner, vp, head, director, manager, senior, entry, intern.",
+
+  "title_synonyms": {
+    "ops_leaders": [
+      "VP of Operations",
+      "Vice President of Operations",
+      "Director of Operations",
+      "Head of Operations",
+      "COO",
+      "Chief Operating Officer",
+      "Operations Manager"
+    ]
+  },
+
+  "seniority_presets": {
+    "vp_director": ["vp", "director"],
+    "c_suite_only": ["c_suite", "owner", "founder"],
+    "manager_and_up": ["manager", "director", "vp", "c_suite", "owner", "founder"]
+  },
+
+  "industry_keywords": {
+    "logistics": ["logistics", "supply chain", "freight", "trucking", "3pl", "transportation"],
+    "healthcare": ["healthcare", "medical", "hospital", "clinic", "health system"],
+    "manufacturing": ["manufacturing", "industrial", "factory", "production"]
+  },
+
+  "exclusion_presets": {
+    "staffing_agencies": ["staffing", "recruiting", "recruitment agency", "talent acquisition agency", "hr outsourcing"]
+  },
+
+  "employee_range_presets": {
+    "small": "1,50",
+    "mid": "50,500",
+    "large": "500,5000",
+    "enterprise": "5000,1000000"
+  }
+}
