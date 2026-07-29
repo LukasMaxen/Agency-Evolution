@@ -50,5 +50,10 @@
     "mid": "50,500",
     "large": "500,5000",
     "enterprise": "5000,1000000"
+  },
+
+  "location_presets": {
+    "us": ["United States"],
+    "us_eu": ["United States", "United Kingdom", "Germany", "France", "Netherlands", "Spain", "Italy", "Belgium", "Ireland", "Sweden", "Poland", "Denmark", "Switzerland"]
   }
 }

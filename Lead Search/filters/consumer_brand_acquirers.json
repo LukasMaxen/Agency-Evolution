@@ -1,0 +1,77 @@
+{
+  "person_titles": [
+    "Corporate Development",
+    "VP of Corporate Development",
+    "Director of Corporate Development",
+    "Head of Corporate Development",
+    "SVP Corporate Development",
+    "Chief Development Officer",
+    "VP Mergers and Acquisitions",
+    "Director of Mergers and Acquisitions",
+    "Head of M&A",
+    "VP Strategy and Corporate Development",
+    "Director of Strategy and Corporate Development",
+    "Manager, Corporate Development"
+  ],
+  "person_seniorities": ["manager", "director", "vp", "head", "c_suite"],
+  "organization_locations": [
+    "United States",
+    "United Kingdom",
+    "Germany",
+    "France",
+    "Netherlands",
+    "Spain",
+    "Italy",
+    "Belgium",
+    "Ireland",
+    "Sweden",
+    "Poland",
+    "Denmark",
+    "Switzerland"
+  ],
+  "q_organization_keyword_tags": [
+    "consumer products",
+    "consumer goods",
+    "cpg",
+    "consumer brands",
+    "food and beverage",
+    "personal care",
+    "household products"
+  ],
+
+  "relevance": {
+    "target_titles": [
+      "Corporate Development",
+      "Mergers and Acquisitions",
+      "M&A",
+      "Strategy and Corporate Development",
+      "Chief Development Officer"
+    ],
+    "target_keywords": [
+      "consumer products",
+      "consumer goods",
+      "cpg",
+      "consumer brands",
+      "food and beverage",
+      "personal care",
+      "household products"
+    ],
+    "exclude_titles": ["Business Development Representative", "Sales Development", "Intern", "Analyst Intern"],
+    "exclude_keywords": [
+      "private equity",
+      "venture capital",
+      "capital partners",
+      "holding company",
+      "holdings llc",
+      "investment management",
+      "asset management",
+      "family office",
+      "search fund"
+    ],
+    "threshold": 70
+  },
+
+  "max_results": 500,
+  "enrich_email": true,
+  "enrich_phone": false
+}
