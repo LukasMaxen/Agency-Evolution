@@ -94,7 +94,8 @@ def run_pipeline(
     elif dry_run:
         print("Dry run: skipping enrichment, zero credits spent.")
 
-    mark_seen(new_records)
+    if not dry_run:
+        mark_seen(new_records)
 
     out_df = pd.DataFrame(new_records)
     cols = [c for c in OUTPUT_COLUMNS if c in out_df.columns]
