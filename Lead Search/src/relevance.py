@@ -50,16 +50,16 @@ def score_people(records: list, relevance_cfg: dict) -> pd.DataFrame:
         if any(ek in blob for ek in exclude_keywords):
             return -1.0
 
-        t_score = _title_score(title, target_titles)
-        k_score = _keyword_score(f"{industry} {company_name}", target_keywords)
-
-        if target_titles and target_keywords:
-            return round(t_score * 0.7 + k_score * 0.3, 1)
-        if target_titles:
-            return round(t_score, 1)
-        if target_keywords:
-            return round(k_score, 1)
-        return 50.0
+        # Apollo's free search only returns real industry/description text after
+        # enrichment (pre-enrichment it's just an unrevealed has_industry flag),
+        # so keyword match is near-always a miss for reasons unrelated to fit.
+        # Title is the one rich field we actually get back, so it drives the
+        # score; a keyword hit (when we do have text, e.g. it's in the company
+        # name) is a bonus, never a penalty for the field being unavailable.
+        t_score = _title_score(title, target_titles) if target_titles else 50.0
+        k_score = _keyword_score(f"{industry} {company_name}", target_keywords) if target_keywords else 0.0
+        score = t_score + (k_score * 0.15 if k_score > 0 else 0.0)
+        return round(min(100.0, score), 1)
 
     df["relevance_score"] = df.apply(row_score, axis=1)
     df = df[df["relevance_score"] >= 0].reset_index(drop=True)
