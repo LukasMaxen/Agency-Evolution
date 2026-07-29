@@ -87,14 +87,18 @@ def run_pipeline(
     new_records = filter_new(records)
     print(f"After dedupe against seen_leads.db: {len(new_records)} (dropped {len(records) - len(new_records)} already seen)")
 
+    will_enrich = do_enrich and not dry_run
     credit_summary = {"emails_revealed": 0, "phones_revealed": 0}
-    if do_enrich and not dry_run and new_records:
+    if will_enrich and new_records:
         print(f"Enriching {len(new_records)} leads (spends Apollo credits)...")
         new_records, credit_summary = enrich_records(client, new_records, enrich_email, enrich_phone)
-    elif dry_run:
-        print("Dry run: skipping enrichment, zero credits spent.")
+    else:
+        print("Skipping enrichment (--no-enrich/--dry-run), zero credits spent.")
 
-    if not dry_run:
+    # Only mark leads as seen once they've actually been enriched — otherwise a
+    # dry/no-enrich run would poison the dedupe log and a later real run would
+    # silently skip leads that were never actually enriched.
+    if will_enrich:
         mark_seen(new_records)
 
     out_df = pd.DataFrame(new_records)
