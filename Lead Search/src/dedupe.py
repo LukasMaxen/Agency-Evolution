@@ -21,6 +21,12 @@ def _connect():
 
 
 def make_key(record: dict) -> str:
+    """apollo_id is Apollo's own stable person id, present even on
+    un-enriched search results, so it's the primary key. linkedin_url and
+    domain+name are only populated post-enrichment and serve as fallback."""
+    apollo_id = (record.get("apollo_id") or "").strip() if record.get("apollo_id") else None
+    if apollo_id:
+        return f"id:{apollo_id}"
     linkedin = (record.get("linkedin_url") or "").strip().lower()
     if linkedin:
         return f"li:{linkedin}"

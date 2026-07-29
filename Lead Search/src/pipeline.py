@@ -28,11 +28,19 @@ OUTPUT_COLUMNS = [
 
 
 def normalize_record(p: dict) -> dict:
+    """Apollo's free search endpoint returns obfuscated/partial data (e.g. last
+    name masked as 'Ho***e', location/industry/domain/employee_count/linkedin_url
+    only as has_X booleans, not real values). Those fields fill in for real only
+    on rows that get enriched. apollo_id is stable and present pre-enrichment,
+    so it is the dedupe key of record."""
     org = p.get("organization") or {}
+    first = p.get("first_name") or ""
+    last = p.get("last_name_obfuscated") or p.get("last_name") or ""
     return {
-        "first_name": p.get("first_name"),
-        "last_name": p.get("last_name"),
-        "name": p.get("name"),
+        "apollo_id": p.get("id"),
+        "first_name": first,
+        "last_name": last,
+        "name": f"{first} {last}".strip(),
         "title": p.get("title"),
         "company": org.get("name"),
         "company_domain": org.get("primary_domain"),
