@@ -1,6 +1,8 @@
 // app/api/webhook/calendly/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
+import { trackMeeting } from "@/lib/meetings-tracker";
+import { isInternalContact } from "@/lib/internal-blocklist";
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,6 +38,13 @@ export async function POST(req: NextRequest) {
       );
       const replyId      = replyResult.rows[0]?.id ?? null;
       const workspaceSlug = replyResult.rows[0]?.workspace_slug ?? "unknown";
+
+      // ── Blocklist: never track our own people (Nicklas/Lukas) as booked meetings
+      //    in the Larsen workspaces. Skip the whole booking.
+      if (isInternalContact(workspaceSlug, leadEmail, leadName)) {
+        console.log(`[calendly webhook] internal contact ${leadEmail} in ${workspaceSlug} — blocklisted, skipping`);
+        return NextResponse.json({ ok: true, event: "invitee.created", note: "internal_blocklisted" });
+      }
 
       // ── Dedup: check for existing Calendly event (exact URI match) ─────────
       const exactDup = await pool.query(
@@ -121,6 +130,19 @@ export async function POST(req: NextRequest) {
          WHERE lead_email = $1 AND meeting_booked = FALSE`,
         [leadEmail]
       );
+
+      // ── Airtable + Slack (replaces the Make "Calendly -> Slack -> AirTable" scenario)
+      await trackMeeting({
+        workspaceSlug,
+        leadEmail,
+        leadName,
+        meetingStartISO: scheduledAt.toISOString(),
+        bookedAtISO: new Date(bookedAt).toISOString(),
+        prettyTime: scheduledAt.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC",
+        eventTypeName: eventName,
+        phone,
+        website,
+      });
 
       return NextResponse.json({ ok: true, event: "invitee.created", callId, isReschedule });
     }
