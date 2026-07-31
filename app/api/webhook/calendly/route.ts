@@ -8,6 +8,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const eventType = body.event ?? "";
+    // Optional workspace override from the registered webhook URL (?ws=<slug>). Used for
+    // clients whose leads are not in the reply desk (e.g. Sonaro), so the workspace comes
+    // from the Calendly account we registered rather than an email->replies match.
+    const wsOverride = req.nextUrl.searchParams.get("ws");
 
     console.log(`[calendly webhook] event: ${eventType}`);
 
@@ -37,7 +41,7 @@ export async function POST(req: NextRequest) {
         [leadEmail]
       );
       const replyId      = replyResult.rows[0]?.id ?? null;
-      const workspaceSlug = replyResult.rows[0]?.workspace_slug ?? "unknown";
+      const workspaceSlug = wsOverride ?? (replyResult.rows[0]?.workspace_slug ?? "unknown");
 
       // ── Blocklist: never track our own people (Nicklas/Lukas) as booked meetings
       //    in the Larsen workspaces. Skip the whole booking.

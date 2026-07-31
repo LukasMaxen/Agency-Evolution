@@ -47,6 +47,11 @@ export interface MeetingConfig {
   };
   /** Optional record field names to surface in the Slack message (from the found record). */
   slackExtra?: { website?: string; revenue?: string };
+  /**
+   * Optional. Only track bookings whose event-type name contains this (case-insensitive).
+   * Used when the client's Calendly org hosts other event types we should ignore.
+   */
+  eventNameContains?: string;
 }
 
 // Keyed by our workspace slug (replies.workspace_slug). Channel ids verified live via
@@ -79,6 +84,16 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
       nextStepDateField: "Next Step Date",
     },
     slackExtra: { revenue: "DTC Revenue (Monthly)" },
+  },
+  // Simple template. Own Calendly org (dominik@sonaro.ai); leads not in the reply desk,
+  // so its webhook is registered with ?ws=sonaro-ai. Only the engagement call is tracked.
+  "sonaro-ai": {
+    source: "calendly",
+    airtableBaseId: "appNMGCTwXVOLLzmA",
+    airtableTableId: "tblTnxArHDVMNOxSI",
+    slackChannel: "C0A2W868NE5",                // sonaro-ai-meetings
+    fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting Booked Date" },
+    eventNameContains: "Smart Engagement",
   },
   // Simple template (verified from Make scenario 3802053). iClosed trigger.
   "gn-motion": {
@@ -148,6 +163,10 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
   if (!AIRTABLE_API_KEY || !SLACK_BOT_TOKEN) { console.warn("[meetings-tracker] missing AIRTABLE_API_KEY / SLACK_BOT_TOKEN"); return false; }
   const email = (input.leadEmail || "").trim();
   if (!email) return false;
+  if (cfg.eventNameContains && !(input.eventTypeName ?? "").toLowerCase().includes(cfg.eventNameContains.toLowerCase())) {
+    console.log(`[meetings-tracker] event "${input.eventTypeName}" not "${cfg.eventNameContains}" for ${input.workspaceSlug} — skipping`);
+    return false;
+  }
 
   const tbl = `${cfg.airtableBaseId}/${encodeURIComponent(cfg.airtableTableId)}`;
   try {
