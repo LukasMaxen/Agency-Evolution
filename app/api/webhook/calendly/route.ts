@@ -12,14 +12,22 @@ export async function POST(req: NextRequest) {
     // ── Meeting booked ────────────────────────────────────────────────────────
     if (eventType === "invitee.created") {
       const payload    = body.payload;
-      const invitee    = payload.invitee;
-      const event      = payload.event;
+      // Direct Calendly v2 sends the invitee AS the payload with `scheduled_event`
+      // nested. Support both that and the legacy Make-forwarded { invitee, event } shape.
+      const invitee    = payload.invitee ?? payload;
+      const event      = payload.event ?? payload.scheduled_event ?? {};
 
-      const leadName   = invitee.name ?? "";
+      const leadName   = invitee.name ?? [invitee.first_name, invitee.last_name].filter(Boolean).join(" ") ?? "";
       const leadEmail  = invitee.email ?? "";
       const scheduledAt = new Date(event.start_time);
+      const bookedAt   = event.created_at ?? invitee.created_at ?? new Date().toISOString();
+      const eventName  = event.name ?? "";
       const eventUri   = event.uri ?? "";
       const inviteeUri = invitee.uri ?? "";
+      // Phone + website come from the booking (reminder number, or a Q&A answer).
+      const qa: Array<{ question?: string; answer?: string }> = invitee.questions_and_answers ?? [];
+      const phone   = invitee.text_reminder_number ?? qa.find(q => /phone|mobile|number/i.test(q.question ?? ""))?.answer ?? undefined;
+      const website = qa.find(q => /website|url|site/i.test(q.question ?? ""))?.answer ?? undefined;
 
       // Match to existing reply by email
       const replyResult = await pool.query(
