@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     // ── Meeting booked ────────────────────────────────────────────────────────
     if (eventType === "invitee.created") {
-      const payload    = payload_(body);
+      const payload    = body.payload ?? {};
       // Direct Calendly v2 sends the invitee AS the payload. The invitee resource has BOTH
       // an `event` field (a URI STRING) and a `scheduled_event` OBJECT — so we must prefer
       // the object and never treat the URI string as the event (that gave Invalid Date ->
@@ -32,6 +32,10 @@ export async function POST(req: NextRequest) {
       const leadName   = invitee.name ?? [invitee.first_name, invitee.last_name].filter(Boolean).join(" ") ?? "";
       const leadEmail  = invitee.email ?? "";
       const scheduledAt = new Date(event.start_time);
+      if (isNaN(scheduledAt.getTime())) {
+        console.error("[calendly webhook] no valid start_time in payload — skipping", JSON.stringify(event).slice(0, 200));
+        return NextResponse.json({ ok: true, event: "invitee.created", note: "no_start_time" });
+      }
       const bookedAt   = event.created_at ?? invitee.created_at ?? new Date().toISOString();
       const eventName  = event.name ?? "";
       const eventUri   = event.uri ?? "";
@@ -159,7 +163,8 @@ export async function POST(req: NextRequest) {
 
     // ── Meeting canceled ──────────────────────────────────────────────────────
     if (eventType === "invitee.canceled") {
-      const eventUri = body.payload?.event?.uri ?? "";
+      const p = body.payload ?? {};
+      const eventUri = p.scheduled_event?.uri ?? (typeof p.event === "string" ? p.event : p.event?.uri) ?? "";
       if (eventUri) {
         await pool.query(
           `UPDATE calls SET status = 'cancelled', updated_at = NOW()
@@ -173,8 +178,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, event: eventType, note: "unhandled" });
 
   } catch (err: any) {
-    console.error("[calendly webhook] error:", err);
-    return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 });
+    // NEVER return non-2xx to Calendly: repeated failures make Calendly disable the
+    // webhook subscription (which is exactly what happened 2026-07-31). Log and 200.
+    console.error("[calendly webhook] error (returning 200 to avoid disable):", err?.message ?? err);
+    return NextResponse.json({ ok: false, error: err?.message ?? "handled" });
   }
 }
 
