@@ -119,6 +119,8 @@ async function analyzeThread(thread: string): Promise<{ context: string | null; 
 async function haikuWithSearch(prompt: string, maxTokens: number): Promise<string | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 18000);
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -126,9 +128,10 @@ async function haikuWithSearch(prompt: string, maxTokens: number): Promise<strin
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: maxTokens,
-        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 2 }],
         messages: [{ role: "user", content: prompt }],
       }),
+      signal: ctrl.signal,
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -141,6 +144,8 @@ async function haikuWithSearch(prompt: string, maxTokens: number): Promise<strin
     return text || null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
