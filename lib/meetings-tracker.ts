@@ -15,6 +15,7 @@
 // the Postgres `calls` record (written by the webhooks) are unaffected.
 
 import { buildMeetingContext } from "@/lib/meeting-context";
+import { resolveCampaign } from "@/lib/resolve-campaign";
 
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY ?? "";
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN ?? "";
@@ -213,6 +214,12 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
     return false;
   }
 
+  // Fill in the campaign name if the webhook did not supply one (replies.campaign can be
+  // empty for a lead even when EmailBison knows the campaign). Best-effort, non-blocking.
+  const i: BookingInput = input.campaign?.trim()
+    ? input
+    : { ...input, campaign: await resolveCampaign(input.workspaceSlug, email) };
+
   const tbl = `${cfg.airtableBaseId}/${encodeURIComponent(cfg.airtableTableId)}`;
   try {
     // 1. Search by email (case-insensitive), pulling the fields we surface in Slack.
@@ -238,13 +245,13 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
       const created = await airtable("POST", tbl, { records: [{ fields: rec }], typecast: true });
       const cf = created?.records?.[0]?.fields;
       const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, revenue: cfg.slackExtra?.revenue ? cf?.[cfg.slackExtra.revenue] : undefined });
-      await postSlack(cfg.slackChannel, slackMessage("New meeting booked", input, cf, cfg, extra));
+      await postSlack(cfg.slackChannel, slackMessage("New meeting booked", i, cf, cfg, extra));
       console.log(`[meetings-tracker] created + notified (${input.workspaceSlug}) ${email}`);
     } else {
       // 2b. Reschedule -> update meeting date only + "Meeting rescheduled".
       await airtable("PATCH", tbl, { records: [{ id: existing.id, fields: { [cfg.fields.meetingDate]: isoDate(input.meetingStartISO) } }], typecast: true });
       const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, revenue: cfg.slackExtra?.revenue ? existing.fields?.[cfg.slackExtra.revenue] : undefined });
-      await postSlack(cfg.slackChannel, slackMessage("Meeting rescheduled", input, existing.fields, cfg, extra));
+      await postSlack(cfg.slackChannel, slackMessage("Meeting rescheduled", i, existing.fields, cfg, extra));
       console.log(`[meetings-tracker] updated + notified reschedule (${input.workspaceSlug}) ${email}`);
     }
     return true;
