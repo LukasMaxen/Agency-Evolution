@@ -115,6 +115,81 @@ async function analyzeThread(thread: string): Promise<{ context: string | null; 
   return { context: grab("CONTEXT"), ebitda: grab("EBITDA"), revenue: grab("REVENUE") };
 }
 
+/** Haiku call with the web_search tool enabled (for looking up company financials). */
+async function haikuWithSearch(prompt: string, maxTokens: number): Promise<string | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: maxTokens,
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = (data?.content ?? [])
+      .filter((b: any) => b?.type === "text")
+      .map((b: any) => b.text)
+      .join(" ")
+      .trim()
+      .replace(/\s+/g, " ");
+    return text || null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeAmt(s: string): string {
+  const t = (s || "").trim().replace(/^~/, "");
+  return t.startsWith("$") ? t : `$${t}`;
+}
+
+/**
+ * Best-effort EBITDA line, always tagged with where it came from:
+ *   1. a figure the lead stated in the thread  -> "(stated in thread)"
+ *   2. a web lookup of the company             -> "(est. from public info)" / "(est. from revenue)"
+ *   3. a rough guess from what little we have   -> "(rough estimate)"
+ * Never blank when we can produce anything; the tag makes the confidence explicit.
+ */
+async function estimateEbitda(o: {
+  company: string; domain?: string; summary?: string; statedEbitda?: string | null; statedRevenue?: string | null;
+}): Promise<string | null> {
+  if (o.statedEbitda) return `~${normalizeAmt(o.statedEbitda)} (stated in thread)`;
+
+  const facts = [
+    o.company ? `Company: ${o.company}` : "",
+    o.domain ? `Website: ${o.domain}` : "",
+    o.summary ? `What they do: ${o.summary}` : "",
+    o.statedRevenue ? `Revenue the lead stated: ${o.statedRevenue}` : "",
+  ].filter(Boolean).join("\n");
+
+  const ask =
+    `${facts}\n\nEstimate this company's approximate ANNUAL EBITDA. If useful, search the web for its ` +
+    `revenue or financials. Then output ONLY one line, nothing else, in this exact format:\n` +
+    `<amount> | <source>\n` +
+    `where <amount> is short like ~$4M or ~$400K, and <source> is exactly one of: ` +
+    `"stated revenue" (you derived it from the revenue figure above), "public info" (you found ` +
+    `figures online), or "rough estimate" (little to go on). Always give a best-guess amount even if uncertain.`;
+
+  let out = await haikuWithSearch(ask, 600);
+  if (!out) out = await haiku(ask, 200); // fallback if the search tool is unavailable
+  if (!out) return null;
+
+  const m = out.match(/(~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?)\s*\|\s*([a-zA-Z ]+)/);
+  if (!m) return null;
+  const amt = normalizeAmt(m[1].replace(/\s+/g, ""));
+  const src = m[2].trim().toLowerCase();
+  const tag = src.includes("revenue") ? "est. from revenue"
+            : (src.includes("public") || src.includes("online") || src.includes("info")) ? "est. from public info"
+            : "rough estimate";
+  return `~${amt} (${tag})`;
+}
+
 async function assessIcpFit(icp: string, company: string, revenue?: string | number | null): Promise<string | null> {
   const text = await haiku(
     `Our ideal customer profile (ICP):\n${icp}\n\nThe company that just booked:\n${company}${revenue ? `\nKnown revenue: ${revenue}` : ""}\n\nIs this company an ICP fit? Reply in ONE short line, starting with "Yes", "Partial", or "No", then a 4-8 word reason. No preamble.`,
@@ -127,6 +202,7 @@ async function assessIcpFit(icp: string, company: string, revenue?: string | num
 export async function buildMeetingContext(input: MeetingContextInput): Promise<string[]> {
   const lines: string[] = [];
   const email = (input.leadEmail || "").toLowerCase();
+  const domain = resolveLeadDomain({ leadEmail: input.leadEmail }) || undefined;
   let leadCompany = "";
   const threadEmails = new Set<string>([email]);
 
@@ -155,7 +231,6 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
   // 2. What the company does.
   let companySummary = "";
   try {
-    const domain = resolveLeadDomain({ leadEmail: input.leadEmail });
     if (domain) {
       const ctx = await getLeadCompanyContext(domain);
       if (ctx?.summary) companySummary = companyLine(ctx.summary);
@@ -164,20 +239,23 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
   if (!companySummary && leadCompany) companySummary = leadCompany;
   if (companySummary) lines.push(`Company: ${companySummary}`);
 
-  // 3. Deal context + any stated financials, from the actual thread.
-  //    Order in the block: EBITDA then Context (Company was pushed above, ICP fit follows).
+  // 3. EBITDA (thread -> web lookup -> rough estimate) then deal context, from the thread.
+  //    EBITDA only for M&A workspaces (those with an ICP definition). Company was pushed
+  //    above; ICP fit follows.
   try {
     const thread = await recentThread(input.workspaceSlug, [...threadEmails]);
-    if (thread) {
-      const a = await analyzeThread(thread);
-      // EBITDA line only for M&A workspaces (those with an ICP definition). Never fabricated:
-      // show a stated EBITDA, else fall back to a stated revenue figure, else omit the line.
-      if (input.icpDescription) {
-        if (a.ebitda) lines.push(`EBITDA: ~${a.ebitda}`);
-        else if (a.revenue) lines.push(`EBITDA: n/a (revenue ~${a.revenue})`);
-      }
-      if (a.context) lines.push(`Context: ${a.context}`);
+    const a = thread ? await analyzeThread(thread) : { context: null, ebitda: null, revenue: null };
+    if (input.icpDescription) {
+      const eb = await estimateEbitda({
+        company: leadCompany || domain || input.leadEmail,
+        domain,
+        summary: companySummary || undefined,
+        statedEbitda: a.ebitda,
+        statedRevenue: a.revenue,
+      });
+      if (eb) lines.push(`EBITDA: ${eb}`);
     }
+    if (a.context) lines.push(`Context: ${a.context}`);
   } catch { /* omit */ }
 
   // 4. ICP fit.
