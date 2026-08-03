@@ -18,6 +18,9 @@ import { buildMeetingContext } from "@/lib/meeting-context";
 
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY ?? "";
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN ?? "";
+// Where a booking goes when we cannot attribute it to a configured workspace, so nothing is
+// ever silently dropped. Defaults to #internal-meetings.
+const FALLBACK_SLACK_CHANNEL = process.env.MEETINGS_FALLBACK_CHANNEL ?? "C05SEP3D57T";
 
 export interface MeetingConfig {
   /** Booking tool whose webhook fires for this client. */
@@ -166,7 +169,28 @@ function slackMessage(verb: "New meeting booked" | "Meeting rescheduled", i: Boo
  */
 export async function trackMeeting(input: BookingInput): Promise<boolean> {
   const cfg = MEETING_CONFIG[input.workspaceSlug];
-  if (!cfg) { console.log(`[meetings-tracker] no config for ${input.workspaceSlug} — skipping`); return false; }
+  if (!cfg) {
+    // Never silently drop a booking — surface it so a human can attribute it manually.
+    console.log(`[meetings-tracker] no config for ${input.workspaceSlug} — posting fallback alert`);
+    if (SLACK_BOT_TOKEN && input.leadEmail) {
+      try {
+        await postSlack(FALLBACK_SLACK_CHANNEL, [
+          `:warning: Meeting booked with no workspace match (resolved: ${input.workspaceSlug})`,
+          "",
+          `Name: ${input.leadName || "-"}`,
+          `Email: ${input.leadEmail}`,
+          input.phone ? `Phone: ${input.phone}` : "",
+          input.eventTypeName ? `Event type: ${input.eventTypeName}` : "",
+          `Time: ${input.prettyTime ?? new Date(input.meetingStartISO).toUTCString()}`,
+          "",
+          "Not written to any Airtable — please attribute this booking manually.",
+        ].filter(Boolean).join("\n"));
+      } catch (e: any) {
+        console.error("[meetings-tracker] fallback alert failed:", e?.message ?? e);
+      }
+    }
+    return false;
+  }
   if (!AIRTABLE_API_KEY || !SLACK_BOT_TOKEN) { console.warn("[meetings-tracker] missing AIRTABLE_API_KEY / SLACK_BOT_TOKEN"); return false; }
   const email = (input.leadEmail || "").trim();
   if (!email) return false;

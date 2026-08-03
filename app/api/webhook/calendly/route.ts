@@ -58,7 +58,10 @@ export async function POST(req: NextRequest) {
         [leadEmail]
       );
       const replyId      = replyResult.rows[0]?.id ?? null;
-      const workspaceSlug = wsOverride ?? (replyResult.rows[0]?.workspace_slug ?? "unknown");
+      // Precedence: hard ?ws override, then the email->reply match, then the ?wsDefault
+      // fallback, then "unknown". Email match must beat wsDefault so that on a shared org
+      // (Larsen + Acceler8rs) a matched Acceler8rs lead is not mis-filed under the default.
+      const workspaceSlug = wsOverride ?? replyResult.rows[0]?.workspace_slug ?? wsDefault ?? "unknown";
 
       // ── Blocklist: never track our own people (Nicklas/Lukas) as booked meetings
       //    in the Larsen workspaces. Skip the whole booking.
