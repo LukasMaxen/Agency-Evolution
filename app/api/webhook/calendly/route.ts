@@ -17,11 +17,17 @@ export async function POST(req: NextRequest) {
 
     // ── Meeting booked ────────────────────────────────────────────────────────
     if (eventType === "invitee.created") {
-      const payload    = body.payload;
-      // Direct Calendly v2 sends the invitee AS the payload with `scheduled_event`
-      // nested. Support both that and the legacy Make-forwarded { invitee, event } shape.
-      const invitee    = payload.invitee ?? payload;
-      const event      = payload.event ?? payload.scheduled_event ?? {};
+      const payload    = payload_(body);
+      // Direct Calendly v2 sends the invitee AS the payload. The invitee resource has BOTH
+      // an `event` field (a URI STRING) and a `scheduled_event` OBJECT — so we must prefer
+      // the object and never treat the URI string as the event (that gave Invalid Date ->
+      // 500 -> Calendly disabled the webhook, 2026-07-31). Legacy Make shape used {invitee,
+      // event:{...}}, so we also accept payload.event when it is an object.
+      const invitee    = (payload.invitee && typeof payload.invitee === "object") ? payload.invitee : payload;
+      const event      = (payload.scheduled_event && typeof payload.scheduled_event === "object") ? payload.scheduled_event
+                       : (payload.event && typeof payload.event === "object") ? payload.event
+                       : (invitee.scheduled_event && typeof invitee.scheduled_event === "object") ? invitee.scheduled_event
+                       : {};
 
       const leadName   = invitee.name ?? [invitee.first_name, invitee.last_name].filter(Boolean).join(" ") ?? "";
       const leadEmail  = invitee.email ?? "";
