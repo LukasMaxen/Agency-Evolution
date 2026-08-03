@@ -156,8 +156,12 @@ export async function POST(req: NextRequest) {
         [leadEmail]
       );
 
-      // ── Airtable + Slack (replaces the Make "Calendly -> Slack -> AirTable" scenario)
-      await trackMeeting({
+      // ── Airtable + Slack (replaces the Make "Calendly -> Slack -> AirTable" scenario).
+      //    Fire-and-forget: the enrichment (company summary, EBITDA web lookup, ICP fit) can
+      //    take several seconds, so we do NOT block the 200 back to Calendly on it — a slow
+      //    response risks Calendly marking delivery failed and retrying. The calls row above
+      //    is already committed, so the Slack post / Airtable record just lands a moment later.
+      void trackMeeting({
         workspaceSlug,
         leadEmail,
         leadName,
@@ -168,7 +172,7 @@ export async function POST(req: NextRequest) {
         campaign,
         phone,
         website,
-      });
+      }).catch((err: any) => console.error("[calendly webhook] trackMeeting failed:", err?.message ?? err));
 
       return NextResponse.json({ ok: true, event: "invitee.created", callId, isReschedule });
     }
