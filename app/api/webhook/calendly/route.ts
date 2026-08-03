@@ -8,10 +8,15 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const eventType = body.event ?? "";
-    // Optional workspace override from the registered webhook URL (?ws=<slug>). Used for
-    // clients whose leads are not in the reply desk (e.g. Sonaro), so the workspace comes
-    // from the Calendly account we registered rather than an email->replies match.
+    // Workspace resolution knobs on the registered webhook URL:
+    //   ?ws=<slug>        HARD override — always this workspace. Use for dedicated Calendly
+    //                     orgs whose leads are not in the reply desk (e.g. Sonaro).
+    //   ?wsDefault=<slug> FALLBACK — used only when the booker's email matches no reply row.
+    //                     Use for shared orgs (Larsen) so a test booking, or a lead who books
+    //                     from a different address than we emailed, still lands somewhere
+    //                     instead of resolving to "unknown" and being dropped.
     const wsOverride = req.nextUrl.searchParams.get("ws");
+    const wsDefault  = req.nextUrl.searchParams.get("wsDefault");
 
     console.log(`[calendly webhook] event: ${eventType}`);
 
