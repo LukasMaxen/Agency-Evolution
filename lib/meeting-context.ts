@@ -22,6 +22,16 @@ function firstSentences(text: string, n = 2): string {
   return parts.slice(0, n).join(" ").slice(0, 300);
 }
 
+// The website-context summary is formatted "WHAT THEY SELL: X  CATEGORY: Y  EXIT SIGNALS: Z".
+// For the meeting note we only want a tight "what they do", so pull the sell + category.
+function companyLine(summary: string): string {
+  const s = (summary || "").replace(/\s+/g, " ").trim();
+  const sell = s.match(/WHAT THEY SELL:\s*(.+?)(?:\s*(?:CATEGORY|EXIT SIGNALS):|$)/i)?.[1]?.trim();
+  const cat = s.match(/CATEGORY:\s*(.+?)(?:\s*EXIT SIGNALS:|$)/i)?.[1]?.trim();
+  if (sell) return (cat ? `${sell} (${cat})` : sell).slice(0, 220);
+  return firstSentences(s, 2);
+}
+
 async function assessIcpFit(icp: string, company: string, revenue?: string | number | null): Promise<string | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
@@ -79,7 +89,7 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
     const domain = resolveLeadDomain({ leadEmail: input.leadEmail });
     if (domain) {
       const ctx = await getLeadCompanyContext(domain);
-      if (ctx?.summary) companySummary = firstSentences(ctx.summary, 2);
+      if (ctx?.summary) companySummary = companyLine(ctx.summary);
     }
   } catch { /* omit */ }
   if (!companySummary && leadCompany) companySummary = leadCompany;
