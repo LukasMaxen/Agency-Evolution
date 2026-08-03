@@ -29,6 +29,12 @@ export interface MeetingConfig {
   airtableTableId: string;
   /** Slack channel id for this client's "-meetings" channel. */
   slackChannel: string;
+  /**
+   * Human label for the "Workspace:" line in the Slack message — the owner who takes the
+   * call (e.g. "Nicklas" for Larsen, "Lukas" for Acceler8rs). Lets both workspaces share
+   * one Slack channel while staying distinguishable. Omit to drop the line.
+   */
+  workspaceLabel?: string;
   /** Field NAMES on the meetings table. */
   fields: {
     email: string;
@@ -69,6 +75,7 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     airtableBaseId: "appV8wpBdqTgCi4Ws",       // XL8 CRM (shared with Acceler8rs)
     airtableTableId: "tblCATnaPTV9fb2Ab",       // Deals / Meetings
     slackChannel: "C03LPQ4G3HR",                // larsen-digital-meetings
+    workspaceLabel: "Nicklas",
     fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
     crm: {
       dealSourceField: "Deal Source", dealSource: "Cold email (LD)",
@@ -83,7 +90,11 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     source: "calendly",
     airtableBaseId: "appV8wpBdqTgCi4Ws",
     airtableTableId: "tblCATnaPTV9fb2Ab",
-    slackChannel: "C07CNPN71PS",                // acceler8rs-meetings
+    // Everything runs as Larsen now, so Acceler8rs bookings post to the Larsen meetings
+    // channel (C03LPQ4G3HR). The "Workspace: Lukas" line keeps them distinguishable.
+    // (Own channel #acceler8rs-meetings C07CNPN71PS retired for meeting posts.)
+    slackChannel: "C03LPQ4G3HR",
+    workspaceLabel: "Lukas",
     fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
     crm: {
       dealSourceField: "Deal Source", dealSource: "Cold email (Acceler8rs)",
@@ -123,6 +134,7 @@ export interface BookingInput {
   bookedAtISO: string;       // when booked (created_at)
   prettyTime?: string;       // formatted time for the Slack message
   eventTypeName?: string;    // Calendly/iClosed event type label
+  campaign?: string;         // campaign the lead came from (from the matched reply row)
   phone?: string;            // from the booking, if present
   website?: string;          // from the booking, if present (falls back to the record)
 }
@@ -150,14 +162,16 @@ async function postSlack(channel: string, text: string): Promise<void> {
 const isoDate = (iso: string): string => new Date(iso).toISOString().slice(0, 10);
 
 function slackMessage(verb: "New meeting booked" | "Meeting rescheduled", i: BookingInput, rec: Record<string, any> | undefined, cfg: MeetingConfig, extra: string[] = []): string {
-  const lines = [`${verb} with ${i.leadName || i.leadEmail}`, "", `Email: ${i.leadEmail}`];
+  const lines = [`${verb} with ${i.leadName || i.leadEmail}`, ""];
+  if (cfg.workspaceLabel) lines.push(`Workspace: ${cfg.workspaceLabel}`);
+  lines.push(`Email: ${i.leadEmail}`);
   if (i.phone) lines.push(`Phone: ${i.phone}`);
+  if (i.campaign) lines.push(`Campaign: ${i.campaign}`);
   const website = i.website || (cfg.slackExtra?.website ? rec?.[cfg.slackExtra.website] : undefined);
   if (website) lines.push(`Website: ${website}`);
-  const revenue = cfg.slackExtra?.revenue ? rec?.[cfg.slackExtra.revenue] : undefined;
-  if (revenue !== undefined && revenue !== null && revenue !== "") lines.push(`Revenue: ${revenue}`);
   if (i.eventTypeName) lines.push(`Event type: ${i.eventTypeName}`);
   lines.push(`Time: ${i.prettyTime ?? new Date(i.meetingStartISO).toUTCString()}`);
+  // Context block (Company / EBITDA / Context / ICP fit) comes from buildMeetingContext.
   if (extra.length) { lines.push(""); lines.push(...extra); }
   return lines.join("\n");
 }
