@@ -14,6 +14,8 @@
 // Best-effort: never throws — logs and returns false on failure so the booking flow and
 // the Postgres `calls` record (written by the webhooks) are unaffected.
 
+import { buildMeetingContext } from "@/lib/meeting-context";
+
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY ?? "";
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN ?? "";
 
@@ -52,6 +54,8 @@ export interface MeetingConfig {
    * Used when the client's Calendly org hosts other event types we should ignore.
    */
   eventNameContains?: string;
+  /** Concise ICP definition — drives the one-line ICP-fit judgment in the Slack message. */
+  icpDescription?: string;
 }
 
 // Keyed by our workspace slug (replies.workspace_slug). Channel ids verified live via
@@ -70,6 +74,7 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
       nextStepDateField: "Next Step Date",
     },
     slackExtra: { revenue: "DTC Revenue (Monthly)" },
+    icpDescription: "Established consumer / CPG brands (beauty, personal care, food, supplements, household) doing roughly $5M+ in revenue with repeat-purchase products — the buyer's acquisition target. Also relevant: 7-figure+ DTC brands open to growth and a future exit. NOT a fit: pure services/agencies, B2B SaaS, pre-revenue, or clearly under $5M with no path.",
   },
   "acceler8rs": {
     source: "calendly",
@@ -84,6 +89,7 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
       nextStepDateField: "Next Step Date",
     },
     slackExtra: { revenue: "DTC Revenue (Monthly)" },
+    icpDescription: "Established consumer / CPG brands (beauty, personal care, food, supplements, household) doing roughly $5M+ in revenue with repeat-purchase products — the buyer's acquisition target. Also relevant: 7-figure+ DTC brands open to growth and a future exit. NOT a fit: pure services/agencies, B2B SaaS, pre-revenue, or clearly under $5M with no path.",
   },
   // Simple template. Own Calendly org (dominik@sonaro.ai); leads not in the reply desk,
   // so its webhook is registered with ?ws=sonaro-ai. Only the engagement call is tracked.
