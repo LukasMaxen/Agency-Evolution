@@ -93,14 +93,26 @@ async function haiku(prompt: string, maxTokens: number): Promise<string | null> 
   }
 }
 
-/** One tight line on the deal context, read from the actual thread. */
-async function summarizeThread(thread: string): Promise<string | null> {
+/**
+ * Read the thread once and pull: a one-line deal context, plus any financial figures the
+ * lead EXPLICITLY stated (never estimated). Returns nulls for anything not present.
+ */
+async function analyzeThread(thread: string): Promise<{ context: string | null; ebitda: string | null; revenue: string | null }> {
   const out = await haiku(
     `Below is the recent email thread that led to a booked call. "US" = what we sent, "LEAD" = the prospect.\n\n${thread}\n\n` +
-      `In ONE short line (max 20 words), give the rep the key context for this call. Prioritise: revenue numbers the lead gave, whether they fit or miss the buyer's criteria, what we offered that got them to book, or anything unusual. Start directly with the fact. No preamble, no "The lead", no trailing period needed.`,
-    70,
+      `Extract exactly three lines, no preamble:\n` +
+      `CONTEXT: one short line (max 18 words) with the key context for the call — fit vs the buyer's criteria, what we offered that got them to book, or anything unusual.\n` +
+      `EBITDA: the EBITDA figure the LEAD explicitly stated (e.g. "$800K-1M"), or "n/a". Never estimate or infer.\n` +
+      `REVENUE: the revenue or sales figure the LEAD explicitly stated (e.g. "$2M"), or "n/a". Never estimate or infer.`,
+    120,
   );
-  return out ? out.slice(0, 200) : null;
+  if (!out) return { context: null, ebitda: null, revenue: null };
+  const grab = (label: string): string | null => {
+    const m = out.match(new RegExp(`${label}:\\s*(.+?)(?:\\s+(?:CONTEXT|EBITDA|REVENUE):|$)`, "i"));
+    const v = m?.[1]?.trim();
+    return v && !/^n\/?a\.?$/i.test(v) ? v.slice(0, 160) : null;
+  };
+  return { context: grab("CONTEXT"), ebitda: grab("EBITDA"), revenue: grab("REVENUE") };
 }
 
 async function assessIcpFit(icp: string, company: string, revenue?: string | number | null): Promise<string | null> {
@@ -152,12 +164,19 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
   if (!companySummary && leadCompany) companySummary = leadCompany;
   if (companySummary) lines.push(`Company: ${companySummary}`);
 
-  // 3. Deal context from the actual thread (revenue vs criteria, what we offered, why booked).
+  // 3. Deal context + any stated financials, from the actual thread.
+  //    Order in the block: EBITDA then Context (Company was pushed above, ICP fit follows).
   try {
     const thread = await recentThread(input.workspaceSlug, [...threadEmails]);
     if (thread) {
-      const note = await summarizeThread(thread);
-      if (note) lines.push(`Context: ${note}`);
+      const a = await analyzeThread(thread);
+      // EBITDA line only for M&A workspaces (those with an ICP definition). Never fabricated:
+      // show a stated EBITDA, else fall back to a stated revenue figure, else omit the line.
+      if (input.icpDescription) {
+        if (a.ebitda) lines.push(`EBITDA: ~${a.ebitda}`);
+        else if (a.revenue) lines.push(`EBITDA: n/a (revenue ~${a.revenue})`);
+      }
+      if (a.context) lines.push(`Context: ${a.context}`);
     }
   } catch { /* omit */ }
 
