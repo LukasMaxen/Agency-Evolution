@@ -45,9 +45,11 @@ export async function POST(req: NextRequest) {
       const phone   = invitee.text_reminder_number ?? qa.find(q => /phone|mobile|number/i.test(q.question ?? ""))?.answer ?? undefined;
       const website = qa.find(q => /website|url|site/i.test(q.question ?? ""))?.answer ?? undefined;
 
-      // Match to existing reply by email
+      // Match to existing reply by email — also match preferred_recipient_email so a
+      // redirected/referred contact who books (a different address than the original lead)
+      // still resolves to the right workspace.
       const replyResult = await pool.query(
-        "SELECT id, workspace_slug FROM replies WHERE lead_email = $1 ORDER BY received_at DESC LIMIT 1",
+        "SELECT id, workspace_slug FROM replies WHERE lead_email = $1 OR preferred_recipient_email = $1 ORDER BY received_at DESC LIMIT 1",
         [leadEmail]
       );
       const replyId      = replyResult.rows[0]?.id ?? null;
