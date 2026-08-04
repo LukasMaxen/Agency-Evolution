@@ -247,13 +247,13 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
       }
       const created = await airtable("POST", tbl, { records: [{ fields: rec }], typecast: true });
       const cf = created?.records?.[0]?.fields;
-      const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, revenue: cfg.slackExtra?.revenue ? cf?.[cfg.slackExtra.revenue] : undefined });
+      const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, revenue: cfg.slackExtra?.revenue ? cf?.[cfg.slackExtra.revenue] : undefined, phone: i.phone });
       await postSlack(cfg.slackChannel, slackMessage("New meeting booked", i, cf, cfg, extra));
       console.log(`[meetings-tracker] created + notified (${input.workspaceSlug}) ${email}`);
     } else {
       // 2b. Reschedule -> update meeting date only + "Meeting rescheduled".
       await airtable("PATCH", tbl, { records: [{ id: existing.id, fields: { [cfg.fields.meetingDate]: isoDate(input.meetingStartISO) } }], typecast: true });
-      const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, revenue: cfg.slackExtra?.revenue ? existing.fields?.[cfg.slackExtra.revenue] : undefined });
+      const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, revenue: cfg.slackExtra?.revenue ? existing.fields?.[cfg.slackExtra.revenue] : undefined, phone: i.phone });
       await postSlack(cfg.slackChannel, slackMessage("Meeting rescheduled", i, existing.fields, cfg, extra));
       console.log(`[meetings-tracker] updated + notified reschedule (${input.workspaceSlug}) ${email}`);
     }
