@@ -1,12 +1,15 @@
 // Extra context lines for a booked-meeting Slack notification:
 //   1. Redirect note  — if we originally emailed a different address than the one that booked.
-//   2. Company        — what the company does (reuses the website-scrape summary).
-//   3. Context        — the deal nuance pulled from the actual email thread (revenue vs the
-//                       buyer's criteria, what we offered, why they booked). This is the line
-//                       a rep most wants walking into the call.
-//   4. ICP fit        — a one-line Yes / Partial / No judgment vs the workspace's ICP.
+//   2. Company        — what the lead's company actually sells/does.
+//   3. EBITDA         — approximate, tagged with its source (stated / public info / estimate).
+//   4. Context        — how the lead's business fits the buyer's criteria (about the LEAD,
+//                       researched — NEVER summarized from our own sales copy).
+//   5. ICP fit        — a one-line Yes / Partial / No verdict.
 //
-// Best-effort: every piece is independently try/caught so a failure just omits that line.
+// Everything about the company is grounded in research about the lead (web search + the
+// lead's own words + a site scrape), never in what we wrote to them. A failed site scrape
+// must never leak into the note; it falls back to research, the lead's stated company, or
+// the line is dropped. Best-effort: every piece is independently try/caught.
 
 import pool from "@/lib/db";
 import { resolveLeadDomain, getLeadCompanyContext } from "@/lib/fetch-lead-website";
@@ -14,61 +17,31 @@ import { resolveLeadDomain, getLeadCompanyContext } from "@/lib/fetch-lead-websi
 export interface MeetingContextInput {
   workspaceSlug: string;
   leadEmail: string;
-  /** Concise ICP definition for this workspace (from MEETING_CONFIG). Omit to skip ICP fit. */
+  /** Concise ICP / buyer definition for this workspace. Present only for M&A workspaces. */
   icpDescription?: string;
-  /** Revenue value if we have it (from the Airtable record), fed into the ICP judgment. */
+  /** Revenue value if we have it (from the Airtable record). */
   revenue?: string | number | null;
 }
 
-function firstSentences(text: string, n = 2): string {
-  const parts = (text || "").replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+/);
-  return parts.slice(0, n).join(" ").slice(0, 300);
-}
-
-// The website-context summary is formatted "WHAT THEY SELL: X  CATEGORY: Y  EXIT SIGNALS: Z".
-// For the meeting note we only want a tight "what they do", so pull the sell + category.
-function companyLine(summary: string): string {
-  const s = (summary || "").replace(/\s+/g, " ").trim();
-  const sell = s.match(/WHAT THEY SELL:\s*(.+?)(?:\s*(?:CATEGORY|EXIT SIGNALS):|$)/i)?.[1]?.trim();
-  const cat = s.match(/CATEGORY:\s*(.+?)(?:\s*EXIT SIGNALS:|$)/i)?.[1]?.trim();
-  if (sell) return (cat ? `${sell} (${cat})` : sell).slice(0, 220);
-  return firstSentences(s, 2);
-}
-
-// Strip the quoted reply chain so the thread we hand to the model is only the new content.
+// ── low-level helpers ────────────────────────────────────────────────────────
 const QUOTED_RE = /(?:^|\n)[ \t>]*(?:On[\s\S]{0,200}?\bwrote:|-{2,}\s*Original Message\s*-{2,}|_{5,}|From:[ \t]*\S.*\r?\n[ \t]*(?:Sent|Date):)/i;
 function stripQuoted(t: string): string {
   const raw = t || "";
   const i = raw.search(QUOTED_RE);
-  return (i > 0 ? raw.slice(0, i) : raw)
-    .replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (i > 0 ? raw.slice(0, i) : raw).replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").replace(/\s+/g, " ").trim();
 }
 
-/** Pull the recent back-and-forth (our sends + their replies) for the lead, oldest first. */
-async function recentThread(workspaceSlug: string, emails: string[]): Promise<string> {
-  const lc = emails.map(e => e.toLowerCase());
-  const [rep, snt] = await Promise.all([
-    pool.query(
-      `SELECT received_at AS at, message AS body FROM replies
-        WHERE workspace_slug = $1 AND (LOWER(lead_email) = ANY($2) OR LOWER(preferred_recipient_email) = ANY($2))`,
-      [workspaceSlug, lc],
-    ),
-    pool.query(
-      `SELECT sent_at AS at, body FROM sent_emails
-        WHERE workspace_slug = $1 AND LOWER(lead_email) = ANY($2)`,
-      [workspaceSlug, lc],
-    ),
-  ]);
-  const items = [
-    ...rep.rows.map((r: any) => ({ at: r.at, who: "LEAD", body: stripQuoted(r.body) })),
-    ...snt.rows.map((r: any) => ({ at: r.at, who: "US", body: stripQuoted(r.body) })),
-  ]
-    .filter(x => x.body)
-    .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-  if (!items.length) return "";
-  return items.slice(-6).map(x => `${x.who}: ${x.body.slice(0, 450)}`).join("\n");
+// A site scrape that returned no usable content (parked page, JS shell, CSS-only, etc.).
+// Its text must never be shown as the company description.
+function looksLikeFailure(s: string): boolean {
+  const t = (s || "").toLowerCase();
+  if (!t.trim()) return true;
+  return /cannot determine|could not determine|unable to (determine|verify|find|identify)|non-functional|css framework|no real (website )?content|no meaningful content|not enough (information|content)|framework noise|appears to be (empty|a parked|non)|only (css|navigation|boilerplate)|placeholder|i (can't|cannot) (tell|see)/.test(t);
+}
+
+function normalizeAmt(s: string): string {
+  const t = (s || "").trim().replace(/^~/, "");
+  return t.startsWith("$") ? t : `$${t}`;
 }
 
 async function haiku(prompt: string, maxTokens: number): Promise<string | null> {
@@ -78,11 +51,7 @@ async function haiku(prompt: string, maxTokens: number): Promise<string | null> 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: maxTokens,
-        messages: [{ role: "user", content: prompt }],
-      }),
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] }),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -93,29 +62,6 @@ async function haiku(prompt: string, maxTokens: number): Promise<string | null> 
   }
 }
 
-/**
- * Read the thread once and pull: a one-line deal context, plus any financial figures the
- * lead EXPLICITLY stated (never estimated). Returns nulls for anything not present.
- */
-async function analyzeThread(thread: string): Promise<{ context: string | null; ebitda: string | null; revenue: string | null }> {
-  const out = await haiku(
-    `Below is the recent email thread that led to a booked call. "US" = what we sent, "LEAD" = the prospect.\n\n${thread}\n\n` +
-      `Extract exactly three lines, no preamble:\n` +
-      `CONTEXT: one short line (max 18 words) with the key context for the call — fit vs the buyer's criteria, what we offered that got them to book, or anything unusual.\n` +
-      `EBITDA: the EBITDA figure the LEAD explicitly stated (e.g. "$800K-1M"), or "n/a". Never estimate or infer.\n` +
-      `REVENUE: the revenue or sales figure the LEAD explicitly stated (e.g. "$2M"), or "n/a". Never estimate or infer.`,
-    120,
-  );
-  if (!out) return { context: null, ebitda: null, revenue: null };
-  const grab = (label: string): string | null => {
-    const m = out.match(new RegExp(`${label}:\\s*(.+?)(?:\\s+(?:CONTEXT|EBITDA|REVENUE):|$)`, "i"));
-    const v = m?.[1]?.trim();
-    return v && !/^n\/?a\.?$/i.test(v) ? v.slice(0, 160) : null;
-  };
-  return { context: grab("CONTEXT"), ebitda: grab("EBITDA"), revenue: grab("REVENUE") };
-}
-
-/** Haiku call with the web_search tool enabled (for looking up company financials). */
 async function haikuWithSearch(prompt: string, maxTokens: number): Promise<string | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
@@ -135,12 +81,7 @@ async function haikuWithSearch(prompt: string, maxTokens: number): Promise<strin
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const text = (data?.content ?? [])
-      .filter((b: any) => b?.type === "text")
-      .map((b: any) => b.text)
-      .join(" ")
-      .trim()
-      .replace(/\s+/g, " ");
+    const text = (data?.content ?? []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join(" ").trim().replace(/\s+/g, " ");
     return text || null;
   } catch {
     return null;
@@ -149,58 +90,84 @@ async function haikuWithSearch(prompt: string, maxTokens: number): Promise<strin
   }
 }
 
-function normalizeAmt(s: string): string {
-  const t = (s || "").trim().replace(/^~/, "");
-  return t.startsWith("$") ? t : `$${t}`;
+/** The lead's OWN messages (never ours) — a grounding hint for research. */
+async function leadThreadText(workspaceSlug: string, emails: string[]): Promise<string> {
+  const lc = emails.map(e => e.toLowerCase());
+  const rep = await pool.query(
+    `SELECT message AS body FROM replies
+      WHERE workspace_slug = $1 AND (LOWER(lead_email) = ANY($2) OR LOWER(preferred_recipient_email) = ANY($2))
+      ORDER BY received_at`,
+    [workspaceSlug, lc],
+  );
+  const items = rep.rows.map((r: any) => stripQuoted(r.body)).filter(Boolean);
+  if (!items.length) return "";
+  return items.slice(-4).map((b: string) => b.slice(0, 400)).join("\n---\n");
 }
 
-/**
- * Best-effort EBITDA line, always tagged with where it came from:
- *   1. a figure the lead stated in the thread  -> "(stated in thread)"
- *   2. a web lookup of the company             -> "(est. from public info)" / "(est. from revenue)"
- *   3. a rough guess from what little we have   -> "(rough estimate)"
- * Never blank when we can produce anything; the tag makes the confidence explicit.
- */
-async function estimateEbitda(o: {
-  company: string; domain?: string; summary?: string; statedEbitda?: string | null; statedRevenue?: string | null;
-}): Promise<string | null> {
-  if (o.statedEbitda) return `~${normalizeAmt(o.statedEbitda)} (stated in thread)`;
+function grab(out: string, label: string): string | null {
+  const m = out.match(new RegExp(`${label}:\\s*(.+?)(?:\\s+(?:COMPANY|EBITDA|CONTEXT|ICP FIT):|$)`, "i"));
+  const v = m?.[1]?.trim();
+  if (!v) return null;
+  return /^(n\/?a|unknown|none|n\/a\.)\.?$/i.test(v) ? null : v.slice(0, 220);
+}
 
+// Pull a clean "what they sell" line out of a good site-scrape summary (formatted
+// "WHAT THEY SELL: X  CATEGORY: Y  EXIT SIGNALS: Z"). Returns null for a failed scrape.
+function companyFromSummary(summary: string): string | null {
+  if (looksLikeFailure(summary)) return null;
+  const s = (summary || "").replace(/\s+/g, " ").trim();
+  const sell = s.match(/WHAT THEY SELL:\s*(.+?)(?:\s*(?:CATEGORY|EXIT SIGNALS):|$)/i)?.[1]?.trim();
+  const cat = s.match(/CATEGORY:\s*(.+?)(?:\s*EXIT SIGNALS:|$)/i)?.[1]?.trim();
+  if (sell) return (cat ? `${sell} (${cat})` : sell).slice(0, 220);
+  const first = s.split(/(?<=[.!?])\s+/)[0];
+  return first && first.length < 200 ? first : null;
+}
+
+interface LeadEnrichment { company: string | null; ebitda: string | null; context: string | null; icpFit: string | null; }
+
+// One web-search-backed call that researches the LEAD and returns all four lines.
+async function enrichLead(o: { company: string; domain?: string; leadSaid?: string; scraped?: string; icp?: string }): Promise<LeadEnrichment> {
   const facts = [
-    o.company ? `Company: ${o.company}` : "",
+    o.company ? `Company name: ${o.company}` : "",
     o.domain ? `Website: ${o.domain}` : "",
-    o.summary ? `What they do: ${o.summary}` : "",
-    o.statedRevenue ? `Revenue the lead stated: ${o.statedRevenue}` : "",
+    o.leadSaid ? `What the lead said about their OWN business (use this, it is about them):\n${o.leadSaid}` : "",
+    (o.scraped && !looksLikeFailure(o.scraped)) ? `Notes scraped from their site: ${o.scraped}` : "",
+    o.icp ? `The buyer we represent is looking for: ${o.icp}` : "",
   ].filter(Boolean).join("\n");
 
   const ask =
-    `${facts}\n\nEstimate this company's approximate ANNUAL EBITDA. If useful, search the web for its ` +
-    `revenue or financials. Then output ONLY one line, nothing else, in this exact format:\n` +
-    `<amount> | <source>\n` +
-    `where <amount> is short like ~$4M or ~$400K, and <source> is exactly one of: ` +
-    `"stated revenue" (you derived it from the revenue figure above), "public info" (you found ` +
-    `figures online), or "rough estimate" (little to go on). Always give a best-guess amount even if uncertain.`;
+    `You are writing a short briefing for a sales rep about a company that just booked a call. Base everything on the ` +
+    `COMPANY itself and what the LEAD said about themselves. NEVER describe our own outreach or sales pitch. Search the ` +
+    `web for the company if the details below are thin or missing.\n\n${facts}\n\n` +
+    `Return EXACTLY these four lines, nothing else:\n` +
+    `COMPANY: one short line on what they actually sell or do, with a category in parentheses. Write "unknown" ONLY if you genuinely cannot find anything.\n` +
+    `EBITDA: approximate annual EBITDA as "<amount> | <source>", amount like ~$4M, source one of "stated in thread" / "from public info" / "from revenue" / "rough estimate". "n/a" only if impossible.\n` +
+    `CONTEXT: one short line (max 16 words) on how THIS company fits (or misses) the buyer's criteria and why. About the lead's business, never our pitch.\n` +
+    `ICP FIT: start with Yes, Partial, or No, then a 4-8 word reason.`;
 
-  let out = await haikuWithSearch(ask, 600);
-  if (!out) out = await haiku(ask, 200); // fallback if the search tool is unavailable
-  if (!out) return null;
+  let out = await haikuWithSearch(ask, 700);
+  if (!out) out = await haiku(ask, 300);
+  if (!out) return { company: null, ebitda: null, context: null, icpFit: null };
 
-  const m = out.match(/(~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?)\s*\|\s*([a-zA-Z ]+)/);
-  if (!m) return null;
-  const amt = normalizeAmt(m[1].replace(/\s+/g, ""));
-  const src = m[2].trim().toLowerCase();
-  const tag = src.includes("revenue") ? "est. from revenue"
-            : (src.includes("public") || src.includes("online") || src.includes("info")) ? "est. from public info"
-            : "rough estimate";
-  return `~${amt} (${tag})`;
-}
+  let ebitda: string | null = null;
+  const rawEb = grab(out, "EBITDA");
+  if (rawEb) {
+    const m = rawEb.match(/(~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?)\s*\|\s*([a-zA-Z ]+)/);
+    if (m) {
+      const amt = normalizeAmt(m[1].replace(/\s+/g, ""));
+      const src = m[2].toLowerCase();
+      const tag = (src.includes("stated") && src.includes("thread")) ? "stated in thread"
+                : src.includes("revenue") ? "est. from revenue"
+                : (src.includes("public") || src.includes("online") || src.includes("info")) ? "est. from public info"
+                : "rough estimate";
+      ebitda = `~${amt} (${tag})`;
+    } else {
+      const a = rawEb.match(/~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?/);
+      if (a) ebitda = `~${normalizeAmt(a[0].replace(/\s+/g, ""))} (rough estimate)`;
+    }
+  }
 
-async function assessIcpFit(icp: string, company: string, revenue?: string | number | null): Promise<string | null> {
-  const text = await haiku(
-    `Our ideal customer profile (ICP):\n${icp}\n\nThe company that just booked:\n${company}${revenue ? `\nKnown revenue: ${revenue}` : ""}\n\nIs this company an ICP fit? Reply in ONE short line, starting with "Yes", "Partial", or "No", then a 4-8 word reason. No preamble.`,
-    60,
-  );
-  return text ? text.slice(0, 160) : null;
+  return { company: grab(out, "COMPANY"), ebitda, context: grab(out, "CONTEXT"), icpFit: grab(out, "ICP FIT") };
 }
 
 /** Returns the extra context lines to append to the meeting Slack message. */
@@ -211,11 +178,10 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
   let leadCompany = "";
   const threadEmails = new Set<string>([email]);
 
-  // 1. Redirect note — did the booker differ from who we originally reached out to?
+  // 1. Redirect note.
   try {
     const r = await pool.query(
-      `SELECT lead_email, lead_company, preferred_recipient_email
-         FROM replies
+      `SELECT lead_email, lead_company, preferred_recipient_email FROM replies
         WHERE workspace_slug = $2 AND (LOWER(lead_email) = $1 OR LOWER(preferred_recipient_email) = $1)
         ORDER BY received_at DESC LIMIT 1`,
       [email, input.workspaceSlug],
@@ -233,40 +199,24 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
     }
   } catch { /* omit */ }
 
-  // 2. What the company does.
-  let companySummary = "";
-  try {
-    if (domain) {
-      const ctx = await getLeadCompanyContext(domain);
-      if (ctx?.summary) companySummary = companyLine(ctx.summary);
-    }
-  } catch { /* omit */ }
-  if (!companySummary && leadCompany) companySummary = leadCompany;
-  if (companySummary) lines.push(`Company: ${companySummary}`);
+  // Site scrape — a hint only. Never shown directly if it failed.
+  let scraped = "";
+  try { if (domain) { const ctx = await getLeadCompanyContext(domain); if (ctx?.summary) scraped = ctx.summary; } } catch { /* omit */ }
 
-  // 3. EBITDA (thread -> web lookup -> rough estimate) then deal context, from the thread.
-  //    EBITDA only for M&A workspaces (those with an ICP definition). Company was pushed
-  //    above; ICP fit follows.
-  try {
-    const thread = await recentThread(input.workspaceSlug, [...threadEmails]);
-    const a = thread ? await analyzeThread(thread) : { context: null, ebitda: null, revenue: null };
-    if (input.icpDescription) {
-      const eb = await estimateEbitda({
-        company: leadCompany || domain || input.leadEmail,
-        domain,
-        summary: companySummary || undefined,
-        statedEbitda: a.ebitda,
-        statedRevenue: a.revenue,
-      });
-      if (eb) lines.push(`EBITDA: ${eb}`);
-    }
-    if (a.context) lines.push(`Context: ${a.context}`);
-  } catch { /* omit */ }
-
-  // 4. ICP fit.
-  if (input.icpDescription && companySummary) {
-    const fit = await assessIcpFit(input.icpDescription, companySummary, input.revenue);
-    if (fit) lines.push(`ICP fit: ${fit}`);
+  if (input.icpDescription) {
+    // M&A workspaces: full research-backed enrichment about the lead.
+    let leadSaid = "";
+    try { leadSaid = await leadThreadText(input.workspaceSlug, [...threadEmails]); } catch { /* omit */ }
+    const e = await enrichLead({ company: leadCompany || domain || email, domain, leadSaid, scraped, icp: input.icpDescription });
+    const company = e.company || companyFromSummary(scraped) || (leadCompany || null);
+    if (company) lines.push(`Company: ${company}`);
+    if (e.ebitda) lines.push(`EBITDA: ${e.ebitda}`);
+    if (e.context) lines.push(`Context: ${e.context}`);
+    if (e.icpFit) lines.push(`ICP fit: ${e.icpFit}`);
+  } else {
+    // Non-M&A workspaces: just what the company does.
+    const company = companyFromSummary(scraped) || (leadCompany || null);
+    if (company) lines.push(`Company: ${company}`);
   }
 
   return lines;

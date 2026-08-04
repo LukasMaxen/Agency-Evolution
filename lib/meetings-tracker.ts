@@ -32,7 +32,7 @@ export interface MeetingConfig {
   slackChannel: string;
   /**
    * Human label for the "Workspace:" line in the Slack message — the owner who takes the
-   * call (e.g. "Nicklas" for Larsen, "Lukas" for Acceler8rs). Lets both workspaces share
+   * call (e.g. "Nicklas Larsen" for Larsen, "Lukas Maxen" for Acceler8rs). Lets both workspaces share
    * one Slack channel while staying distinguishable. Omit to drop the line.
    */
   workspaceLabel?: string;
@@ -76,7 +76,7 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     airtableBaseId: "appV8wpBdqTgCi4Ws",       // XL8 CRM (shared with Acceler8rs)
     airtableTableId: "tblCATnaPTV9fb2Ab",       // Deals / Meetings
     slackChannel: "C03LPQ4G3HR",                // larsen-digital-meetings
-    workspaceLabel: "Nicklas",
+    workspaceLabel: "Nicklas Larsen",
     fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
     crm: {
       dealSourceField: "Deal Source", dealSource: "Cold email (LD)",
@@ -92,10 +92,10 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     airtableBaseId: "appV8wpBdqTgCi4Ws",
     airtableTableId: "tblCATnaPTV9fb2Ab",
     // Everything runs as Larsen now, so Acceler8rs bookings post to the Larsen meetings
-    // channel (C03LPQ4G3HR). The "Workspace: Lukas" line keeps them distinguishable.
+    // channel (C03LPQ4G3HR). The "Sender: Lukas Maxen" line keeps them distinguishable.
     // (Own channel #acceler8rs-meetings C07CNPN71PS retired for meeting posts.)
     slackChannel: "C03LPQ4G3HR",
-    workspaceLabel: "Lukas",
+    workspaceLabel: "Lukas Maxen",
     fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
     crm: {
       dealSourceField: "Deal Source", dealSource: "Cold email (Acceler8rs)",
@@ -164,7 +164,7 @@ const isoDate = (iso: string): string => new Date(iso).toISOString().slice(0, 10
 
 function slackMessage(verb: "New meeting booked" | "Meeting rescheduled", i: BookingInput, rec: Record<string, any> | undefined, cfg: MeetingConfig, extra: string[] = []): string {
   const lines = [`${verb} with ${i.leadName || i.leadEmail}`, ""];
-  if (cfg.workspaceLabel) lines.push(`Workspace: ${cfg.workspaceLabel}`);
+  if (cfg.workspaceLabel) lines.push(`Sender: ${cfg.workspaceLabel}`);
   lines.push(`Email: ${i.leadEmail}`);
   if (i.phone) lines.push(`Phone: ${i.phone}`);
   if (i.campaign) lines.push(`Campaign: ${i.campaign}`);
