@@ -14,13 +14,8 @@ import {
 } from "@/lib/slack-approval";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { backsyncInterestedToEmailBison } from "@/lib/emailbison-backsync";
-import { CALENDLY_CLIENT_CONFIG } from "@/lib/calendly";
-import { inferLeadTimezone, lookupCategoryForDomain } from "@/lib/lead-timezone";
-import {
-  suggestSlotsForClient,
-  buildLiveCalendarBlock,
-  CALENDLY_SLOT_PROMPT_RULE,
-} from "@/lib/calendly-slot-suggestions";
+import { lookupCategoryForDomain } from "@/lib/lead-timezone";
+import { CALENDLY_SLOT_PROMPT_RULE } from "@/lib/calendly-slot-suggestions";
 import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
 import { sanitizeJsonControlChars } from "@/lib/utils";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
@@ -1568,9 +1563,7 @@ ${ctx.summary}
   // event URL so it never returned real slots, yet the slot templates in-context primed the
   // model to fabricate times ("Monday at 10am EST"). Per the standing rule we schedule with
   // the Calendly link only, never a specific day/time. Re-enable only with a verified live
-  // feed AND explicit sign-off. suggestSlotsForClient / buildLiveCalendarBlock intentionally
-  // left unused here.
-  void CALENDLY_CLIENT_CONFIG;
+  // feed AND explicit sign-off (see lib/calendly-slot-suggestions.ts, kept for that purpose).
 
   // Recent approved sends as in-context positive examples. Updates the
   // processor's "what good looks like" every time it drafts. Silent fallback
