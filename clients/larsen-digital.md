@@ -81,7 +81,7 @@ reply_body_rules: |
 
   PREFERRED CTA FORMAT (confirmed by Kasper, 2026-05-29):
   WITH live slots (LIVE CALENDAR AVAILABILITY block is present with 2 slots):
-  "If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [SLOT 1 NATURAL] or [SLOT 2 NATURAL]? If not, here is my calendar: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner"
+  "If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner"
   WITHOUT live slots (no LIVE CALENDAR AVAILABILITY block):
   "If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Feel free to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner"
   NEVER write [DATE 1], [DATE 2], or any placeholder text in the final reply. If no live slots are available, drop the slot proposal entirely and only include the Calendly link.
@@ -92,7 +92,7 @@ referral_handover_template: |
 
   [ONE LINE: acknowledge the intro from the original sender by first name. e.g. "Thanks for the intro, [ORIGINAL_SENDER_FIRST_NAME] mentioned you'd be the right person to chat with."]
 
-  [SLOT LINE: If LIVE CALENDAR AVAILABILITY has 2 slots, write "Would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick call? If not, easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner" Otherwise just "Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner"]
+  [SLOT LINE: If LIVE CALENDAR AVAILABILITY has 2 slots, write "Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner" Otherwise just "Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner"]
 
   {SENDER_EMAIL_SIGNATURE}
 
@@ -324,7 +324,7 @@ We run a model built around one outcome, maximizing the value of your brand when
 
 We take over multi-channel growth and retention. For context on velocity, last year we took 2 brands past 8 figure run rates. One went from $0 to $850k/mo in 4 months, a global brand you would recognize instantly. Our M&A team has closed over $1.2B in consumer transactions, giving us a clear read on what strategic and PE buyers pay a premium for and how to position your brand for the best possible exit.
 
-If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Are you free [DAY at TIME, their TZ] or [DAY at TIME, their TZ]? If not, grab a slot on my calendar here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
+If this is relevant, let's grab 15 minutes to discuss growth and valuation/exit options for [BRAND]. Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 
 Looking forward to connecting,
 
