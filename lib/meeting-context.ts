@@ -62,34 +62,6 @@ async function haiku(prompt: string, maxTokens: number): Promise<string | null> 
   }
 }
 
-async function haikuWithSearch(prompt: string, maxTokens: number): Promise<string | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 18000);
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: maxTokens,
-        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 2 }],
-        messages: [{ role: "user", content: prompt }],
-      }),
-      signal: ctrl.signal,
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const text = (data?.content ?? []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join(" ").trim().replace(/\s+/g, " ");
-    return text || null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 /** The lead's OWN messages (never ours) — a grounding hint for research. */
 async function leadThreadText(workspaceSlug: string, emails: string[]): Promise<string> {
   const lc = emails.map(e => e.toLowerCase());
@@ -137,16 +109,15 @@ async function enrichLead(o: { company: string; domain?: string; leadSaid?: stri
 
   const ask =
     `You are writing a short briefing for a sales rep about a company that just booked a call. Base everything on the ` +
-    `COMPANY itself and what the LEAD said about themselves. NEVER describe our own outreach or sales pitch. Search the ` +
-    `web for the company if the details below are thin or missing.\n\n${facts}\n\n` +
-    `Return EXACTLY these four lines, nothing else:\n` +
-    `COMPANY: one short line on what they actually sell or do, with a category in parentheses. Write "unknown" ONLY if you genuinely cannot find anything.\n` +
+    `COMPANY itself and what the LEAD said about themselves, plus anything you already know about this company. NEVER ` +
+    `describe our own outreach or sales pitch.\n\n${facts}\n\n` +
+    `Return EXACTLY these four lines, nothing else, no preamble, no markdown:\n` +
+    `COMPANY: one short line on what they actually sell or do, with a category in parentheses. Write "unknown" ONLY if you genuinely have nothing to go on.\n` +
     `EBITDA: approximate annual EBITDA as "<amount> | <source>", amount like ~$4M, source one of "stated in thread" / "from public info" / "from revenue" / "rough estimate". "n/a" only if impossible.\n` +
     `CONTEXT: one short line (max 16 words) on how THIS company fits (or misses) the buyer's criteria and why. About the lead's business, never our pitch.\n` +
     `ICP FIT: start with Yes, Partial, or No, then a 4-8 word reason.`;
 
-  let out = await haikuWithSearch(ask, 700);
-  if (!out) out = await haiku(ask, 300);
+  const out = await haiku(ask, 340);
   if (!out) return { company: null, ebitda: null, context: null, icpFit: null };
 
   let ebitda: string | null = null;
