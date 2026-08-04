@@ -98,7 +98,8 @@ function companyFromSummary(summary: string): string | null {
 interface LeadEnrichment { company: string | null; context: string | null; icpFit: string | null; }
 
 // Company / Context / ICP fit — PLAIN Haiku (no tools), so the strict three-line format is
-// reliable. EBITDA is a separate web-search call (searchEbitda) so its verbose output can
+// reliable. It is the FALLBACK used only when the web-search researchLead call is unavailable.
+// (Kept short; the web-search path handles EBITDA + company lookup.) Its verbose output can
 // never disturb these lines.
 async function enrichLead(o: { company: string; domain?: string; leadSaid?: string; scraped?: string; icp?: string }): Promise<LeadEnrichment> {
   const facts = [
