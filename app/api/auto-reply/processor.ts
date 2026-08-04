@@ -1564,25 +1564,13 @@ ${ctx.summary}
   if (categoryOverride) {
     calendlyHint += `CATEGORY OVERRIDE for this lead, use exactly "${categoryOverride}" wherever the template asks for [CATEGORY]. Do not infer a different category.\n\n`;
   }
-  if (CALENDLY_CLIENT_CONFIG[workspaceSlug]) {
-    const clientCfg = CALENDLY_CLIENT_CONFIG[workspaceSlug];
-    const inferred = inferLeadTimezone({
-      enrichment: leadEnrichment,
-      leadEmail: reply.lead_email,
-      leadCompany: reply.lead_company,
-      defaultTz: clientCfg.defaultTz,
-      defaultUsTz: "America/New_York",
-    });
-    const slots = await suggestSlotsForClient(workspaceSlug, inferred.tz);
-    const liveBlock = buildLiveCalendarBlock(slots);
-    if (liveBlock) {
-      calendlyHint = `${liveBlock}
-Lead's inferred timezone: ${inferred.tz} (${inferred.reason})
-Do not confirm a single slot, always offer both.
-
-`;
-    }
-  }
+  // Live-slot proposals are DISABLED (2026-08-04). The pipeline used a retired Calendly
+  // event URL so it never returned real slots, yet the slot templates in-context primed the
+  // model to fabricate times ("Monday at 10am EST"). Per the standing rule we schedule with
+  // the Calendly link only, never a specific day/time. Re-enable only with a verified live
+  // feed AND explicit sign-off. suggestSlotsForClient / buildLiveCalendarBlock intentionally
+  // left unused here.
+  void CALENDLY_CLIENT_CONFIG;
 
   // Recent approved sends as in-context positive examples. Updates the
   // processor's "what good looks like" every time it drafts. Silent fallback
