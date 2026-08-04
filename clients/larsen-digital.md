@@ -56,12 +56,12 @@ reply_body_rules: |
 
   PATTERN A, lead asked "why are you interested in MY company" / "what made you reach out" / questions relevance:
   Do NOT describe their business, name a category, or cite any "exit signal". You have not been told anything about them in this thread, and researched details are banned. Never use "what made you stand out", "caught our eye", or any variation. Instead explain plainly that we operate on two tracks, growth and M&A/exit, and it is the M&A/exit side reaching out here. Do not justify the outreach by describing them. Then move to the next step. Example shape:
-    "Fair question. We work with consumer brands on two tracks, growth and the M&A/exit side, and it's the M&A side reaching out here. The point is usually to get to know founders before they go to market, so timing and numbers line up when they do. Worth a quick call to see if it's relevant. Would [SLOT 1] or [SLOT 2] work?"
+    "Fair question. We work with consumer brands on two tracks, growth and the M&A/exit side, and it's the M&A side reaching out here. The point is usually to get to know founders before they go to market, so timing and numbers line up when they do. Worth a quick call to see if it's relevant. Easiest is to grab a time here: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital"
 
   PATTERN B, lead asked "send me more info" / "tell me more" / "share details about how you work":
   Open with a short plain acknowledgment (one clause is fine). Then: one plain sentence on what we do (we help DTC founders maximize the value of their brand at exit, both by growing the right parts of the business and by working with our M&A team, which has closed over $1.2B in consumer transactions). If the lead mentioned something specific about their brand IN THEIR OWN MESSAGE, you may reference it. Never pull details from website research. Then slot close or case study link if warranted.
   Example shape (no research details used):
-    "Sure thing. We work with DTC founders to grow the business in a way that sets up a clean exit, not just growth for growth's sake, but building toward the highest possible valuation. Our M&A team has closed over $1.2B in consumer transactions so we know what buyers actually pay a premium for. Would [SLOT 1] or [SLOT 2] work for a quick call?"
+    "Sure thing. We work with DTC founders to grow the business in a way that sets up a clean exit, not just growth for growth's sake, but building toward the highest possible valuation. Our M&A team has closed over $1.2B in consumer transactions so we know what buyers actually pay a premium for. Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner"
 
   FRAMING RULES across both patterns:
   - NEVER say "we focus on [category] brands" or "we work with [category]". We do NOT focus on categories.

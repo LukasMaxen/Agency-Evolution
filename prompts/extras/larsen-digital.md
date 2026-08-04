@@ -155,7 +155,7 @@ Of course, here it is: https://www.larsendigitalmarketing.com/case-studies
 
 One that stands out is a US brand we took from $0 to $850k/month in 4 months. [ONE LINE tying it to the lead's stage/category if a genuine match exists, otherwise drop this line.]
 
-If you want to talk through how we'd approach [BRAND] specifically, would [SLOT 1 NATURAL] or [SLOT 2 NATURAL] work for a quick 15? If not, grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
+If you want to talk through how we'd approach [BRAND] specifically, Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner
 
 [SENDER_EMAIL_SIGNATURE]
 ```
