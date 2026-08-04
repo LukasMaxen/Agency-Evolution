@@ -800,8 +800,21 @@ function SenderTable({
       });
       const j = await res.json();
       if (!res.ok) onActionDone(j.error ?? "Batch failed", "error");
-      else if (!j.ok) onActionDone(`${domain}: partial${j.stragglers ? ` · ${j.stragglers} stragglers` : ""}.`, "error");
-      else onActionDone(`${domain}: ${senderIds.length} sender(s) processed, ${j.campaigns ?? 0} campaign(s) touched.`, "success");
+      else {
+        if (j.daily_limit_set != null || j.warmup_daily_limit_set != null) {
+          const overlay: Record<string, { daily_limit?: number; warmup_daily_limit?: number }> = {};
+          for (const s of targets) {
+            overlay[s.email] = {
+              ...(localLimits[s.email] ?? {}),
+              ...(j.daily_limit_set != null ? { daily_limit: j.daily_limit_set } : {}),
+              ...(j.warmup_daily_limit_set != null ? { warmup_daily_limit: j.warmup_daily_limit_set } : {}),
+            };
+          }
+          setLocalLimits(prev => ({ ...prev, ...overlay }));
+        }
+        if (!j.ok) onActionDone(`${domain}: partial${j.stragglers ? ` · ${j.stragglers} stragglers` : ""}.`, "error");
+        else onActionDone(`${domain}: ${senderIds.length} sender(s) processed, ${j.campaigns ?? 0} campaign(s) touched.`, "success");
+      }
     } catch (err: any) {
       onActionDone(err.message ?? "Network error", "error");
     }
@@ -825,6 +838,16 @@ function SenderTable({
       const j = await res.json();
       if (!res.ok || !j.ok) onActionDone(j.error ?? "Action failed", "error");
       else {
+        if (j.daily_limit_set != null || j.warmup_daily_limit_set != null) {
+          setLocalLimits(prev => ({
+            ...prev,
+            [s.email]: {
+              ...(prev[s.email] ?? {}),
+              ...(j.daily_limit_set != null ? { daily_limit: j.daily_limit_set } : {}),
+              ...(j.warmup_daily_limit_set != null ? { warmup_daily_limit: j.warmup_daily_limit_set } : {}),
+            },
+          }));
+        }
         const verb =
           action === "attach_to_all"            ? `${j.campaigns_affected ?? 0} campaign(s) attached` :
           action === "pause_outbound_and_warmup" ? "throttled to 1/day + warmup" :

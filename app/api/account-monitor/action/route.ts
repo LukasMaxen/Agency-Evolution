@@ -157,11 +157,30 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ sender_email_ids: [senderId], daily_limit: WARMUP_PAUSE_LIMIT }),
       });
 
-      await pool.query(
-        `UPDATE sender_accounts SET warming_since = NOW()
-         WHERE workspace_slug = $1 AND email = $2`,
-        [workspace_slug, sender_email.toLowerCase()]
-      );
+      if (throttleOk) {
+        await pool.query(
+          `UPDATE sender_accounts SET daily_limit = $1
+           WHERE workspace_slug = $2 AND email = $3`,
+          [PAUSE_DAILY_LIMIT, workspace_slug, sender_email.toLowerCase()]
+        );
+      }
+      if (warmupLimitRes.ok) {
+        await pool.query(
+          `UPDATE sender_accounts SET warmup_daily_limit = $1
+           WHERE workspace_slug = $2 AND email = $3`,
+          [WARMUP_PAUSE_LIMIT, workspace_slug, sender_email.toLowerCase()]
+        );
+      }
+      // Only stamp warming_since when outbound was actually throttled, so a
+      // failed EB PATCH doesn't flip the dashboard to "warming only" while
+      // the sender keeps sending at full volume.
+      if (throttleOk) {
+        await pool.query(
+          `UPDATE sender_accounts SET warming_since = NOW()
+           WHERE workspace_slug = $1 AND email = $2`,
+          [workspace_slug, sender_email.toLowerCase()]
+        );
+      }
 
       return NextResponse.json({
         ok:                     throttleOk && warmupLimitRes.ok,
@@ -251,11 +270,30 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ sender_email_ids: [senderId], daily_limit: WARMUP_RESUME_LIMIT }),
     });
 
-    await pool.query(
-      `UPDATE sender_accounts SET warming_since = NULL
-       WHERE workspace_slug = $1 AND email = $2 AND warming_since IS NOT NULL`,
-      [workspace_slug, sender_email.toLowerCase()]
-    );
+    if (resumeOk) {
+      await pool.query(
+        `UPDATE sender_accounts SET daily_limit = $1
+         WHERE workspace_slug = $2 AND email = $3`,
+        [RESUME_DAILY_LIMIT, workspace_slug, sender_email.toLowerCase()]
+      );
+    }
+    if (warmupLimitRes.ok) {
+      await pool.query(
+        `UPDATE sender_accounts SET warmup_daily_limit = $1
+         WHERE workspace_slug = $2 AND email = $3`,
+        [WARMUP_RESUME_LIMIT, workspace_slug, sender_email.toLowerCase()]
+      );
+    }
+    // Only clear warming_since when the limits were actually restored;
+    // otherwise a failed EB PATCH would show the sender as active while
+    // it's still throttled/warming at EB.
+    if (resumeOk && warmupLimitRes.ok) {
+      await pool.query(
+        `UPDATE sender_accounts SET warming_since = NULL
+         WHERE workspace_slug = $1 AND email = $2 AND warming_since IS NOT NULL`,
+        [workspace_slug, sender_email.toLowerCase()]
+      );
+    }
 
     // Refresh attached_campaigns_count so the dashboard reflects the attach
     // immediately.

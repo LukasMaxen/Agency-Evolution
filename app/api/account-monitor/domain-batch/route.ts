@@ -145,11 +145,34 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ sender_email_ids: sender_ids, daily_limit: WARMUP_RESUME_LIMIT }),
       });
 
-      await pool.query(
-        `UPDATE sender_accounts SET warming_since = NULL
-          WHERE workspace_slug = $1 AND eb_sender_id = ANY($2::int[]) AND warming_since IS NOT NULL`,
-        [workspace_slug, sender_ids]
-      );
+      // Mirror the restored limits into the local DB so the dashboard
+      // reflects the new state immediately, not after the hourly sync.
+      const resumeSucceededIds = resumeResults.filter(r => r.ok).map(r => r.id);
+      if (resumeSucceededIds.length > 0) {
+        await pool.query(
+          `UPDATE sender_accounts SET daily_limit = $1
+            WHERE workspace_slug = $2 AND eb_sender_id = ANY($3::int[])`,
+          [RESUME_DAILY_LIMIT, workspace_slug, resumeSucceededIds]
+        );
+      }
+      if (warmupLimitRes.ok) {
+        await pool.query(
+          `UPDATE sender_accounts SET warmup_daily_limit = $1
+            WHERE workspace_slug = $2 AND eb_sender_id = ANY($3::int[])`,
+          [WARMUP_RESUME_LIMIT, workspace_slug, sender_ids]
+        );
+      }
+
+      // Only clear warming_since for senders whose limits were actually
+      // restored; otherwise the dashboard would show a sender as "active"
+      // while it's still throttled/warming at EB.
+      if (resumeSucceededIds.length > 0 && warmupLimitRes.ok) {
+        await pool.query(
+          `UPDATE sender_accounts SET warming_since = NULL
+            WHERE workspace_slug = $1 AND eb_sender_id = ANY($2::int[]) AND warming_since IS NOT NULL`,
+          [workspace_slug, resumeSucceededIds]
+        );
+      }
       await refreshAttachedCounts(instanceUrl, headers, workspace_slug, sender_ids);
 
       const succeeded = results.filter(r => r.ok).length;
@@ -209,11 +232,31 @@ export async function POST(req: NextRequest) {
         [workspace_slug, sender_ids]
       );
     }
-    await pool.query(
-      `UPDATE sender_accounts SET warming_since = NOW()
-        WHERE workspace_slug = $1 AND eb_sender_id = ANY($2::int[])`,
-      [workspace_slug, sender_ids]
-    );
+    const throttleSucceededIds = throttleResults.filter(r => r.ok).map(r => r.id);
+    if (throttleSucceededIds.length > 0) {
+      await pool.query(
+        `UPDATE sender_accounts SET daily_limit = $1
+          WHERE workspace_slug = $2 AND eb_sender_id = ANY($3::int[])`,
+        [PAUSE_DAILY_LIMIT, workspace_slug, throttleSucceededIds]
+      );
+    }
+    if (warmupLimitRes.ok) {
+      await pool.query(
+        `UPDATE sender_accounts SET warmup_daily_limit = $1
+          WHERE workspace_slug = $2 AND eb_sender_id = ANY($3::int[])`,
+        [WARMUP_PAUSE_LIMIT, workspace_slug, sender_ids]
+      );
+    }
+    // Only stamp warming_since for senders whose outbound was actually
+    // throttled; otherwise a failed EB PATCH would still flip the sender
+    // to "warming only" in the UI while EB keeps sending at full volume.
+    if (throttleSucceededIds.length > 0) {
+      await pool.query(
+        `UPDATE sender_accounts SET warming_since = NOW()
+          WHERE workspace_slug = $1 AND eb_sender_id = ANY($2::int[])`,
+        [workspace_slug, throttleSucceededIds]
+      );
+    }
 
     return NextResponse.json({
       ok:                     throttleFailed.length === 0 && warmupRes.ok && warmupLimitRes.ok,
