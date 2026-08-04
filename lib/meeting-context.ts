@@ -277,15 +277,17 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
     let leadSaid = "";
     try { leadSaid = await leadThreadText(input.workspaceSlug, [...threadEmails]); } catch { /* omit */ }
     const companyForLookup = leadCompany || domain || email;
-    const [e, ebitda] = await Promise.all([
-      enrichLead({ company: companyForLookup, domain, leadSaid, scraped, icp: input.icpDescription }),
-      searchEbitda({ company: companyForLookup, domain, leadSaid }),
-    ]);
-    const company = e.company || companyFromSummary(scraped) || (leadCompany || null);
+    // Primary: research the company on the web. Fallback: plain Haiku if search is unavailable.
+    let r = await researchLead({ company: companyForLookup, domain, leadSaid, scraped, icp: input.icpDescription });
+    if (!r) {
+      const e = await enrichLead({ company: companyForLookup, domain, leadSaid, scraped, icp: input.icpDescription });
+      r = { company: e.company, ebitda: null, context: e.context, icpFit: e.icpFit };
+    }
+    const company = r.company || companyFromSummary(scraped) || (leadCompany || null);
     if (company) lines.push(`Company: ${company}`);
-    if (ebitda) lines.push(`EBITDA: ${ebitda}`);
-    if (e.context) lines.push(`Context: ${e.context}`);
-    if (e.icpFit) lines.push(`ICP fit: ${e.icpFit}`);
+    if (r.ebitda) lines.push(`EBITDA: ${r.ebitda}`);
+    if (r.context) lines.push(`Context: ${r.context}`);
+    if (r.icpFit) lines.push(`ICP fit: ${r.icpFit}`);
   } else {
     // Non-M&A workspaces: just what the company does.
     const company = companyFromSummary(scraped) || (leadCompany || null);
