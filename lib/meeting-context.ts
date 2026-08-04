@@ -307,5 +307,6 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
     if (company) lines.push(`Company: ${company}`);
   }
 
-  return lines;
+  // No em/en dashes anywhere in output (house rule) — swap them for commas.
+  return lines.map(l => l.replace(/\s*[—–]\s*/g, ", ").replace(/,\s*,/g, ","));
 }
