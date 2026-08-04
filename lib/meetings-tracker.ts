@@ -161,6 +161,9 @@ async function postSlack(channel: string, text: string): Promise<void> {
 }
 
 const isoDate = (iso: string): string => new Date(iso).toISOString().slice(0, 10);
+// Meeting times are always shown in CET (Europe/Copenhagen), never UTC.
+const cet = (iso: string): string =>
+  new Date(iso).toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Copenhagen" }) + " CET";
 
 function slackMessage(verb: "New meeting booked" | "Meeting rescheduled", i: BookingInput, rec: Record<string, any> | undefined, cfg: MeetingConfig, extra: string[] = []): string {
   const lines = [`${verb} with ${i.leadName || i.leadEmail}`, ""];
@@ -171,7 +174,7 @@ function slackMessage(verb: "New meeting booked" | "Meeting rescheduled", i: Boo
   const website = i.website || (cfg.slackExtra?.website ? rec?.[cfg.slackExtra.website] : undefined);
   if (website) lines.push(`Website: ${website}`);
   if (i.eventTypeName) lines.push(`Event type: ${i.eventTypeName}`);
-  lines.push(`Time: ${i.prettyTime ?? new Date(i.meetingStartISO).toUTCString()}`);
+  lines.push(`Time: ${i.prettyTime ?? cet(i.meetingStartISO)}`);
   // Context block (Company / EBITDA / Context / ICP fit) comes from buildMeetingContext.
   if (extra.length) { lines.push(""); lines.push(...extra); }
   return lines.join("\n");
@@ -196,7 +199,7 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
           `Email: ${input.leadEmail}`,
           input.phone ? `Phone: ${input.phone}` : "",
           input.eventTypeName ? `Event type: ${input.eventTypeName}` : "",
-          `Time: ${input.prettyTime ?? new Date(input.meetingStartISO).toUTCString()}`,
+          `Time: ${input.prettyTime ?? cet(input.meetingStartISO)}`,
           "",
           "Not written to any Airtable — please attribute this booking manually.",
         ].filter(Boolean).join("\n"));
