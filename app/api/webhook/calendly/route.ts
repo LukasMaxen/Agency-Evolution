@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
         leadName,
         meetingStartISO: scheduledAt.toISOString(),
         bookedAtISO: new Date(bookedAt).toISOString(),
-        prettyTime: scheduledAt.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC",
+        prettyTime: scheduledAt.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Copenhagen" }) + " CET",
         eventTypeName: eventName,
         campaign,
         phone,
