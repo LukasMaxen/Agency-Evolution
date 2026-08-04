@@ -11,7 +11,7 @@ These rules are non-negotiable across ALL reply patterns.
 - Use a **colon** before the URL, never a comma. The colon-before-URL is the ONLY colon allowed anywhere in the reply body.
 - No comma directly before a URL. No semicolons. No em dashes.
 - If the lead's timezone has no overlap with Nicklas's UK afternoon (typical AU/Asian leads), DROP the slot question entirely and write only: `Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner`
-- **ALWAYS offer two specific time slot suggestions AND include the Calendly link alongside them.** Never use a single open-ended question like "Would Monday at 10am work?" — give two concrete options plus the link so the lead can self-book if preferred.
+- **Never propose specific days or times. Schedule with the Calendly link only** so the lead self-books. We cannot see anyone's calendar, so any specific time would be fabricated.
 
 ### CTA TONE & PHRASING RULES
 
@@ -19,7 +19,7 @@ These rules are non-negotiable across ALL reply patterns.
 - Always reference the lead's specific company or business in the CTA line rather than abstract placeholders like "things" or "it". Use phrasing like "how we'd approach your business specifically" or "how we'd approach [BRAND]".
 - Model CTA structure (adapt naturally, don't copy verbatim every time):
   `If this could be interesting for [BRAND], I'd be happy to have an initial chat to walk you through how we'd approach your business specifically. Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner`
-- The phrase "Would X or Y work?" stays as the slot-offer structure, but the sentence before it should feel like a genuine human invitation, not a boilerplate closer.
+- The scheduling line should feel like a genuine human invitation, not a boilerplate closer, e.g. "Easiest is to grab a time here: <link>".
 
 ## CONFIDENCE FRAMING (apply to EVERY reply)
 
@@ -103,7 +103,7 @@ Key rules for this shape:
 
 FIXED TEXT with placeholder fill. Treat as fill-in-the-blanks, NOT a creative rewrite.
 
-Allowed substitutions: `[FIRST_NAME]`, `[BRAND]`, `[SPECIFIC EXIT SIGNAL]`, `[SPECIFIC ATTRIBUTE]`, `[SLOT 1 NATURAL]`, `[SLOT 2 NATURAL]`
+Allowed substitutions: `[FIRST_NAME]`, `[BRAND]`, `[SPECIFIC EXIT SIGNAL]`, `[SPECIFIC ATTRIBUTE]`
 
 ```
 Hi [FIRST_NAME],
@@ -125,7 +125,7 @@ Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-o
 
 Use the canonical More Info template from `clients/larsen-digital.md` (the longer one that opens with "Happy to share more" then "We run a model built around one outcome..."). Do **NOT** inject brand-specific exit-signal personalization in the OPENER. The lead asked WHAT WE DO, not WHY WE'RE INTERESTED. Keep the opener as written. Personalization happens only via NAME / BRAND / CATEGORY substitutions in the body and CTA line.
 
-Allowed substitutions: `[NAME]`, `[BRAND]`, `[CATEGORY]`, `[SLOT 1 NATURAL]`, `[SLOT 2 NATURAL]`
+Allowed substitutions: `[NAME]`, `[BRAND]`, `[CATEGORY]`
 
 CTA line wording: `If this could be interesting for [BRAND], I'd be happy to have an initial chat to walk you through how we'd approach your business specifically. Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner`
 
@@ -193,7 +193,7 @@ Easiest is to grab a time here: https://calendly.com/d/dtm8-3nx-vr9/intro-call-o
 
 ## LEAD-INITIATED-CALL REPLY (lead invites us to suggest a time / says "let me know when is convenient")
 
-Use this pattern when the lead has responded to our initial outreach by proactively inviting us to propose a time to chat. They have already shown clear interest — do NOT re-pitch, do NOT restate value props, do NOT over-explain the offer. Simply appreciate them getting back to us, offer two specific time options, and include the calendar link.
+Use this pattern when the lead has responded to our initial outreach by proactively inviting us to propose a time to chat. They have already shown clear interest — do NOT re-pitch, do NOT restate value props, do NOT over-explain the offer. Simply appreciate them getting back to us and include the calendar link.
 
 Key rules:
 - Keep the reply short and warm — three to four lines maximum in the body.

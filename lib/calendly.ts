@@ -9,12 +9,12 @@ export type CalendlyClientConfig = {
 export const CALENDLY_CLIENT_CONFIG: Record<string, CalendlyClientConfig> = {
   "larsen-digital": {
     tokenEnv: "CALENDLY_TOKEN_LARSEN_DIGITAL",
-    eventTypeUrl: "https://calendly.com/larsen-digital-marketing/intro",
+    eventTypeUrl: "https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner",
     defaultTz: "Europe/London",
   },
   "acceler8rs": {
     tokenEnv: "ACCELER8RS_CALENDLY_TOKEN",
-    eventTypeUrl: "https://calendly.com/lukasm-acceler8rs/intro-meeting",
+    eventTypeUrl: "https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner",
     defaultTz: "Europe/London",
   },
 };
