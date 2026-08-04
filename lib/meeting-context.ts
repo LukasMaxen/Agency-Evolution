@@ -174,10 +174,12 @@ function pickBlock(out: string, label: string, nextLabels: string[]): string | n
 
 // PRIMARY enrichment: actually look the company up on the web every time. Returns all four
 // lines, parsed tolerantly. null if the search itself was unavailable (→ plain-Haiku fallback).
-async function researchLead(o: { company: string; domain?: string; leadSaid?: string; scraped?: string; icp?: string }): Promise<LeadResearch | null> {
+async function researchLead(o: { company: string; domains?: string[]; domain?: string; leadSaid?: string; scraped?: string; icp?: string; phone?: string }): Promise<LeadResearch | null> {
+  const domainList = (o.domains && o.domains.length ? o.domains : (o.domain ? [o.domain] : []));
   const facts = [
-    o.company ? `Company name: ${o.company}` : "",
-    o.domain ? `Website: ${o.domain}` : "",
+    o.company ? `Company name / identifier: ${o.company}` : "",
+    domainList.length ? `Company email/website domain(s): ${domainList.join(", ")}` : "",
+    o.phone ? `Contact phone (country tells you where they operate): ${o.phone}` : "",
     o.leadSaid ? `What the lead said about their own business: ${o.leadSaid}` : "",
     (o.scraped && !looksLikeFailure(o.scraped)) ? `Notes scraped from their site: ${o.scraped}` : "",
     o.icp ? `The buyer we represent is looking for: ${o.icp}` : "",
@@ -186,7 +188,11 @@ async function researchLead(o: { company: string; domain?: string; leadSaid?: st
   const ask =
     `You are researching a company that just booked a sales call, to brief the rep. Use web search to find what ` +
     `this company actually is and does, plus any public revenue or EBITDA. Actually look it up — do not rely only on ` +
-    `the notes below, and never describe our own outreach.\n\n${facts}\n\n` +
+    `the notes below, and never describe our own outreach.\n\n` +
+    `IMPORTANT: identify the SPECIFIC company from the domain(s) and what the lead said. The brand/store domain is the ` +
+    `strongest signal; a holding-company domain is weaker. Do NOT confuse it with a similarly-named company in another ` +
+    `country — cross-check against the lead's description and the phone's country. If sources conflict or you are not ` +
+    `confident which company it is, say so in CONTEXT and keep COMPANY to what the lead actually told you.\n\n${facts}\n\n` +
     `When you are done searching, end your reply with EXACTLY this block and nothing after it:\n` +
     `COMPANY: <specific line on what they really sell or do, with a category in parentheses>\n` +
     `EBITDA: <~$amount | from public info OR from revenue OR stated in thread — or the single word none>\n` +
