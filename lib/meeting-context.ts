@@ -199,6 +199,26 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
     }
   } catch { /* omit */ }
 
+  // Link the lead's thread when they booked from a different address than we emailed (same
+  // person, different domain — e.g. wassim.kari@loolia.com vs wassim.kari@parallel-holding.com).
+  // Match by a specific email local-part so we can still surface what the lead told us.
+  try {
+    const local = email.split("@")[0] || "";
+    const generic = /^(info|sales|contact|admin|hello|team|office|support|marketing|founders?|ceo|hi|no-?reply)$/i.test(local);
+    if (local.length > 4 && !generic) {
+      const r2 = await pool.query(
+        `SELECT LOWER(lead_email) AS e, lead_company FROM replies
+          WHERE workspace_slug = $1 AND split_part(LOWER(lead_email), '@', 1) = $2
+          ORDER BY received_at DESC LIMIT 5`,
+        [input.workspaceSlug, local.toLowerCase()],
+      );
+      for (const row of r2.rows) {
+        if (row.e) threadEmails.add(row.e);
+        if (!leadCompany && row.lead_company) leadCompany = row.lead_company;
+      }
+    }
+  } catch { /* omit */ }
+
   // Site scrape — a hint only. Never shown directly if it failed.
   let scraped = "";
   try { if (domain) { const ctx = await getLeadCompanyContext(domain); if (ctx?.summary) scraped = ctx.summary; } } catch { /* omit */ }
