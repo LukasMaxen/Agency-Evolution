@@ -152,32 +152,71 @@ async function haikuWithSearch(prompt: string, maxTokens: number): Promise<strin
   }
 }
 
-// Always web-search for the company's EBITDA. Returns a formatted line if a figure is found
-// (or derived from a stated revenue), else null so the EBITDA line is simply omitted.
-async function searchEbitda(o: { company: string; domain?: string; leadSaid?: string }): Promise<string | null> {
-  const ask =
-    `Search the web for the approximate annual EBITDA of this specific company (use its revenue to estimate if ` +
-    `EBITDA is not published). Company: ${o.company}.${o.domain ? ` Website: ${o.domain}.` : ""}` +
-    `${o.leadSaid ? ` What the lead said about their business: ${o.leadSaid}` : ""}\n\n` +
-    `After searching, output ONE final line and nothing after it:\n` +
-    `RESULT: ~$<amount> | <from public info | from revenue | stated in thread>\n` +
-    `If you cannot find or reasonably derive any figure, output exactly: RESULT: none`;
-  const out = await haikuWithSearch(ask, 900);
-  if (!out) return null;
-  const idx = out.toUpperCase().lastIndexOf("RESULT:");
-  const last = idx >= 0 ? out.slice(idx + 7).trim() : "";
-  if (!last || /^none/i.test(last)) return null;
-  const m = last.match(/(~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?)\s*\|\s*([a-zA-Z ]+)/);
-  if (m) {
-    const amt = normalizeAmt(m[1].replace(/\s+/g, ""));
-    const src = m[2].toLowerCase();
-    const tag = (src.includes("stated") && src.includes("thread")) ? "stated in thread"
-              : src.includes("revenue") ? "est. from revenue"
-              : "from public info";
-    return `~${amt} (${tag})`;
+interface LeadResearch { company: string | null; ebitda: string | null; context: string | null; icpFit: string | null; }
+
+// Pull one labelled value out of a possibly-verbose web-search answer. Takes the LAST
+// occurrence of the label (so search narration earlier in the text is ignored) and cuts it
+// at whichever of the other labels comes next.
+function pickBlock(out: string, label: string, nextLabels: string[]): string | null {
+  const up = out.toUpperCase();
+  const i = up.lastIndexOf(label.toUpperCase() + ":");
+  if (i < 0) return null;
+  let seg = out.slice(i + label.length + 1);
+  let cut = seg.length;
+  for (const n of nextLabels) {
+    const j = seg.toUpperCase().indexOf(n.toUpperCase() + ":");
+    if (j >= 0 && j < cut) cut = j;
   }
-  const a = last.match(/~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?/);
-  return a ? `~${normalizeAmt(a[0].replace(/\s+/g, ""))} (from public info)` : null;
+  seg = seg.slice(0, cut).trim().replace(/^["'\-\s]+|["'\s]+$/g, "");
+  return seg && !/^(none|unknown|n\/?a)\b/i.test(seg) ? seg.slice(0, 220) : null;
+}
+
+// PRIMARY enrichment: actually look the company up on the web every time. Returns all four
+// lines, parsed tolerantly. null if the search itself was unavailable (→ plain-Haiku fallback).
+async function researchLead(o: { company: string; domain?: string; leadSaid?: string; scraped?: string; icp?: string }): Promise<LeadResearch | null> {
+  const facts = [
+    o.company ? `Company name: ${o.company}` : "",
+    o.domain ? `Website: ${o.domain}` : "",
+    o.leadSaid ? `What the lead said about their own business: ${o.leadSaid}` : "",
+    (o.scraped && !looksLikeFailure(o.scraped)) ? `Notes scraped from their site: ${o.scraped}` : "",
+    o.icp ? `The buyer we represent is looking for: ${o.icp}` : "",
+  ].filter(Boolean).join("\n");
+
+  const ask =
+    `You are researching a company that just booked a sales call, to brief the rep. Use web search to find what ` +
+    `this company actually is and does, plus any public revenue or EBITDA. Actually look it up — do not rely only on ` +
+    `the notes below, and never describe our own outreach.\n\n${facts}\n\n` +
+    `When you are done searching, end your reply with EXACTLY this block and nothing after it:\n` +
+    `COMPANY: <specific line on what they really sell or do, with a category in parentheses>\n` +
+    `EBITDA: <~$amount | from public info OR from revenue OR stated in thread — or the single word none>\n` +
+    `CONTEXT: <max 16 words on how they fit or miss the buyer's criteria and why, about the lead's business>\n` +
+    `ICP FIT: <Yes, Partial, or No, then a 4-8 word reason>`;
+
+  const out = await haikuWithSearch(ask, 1400);
+  if (!out) return null;
+
+  const company = pickBlock(out, "COMPANY", ["EBITDA", "CONTEXT", "ICP FIT"]);
+  const context = pickBlock(out, "CONTEXT", ["ICP FIT", "EBITDA", "COMPANY"]);
+  const icpFit = pickBlock(out, "ICP FIT", []);
+  const ebRaw = pickBlock(out, "EBITDA", ["CONTEXT", "ICP FIT"]);
+  if (!company && !context && !icpFit && !ebRaw) return null; // unparseable → fall back
+
+  let ebitda: string | null = null;
+  if (ebRaw) {
+    const m = ebRaw.match(/(~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?)\s*\|\s*([a-zA-Z ]+)/);
+    if (m) {
+      const amt = normalizeAmt(m[1].replace(/\s+/g, ""));
+      const src = m[2].toLowerCase();
+      const tag = (src.includes("stated") && src.includes("thread")) ? "stated in thread"
+                : src.includes("revenue") ? "est. from revenue"
+                : "from public info";
+      ebitda = `~${amt} (${tag})`;
+    } else {
+      const a = ebRaw.match(/~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?/);
+      if (a) ebitda = `~${normalizeAmt(a[0].replace(/\s+/g, ""))} (from public info)`;
+    }
+  }
+  return { company, ebitda, context, icpFit };
 }
 
 /** Returns the extra context lines to append to the meeting Slack message. */
