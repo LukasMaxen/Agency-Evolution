@@ -95,9 +95,11 @@ function companyFromSummary(summary: string): string | null {
   return first && first.length < 200 ? first : null;
 }
 
-interface LeadEnrichment { company: string | null; ebitda: string | null; context: string | null; icpFit: string | null; }
+interface LeadEnrichment { company: string | null; context: string | null; icpFit: string | null; }
 
-// One web-search-backed call that researches the LEAD and returns all four lines.
+// Company / Context / ICP fit — PLAIN Haiku (no tools), so the strict three-line format is
+// reliable. EBITDA is a separate web-search call (searchEbitda) so its verbose output can
+// never disturb these lines.
 async function enrichLead(o: { company: string; domain?: string; leadSaid?: string; scraped?: string; icp?: string }): Promise<LeadEnrichment> {
   const facts = [
     o.company ? `Company name: ${o.company}` : "",
@@ -111,34 +113,71 @@ async function enrichLead(o: { company: string; domain?: string; leadSaid?: stri
     `You are writing a short briefing for a sales rep about a company that just booked a call. Base everything on the ` +
     `COMPANY itself and what the LEAD said about themselves, plus anything you already know about this company. NEVER ` +
     `describe our own outreach or sales pitch.\n\n${facts}\n\n` +
-    `Return EXACTLY these four lines, nothing else, no preamble, no markdown:\n` +
+    `Return EXACTLY these three lines, nothing else, no preamble, no markdown:\n` +
     `COMPANY: one short line on what they actually sell or do, with a category in parentheses. Write "unknown" ONLY if you genuinely have nothing to go on.\n` +
-    `EBITDA: approximate annual EBITDA as "<amount> | <source>", amount like ~$4M, source one of "stated in thread" / "from public info" / "from revenue" / "rough estimate". "n/a" only if impossible.\n` +
     `CONTEXT: one short line (max 16 words) on how THIS company fits (or misses) the buyer's criteria and why. About the lead's business, never our pitch.\n` +
     `ICP FIT: start with Yes, Partial, or No, then a 4-8 word reason.`;
 
-  const out = await haiku(ask, 340);
-  if (!out) return { company: null, ebitda: null, context: null, icpFit: null };
+  const out = await haiku(ask, 260);
+  if (!out) return { company: null, context: null, icpFit: null };
+  return { company: grab(out, "COMPANY"), context: grab(out, "CONTEXT"), icpFit: grab(out, "ICP FIT") };
+}
 
-  let ebitda: string | null = null;
-  const rawEb = grab(out, "EBITDA");
-  if (rawEb) {
-    const m = rawEb.match(/(~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?)\s*\|\s*([a-zA-Z ]+)/);
-    if (m) {
-      const amt = normalizeAmt(m[1].replace(/\s+/g, ""));
-      const src = m[2].toLowerCase();
-      const tag = (src.includes("stated") && src.includes("thread")) ? "stated in thread"
-                : src.includes("revenue") ? "est. from revenue"
-                : (src.includes("public") || src.includes("online") || src.includes("info")) ? "est. from public info"
-                : "rough estimate";
-      ebitda = `~${amt} (${tag})`;
-    } else {
-      const a = rawEb.match(/~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?/);
-      if (a) ebitda = `~${normalizeAmt(a[0].replace(/\s+/g, ""))} (rough estimate)`;
-    }
+// Haiku with the web_search tool enabled. Used ONLY for the EBITDA lookup.
+async function haikuWithSearch(prompt: string, maxTokens: number): Promise<string | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 18000);
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: maxTokens,
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
+        messages: [{ role: "user", content: prompt }],
+      }),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = (data?.content ?? []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join(" ").trim().replace(/\s+/g, " ");
+    return text || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
   }
+}
 
-  return { company: grab(out, "COMPANY"), ebitda, context: grab(out, "CONTEXT"), icpFit: grab(out, "ICP FIT") };
+// Always web-search for the company's EBITDA. Returns a formatted line if a figure is found
+// (or derived from a stated revenue), else null so the EBITDA line is simply omitted.
+async function searchEbitda(o: { company: string; domain?: string; leadSaid?: string }): Promise<string | null> {
+  const ask =
+    `Search the web for the approximate annual EBITDA of this specific company (use its revenue to estimate if ` +
+    `EBITDA is not published). Company: ${o.company}.${o.domain ? ` Website: ${o.domain}.` : ""}` +
+    `${o.leadSaid ? ` What the lead said about their business: ${o.leadSaid}` : ""}\n\n` +
+    `After searching, output ONE final line and nothing after it:\n` +
+    `RESULT: ~$<amount> | <from public info | from revenue | stated in thread>\n` +
+    `If you cannot find or reasonably derive any figure, output exactly: RESULT: none`;
+  const out = await haikuWithSearch(ask, 900);
+  if (!out) return null;
+  const idx = out.toUpperCase().lastIndexOf("RESULT:");
+  const last = idx >= 0 ? out.slice(idx + 7).trim() : "";
+  if (!last || /^none/i.test(last)) return null;
+  const m = last.match(/(~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?)\s*\|\s*([a-zA-Z ]+)/);
+  if (m) {
+    const amt = normalizeAmt(m[1].replace(/\s+/g, ""));
+    const src = m[2].toLowerCase();
+    const tag = (src.includes("stated") && src.includes("thread")) ? "stated in thread"
+              : src.includes("revenue") ? "est. from revenue"
+              : "from public info";
+    return `~${amt} (${tag})`;
+  }
+  const a = last.match(/~?\$?\s?[\d][\d.,]*\s?[kmbKMB]?/);
+  return a ? `~${normalizeAmt(a[0].replace(/\s+/g, ""))} (from public info)` : null;
 }
 
 /** Returns the extra context lines to append to the meeting Slack message. */
@@ -198,10 +237,14 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
     // M&A workspaces: full research-backed enrichment about the lead.
     let leadSaid = "";
     try { leadSaid = await leadThreadText(input.workspaceSlug, [...threadEmails]); } catch { /* omit */ }
-    const e = await enrichLead({ company: leadCompany || domain || email, domain, leadSaid, scraped, icp: input.icpDescription });
+    const companyForLookup = leadCompany || domain || email;
+    const [e, ebitda] = await Promise.all([
+      enrichLead({ company: companyForLookup, domain, leadSaid, scraped, icp: input.icpDescription }),
+      searchEbitda({ company: companyForLookup, domain, leadSaid }),
+    ]);
     const company = e.company || companyFromSummary(scraped) || (leadCompany || null);
     if (company) lines.push(`Company: ${company}`);
-    if (e.ebitda) lines.push(`EBITDA: ${e.ebitda}`);
+    if (ebitda) lines.push(`EBITDA: ${ebitda}`);
     if (e.context) lines.push(`Context: ${e.context}`);
     if (e.icpFit) lines.push(`ICP fit: ${e.icpFit}`);
   } else {
