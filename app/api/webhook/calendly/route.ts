@@ -175,6 +175,13 @@ export async function POST(req: NextRequest) {
         website,
       }).catch((err: any) => console.error("[calendly webhook] trackMeeting failed:", err?.message ?? err));
 
+      // ── Cross-blacklist between the two Larsen workspaces (larsen-digital <-> acceler8rs):
+      //    a lead booked in one must stop receiving cold outreach from the other. No-op for
+      //    every other workspace. Fire-and-forget, same reasoning as trackMeeting above.
+      void crossBlacklistLarsen(workspaceSlug, leadEmail).catch((err: any) =>
+        console.error("[calendly webhook] crossBlacklistLarsen failed:", err?.message ?? err)
+      );
+
       return NextResponse.json({ ok: true, event: "invitee.created", callId, isReschedule });
     }
 
