@@ -21,6 +21,8 @@ export interface MeetingContextInput {
   icpDescription?: string;
   /** Revenue value if we have it (from the Airtable record). */
   revenue?: string | number | null;
+  /** Booking phone — its country code helps the research disambiguate the company. */
+  phone?: string;
 }
 
 // ── low-level helpers ────────────────────────────────────────────────────────
@@ -284,8 +286,12 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
     let leadSaid = "";
     try { leadSaid = await leadThreadText(input.workspaceSlug, [...threadEmails]); } catch { /* omit */ }
     const companyForLookup = leadCompany || domain || email;
+    // All non-freemail domains across the lead's linked addresses — the brand/store domain
+    // (e.g. loolia.com) is a far stronger identifier than a holding-company booking domain.
+    const FREEMAIL = new Set(["gmail.com", "hotmail.com", "yahoo.com", "outlook.com", "icloud.com", "aol.com", "proton.me", "protonmail.com", "gmx.com", "gmx.net", "live.com", "msn.com", "me.com", "mail.com"]);
+    const domains = [...new Set([...threadEmails].map(e => e.split("@")[1]).filter((d): d is string => !!d && !FREEMAIL.has(d)))];
     // Primary: research the company on the web. Fallback: plain Haiku if search is unavailable.
-    let r = await researchLead({ company: companyForLookup, domain, leadSaid, scraped, icp: input.icpDescription });
+    let r = await researchLead({ company: companyForLookup, domains, domain, leadSaid, scraped, icp: input.icpDescription, phone: input.phone });
     if (!r) {
       const e = await enrichLead({ company: companyForLookup, domain, leadSaid, scraped, icp: input.icpDescription });
       r = { company: e.company, ebitda: null, context: e.context, icpFit: e.icpFit };
