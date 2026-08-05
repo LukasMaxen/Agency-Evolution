@@ -155,4 +155,33 @@ export async function register() {
   }, 5 * 60_000);
 
   console.log("[instrumentation] slack health monitor started, 5min interval");
+
+  // ── 7. Larsen weekly outreach tracker ─────────────────────────────────────
+  // Fills in last week's row block in the "Larsen Outreach Tracking" Google Sheet
+  // (Emails Sent / Replies / Interested from EmailBison + our DB, Meetings Booked from
+  // the calls table sourced live off the Calendly webhook). No Make, no Slack, no
+  // Airtable in this pipeline — added 2026-08-06. Fires Mondays in the 07-09 UTC window
+  // (covers 9am local across both CEST and CET) with a same-day dedupe since the hourly
+  // tick can land more than once in that window. Re-running for the same week is safe
+  // (idempotent overwrite of the same 4 rows), so the dedupe is just to avoid noise.
+  let larsenWeeklyLastRunDate: string | null = null;
+  const tryLarsenWeeklyReport = async () => {
+    const d = new Date();
+    if (d.getUTCDay() !== 1 || d.getUTCHours() < 7 || d.getUTCHours() >= 9) return;
+    const todayKey = d.toISOString().slice(0, 10);
+    if (larsenWeeklyLastRunDate === todayKey) return;
+    larsenWeeklyLastRunDate = todayKey;
+    try {
+      const { runLarsenWeeklyReport } = await import("@/lib/reports/larsen-weekly");
+      await runLarsenWeeklyReport();
+      console.log("[instrumentation] Larsen weekly report fired");
+    } catch (err: any) {
+      console.error("[instrumentation] Larsen weekly report failed:", err);
+    }
+  };
+
+  setInterval(() => void tryLarsenWeeklyReport(), 60 * 60_000);
+  setTimeout(() => void tryLarsenWeeklyReport(), 90_000);
+
+  console.log("[instrumentation] Larsen weekly outreach tracker hourly check started");
 }
