@@ -1,11 +1,12 @@
-# Acceler8rs — Client File
+# Acceler8rs (retired brand) — Larsen Digital Pathfinder Playbook
 
-> This is the single source of truth for everything about this client.
-> When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
+> **Acceler8rs is retired as a separate brand (2026-08-05).** The workspace formerly called "acceler8rs" is now the Lukas Maxen sender account for Larsen Digital (EmailBison renamed it "Larsen Digital - Lukas"; the internal DB/code slug stays `acceler8rs` to avoid breaking the live webhook). This file is now used ONLY for the Pathfinder (buy-side M&A) campaign, on BOTH Larsen Digital sender workspaces (`acceler8rs` and `larsen-digital`) — routed by campaign name, not by workspace, see `resolveClientSlug` in processor.ts. Every non-Pathfinder reply from either workspace uses `clients/larsen-digital.md` instead. Sections below the REPLY QUICK REFERENCE that describe a standalone "Acceler8rs" growth offer are legacy/inactive — kept for history, not read by the auto-reply pipeline (only REPLY QUICK REFERENCE is).
+>
+> When working on any task involving Pathfinder replies, read this file first. For any other Larsen Digital task, read `clients/larsen-digital.md`.
 
 ## REPLY QUICK REFERENCE
 campaign_type: agency_services
-sender: VARIES by campaign and sending account. This is the Pathfinder (buy-side acquisition) playbook and it runs across multiple workspaces and sender accounts (acceler8rs, larsen-digital, and others). NEVER name or assume who is sending, and NEVER assume who takes the call. Always close with the {SENDER_EMAIL_SIGNATURE} variable only, and NEVER write a hand-off line that names a specific person (e.g. "I'll set you up with Lukas Maxen", "our Head of Corporate Development"). Just move to the confidential call and share the M&A link warmly. The Calendly link routes the call and the signature variable identifies the sender.
+sender: VARIES by campaign and sending account. This is the Pathfinder (buy-side acquisition) playbook and it runs across both Larsen Digital sender workspaces (`acceler8rs` = Lukas Maxen / "Larsen Digital - Lukas", `larsen-digital` = Nicklas Larsen / "Larsen Digital - Nicklas"). NEVER name or assume who is sending, and NEVER assume who takes the call. Always close with the {SENDER_EMAIL_SIGNATURE} variable only, and NEVER write a hand-off line that names a specific person (e.g. "I'll set you up with Lukas Maxen", "our Head of Corporate Development"). Just move to the confidential call and share the M&A link warmly. The Calendly link routes the call and the signature variable identifies the sender.
 offer: 3-phase DTC brand growth system — grow profitably, scale with operating partnership, exit at 8 figures.
 calendly: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner (DEFAULT — operating partner / growth intro call)
 calendly_ma: https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital (SELL-SIDE / EXIT ONLY — actual M&A or capital markets conversations)
@@ -124,11 +125,11 @@ fu_context: |
 
 | Field | Value |
 |---|---|
-| **Status** | Active |
-| **EmailBison slug** | `acceler8rs` |
+| **Status** | Active (as a Larsen Digital sender account, brand retired 2026-08-05) |
+| **EmailBison slug** | `acceler8rs` (EmailBison workspace renamed "Larsen Digital - Lukas") |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
-| **Primary contact** | Lukas Maxen, Co-founder |
+| **Primary contact** | Lukas Maxen, Co-founder of Larsen Digital |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
 | **Calendly link (default)** | https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner |
@@ -368,7 +369,9 @@ Subject: [subject]
 
 ## Internal Notes
 
-LinkedIn for Lukas skews toward Agency Evolution (B2B/PE), not Acceler8rs. Keep messaging and positioning separate between the two. Never mix Agency Evolution framing into Acceler8rs outreach.
+**Acceler8rs retired as a brand (2026-08-05).** This workspace is now the Lukas Maxen sender account for Larsen Digital. See the banner at the top of this file: this client file is now used ONLY for Pathfinder (buy-side) replies, on both Larsen Digital sender workspaces. All other content in this file below the REPLY QUICK REFERENCE (Offer & Positioning, Pricing, Templates, Campaign History, etc.) describes the old standalone Acceler8rs growth offer and is legacy/inactive — see clients/larsen-digital.md for the current, active growth/exit content used by both senders.
+
+LinkedIn for Lukas skews toward Agency Evolution (B2B/PE), not Acceler8rs. Keep messaging and positioning separate between the two. Never mix Agency Evolution framing into Larsen Digital outreach.
 
 **Approved reply example (Pathfinder / M&A campaign — name correction):**
 The following was reviewed and approved. Use as a reference for tone and structure on Pathfinder replies where the lead's name was wrong in the original email:
