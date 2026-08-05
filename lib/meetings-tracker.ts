@@ -73,18 +73,15 @@ export interface MeetingConfig {
 export const MEETING_CONFIG: Record<string, MeetingConfig> = {
   "larsen-digital": {
     source: "calendly",
-    airtableBaseId: "appV8wpBdqTgCi4Ws",       // XL8 CRM (shared with Acceler8rs)
-    airtableTableId: "tblCATnaPTV9fb2Ab",       // Deals / Meetings
+    // Larsen has its OWN base ("Larsen Digital"), NOT the Acceler8rs CRM. Pointing here was
+    // the bug that sent every Larsen meeting into the Acceler8rs base (2026-08-05 fix).
+    airtableBaseId: "appmixoDAnp7FicCS",         // "Larsen Digital" base
+    airtableTableId: "tblB3gNeQNs29SMgO",         // Meetings
     slackChannel: "C03LPQ4G3HR",                // larsen-digital-meetings
     workspaceLabel: "Nicklas Larsen",
-    fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
-    crm: {
-      dealSourceField: "Deal Source", dealSource: "Cold email (LD)",
-      statusField: "Status", statusValue: "Intro Call Booked",
-      nextStepField: "Next Step", nextStepValue: "Update Lead Info",
-      nextStepDateField: "Next Step Date",
-    },
-    slackExtra: { revenue: "DTC Revenue (Monthly)" },
+    // Larsen's Meetings table is the SIMPLE schema (Email, Date Of Meeting, Meeting booked
+    // date) — no Deal Source / Status / Next Step columns, so no crm block.
+    fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
     icpDescription: "Established consumer / CPG brands (beauty, personal care, food, supplements, household) doing roughly $5M+ in revenue with repeat-purchase products — the buyer's acquisition target. Also relevant: 7-figure+ DTC brands open to growth and a future exit. NOT a fit: pure services/agencies, B2B SaaS, pre-revenue, or clearly under $5M with no path.",
   },
   "acceler8rs": {
