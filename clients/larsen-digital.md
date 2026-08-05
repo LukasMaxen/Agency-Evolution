@@ -5,7 +5,12 @@
 
 ## REPLY QUICK REFERENCE
 campaign_type: agency_services
-sender: Nicklas Larsen, Founder, Larsen Digital
+sender: |
+  This file covers growth/exit (non-Pathfinder) replies for BOTH Larsen Digital sender workspaces:
+  - workspace `larsen-digital` ("Larsen Digital - Nicklas") — sender is Nicklas Larsen, Founder.
+  - workspace `acceler8rs` ("Larsen Digital - Lukas", the retired Acceler8rs brand is now this sender account) — sender is Lukas Maxen.
+  Write as whichever of the two actually sent the thread ({SENDER_EMAIL_SIGNATURE} resolves this automatically). Do not assume it is always Nicklas. When Lukas is the sender, the "I'll set you up with Lukas Maxen" M&A hand-off line is automatically suppressed (he can't hand a call off to himself) — this override is injected by processor.ts, not in this file.
+  Pathfinder (buy-side) campaigns on either workspace do NOT use this file — see clients/acceler8rs.md.
 based_in: Denmark (use this if a lead asks where we are/you are based or located. Do not say UK, do not name other countries as bases, do not invent additional markets unless documented elsewhere in this file)
 offer: DTC brand growth and exit planning. M&A team has closed over $1.2B in consumer transactions. Goal: 8-figure exit. 250M+ in Shopify revenue managed.
 calendly: https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner (DEFAULT — operating partner / growth intro call)
@@ -129,10 +134,11 @@ fu_context: |
 | Field | Value |
 |---|---|
 | **Status** | Active |
-| **EmailBison slug** | `larsen-digital` |
+| **EmailBison slugs** | `larsen-digital` (Nicklas) and `acceler8rs` (Lukas, EmailBison-renamed "Larsen Digital - Lukas") |
 | **EmailBison instance** | `https://send.emailagencyevolution.com` |
 | **Signed date** | [Date] |
 | **Primary contact** | Nicklas Larsen, Founder |
+| **Second sender** | Lukas Maxen (workspace `acceler8rs`, retired Acceler8rs brand) |
 | **Contact email** | [email] |
 | **Based in** | Denmark |
 | **Slack channel** | `#[channel-name]` |
@@ -145,7 +151,7 @@ fu_context: |
 ## Offer & Positioning
 
 **What they do:**
-Larsen Digital is a DTC brand growth and exit planning firm founded by Nicklas Larsen (age 26). Similar model to Acceler8rs — they work with consumer brands to drive growth, scale profitably, and execute a high-value exit. Client cap: 15 clients maximum (this cap is Larsen Digital's — do not attribute it to Acceler8rs).
+Larsen Digital is a DTC brand growth and exit planning firm founded by Nicklas Larsen (age 26). They work with consumer brands to drive growth, scale profitably, and execute a high-value exit. As of 2026-08-05, all outreach runs as Larsen Digital from two sender accounts, Nicklas Larsen and Lukas Maxen (the "Acceler8rs" brand is retired; that workspace is now the Lukas Maxen sender account under the same Larsen Digital offer). Client cap: 15 clients maximum.
 
 **What they're outreaching for:**
 Finding DTC/eCommerce brand owners who want a clear path from where their brand is now to a profitable 7-figure exit.
@@ -254,7 +260,7 @@ Do NOT include P.S. opt-out lines for Larsen Digital — consumer brand founders
 ## Reply Guidelines
 
 **Who you are writing as:**
-You are Nicklas, replying personally. The person emailing may be the founder, or it may be someone else at the company replying on their behalf, an assistant, a colleague, a PR contact. Read who is actually writing and address them accordingly. Either way, write like a real person having a normal conversation, not a brand voice or a salesperson.
+You are writing as whichever Larsen Digital sender actually sent this thread, Nicklas Larsen (workspace `larsen-digital`) or Lukas Maxen (workspace `acceler8rs`), replying personally. Do not default to assuming it is Nicklas. The person emailing may be the founder, or it may be someone else at the company replying on their behalf, an assistant, a colleague, a PR contact. Read who is actually writing and address them accordingly. Either way, write like a real person having a normal conversation, not a brand voice or a salesperson.
 
 **The one rule that matters most:**
 Never mention anything about the lead's company, product, reviews, history, certifications, revenue streams, sales channels, or category that you did not learn directly from them in this email thread. This includes anything from their website, signature links, search results, or anywhere outside the conversation. It does not matter how relevant or flattering it seems. If you learned it by looking it up rather than being told, it cannot appear in the reply. Check every sentence against this before sending. This is the most common and most damaging mistake.
@@ -444,4 +450,10 @@ Subject: [subject]
 
 ## Internal Notes
 
-Similar model to Acceler8rs but different positioning (8-figure exit focus). Keep Larsen Digital and Acceler8rs messaging separate, different senders. Both clients now share the same two Calendly links: operating partner intro (default) and M&A conversation (sell-side/exit, taken by Lukas Maxen).
+**Acceler8rs retired as a brand (2026-08-05).** What used to be the separate "Acceler8rs" client/workspace is now the Lukas Maxen sender account for Larsen Digital (EmailBison workspace renamed to "Larsen Digital - Lukas"; internal DB/code slug kept as `acceler8rs` to avoid breaking live webhook registrations). Larsen Digital now runs from two sender accounts, both pitching the identical offer:
+- `larsen-digital` = Nicklas Larsen ("Larsen Digital - Nicklas")
+- `acceler8rs` = Lukas Maxen ("Larsen Digital - Lukas")
+
+Both workspaces send BOTH campaign types: growth/operating-partner (this file, sender resolved automatically) and Pathfinder buy-side (clients/acceler8rs.md, sender-agnostic playbook). Routing is by campaign name, not workspace, see `resolveClientSlug` in processor.ts. Both accounts share the same two Calendly links: operating partner intro (default) and M&A conversation (sell-side/exit, taken by Lukas Maxen when Nicklas is the sender; no hand-off needed when Lukas is the sender himself).
+
+For CSM reporting, track the two workspaces as separate line items: "Larsen Digital - Nicklas" and "Larsen Digital - Lukas". See SKILL_CSMUpdate.md.

@@ -112,12 +112,12 @@ The count of meetings is `len(response.data.records)`. Note the field name varie
 |---|---|---|---|
 | 911 Restoration | appGTy1rR6eZjKu62 | tblVEhq27whUNk4KY | Meeting booked date |
 | ACT Capital | appECObQrdSRjeXeM | tblTnxArHDVMNOxSI | Meeting Booked Date |
-| Acceler8rs | appV8wpBdqTgCi4Ws | tblCATnaPTV9fb2Ab | Meeting booked date | MUST filter `Deal Source = 'Cold email (Acceler8rs)'`. This "Deals / Meetings" table is shared with Larsen Digital, whose meetings are tagged `Cold email (LD)`. Counting all records over-attributes LD meetings to Acceler8rs. |
+| Larsen Digital - Lukas | appV8wpBdqTgCi4Ws | tblCATnaPTV9fb2Ab | Meeting booked date | MUST filter `Deal Source = 'Cold email (Acceler8rs)'`. This "Deals / Meetings" table is shared with Larsen Digital - Nicklas, whose meetings are tagged `Cold email (LD)`. Counting all records over-attributes them to the wrong sender. (DB slug still `acceler8rs` — see Larsen rename note below.) |
 | GN Motion | appL5fZEyULdqpyx5 | tblTnxArHDVMNOxSI | Meeting Booked Date | |
 | Hahnbeck | appUZr45I0MK7uv3w | tbl9KatGYqPFB45Hs | Meeting booked date | |
 | Internal Campaigns | app9rWZ2iE4eWECEN | tblCATnaPTV9fb2Ab | Meeting booked date | |
 | ITG Group | appajhv22WuCEw7Aa | tblTnxArHDVMNOxSI | Meeting Booked Date | |
-| Larsen Digital | appmixoDAnp7FicCS | tblB3gNeQNs29SMgO | Meeting booked date | no filter needed — dedicated base and Meetings table |
+| Larsen Digital - Nicklas | appV8wpBdqTgCi4Ws | tblCATnaPTV9fb2Ab | Meeting booked date | MUST filter `Deal Source = 'Cold email (LD)'`. Shared base with Larsen Digital - Lukas (see above). As of 2026-08-05 this is the SAME base/table as Lukas — the two are distinguished only by Deal Source, not by base. (DB slug `larsen-digital`.) |
 | Sonaro AI | appNMGCTwXVOLLzmA | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Statera Capital | app0EI3nqT3ScUJOf | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Venture Exits | appA3W783M4v9IShx | tblTnxArHDVMNOxSI | Meeting Booked Date |
@@ -149,6 +149,22 @@ The internal workspace has three different names across systems. Always display 
 
 - Always include this client in every report, even if sends = 0.
 - Pulled from the same EmailBison stats endpoint as every other workspace (no DB-specific handling needed).
+
+---
+
+## Larsen Digital — two sender workspaces, always report separately
+
+As of 2026-08-05, "Acceler8rs" is retired as a separate brand. Larsen Digital now sends from two EmailBison sender workspaces, both pitching identical offers (growth/operating-partner AND Pathfinder buy-side), differing only by which person sends:
+
+| DB slug | `workspaces.name` | Report label | Sender |
+|---|---|---|---|
+| `larsen-digital` | Larsen Digital - Nicklas | Larsen Digital - Nicklas | Nicklas Larsen |
+| `acceler8rs` | Larsen Digital - Lukas | Larsen Digital - Lukas | Lukas Maxen |
+
+- DB slugs were kept as-is (`larsen-digital` / `acceler8rs`) to avoid breaking the live EmailBison and Calendly webhook registrations — only the display name changed. Always pull the report label from `workspaces.name`, never hardcode "Acceler8rs" or "Larsen Digital" alone.
+- Always report the two as separate line items, same as any other two clients — never merge their numbers.
+- Emails sent / replies / interested: same per-workspace EmailBison stats call as every other client, no special handling.
+- Meetings: same shared Airtable base for both (see the Airtable meetings config table above), split by Deal Source, not by base.
 
 ---
 
