@@ -73,12 +73,14 @@ export interface MeetingConfig {
 export const MEETING_CONFIG: Record<string, MeetingConfig> = {
   "larsen-digital": {
     source: "calendly",
-    // Larsen and Acceler8rs SHARE the Acceler8rs CRM base on purpose — the "Deal Source"
-    // field ("Cold email (LD)" vs "Cold email (Acceler8rs)") is what marks which workspace
-    // each meeting belongs to. Confirmed by Kasper 2026-08-05.
+    // Larsen (Nicklas) and Acceler8rs (Lukas, retired brand, same "Larsen Digital" offer)
+    // SHARE this Airtable base on purpose — the "Deal Source" field ("Cold email (LD)" vs
+    // "Cold email (Acceler8rs)") is what marks which sender each meeting belongs to.
+    // Slack posts, however, go to SEPARATE channels per sender (split 2026-08-05, see the
+    // acceler8rs entry below) — each workspace tracked individually per Kasper.
     airtableBaseId: "appV8wpBdqTgCi4Ws",        // Acceler8rs CRM (shared, Deal Source = workspace)
     airtableTableId: "tblCATnaPTV9fb2Ab",       // Deals / Meetings
-    slackChannel: "C03LPQ4G3HR",                // larsen-digital-meetings
+    slackChannel: "C03LPQ4G3HR",                // "Larsen - Nicklas" meetings channel
     workspaceLabel: "Nicklas Larsen",
     fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
     crm: {
@@ -94,10 +96,10 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     source: "calendly",
     airtableBaseId: "appV8wpBdqTgCi4Ws",
     airtableTableId: "tblCATnaPTV9fb2Ab",
-    // Everything runs as Larsen now, so Acceler8rs bookings post to the Larsen meetings
-    // channel (C03LPQ4G3HR). The "Sender: Lukas Maxen" line keeps them distinguishable.
-    // (Own channel #acceler8rs-meetings C07CNPN71PS retired for meeting posts.)
-    slackChannel: "C03LPQ4G3HR",
+    // Split back into its own channel 2026-08-05 — Slack channels renamed to "Larsen -
+    // Nicklas" (C03LPQ4G3HR) and "Larsen - Lukas" (C07CNPN71PS, formerly
+    // #acceler8rs-meetings), each workspace tracked individually per Kasper.
+    slackChannel: "C07CNPN71PS",
     workspaceLabel: "Lukas Maxen",
     fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
     crm: {
