@@ -73,15 +73,21 @@ export interface MeetingConfig {
 export const MEETING_CONFIG: Record<string, MeetingConfig> = {
   "larsen-digital": {
     source: "calendly",
-    // Larsen has its OWN base ("Larsen Digital"), NOT the Acceler8rs CRM. Pointing here was
-    // the bug that sent every Larsen meeting into the Acceler8rs base (2026-08-05 fix).
-    airtableBaseId: "appmixoDAnp7FicCS",         // "Larsen Digital" base
-    airtableTableId: "tblB3gNeQNs29SMgO",         // Meetings
+    // Larsen and Acceler8rs SHARE the Acceler8rs CRM base on purpose — the "Deal Source"
+    // field ("Cold email (LD)" vs "Cold email (Acceler8rs)") is what marks which workspace
+    // each meeting belongs to. Confirmed by Kasper 2026-08-05.
+    airtableBaseId: "appV8wpBdqTgCi4Ws",        // Acceler8rs CRM (shared, Deal Source = workspace)
+    airtableTableId: "tblCATnaPTV9fb2Ab",       // Deals / Meetings
     slackChannel: "C03LPQ4G3HR",                // larsen-digital-meetings
     workspaceLabel: "Nicklas Larsen",
-    // Larsen's Meetings table is the SIMPLE schema (Email, Date Of Meeting, Meeting booked
-    // date) — no Deal Source / Status / Next Step columns, so no crm block.
-    fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
+    fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
+    crm: {
+      dealSourceField: "Deal Source", dealSource: "Cold email (LD)",
+      statusField: "Status", statusValue: "Intro Call Booked",
+      nextStepField: "Next Step", nextStepValue: "Update Lead Info",
+      nextStepDateField: "Next Step Date",
+    },
+    slackExtra: { revenue: "DTC Revenue (Monthly)" },
     icpDescription: "Established consumer / CPG brands (beauty, personal care, food, supplements, household) doing roughly $5M+ in revenue with repeat-purchase products — the buyer's acquisition target. Also relevant: 7-figure+ DTC brands open to growth and a future exit. NOT a fit: pure services/agencies, B2B SaaS, pre-revenue, or clearly under $5M with no path.",
   },
   "acceler8rs": {
