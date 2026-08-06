@@ -284,34 +284,27 @@ export async function GET(req: NextRequest) {
       ),
       bounce_counts AS (
         -- Counts unique leads whose email address bounced per sender.
-        -- Both paths filter by SEND date (not bounce-arrival date) to match
-        -- EB's API methodology: a bounce is attributed to the window in which
-        -- the email was sent, not when the DSN arrived. Stale bounces (emails
-        -- sent before the window that bounce later) are excluded so the rate
-        -- stays consistent with the EB dashboard header numbers.
-        -- UNION (not UNION ALL) deduplicates (sender, lead) pairs that appear
-        -- in both paths (same event stored via webhook and poll).
-        --
-        -- KNOWN GAP: this join requires a matching emails_sent row, and that
-        -- table has had zero new rows since 2026-07-30 (EMAIL_SENT webhook
-        -- delivery stopped on EmailBison's side, see sent_counts above), so
-        -- bounces on sends after that date are undercounted here until the
-        -- webhook is restored. A bounced_at-fallback fix was attempted but
-        -- reverted: it requires a composite index on emails_sent(workspace_
-        -- slug, lead_email, sent_at) that this DB role cannot create (not
-        -- the table owner), and without it the LATERAL fallback took 60s+
-        -- against 816k/22k row tables. Revisit once someone with owner
-        -- privileges can add that index.
+        -- Windowed on bounce ARRIVAL date (eb.bounced_at), not send date.
+        -- Previously this joined emails_sent to anchor on send date to
+        -- match EB's own methodology, but emails_sent is no longer the
+        -- source of truth for sends at all (see sender_daily_stats /
+        -- daily-cache override above) and had a real gap from the
+        -- 2026-07-30 webhook outage that silently dropped any bounce
+        -- whose triggering send fell in that window -- burns/bounces have
+        -- no live-EB equivalent to override with (EB doesn't expose our
+        -- domain_burn sub-classification), so this local table is the
+        -- only source and needs to stand on its own. bounced_at trades a
+        -- small amount of precision (a bounce whose DSN arrives after the
+        -- window boundary can shift into the wrong bucket) for not
+        -- depending on emails_sent being complete, which is the bigger risk.
+        -- UNION (not UNION ALL) deduplicates (sender, lead) pairs that
+        -- appear in both paths (same event stored via webhook and poll).
         SELECT sender_email, workspace_slug, COUNT(DISTINCT lead_email)::int AS bounces
         FROM (
-          -- Path A: bounce row already has sender_email; join emails_sent to
-          -- anchor the event to the send date window.
+          -- Path A: bounce row already has sender_email -- no join needed
+          -- at all for attribution, only for restricting to active senders.
           SELECT eb.sender_email, eb.workspace_slug, eb.lead_email
           FROM email_bounces eb
-          JOIN emails_sent es
-            ON  es.workspace_slug = eb.workspace_slug
-            AND es.lead_email     = eb.lead_email
-            AND es.sent_at        >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
           INNER JOIN active_senders sa
             ON  sa.sender_email   = eb.sender_email
             AND sa.workspace_slug = eb.workspace_slug
@@ -319,42 +312,41 @@ export async function GET(req: NextRequest) {
             AND eb.sender_email != ''
             AND eb.lead_email IS NOT NULL
             AND eb.lead_email != ''
+            AND eb.bounced_at >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
             ${wsFilterB}
 
           UNION
 
-          -- Path B: old webhook rows without sender_email; recover via join.
-          -- sent_at filter is the send-date anchor here too.
+          -- Path B: old webhook rows without sender_email; recover sender
+          -- identity via the most recent send to that lead (any date --
+          -- the join is for attribution only, not windowing). Windowed by
+          -- bounce arrival date like Path A.
           SELECT es.sender_email, es.workspace_slug, eb.lead_email
-          FROM emails_sent es
-          JOIN email_bounces eb
-            ON  eb.workspace_slug = es.workspace_slug
-            AND eb.lead_email     = es.lead_email
-            AND (eb.sender_email IS NULL OR eb.sender_email = '')
+          FROM email_bounces eb
+          JOIN emails_sent es
+            ON  es.workspace_slug = eb.workspace_slug
+            AND es.lead_email     = eb.lead_email
           INNER JOIN active_senders sa
             ON  sa.sender_email   = es.sender_email
             AND sa.workspace_slug = es.workspace_slug
-          WHERE es.sent_at >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
+          WHERE (eb.sender_email IS NULL OR eb.sender_email = '')
             AND es.sender_email IS NOT NULL
             AND es.sender_email != ''
-            ${wsFilter}
+            AND eb.bounced_at >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
+            ${wsFilterB}
         ) all_pairs
         GROUP BY sender_email, workspace_slug
       ),
       burn_counts AS (
-        -- Counts unique leads that triggered a domain_burn signal per sender.
-        -- Anchored to send date (same as bounce_counts) so the rate matches EB.
-        -- Same emails_sent-outage gap as bounce_counts above applies here too.
+        -- Counts unique leads that triggered a domain_burn signal per
+        -- sender. Windowed on bounce arrival date -- see bounce_counts
+        -- above for why this no longer joins emails_sent for windowing.
         -- Gmail retry cascades collapsed to 1 by COUNT(DISTINCT lead_email).
         SELECT
           eb.sender_email,
           eb.workspace_slug,
           COUNT(DISTINCT eb.lead_email)::int AS burns
         FROM email_bounces eb
-        JOIN emails_sent es
-          ON  es.workspace_slug = eb.workspace_slug
-          AND es.lead_email     = eb.lead_email
-          AND es.sent_at        >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
         INNER JOIN active_senders sa
           ON  sa.sender_email   = eb.sender_email
           AND sa.workspace_slug = eb.workspace_slug
@@ -363,6 +355,7 @@ export async function GET(req: NextRequest) {
           AND eb.sender_email != ''
           AND eb.lead_email IS NOT NULL
           AND eb.lead_email != ''
+          AND eb.bounced_at >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
           ${wsFilterB}
         GROUP BY eb.sender_email, eb.workspace_slug
       ),
