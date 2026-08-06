@@ -82,6 +82,7 @@ interface WarmupSender {
   attached_campaigns_count: number | null;
   daily_limit:              number | null;
   warmup_daily_limit:       number | null;
+  eb_created_at:            string | null;
 }
 interface WarmupWsAgg {
   slug:             string;
@@ -114,6 +115,7 @@ interface Sender {
   warming_days:             number | null;
   ready_to_rejoin:          boolean;
   attached_campaigns_count: number | null;
+  eb_created_at:            string | null;
   emails_sent:              number;
   replies:                  number;
   bounces:                  number;
@@ -326,6 +328,13 @@ function pct(x: number) {
 
 function fmt(n: number) {
   return n.toLocaleString("en-US");
+}
+
+function formatAddedDate(iso: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 // Stat card used by the SummaryPanel. Icon + label on top row, large value
@@ -672,6 +681,11 @@ interface DomainGroup {
   // "any sender flagged" to "domain rate flagged".)
   anyBurnFlagged:  boolean;
   readyToRejoin:   boolean;
+  // Earliest eb_created_at across the domain's senders — when the domain
+  // was first added to the workspace. Deliberately NOT warming_since:
+  // that field toggles on/off as senders move in and out of warmup, so it
+  // can't answer "when did we first add this domain."
+  addedAt:         string | null;
 }
 
 function SenderTable({
@@ -891,6 +905,10 @@ function SenderTable({
     const attached     = reachable.map(s => s.attached_campaigns_count ?? 0);
     const attachedMin  = attached.length > 0 ? Math.min(...attached) : 0;
     const attachedMax  = attached.length > 0 ? Math.max(...attached) : 0;
+    const createdDates = list.map(s => s.eb_created_at).filter((d): d is string => !!d);
+    const addedAt      = createdDates.length > 0
+      ? createdDates.reduce((earliest, d) => d < earliest ? d : earliest)
+      : null;
     const totalSent    = list.reduce((a, s) => a + (s.emails_sent || 0), 0);
     const totalReplies = list.reduce((a, s) => a + (s.replies || 0), 0);
     const totalBounces = list.reduce((a, s) => a + (s.bounces || 0), 0);
@@ -997,7 +1015,7 @@ function SenderTable({
       accStatus, worstSev,
       fullyDisconnected: disconnected === list.length && list.length > 0,
       mxMissing: mxMissingDomains.has(dom),
-      anyBurnFlagged, readyToRejoin,
+      anyBurnFlagged, readyToRejoin, addedAt,
     };
   }).sort((a, b) => {
     // Two sort models, same direction (worst first). Active uses the full
@@ -1297,6 +1315,7 @@ function SenderTable({
                 { h: "Bounce",      w: "5%",  align: "right"  },
                 { h: "Burn",        w: "5%",  align: "right"  },
                 { h: "Warmup",      w: "6%",  align: "right"  },
+                { h: "Added",       w: "7%",  align: "right"  },
                 { h: "Status",      w: "9%",  align: "left"   },
                 { h: "Actions",     w: "13%", align: "center" },
               ].map(({ h, w, align }) => (
@@ -1315,6 +1334,7 @@ function SenderTable({
                 { h: "Bounce",        w: "5%",  align: "right"  },
                 { h: "Burn",          w: "5%",  align: "right"  },
                 { h: "Warmup",        w: "6%",  align: "right"  },
+                { h: "Added",         w: "6%",  align: "right"  },
                 { h: "Days warming",  w: "6%",  align: "right"  },
                 { h: "Rejoin status", w: "10%", align: "left"   },
                 { h: "Action",        w: "14%", align: "center" },
@@ -1329,7 +1349,7 @@ function SenderTable({
           </thead>
           <tbody>
             {domainGroups.length === 0 && (
-              <tr><td colSpan={tab === "active" ? 12 : 13} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+              <tr><td colSpan={tab === "active" ? 13 : 14} style={{ padding: "30px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
                 No senders matching this filter.
               </td></tr>
             )}
@@ -1437,6 +1457,9 @@ function SenderTable({
                                : d.avgScore >= 90 ? "#D97706" : "#B91C1C",
                           fontWeight: 500,
                         }}>{d.disconnected > 0 || d.avgScore === null ? "—" : `${d.avgScore}%`}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>
+                          {formatAddedDate(d.addedAt)}
+                        </td>
                       </>
                     ) : (
                       <>
@@ -1463,6 +1486,9 @@ function SenderTable({
                                : d.avgScore >= 90 ? "#D97706" : "#B91C1C",
                           fontWeight: 500,
                         }}>{d.avgScore === null ? "—" : `${d.avgScore}%`}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>
+                          {formatAddedDate(d.addedAt)}
+                        </td>
                         <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {(() => {
                             const days = d.senders.map(s => s.warming_days ?? 0).filter(n => n > 0);
@@ -1663,6 +1689,9 @@ function SenderTable({
                             }}>
                               {s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
                             </td>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
+                              {formatAddedDate(s.eb_created_at)}
+                            </td>
                           </>
                         ) : (
                           <>
@@ -1694,6 +1723,9 @@ function SenderTable({
                                    : s.warmup_score >= 90 ? "#D97706" : "#B91C1C",
                               fontWeight: 500,
                             }}>{s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}</td>
+                            <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
+                              {formatAddedDate(s.eb_created_at)}
+                            </td>
                             <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                               {s.warming_days === null ? "—" : `${s.warming_days}d`}
                             </td>
@@ -1872,6 +1904,7 @@ export function MailboxMonitor() {
           warming_days:             s.warming_days,
           ready_to_rejoin:          s.ready_to_rejoin,
           attached_campaigns_count: s.attached_campaigns_count,
+          eb_created_at:            s.eb_created_at,
           emails_sent:              a?.emails_sent ?? 0,
           replies:                  a?.replies    ?? 0,
           bounces:                  a?.bounces    ?? 0,

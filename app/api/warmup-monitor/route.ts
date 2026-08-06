@@ -54,7 +54,8 @@ export async function GET() {
          attached_campaigns_count,
          provider_type,
          daily_limit,
-         warmup_daily_limit
+         warmup_daily_limit,
+         eb_created_at
        FROM sender_accounts
       WHERE workspace_slug = ANY($1::text[])
         AND provider_type IS NOT NULL
@@ -76,6 +77,7 @@ export async function GET() {
       attached_campaigns_count: number | null;
       daily_limit:              number | null;
       warmup_daily_limit:       number | null;
+      eb_created_at:            string | null;
     }
 
     const senders: SenderRow[] = sendersRes.rows.map(r => {
@@ -101,6 +103,7 @@ export async function GET() {
         attached_campaigns_count: r.attached_campaigns_count,
         daily_limit:              r.daily_limit ?? null,
         warmup_daily_limit:       r.warmup_daily_limit ?? null,
+        eb_created_at:            r.eb_created_at ?? null,
       };
     });
 
