@@ -1,7 +1,7 @@
 // Next.js 16 instrumentation hook. Runs once when the Node server boots.
-// We use it to schedule five in-process timers that replace the Coolify
+// We use it to schedule in-process timers that replace the Coolify
 // scheduled tasks (which kept failing because of host vs container shell,
-// port mismatches, env var expansion, etc). All five call exported runner
+// port mismatches, env var expansion, etc). Most call exported runner
 // functions directly inside the Node process, no HTTP roundtrip needed.
 //
 //   1. Auto-reply self-sweeper      every 60 seconds
@@ -11,6 +11,8 @@
 //   5. Sender account sync          every 6 hours (keeps sender_accounts in
 //                                   sync with EmailBison — removed senders
 //                                   are deleted from DB and disappear from UI)
+//   8. Sender daily stats sync      every 24 hours (per-sender Sent/Bounced/
+//                                   Replied history cache for account monitor)
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
@@ -184,4 +186,44 @@ export async function register() {
   setTimeout(() => void tryLarsenWeeklyReport(), 90_000);
 
   console.log("[instrumentation] Larsen weekly outreach tracker hourly check started");
+
+  // ── 8. Sender daily stats sync ────────────────────────────────────────────
+  // Pulls each sender's real day-by-day Sent/Bounced/Replied history from
+  // EB's /api/campaign-events/stats into sender_daily_stats, which the
+  // account monitor dashboard reads instead of calling EB live on every
+  // page load (a full sweep at per-sender granularity takes ~50s, fine
+  // once a day, far too slow for a request). Added 2026-08-06 after the
+  // EMAIL_SENT webhook outage (see app/api/webhook/[workspace]/route.ts)
+  // showed the dashboard's old approach -- local tables fed only by that
+  // webhook -- had no safety net when EB stopped delivering it.
+  let dailyStatsSyncRunning = false;
+  const runDailyStatsSync = async (label: string) => {
+    if (dailyStatsSyncRunning) return;
+    dailyStatsSyncRunning = true;
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const res = await fetch(`${baseUrl}/api/sync-sender-daily-stats`, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.text();
+        console.error(`[instrumentation] ${label} sender daily stats sync HTTP error:`, err);
+        return;
+      }
+      const data = await res.json();
+      console.log(
+        `[instrumentation] ${label} sender daily stats sync: ` +
+        `${data.synced}/${data.synced + data.failed} workspaces ok`
+      );
+    } catch (err: any) {
+      console.error(`[instrumentation] ${label} sender daily stats sync failed:`, err);
+    } finally {
+      dailyStatsSyncRunning = false;
+    }
+  };
+
+  // Run once 2min after boot (it's the heaviest job, let the fast timers
+  // settle first), then once every 24h.
+  setTimeout(() => void runDailyStatsSync("initial"), 120_000);
+  setInterval(() => void runDailyStatsSync("periodic"), 24 * 60 * 60_000);
+
+  console.log("[instrumentation] sender daily stats sync started, 24h interval");
 }

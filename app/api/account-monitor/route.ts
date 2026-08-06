@@ -558,6 +558,75 @@ export async function GET(req: NextRequest) {
       dom.totalBurns   += acc.burns;
     }
 
+    // ── Per-sender/domain send & bounce stats from local daily cache ──────
+    // sender_daily_stats is populated by a daily background sync
+    // (lib/sync-sender-daily-stats.ts) that pulls each sender's real
+    // day-by-day Sent/Bounced/Replied history from EB's
+    // /api/campaign-events/stats endpoint -- the only EB endpoint that
+    // supports both a sender_email_ids[] filter AND a date range. Reading
+    // from the local cache here (instead of calling EB live on every page
+    // load) is what keeps this fast: fetching that endpoint per-sender for
+    // every workspace measured at 1100+ calls / ~50s, far too slow for a
+    // page load, but perfectly fine as a once-a-day background job. See
+    // that file for the full explanation of why this replaced the
+    // webhook-fed emails_sent/email_bounces tables for this dashboard.
+    const dailyStatsRes = await pool.query(
+      `SELECT workspace_slug, sender_email,
+              SUM(sent)::int AS sent, SUM(bounced)::int AS bounced
+         FROM sender_daily_stats
+        WHERE date >= (CURRENT_DATE - ($1 || ' days')::interval)
+          ${workspace !== "all" ? "AND workspace_slug = $2" : ""}
+        GROUP BY workspace_slug, sender_email`,
+      workspace !== "all" ? [days, workspace] : [days]
+    );
+    const dailyStatsByKey: Record<string, { sent: number; bounced: number }> = {};
+    for (const r of dailyStatsRes.rows) {
+      dailyStatsByKey[`${r.workspace_slug}::${r.sender_email.toLowerCase()}`] = { sent: r.sent, bounced: r.bounced };
+    }
+    for (const acc of accountRows) {
+      const live = dailyStatsByKey[`${acc.workspace_slug}::${acc.sender_email.toLowerCase()}`];
+      if (!live) continue; // no cache entry yet (new sender, or sync hasn't run) -- keep local-DB fallback value
+      acc.emails_sent = live.sent;
+      acc.bounces     = live.bounced;
+      acc.bounce_rate = live.sent > 0 ? Math.round((live.bounced / live.sent) * 10000) / 100 : 0;
+      acc.burn_rate    = live.sent > 0 ? Math.round((acc.burns   / live.sent) * 10000) / 100 : 0;
+      acc.reply_rate   = live.sent > 0 ? Math.round((acc.replies / live.sent) * 10000) / 100 : 0;
+      const reclassified = classify({
+        sent: live.sent,
+        fullMinSends:     T.ACCOUNT_MIN_SEND,
+        provisionalFloor: T.PROVISIONAL_FLOOR,
+        criticalMinSend:  T.CRITICAL_MIN_SEND,
+        burnMinSample:    T.ACCT_BURN_MIN_SAMPLE,
+        burnCount: acc.burns,
+        burnRate: acc.burn_rate,
+        bounceRate: acc.bounce_rate,
+        replyRate: acc.reply_rate,
+        disconnected: acc.conn_status === "Not connected",
+      });
+      acc.status     = reclassified.status;
+      acc.confidence = reclassified.confidence;
+      acc.signals    = reclassified.signals;
+    }
+    // Rebuild workspace/domain aggregates from the (now corrected) accountRows.
+    for (const ws of Object.values(workspaceMap)) {
+      ws.totalSent = ws.totalReplies = ws.totalBounces = ws.totalBurns = 0;
+      for (const d of Object.values(ws.domainMap)) d.totalSent = d.totalReplies = d.totalBounces = d.totalBurns = 0;
+    }
+    for (const acc of accountRows) {
+      const ws = workspaceMap[acc.workspace_slug];
+      ws.totalSent    += acc.emails_sent;
+      ws.totalReplies += acc.replies;
+      ws.totalBounces += acc.bounces;
+      ws.totalBurns   += acc.burns;
+      const atIdx = acc.sender_email.lastIndexOf("@");
+      const domain = atIdx >= 0 ? acc.sender_email.slice(atIdx + 1).toLowerCase() : "unknown";
+      const dom = ws.domainMap[domain];
+      dom.totalSent    += acc.emails_sent;
+      dom.totalReplies += acc.replies;
+      dom.totalBounces += acc.bounces;
+      dom.totalBurns   += acc.burns;
+    }
+
     const workspaces = Object.values(workspaceMap).map((ws) => {
       const domains = Object.values(ws.domainMap).map((d) => {
         const sent       = d.totalSent;
@@ -671,9 +740,6 @@ export async function GET(req: NextRequest) {
     // EB dashboard shows (emails_sent, unique_replies_per_contact, bounced,
     // interested) for an arbitrary date window. We surface those on the
     // workspace summary cards so what we display matches EB exactly.
-    //
-    // Per-account / per-domain breakdowns continue to come from the local
-    // DB query above, since EB has no per-sender date-windowed endpoint.
     const toYmd = (d: Date) => d.toISOString().slice(0, 10);
     const endDate   = new Date();
     const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
@@ -722,18 +788,32 @@ export async function GET(req: NextRequest) {
 
     // ── Drop churned workspaces ────────────────────────────────────────────
     // A workspace with zero sends in the last 7 days is treated as inactive
-    // (paused client, ended engagement, etc.) and hidden entirely. We use
-    // emails_sent from the local DB so the filter works even if EB stats
-    // returned 0 for some other reason.
+    // (paused client, ended engagement, etc.) and hidden entirely. This used
+    // to query the local emails_sent table, which silently churned out
+    // every workspace while the EMAIL_SENT webhook was down (their local
+    // send count looked like zero even though they were sending fine) --
+    // fetched live from EB instead so it can't be fooled by local DB gaps.
+    // Independent fixed 7-day window, not tied to `days` (the display
+    // window), since churn detection is a separate question from "how much
+    // to show."
     const CHURN_WINDOW_DAYS = 7;
-    const recentSendsRes = await pool.query(
-      `SELECT workspace_slug, COUNT(*)::int AS sends
-         FROM emails_sent
-        WHERE sent_at >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
-        GROUP BY workspace_slug`,
-      [CHURN_WINDOW_DAYS]
+    const churnEnd   = toYmd(new Date());
+    const churnStart = toYmd(new Date(Date.now() - CHURN_WINDOW_DAYS * 24 * 60 * 60 * 1000));
+    const churnSentBySlug: Record<string, number> = {};
+    await Promise.all(ebCreds.rows.map(async (w) => {
+      try {
+        const url = `${w.url}/api/workspaces/v1.1/stats?start_date=${churnStart}&end_date=${churnEnd}`;
+        const r = await fetch(url, { headers: { Authorization: `Bearer ${w.key}` } });
+        if (!r.ok) return;
+        const body = await r.json();
+        churnSentBySlug[w.slug] = body?.data?.emails_sent ?? 0;
+      } catch (err) {
+        console.error(`[account-monitor] churn-check EB stats fetch failed for ${w.slug}:`, err);
+      }
+    }));
+    const activeWorkspaces = new Set(
+      Object.entries(churnSentBySlug).filter(([, sent]) => sent > 0).map(([slug]) => slug)
     );
-    const activeWorkspaces = new Set(recentSendsRes.rows.map(r => r.workspace_slug));
     const filteredWorkspaces = workspaces.filter(w => activeWorkspaces.has(w.slug));
     // Replace `workspaces` with the filtered list so all downstream summary
     // math is computed against active workspaces only.
