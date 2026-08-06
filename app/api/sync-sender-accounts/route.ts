@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
           daily_limit: number | null;
           tags: string[] | null;
           eb_created_at: string | null;
+          emails_sent_count: number | null;
+          total_replied_count: number | null;
+          bounced_count: number | null;
         }[] = [];
         let page = 1;
         let hasMore = true;
@@ -99,6 +102,9 @@ export async function POST(req: NextRequest) {
       daily_limit:    typeof s.daily_limit === "number" ? s.daily_limit : null,
       tags:           Array.isArray(s.tags) ? s.tags.map(String) : null,
       eb_created_at:  s.created_at ?? null,
+      emails_sent_count:   typeof s.emails_sent_count   === "number" ? s.emails_sent_count   : null,
+      total_replied_count: typeof s.total_replied_count === "number" ? s.total_replied_count : null,
+      bounced_count:       typeof s.bounced_count       === "number" ? s.bounced_count       : null,
     }))
   );
 
@@ -172,6 +178,7 @@ export async function POST(req: NextRequest) {
         //     warmup_emails_sent, warmup_replies_received per row. EB caps
         //     pagination at 15/page. Failures here are logged but do not
         //     abort the whole sync.
+        const warmupById: Record<number, { score: number | null; warmupLimit: number | null }> = {};
         try {
           let wPage = 1;
           let wHasMore = true;
@@ -185,6 +192,7 @@ export async function POST(req: NextRequest) {
               const score       = (typeof row.warmup_score === "number") ? row.warmup_score : null;
               const enabled     = row.warmup_enabled === true;
               const warmupLimit = (typeof row.warmup_daily_limit === "number") ? row.warmup_daily_limit : null;
+              warmupById[row.id] = { score, warmupLimit };
               const res = await pool.query(
                 `UPDATE sender_accounts
                    SET warmup_score        = $1,
@@ -202,6 +210,32 @@ export async function POST(req: NextRequest) {
           console.log(`[sync-sender-accounts] ${slug} warmup_score updated for ${wupdated} senders`);
         } catch (wupErr: any) {
           console.error(`[sync-sender-accounts] ${slug} warmup refresh failed:`, wupErr?.message);
+        }
+
+        // 4c. Snapshot cumulative per-sender counters (emails_sent_count,
+        //     total_replied_count, bounced_count from step 2, warmup_score
+        //     from step 4b). These are EB's own running lifetime totals,
+        //     independent of the EMAIL_SENT/EMAIL_OPENED webhook, so the
+        //     account-monitor dashboard can compute a window's sends as a
+        //     delta between snapshots instead of depending on webhook-fed
+        //     event rows. Same snapshot doubles as warmup-score history.
+        try {
+          for (const sender of ebSenders) {
+            const w = warmupById[sender.id];
+            await pool.query(
+              `INSERT INTO sender_stats_snapshots
+                 (workspace_slug, sender_email, eb_sender_id, emails_sent_count,
+                  total_replied_count, bounced_count, warmup_score, warmup_daily_limit, daily_limit)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+              [
+                slug, sender.email, sender.id,
+                sender.emails_sent_count, sender.total_replied_count, sender.bounced_count,
+                w?.score ?? null, w?.warmupLimit ?? null, sender.daily_limit,
+              ]
+            );
+          }
+        } catch (snapErr: any) {
+          console.error(`[sync-sender-accounts] ${slug} stats snapshot failed:`, snapErr?.message);
         }
 
         // 5. Refresh attached_campaigns_count per sender by walking all

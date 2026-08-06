@@ -178,6 +178,7 @@ export async function GET(req: NextRequest) {
     const wsFilter   = workspace !== "all" ? "AND es.workspace_slug = $2" : "";
     const wsFilterR  = workspace !== "all" ? "AND workspace_slug = $2" : "";
     const wsFilterB  = workspace !== "all" ? "AND eb.workspace_slug = $2" : "";
+    const wsFilterSnap = workspace !== "all" ? "AND workspace_slug = $2" : "";
     const params: (number | string)[] = [days];
     if (workspace !== "all") params.push(workspace);
 
@@ -209,19 +210,45 @@ export async function GET(req: NextRequest) {
         ${workspace !== "all" ? "AND workspace_slug = $2" : ""}
       ),
       sent_counts AS (
+        -- EMAIL_SENT/MANUAL_EMAIL_SENT webhook delivery stopped for every
+        -- workspace on 2026-07-30 (LEAD_REPLIED and EMAIL_BOUNCED kept
+        -- working — this looks like those event types got disabled on the
+        -- EmailBison side, not an app bug), so the emails_sent table stopped
+        -- growing and per-domain counts went stale/flat. EB still tracks a
+        -- lifetime cumulative emails_sent_count per sender internally
+        -- regardless of webhook health, so app/api/sync-sender-accounts
+        -- snapshots it hourly into sender_stats_snapshots. A window's sends
+        -- = latest snapshot minus the snapshot nearest the window start.
+        -- If no snapshot reaches back that far yet (sender is new to
+        -- tracking, or we're still within the first window since this
+        -- shipped), we deliberately return 0 rather than the sender's full
+        -- lifetime total -- the alternative is a wildly inflated one-time
+        -- spike on rollout day. Numbers ramp up to fully accurate over the
+        -- following days as snapshot history accumulates.
         SELECT
-          es.sender_email,
-          es.workspace_slug,
-          COUNT(es.id)::int AS emails_sent
-        FROM emails_sent es
-        INNER JOIN active_senders sa
-          ON  sa.sender_email   = es.sender_email
-          AND sa.workspace_slug = es.workspace_slug
-        WHERE es.sent_at >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
-          AND es.sender_email IS NOT NULL
-          AND es.sender_email != ''
-          ${wsFilter}
-        GROUP BY es.sender_email, es.workspace_slug
+          latest.sender_email,
+          latest.workspace_slug,
+          CASE WHEN baseline.emails_sent_count IS NULL THEN 0
+               ELSE GREATEST(latest.emails_sent_count - baseline.emails_sent_count, 0)
+          END::int AS emails_sent
+        FROM (
+          SELECT DISTINCT ON (sender_email, workspace_slug)
+            sender_email, workspace_slug, emails_sent_count
+          FROM sender_stats_snapshots
+          WHERE emails_sent_count IS NOT NULL
+            ${wsFilterSnap}
+          ORDER BY sender_email, workspace_slug, snapshot_at DESC
+        ) latest
+        LEFT JOIN LATERAL (
+          SELECT s2.emails_sent_count
+          FROM sender_stats_snapshots s2
+          WHERE s2.sender_email      = latest.sender_email
+            AND s2.workspace_slug    = latest.workspace_slug
+            AND s2.emails_sent_count IS NOT NULL
+            AND s2.snapshot_at      <= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
+          ORDER BY s2.snapshot_at DESC
+          LIMIT 1
+        ) baseline ON TRUE
       ),
       bounce_counts AS (
         -- Counts unique leads whose email address bounced per sender.
@@ -232,6 +259,17 @@ export async function GET(req: NextRequest) {
         -- stays consistent with the EB dashboard header numbers.
         -- UNION (not UNION ALL) deduplicates (sender, lead) pairs that appear
         -- in both paths (same event stored via webhook and poll).
+        --
+        -- KNOWN GAP: this join requires a matching emails_sent row, and that
+        -- table has had zero new rows since 2026-07-30 (EMAIL_SENT webhook
+        -- delivery stopped on EmailBison's side, see sent_counts above), so
+        -- bounces on sends after that date are undercounted here until the
+        -- webhook is restored. A bounced_at-fallback fix was attempted but
+        -- reverted: it requires a composite index on emails_sent(workspace_
+        -- slug, lead_email, sent_at) that this DB role cannot create (not
+        -- the table owner), and without it the LATERAL fallback took 60s+
+        -- against 816k/22k row tables. Revisit once someone with owner
+        -- privileges can add that index.
         SELECT sender_email, workspace_slug, COUNT(DISTINCT lead_email)::int AS bounces
         FROM (
           -- Path A: bounce row already has sender_email; join emails_sent to
@@ -274,6 +312,7 @@ export async function GET(req: NextRequest) {
       burn_counts AS (
         -- Counts unique leads that triggered a domain_burn signal per sender.
         -- Anchored to send date (same as bounce_counts) so the rate matches EB.
+        -- Same emails_sent-outage gap as bounce_counts above applies here too.
         -- Gmail retry cascades collapsed to 1 by COUNT(DISTINCT lead_email).
         SELECT
           eb.sender_email,
