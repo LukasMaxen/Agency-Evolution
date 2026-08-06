@@ -1021,23 +1021,34 @@ function SenderTable({
         if (d.avgScore === null)                               return 5;
         return 6;
       }
-      // Active severity. Lower = worse. Order matches domainStatusBadge.
+      // Active severity. Lower = worse. Red tiers first, then amber, then
+      // white (Insufficient data ahead of Healthy) — same bucket order as
+      // domainStatusBadge, just with the grey "not enough volume yet" tier
+      // moved to sit right before Healthy instead of ahead of the rate
+      // tiers, so a handful of white/grey rows can't sort above genuine
+      // amber/red rows.
       // Low warmup health OUTRANKS Critical reply because the score is
       // the root cause: when it drops, replies collapse next and the
       // recovery path (pause + warmup) is the same. Critical reply still
       // OUTRANKS List issue, which OUTRANKS Low reply.
+      // The `insufficientData` guard on tiers 5-7 mirrors the badge's own
+      // volume gate (domainStatusBadge checks totalSent < criticalMinSend
+      // before any rate check) so a row never sorts into a rate-based tier
+      // its badge wouldn't actually show — it always falls through to 8.
       //   0 Disconnected     1 MX missing       2 Burned
-      //   3 Not warming      4 Low health       5 Critical reply
-      //   6 List issue       7 Low reply        8 No data    9 Healthy
-      if (d.disconnected > 0)                      return 0;
-      if (d.mxMissing)                             return 1;
-      if (d.anyBurnFlagged)                        return 2;
-      if (d.notWarming > 0)                        return 3;
-      if (d.avgScore !== null && d.avgScore < 98)  return 4;
-      if (d.totalSent >= 200 && d.replyRate < 0.5) return 5;
-      if (d.bounceRate >= 2)                       return 6;
-      if (d.totalSent >=  50 && d.replyRate < 1)   return 7;
-      if (d.totalSent === 0)                       return 8;
+      //   3 Not warming      4 Low health        5 Critical reply
+      //   6 List issue       7 Low reply         8 Insufficient data
+      //   9 Healthy
+      const insufficientData = d.totalSent < thresholds.criticalMinSend;
+      if (d.disconnected > 0)                                    return 0;
+      if (d.mxMissing)                                           return 1;
+      if (d.anyBurnFlagged)                                      return 2;
+      if (d.notWarming > 0)                                      return 3;
+      if (d.avgScore !== null && d.avgScore < 98)                return 4;
+      if (!insufficientData && d.replyRate < 0.5)                return 5;
+      if (!insufficientData && d.bounceRate >= 2)                return 6;
+      if (!insufficientData && d.replyRate < 1)                  return 7;
+      if (insufficientData)                                      return 8;
       return 9;
     };
     const sa = domainSeverity(a);
