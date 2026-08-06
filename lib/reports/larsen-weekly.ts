@@ -78,7 +78,16 @@ function mondayOf(d: Date): number {
   return monday;
 }
 
-async function fetchEmailBisonWeekStats(workspaceSlug: string, weekStartMs: number, weekEndMs: number): Promise<{ emailsSent: number; replies: number; interested: number }> {
+interface CampaignCumulative {
+  id: number;
+  name: string;
+  emailsSent: number;
+  uniqueReplies: number;
+  interested: number;
+}
+
+/** All campaigns for a workspace with their LIFETIME cumulative counts (EmailBison has no per-campaign date filter). Paginates defensively even though every workspace fits on one page today. */
+async function fetchCampaignsCumulative(workspaceSlug: string): Promise<CampaignCumulative[]> {
   const creds = await pool.query(
     "SELECT email_bison_instance_url, email_bison_api_key FROM workspaces WHERE slug = $1",
     [workspaceSlug]
@@ -86,38 +95,73 @@ async function fetchEmailBisonWeekStats(workspaceSlug: string, weekStartMs: numb
   const row = creds.rows[0];
   if (!row?.email_bison_api_key || !row?.email_bison_instance_url) {
     console.warn(`[larsen-weekly] no EmailBison creds for ${workspaceSlug}`);
-    return { emailsSent: 0, replies: 0, interested: 0 };
+    return [];
   }
-  const start = isoDate(weekStartMs);
-  const end = isoDate(weekEndMs - 24 * 60 * 60 * 1000); // inclusive end date = last day of week
-  const url = `${row.email_bison_instance_url}/api/workspaces/v1.1/stats?start_date=${start}&end_date=${end}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${row.email_bison_api_key}` } });
-  if (!res.ok) {
-    console.warn(`[larsen-weekly] EmailBison stats failed for ${workspaceSlug}: ${res.status}`);
-    return { emailsSent: 0, replies: 0, interested: 0 };
+  const campaigns: CampaignCumulative[] = [];
+  let page = 1;
+  for (;;) {
+    const res = await fetch(`${row.email_bison_instance_url}/api/campaigns?page=${page}`, {
+      headers: { Authorization: `Bearer ${row.email_bison_api_key}` },
+    });
+    if (!res.ok) {
+      console.warn(`[larsen-weekly] EmailBison campaigns list failed for ${workspaceSlug}: ${res.status}`);
+      break;
+    }
+    const json = await res.json();
+    for (const c of json.data ?? []) {
+      campaigns.push({ id: c.id, name: c.name ?? "", emailsSent: c.emails_sent ?? 0, uniqueReplies: c.unique_replies ?? 0, interested: c.interested ?? 0 });
+    }
+    const lastPage = json.meta?.last_page ?? 1;
+    if (page >= lastPage) break;
+    page += 1;
   }
-  const data = await res.json();
-  return {
-    emailsSent: data?.data?.emails_sent ?? 0,
-    replies: data?.data?.unique_replies_per_contact ?? 0,
-    interested: data?.data?.interested ?? 0,
-  };
+  return campaigns;
 }
 
-/** Fraction of this workspace's replies this week whose campaign name contains "Pathfinder". */
-async function fetchPathfinderRatio(workspaceSlug: string, weekStartMs: number, weekEndMs: number): Promise<number> {
+/** Most recent snapshot for this campaign taken at or before `cutoffMs`, or null if none exists yet. */
+async function getPriorSnapshot(workspaceSlug: string, campaignId: number, cutoffMs: number): Promise<CampaignCumulative | null> {
   const r = await pool.query(
-    `SELECT campaign FROM replies WHERE workspace_slug = $1 AND received_at >= $2 AND received_at < $3`,
-    [workspaceSlug, new Date(weekStartMs), new Date(weekEndMs)]
+    `SELECT campaign_name AS name, emails_sent AS "emailsSent", unique_replies AS "uniqueReplies", interested
+     FROM campaign_stat_snapshots
+     WHERE workspace_slug = $1 AND campaign_id = $2 AND snapshotted_at <= $3
+     ORDER BY snapshotted_at DESC LIMIT 1`,
+    [workspaceSlug, campaignId, new Date(cutoffMs)]
   );
-  if (r.rows.length === 0) return 0;
-  const pathfinderCount = r.rows.filter((row) => /pathfinder/i.test(row.campaign ?? "")).length;
-  return pathfinderCount / r.rows.length;
+  return r.rows[0] ?? null;
 }
 
-function splitByRatio(total: number, pathfinderRatio: number): { pathfinder: number; operatingPartner: number } {
-  const pathfinder = Math.round(total * pathfinderRatio);
-  return { pathfinder, operatingPartner: total - pathfinder };
+async function saveSnapshot(workspaceSlug: string, campaigns: CampaignCumulative[], atMs: number): Promise<void> {
+  for (const c of campaigns) {
+    await pool.query(
+      `INSERT INTO campaign_stat_snapshots (workspace_slug, campaign_id, campaign_name, emails_sent, unique_replies, interested, snapshotted_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [workspaceSlug, c.id, c.name, c.emailsSent, c.uniqueReplies, c.interested, new Date(atMs)]
+    );
+  }
+}
+
+/**
+ * This week's contribution per campaign bucket for a workspace: current cumulative minus
+ * the most recent snapshot taken before the target week started. A campaign with no prior
+ * snapshot (first time we've ever seen it, or first run of this whole report) contributes 0
+ * for this one week — there is no way to recover its pre-tracking history from EmailBison,
+ * which only exposes lifetime totals. Every subsequent week is an exact diff.
+ */
+async function fetchCampaignDeltas(workspaceSlug: string, weekStartMs: number): Promise<{ pathfinder: Metrics; operatingPartner: Metrics; campaigns: CampaignCumulative[] }> {
+  const campaigns = await fetchCampaignsCumulative(workspaceSlug);
+  const pathfinder: Metrics = emptyMetrics();
+  const operatingPartner: Metrics = emptyMetrics();
+  for (const c of campaigns) {
+    const prior = await getPriorSnapshot(workspaceSlug, c.id, weekStartMs);
+    const emailsSent = Math.max(0, c.emailsSent - (prior?.emailsSent ?? c.emailsSent));
+    const replies = Math.max(0, c.uniqueReplies - (prior?.uniqueReplies ?? c.uniqueReplies));
+    const interested = Math.max(0, c.interested - (prior?.interested ?? c.interested));
+    const bucket = /pathfinder/i.test(c.name) ? pathfinder : operatingPartner;
+    bucket.emailsSent += emailsSent;
+    bucket.replies += replies;
+    bucket.interested += interested;
+  }
+  return { pathfinder, operatingPartner, campaigns };
 }
 
 /** Classifies one meeting's campaign bucket via a live Calendly lookup of its event_type. */
@@ -177,26 +221,17 @@ export async function runLarsenWeeklyReport(weekStart?: Date): Promise<void> {
     nicklasOperatingPartner: headerRow + 6,
   };
 
-  const [nicklasStats, lukasStats, nicklasRatio, lukasRatio, meetings] = await Promise.all([
-    fetchEmailBisonWeekStats(WORKSPACES.nicklas, targetWeekStart, targetWeekEnd),
-    fetchEmailBisonWeekStats(WORKSPACES.lukas, targetWeekStart, targetWeekEnd),
-    fetchPathfinderRatio(WORKSPACES.nicklas, targetWeekStart, targetWeekEnd),
-    fetchPathfinderRatio(WORKSPACES.lukas, targetWeekStart, targetWeekEnd),
+  const [nicklasDeltas, lukasDeltas, meetings] = await Promise.all([
+    fetchCampaignDeltas(WORKSPACES.nicklas, targetWeekStart),
+    fetchCampaignDeltas(WORKSPACES.lukas, targetWeekStart),
     fetchMeetingCounts(targetWeekStart, targetWeekEnd),
   ]);
 
-  const nicklasEmails = splitByRatio(nicklasStats.emailsSent, nicklasRatio);
-  const nicklasReplies = splitByRatio(nicklasStats.replies, nicklasRatio);
-  const nicklasInterested = splitByRatio(nicklasStats.interested, nicklasRatio);
-  const lukasEmails = splitByRatio(lukasStats.emailsSent, lukasRatio);
-  const lukasReplies = splitByRatio(lukasStats.replies, lukasRatio);
-  const lukasInterested = splitByRatio(lukasStats.interested, lukasRatio);
-
   const data: Record<"lukasPathfinder" | "lukasOperatingPartner" | "nicklasPathfinder" | "nicklasOperatingPartner", Metrics> = {
-    lukasPathfinder: { emailsSent: lukasEmails.pathfinder, replies: lukasReplies.pathfinder, interested: lukasInterested.pathfinder, meetings: meetings.lukas.pathfinder },
-    lukasOperatingPartner: { emailsSent: lukasEmails.operatingPartner, replies: lukasReplies.operatingPartner, interested: lukasInterested.operatingPartner, meetings: meetings.lukas.operatingPartner },
-    nicklasPathfinder: { emailsSent: nicklasEmails.pathfinder, replies: nicklasReplies.pathfinder, interested: nicklasInterested.pathfinder, meetings: meetings.nicklas.pathfinder },
-    nicklasOperatingPartner: { emailsSent: nicklasEmails.operatingPartner, replies: nicklasReplies.operatingPartner, interested: nicklasInterested.operatingPartner, meetings: meetings.nicklas.operatingPartner },
+    lukasPathfinder: { ...lukasDeltas.pathfinder, meetings: meetings.lukas.pathfinder },
+    lukasOperatingPartner: { ...lukasDeltas.operatingPartner, meetings: meetings.lukas.operatingPartner },
+    nicklasPathfinder: { ...nicklasDeltas.pathfinder, meetings: meetings.nicklas.pathfinder },
+    nicklasOperatingPartner: { ...nicklasDeltas.operatingPartner, meetings: meetings.nicklas.operatingPartner },
   };
 
   const updates: ValueRangeUpdate[] = [];
@@ -210,5 +245,15 @@ export async function runLarsenWeeklyReport(weekStart?: Date): Promise<void> {
   }
 
   await batchUpdateValues(SPREADSHEET_ID, updates);
+
+  // Snapshot current cumulative numbers now so NEXT week's run has a baseline to diff
+  // against. Timed at report-run time (Monday morning, right after the week just ended),
+  // which is the correct boundary for next week's delta.
+  const now = Date.now();
+  await Promise.all([
+    saveSnapshot(WORKSPACES.nicklas, nicklasDeltas.campaigns, now),
+    saveSnapshot(WORKSPACES.lukas, lukasDeltas.campaigns, now),
+  ]);
+
   console.log(`[larsen-weekly] wrote week ${isoDate(targetWeekStart)}-${isoDate(targetWeekEnd - 86400000)} to row ${headerRow}`);
 }
