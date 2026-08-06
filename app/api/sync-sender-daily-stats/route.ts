@@ -69,52 +69,77 @@ export async function POST(req: NextRequest) {
         let rowsUpserted = 0;
         let failed = 0;
 
-        await Promise.all(sendersRes.rows.map(async (sender) => {
-          try {
-            const url = `${instanceUrl}/api/campaign-events/stats?start_date=${startYmd}&end_date=${endYmd}&sender_email_ids[]=${sender.eb_sender_id}`;
-            const r = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } });
-            if (!r.ok) { failed++; return; }
-            const body = await r.json();
-            const series: EventSeries[] = body?.data ?? [];
+        // Concurrency is capped (not Promise.all over every sender at
+        // once): a real run of this job saturated the shared pg pool
+        // (25 connections) with ~200 concurrent senders each issuing many
+        // sequential writes, and an unrelated account-monitor request that
+        // landed mid-sync queued for 5 minutes waiting for a free
+        // connection. Batching each sender's ~30 days into ONE multi-row
+        // upsert (instead of one query per day) plus this concurrency cap
+        // keeps the job's peak connection usage well below the pool size.
+        const SENDER_CONCURRENCY = 8;
+        const queue = [...sendersRes.rows];
+        const worker = async () => {
+          while (queue.length > 0) {
+            const sender = queue.shift();
+            if (!sender) break;
+            try {
+              const url = `${instanceUrl}/api/campaign-events/stats?start_date=${startYmd}&end_date=${endYmd}&sender_email_ids[]=${sender.eb_sender_id}`;
+              const r = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } });
+              if (!r.ok) { failed++; continue; }
+              const body = await r.json();
+              const series: EventSeries[] = body?.data ?? [];
 
-            const byLabel = (label: string) => series.find(s => s.label === label);
-            const sentSeries       = byLabel("Sent");
-            const bouncedSeries    = byLabel("Bounced");
-            const repliedSeries    = byLabel("Replied");
-            const openedSeries     = byLabel("Unique Opens");
-            const interestedSeries = byLabel("Interested");
-            const unsubSeries      = byLabel("Unsubscribed");
+              const byLabel = (label: string) => series.find(s => s.label === label);
+              const sentSeries       = byLabel("Sent");
+              const bouncedSeries    = byLabel("Bounced");
+              const repliedSeries    = byLabel("Replied");
+              const openedSeries     = byLabel("Unique Opens");
+              const interestedSeries = byLabel("Interested");
+              const unsubSeries      = byLabel("Unsubscribed");
 
-            // Sent is the anchor series -- every date bucket EB returns for
-            // this sender comes from it. The other series share the same
-            // date axis, so look values up by date rather than assuming
-            // identical array ordering/length.
-            if (!sentSeries) return;
-            const valueAt = (series: EventSeries | undefined, date: string) =>
-              series?.dates.find(([d]) => d === date)?.[1] ?? 0;
+              // Sent is the anchor series -- every date bucket EB returns
+              // for this sender comes from it. The other series share the
+              // same date axis, so look values up by date rather than
+              // assuming identical array ordering/length.
+              if (!sentSeries || sentSeries.dates.length === 0) continue;
+              const valueAt = (series: EventSeries | undefined, date: string) =>
+                series?.dates.find(([d]) => d === date)?.[1] ?? 0;
 
-            for (const [date, sent] of sentSeries.dates) {
+              const values: any[] = [];
+              const placeholders: string[] = [];
+              sentSeries.dates.forEach(([date, sent], i) => {
+                const base = i * 10;
+                placeholders.push(`($${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5},$${base + 6},$${base + 7},$${base + 8},$${base + 9},$${base + 10},NOW())`);
+                values.push(
+                  slug, sender.email.toLowerCase(), sender.eb_sender_id, date, sent,
+                  valueAt(bouncedSeries, date), valueAt(repliedSeries, date), valueAt(openedSeries, date),
+                  valueAt(interestedSeries, date), valueAt(unsubSeries, date),
+                );
+              });
+
+              // One multi-row upsert per sender instead of one query per
+              // day -- ~30x fewer queries, ~30x less time holding a
+              // connection open per sender.
               await pool.query(
                 `INSERT INTO sender_daily_stats
                    (workspace_slug, sender_email, eb_sender_id, date, sent, bounced, replied, opened, interested, unsubscribed, synced_at)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+                 VALUES ${placeholders.join(",")}
                  ON CONFLICT (workspace_slug, sender_email, date)
                  DO UPDATE SET
                    sent = EXCLUDED.sent, bounced = EXCLUDED.bounced, replied = EXCLUDED.replied,
                    opened = EXCLUDED.opened, interested = EXCLUDED.interested,
                    unsubscribed = EXCLUDED.unsubscribed, synced_at = NOW()`,
-                [
-                  slug, sender.email.toLowerCase(), sender.eb_sender_id, date, sent,
-                  valueAt(bouncedSeries, date), valueAt(repliedSeries, date), valueAt(openedSeries, date),
-                  valueAt(interestedSeries, date), valueAt(unsubSeries, date),
-                ]
+                values
               );
-              rowsUpserted++;
+              rowsUpserted += sentSeries.dates.length;
+            } catch {
+              failed++;
             }
-          } catch {
-            failed++;
           }
-        }));
+        };
+
+        await Promise.all(Array.from({ length: SENDER_CONCURRENCY }, () => worker()));
 
         results.push({ workspace: slug, senders: sendersRes.rows.length, rowsUpserted, failed });
         console.log(`[sync-sender-daily-stats] ${slug}: ${sendersRes.rows.length} senders, ${rowsUpserted} rows upserted, ${failed} failed`);
