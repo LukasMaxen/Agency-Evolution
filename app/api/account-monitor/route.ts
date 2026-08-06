@@ -209,7 +209,7 @@ export async function GET(req: NextRequest) {
           AND provider_type !~* '(microsoft|office365|outlook)'
         ${workspace !== "all" ? "AND workspace_slug = $2" : ""}
       ),
-      sent_counts AS (
+      sent_counts_snapshot AS (
         -- EMAIL_SENT/MANUAL_EMAIL_SENT webhook delivery stopped for every
         -- workspace on 2026-07-30 (LEAD_REPLIED and EMAIL_BOUNCED kept
         -- working — this looks like those event types got disabled on the
@@ -219,18 +219,18 @@ export async function GET(req: NextRequest) {
         -- regardless of webhook health, so app/api/sync-sender-accounts
         -- snapshots it hourly into sender_stats_snapshots. A window's sends
         -- = latest snapshot minus the snapshot nearest the window start.
-        -- If no snapshot reaches back that far yet (sender is new to
-        -- tracking, or we're still within the first window since this
-        -- shipped), we deliberately return 0 rather than the sender's full
-        -- lifetime total -- the alternative is a wildly inflated one-time
-        -- spike on rollout day. Numbers ramp up to fully accurate over the
-        -- following days as snapshot history accumulates.
+        -- has_baseline is FALSE when no snapshot reaches back that far yet
+        -- (sender is new to tracking, or we're still within the first
+        -- window since this shipped) — sent_counts below falls back to the
+        -- legacy row-count method in that case instead of returning either
+        -- 0 (blanks every rate column, since reply/bounce/burn rate is a
+        -- percentage OF sends) or the sender's full lifetime total (a
+        -- wildly inflated one-time spike on rollout day).
         SELECT
           latest.sender_email,
           latest.workspace_slug,
-          CASE WHEN baseline.emails_sent_count IS NULL THEN 0
-               ELSE GREATEST(latest.emails_sent_count - baseline.emails_sent_count, 0)
-          END::int AS emails_sent
+          (baseline.emails_sent_count IS NOT NULL) AS has_baseline,
+          GREATEST(latest.emails_sent_count - COALESCE(baseline.emails_sent_count, 0), 0)::int AS emails_sent
         FROM (
           SELECT DISTINCT ON (sender_email, workspace_slug)
             sender_email, workspace_slug, emails_sent_count
@@ -249,6 +249,38 @@ export async function GET(req: NextRequest) {
           ORDER BY s2.snapshot_at DESC
           LIMIT 1
         ) baseline ON TRUE
+      ),
+      sent_counts_legacy AS (
+        -- Pre-snapshot method: count emails_sent rows in the window. Frozen
+        -- in place since 2026-07-30 (see sent_counts_snapshot above) but
+        -- still the best available number for any sender without a
+        -- snapshot baseline yet, so it's used as a fallback, not counted
+        -- on its own once snapshot history covers the window.
+        SELECT
+          es.sender_email,
+          es.workspace_slug,
+          COUNT(es.id)::int AS emails_sent
+        FROM emails_sent es
+        INNER JOIN active_senders sa
+          ON  sa.sender_email   = es.sender_email
+          AND sa.workspace_slug = es.workspace_slug
+        WHERE es.sent_at >= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
+          AND es.sender_email IS NOT NULL
+          AND es.sender_email != ''
+          ${wsFilter}
+        GROUP BY es.sender_email, es.workspace_slug
+      ),
+      sent_counts AS (
+        SELECT
+          COALESCE(snap.sender_email,   leg.sender_email)   AS sender_email,
+          COALESCE(snap.workspace_slug, leg.workspace_slug) AS workspace_slug,
+          CASE WHEN COALESCE(snap.has_baseline, FALSE) THEN snap.emails_sent
+               ELSE COALESCE(leg.emails_sent, 0)
+          END AS emails_sent
+        FROM sent_counts_snapshot snap
+        FULL OUTER JOIN sent_counts_legacy leg
+          ON  leg.sender_email   = snap.sender_email
+          AND leg.workspace_slug = snap.workspace_slug
       ),
       bounce_counts AS (
         -- Counts unique leads whose email address bounced per sender.
