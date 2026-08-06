@@ -2,9 +2,16 @@
 // Sheet (Weekly Tracking 2026 tab) for the week that just finished (Mon-Sun).
 //
 // Sources (no Make, no Slack, no Airtable in this pipeline):
-//   - Emails Sent / Replies / Interested: EmailBison per-workspace stats (source of truth,
-//     same endpoint as the CSM update), split into Pathfinder vs Operating Partner using the
-//     ratio of `replies.campaign` names in our DB for that workspace/week.
+//   - Emails Sent / Replies / Interested: EmailBison's per-campaign numbers (`/api/campaigns`)
+//     are LIFETIME CUMULATIVE totals only — EmailBison has no per-campaign date-range stats
+//     endpoint (confirmed: /api/campaigns/{id}/stats -> 405, and start_date/end_date on the
+//     campaign GET are silently ignored). So we snapshot each campaign's cumulative numbers
+//     every week (campaign_stat_snapshots table) and take this week's contribution as
+//     (this week's snapshot - last week's snapshot), classified Pathfinder vs Operating
+//     Partner by the campaign's actual name (contains "pathfinder", case-insensitive) — not
+//     a guess from reply ratios. First-ever run for a campaign has no prior snapshot, so its
+//     delta is reported as 0 for that one week (see fetchCampaignDeltas below); every run
+//     after that is an exact diff.
 //   - Meetings Booked: our `calls` table (populated live by the Calendly webhook — direct
 //     from Calendly, just persisted), deduped (is_reschedule = false), classified Pathfinder
 //     vs Operating Partner via a live Calendly lookup of each meeting's event_type.
