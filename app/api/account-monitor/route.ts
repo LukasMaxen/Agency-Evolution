@@ -570,27 +570,35 @@ export async function GET(req: NextRequest) {
     // page load, but perfectly fine as a once-a-day background job. See
     // that file for the full explanation of why this replaced the
     // webhook-fed emails_sent/email_bounces tables for this dashboard.
+    // NOTE: replied comes from this same cache too, not the local `replies`
+    // table. That table's per-sender attribution turned out to be badly
+    // incomplete (e.g. sonaro-ai had exactly 1 row in the last 7 days,
+    // vs 9 in EB's own count) -- the local replies pipeline is built for
+    // the reply-management inbox workflow, not for a complete send-level
+    // event log, so most replies never get a sender_email attached to
+    // them there. EB's campaign-events/stats has no such gap.
     const dailyStatsRes = await pool.query(
       `SELECT workspace_slug, sender_email,
-              SUM(sent)::int AS sent, SUM(bounced)::int AS bounced
+              SUM(sent)::int AS sent, SUM(bounced)::int AS bounced, SUM(replied)::int AS replied
          FROM sender_daily_stats
         WHERE date >= (CURRENT_DATE - ($1 || ' days')::interval)
           ${workspace !== "all" ? "AND workspace_slug = $2" : ""}
         GROUP BY workspace_slug, sender_email`,
       workspace !== "all" ? [days, workspace] : [days]
     );
-    const dailyStatsByKey: Record<string, { sent: number; bounced: number }> = {};
+    const dailyStatsByKey: Record<string, { sent: number; bounced: number; replied: number }> = {};
     for (const r of dailyStatsRes.rows) {
-      dailyStatsByKey[`${r.workspace_slug}::${r.sender_email.toLowerCase()}`] = { sent: r.sent, bounced: r.bounced };
+      dailyStatsByKey[`${r.workspace_slug}::${r.sender_email.toLowerCase()}`] = { sent: r.sent, bounced: r.bounced, replied: r.replied };
     }
     for (const acc of accountRows) {
       const live = dailyStatsByKey[`${acc.workspace_slug}::${acc.sender_email.toLowerCase()}`];
       if (!live) continue; // no cache entry yet (new sender, or sync hasn't run) -- keep local-DB fallback value
       acc.emails_sent = live.sent;
       acc.bounces     = live.bounced;
+      acc.replies     = live.replied;
       acc.bounce_rate = live.sent > 0 ? Math.round((live.bounced / live.sent) * 10000) / 100 : 0;
       acc.burn_rate    = live.sent > 0 ? Math.round((acc.burns   / live.sent) * 10000) / 100 : 0;
-      acc.reply_rate   = live.sent > 0 ? Math.round((acc.replies / live.sent) * 10000) / 100 : 0;
+      acc.reply_rate   = live.sent > 0 ? Math.round((live.replied / live.sent) * 10000) / 100 : 0;
       const reclassified = classify({
         sent: live.sent,
         fullMinSends:     T.ACCOUNT_MIN_SEND,
