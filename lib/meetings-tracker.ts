@@ -111,6 +111,25 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     slackExtra: { revenue: "DTC Revenue (Monthly)" },
     icpDescription: "Established consumer / CPG brands (beauty, personal care, food, supplements, household) doing roughly $5M+ in revenue with repeat-purchase products — the buyer's acquisition target. Also relevant: 7-figure+ DTC brands open to growth and a future exit. NOT a fit: pure services/agencies, B2B SaaS, pre-revenue, or clearly under $5M with no path.",
   },
+  "internal-campaigns": {
+    source: "calendly",
+    // Maxen Group's own buy-side + sell-side outbound (EmailBison workspace "Internal
+    // Campaigns"). Separate Airtable base from client workspaces, but the same
+    // "Meetings / Deals" schema as Larsen/Acceler8rs. Was missing here entirely until
+    // 2026-08-06, so bookings fell through to the fallback alert instead of Airtable.
+    airtableBaseId: "app9rWZ2iE4eWECEN",         // Agency Evolution CRM
+    airtableTableId: "tblCATnaPTV9fb2Ab",        // Meetings / Deals
+    slackChannel: FALLBACK_SLACK_CHANNEL,        // #internal-meetings — Maxen's own deals stay internal
+    fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
+    crm: {
+      dealSourceField: "Deal Source", dealSource: "Cold email",
+      statusField: "Status", statusValue: "Intro Call Booked",
+      nextStepField: "Next Step", nextStepValue: "Update Lead Info",
+      nextStepDateField: "Next Step Date",
+    },
+    slackExtra: { website: "Website" },
+    icpDescription: "Buy-side: PE firms, family offices, and strategic acquirers active in consumer/ecom or generalist lower-middle-market, sourcing $1M-$10M EBITDA targets. Sell-side: founders/owners of e-commerce and consumer brands, $1M+ EBITDA, exit-curious. NOT a fit: pre-revenue businesses, non-decision-makers, or industries with no plausible M&A angle.",
+  },
   // Simple template. Own Calendly org (dominik@sonaro.ai); leads not in the reply desk,
   // so its webhook is registered with ?ws=sonaro-ai. Only the engagement call is tracked.
   "sonaro-ai": {
