@@ -376,13 +376,13 @@ function WarmupCell({
   return (
     <td style={{ padding: "8px 6px" }}>
       <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 32px", alignItems: "baseline" }}>
-        <div style={{ textAlign: "right", paddingRight: 3 }}>
-          <TrendDelta delta={delta} periodDays={periodDays} />
-        </div>
+        <div />
         <div style={{ textAlign: "center", fontWeight: 500, fontVariantNumeric: "tabular-nums", color, whiteSpace: "nowrap" }}>
           {scoreText}
         </div>
-        <div />
+        <div style={{ textAlign: "left", paddingLeft: 3 }}>
+          <TrendDelta delta={delta} periodDays={periodDays} />
+        </div>
       </div>
     </td>
   );
