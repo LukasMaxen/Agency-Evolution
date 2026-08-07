@@ -344,25 +344,47 @@ function formatAddedDate(iso: string | null) {
 // Plain warmup-score delta vs. the prior period of equal length (period
 // matches whichever of EB's own 3/7/10/30-day windows is closest to the
 // dashboard's current days filter). No threshold, no flagging -- just
-// movement: a grey bracketed magnitude with a direction arrow. Always
-// renders a fixed-width box (blank when there's no delta) so the score
-// number in front of it never shifts left/right depending on whether a
-// delta happens to be present on that row.
+// movement: a grey bracketed magnitude with a direction arrow.
 function TrendDelta({ delta, periodDays }: { delta: number | null; periodDays: number }) {
-  const flat = delta !== null && Math.abs(delta) < 0.05;
-  const arrow = delta === null || flat ? "" : delta > 0 ? "↑" : "↓";
+  if (delta === null) return null;
+  const flat = Math.abs(delta) < 0.05;
+  const arrow = flat ? "" : delta > 0 ? "↑" : "↓";
   return (
     <span
-      title={delta !== null ? `vs ${periodDays}d ago` : undefined}
+      title={`vs ${periodDays}d ago`}
       style={{
-        display: "inline-block", width: 38, marginLeft: 3,
-        textAlign: "left", fontSize: 10, fontWeight: 500,
-        color: "#9ca3af", fontVariantNumeric: "tabular-nums",
-        whiteSpace: "nowrap",
+        fontSize: 10, fontWeight: 500, color: "#9ca3af",
+        fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap",
       }}
     >
-      {delta !== null ? `(${Math.abs(delta).toFixed(1)}${arrow})` : ""}
+      ({Math.abs(delta).toFixed(1)}{arrow})
     </span>
+  );
+}
+
+// Warmup score cell: the score is centered under the "Warmup" header via
+// a 3-column grid with a fixed-width side column on each edge (delta on
+// the left, empty spacer on the right). Because both side columns are
+// the same fixed width regardless of whether a delta is present, the
+// score's centered position never shifts row to row -- a plain flex/
+// text-align layout can't guarantee that once the delta's content width
+// varies (or is absent) since it changes the total line width being
+// centered/aligned.
+function WarmupCell({
+  scoreText, color, delta, periodDays,
+}: { scoreText: string; color: string; delta: number | null; periodDays: number }) {
+  return (
+    <td style={{ padding: "8px 6px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 32px", alignItems: "baseline" }}>
+        <div style={{ textAlign: "right", paddingRight: 3 }}>
+          <TrendDelta delta={delta} periodDays={periodDays} />
+        </div>
+        <div style={{ textAlign: "center", fontWeight: 500, fontVariantNumeric: "tabular-nums", color, whiteSpace: "nowrap" }}>
+          {scoreText}
+        </div>
+        <div />
+      </div>
+    </td>
   );
 }
 
@@ -1366,7 +1388,7 @@ function SenderTable({
                 { h: "Reply",       w: "5%",  align: "right"  },
                 { h: "Bounce",      w: "5%",  align: "right"  },
                 { h: "Burn",        w: "5%",  align: "right"  },
-                { h: "Warmup",      w: "9%",  align: "right"  },
+                { h: "Warmup",      w: "9%",  align: "center" },
                 { h: "Added",       w: "6%",  align: "right"  },
                 { h: "Status",      w: "9%",  align: "left"   },
                 { h: "Actions",     w: "13%", align: "center" },
@@ -1385,7 +1407,7 @@ function SenderTable({
                 { h: "Reply",         w: "5%",  align: "right"  },
                 { h: "Bounce",        w: "5%",  align: "right"  },
                 { h: "Burn",          w: "5%",  align: "right"  },
-                { h: "Warmup",        w: "9%",  align: "right"  },
+                { h: "Warmup",        w: "9%",  align: "center" },
                 { h: "Added",         w: "5%",  align: "right"  },
                 { h: "Days warming",  w: "6%",  align: "right"  },
                 { h: "Rejoin status", w: "10%", align: "left"   },
@@ -1502,16 +1524,14 @@ function SenderTable({
                         <td style={{ padding: "8px 10px", textAlign: "right", color: d.burnRate < 0.5 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.burnRate)}
                         </td>
-                        <td style={{
-                          padding: "8px 10px", textAlign: "right", whiteSpace: "nowrap",
-                          color: d.disconnected > 0 || d.avgScore === null ? "#9ca3af"
+                        <WarmupCell
+                          scoreText={d.disconnected > 0 || d.avgScore === null ? "—" : `${d.avgScore}%`}
+                          color={d.disconnected > 0 || d.avgScore === null ? "#9ca3af"
                                : d.avgScore >= 98 ? "#15803D"
-                               : d.avgScore >= 95 ? "#D97706" : "#B91C1C",
-                          fontWeight: 500, fontVariantNumeric: "tabular-nums",
-                        }}>
-                          {d.disconnected > 0 || d.avgScore === null ? "—" : `${d.avgScore}%`}
-                          <TrendDelta delta={d.disconnected === 0 ? d.warmupTrend : null} periodDays={warmupTrendPeriod} />
-                        </td>
+                               : d.avgScore >= 95 ? "#D97706" : "#B91C1C"}
+                          delta={d.disconnected === 0 ? d.warmupTrend : null}
+                          periodDays={warmupTrendPeriod}
+                        />
                         <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>
                           {formatAddedDate(d.addedAt)}
                         </td>
@@ -1534,16 +1554,14 @@ function SenderTable({
                         <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                           {pct(d.burnRate)}
                         </td>
-                        <td style={{
-                          padding: "8px 10px", textAlign: "right", whiteSpace: "nowrap",
-                          color: d.avgScore === null ? "#9ca3af"
+                        <WarmupCell
+                          scoreText={d.avgScore === null ? "—" : `${d.avgScore}%`}
+                          color={d.avgScore === null ? "#9ca3af"
                                : d.avgScore >= 98 ? "#15803D"
-                               : d.avgScore >= 95 ? "#D97706" : "#B91C1C",
-                          fontWeight: 500, fontVariantNumeric: "tabular-nums",
-                        }}>
-                          {d.avgScore === null ? "—" : `${d.avgScore}%`}
-                          <TrendDelta delta={d.warmupTrend} periodDays={warmupTrendPeriod} />
-                        </td>
+                               : d.avgScore >= 95 ? "#D97706" : "#B91C1C"}
+                          delta={d.warmupTrend}
+                          periodDays={warmupTrendPeriod}
+                        />
                         <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>
                           {formatAddedDate(d.addedAt)}
                         </td>
@@ -1738,16 +1756,14 @@ function SenderTable({
                             <td style={{ padding: "8px 10px", textAlign: "right", color: s.burn_rate < 0.5 ? "#15803D" : "#B91C1C", fontVariantNumeric: "tabular-nums" }}>
                               {s.emails_sent === 0 ? "—" : pct(s.burn_rate)}
                             </td>
-                            <td style={{
-                              padding: "8px 10px", textAlign: "right", whiteSpace: "nowrap",
-                              color: s.warmup_score === null || s.warmup_score === 0 ? "#9ca3af"
+                            <WarmupCell
+                              scoreText={s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
+                              color={s.warmup_score === null || s.warmup_score === 0 ? "#9ca3af"
                                    : s.warmup_score >= 98 ? "#15803D"
-                                   : s.warmup_score >= 95 ? "#D97706" : "#B91C1C",
-                              fontWeight: 500, fontVariantNumeric: "tabular-nums",
-                            }}>
-                              {s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
-                              <TrendDelta delta={s.warmup_trend} periodDays={warmupTrendPeriod} />
-                            </td>
+                                   : s.warmup_score >= 95 ? "#D97706" : "#B91C1C"}
+                              delta={s.warmup_trend}
+                              periodDays={warmupTrendPeriod}
+                            />
                             <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
                               {formatAddedDate(s.eb_created_at)}
                             </td>
@@ -1775,16 +1791,14 @@ function SenderTable({
                             <td style={{ padding: "8px 10px", textAlign: "right", color: "#374151", fontVariantNumeric: "tabular-nums" }}>
                               {s.emails_sent === 0 ? "—" : pct(s.burn_rate)}
                             </td>
-                            <td style={{
-                              padding: "8px 10px", textAlign: "right", whiteSpace: "nowrap",
-                              color: s.warmup_score === null || s.warmup_score === 0 ? "#9ca3af"
+                            <WarmupCell
+                              scoreText={s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
+                              color={s.warmup_score === null || s.warmup_score === 0 ? "#9ca3af"
                                    : s.warmup_score >= 98 ? "#15803D"
-                                   : s.warmup_score >= 95 ? "#D97706" : "#B91C1C",
-                              fontWeight: 500, fontVariantNumeric: "tabular-nums",
-                            }}>
-                              {s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
-                              <TrendDelta delta={s.warmup_trend} periodDays={warmupTrendPeriod} />
-                            </td>
+                                   : s.warmup_score >= 95 ? "#D97706" : "#B91C1C"}
+                              delta={s.warmup_trend}
+                              periodDays={warmupTrendPeriod}
+                            />
                             <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
                               {formatAddedDate(s.eb_created_at)}
                             </td>
