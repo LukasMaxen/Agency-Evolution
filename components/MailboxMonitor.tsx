@@ -355,9 +355,10 @@ function TrendDelta({ delta, periodDays }: { delta: number | null; periodDays: n
     <span
       title={delta !== null ? `vs ${periodDays}d ago` : undefined}
       style={{
-        display: "inline-block", width: 42, marginLeft: 4,
+        display: "inline-block", width: 38, marginLeft: 3,
         textAlign: "left", fontSize: 10, fontWeight: 500,
         color: "#9ca3af", fontVariantNumeric: "tabular-nums",
+        whiteSpace: "nowrap",
       }}
     >
       {delta !== null ? `(${Math.abs(delta).toFixed(1)}${arrow})` : ""}
@@ -1360,13 +1361,13 @@ function SenderTable({
                 { h: "Sender",      w: "18%", align: "left"   },
                 { h: "Send/day",    w: "6%",  align: "center" },
                 { h: "Warmup/day",  w: "6%",  align: "center" },
-                { h: "Campaigns",   w: "9%",  align: "left"   },
+                { h: "Campaigns",   w: "7%",  align: "left"   },
                 { h: "Sends",       w: "5%",  align: "right"  },
                 { h: "Reply",       w: "5%",  align: "right"  },
                 { h: "Bounce",      w: "5%",  align: "right"  },
                 { h: "Burn",        w: "5%",  align: "right"  },
-                { h: "Warmup",      w: "6%",  align: "right"  },
-                { h: "Added",       w: "7%",  align: "right"  },
+                { h: "Warmup",      w: "9%",  align: "right"  },
+                { h: "Added",       w: "6%",  align: "right"  },
                 { h: "Status",      w: "9%",  align: "left"   },
                 { h: "Actions",     w: "13%", align: "center" },
               ].map(({ h, w, align }) => (
@@ -1379,13 +1380,13 @@ function SenderTable({
                 { h: "Sender",        w: "15%", align: "left"   },
                 { h: "Send/day",      w: "5%",  align: "center" },
                 { h: "Warmup/day",    w: "5%",  align: "center" },
-                { h: "Campaigns",     w: "8%",  align: "left"   },
+                { h: "Campaigns",     w: "6%",  align: "left"   },
                 { h: "Sends",         w: "5%",  align: "right"  },
                 { h: "Reply",         w: "5%",  align: "right"  },
                 { h: "Bounce",        w: "5%",  align: "right"  },
                 { h: "Burn",          w: "5%",  align: "right"  },
-                { h: "Warmup",        w: "6%",  align: "right"  },
-                { h: "Added",         w: "6%",  align: "right"  },
+                { h: "Warmup",        w: "9%",  align: "right"  },
+                { h: "Added",         w: "5%",  align: "right"  },
                 { h: "Days warming",  w: "6%",  align: "right"  },
                 { h: "Rejoin status", w: "10%", align: "left"   },
                 { h: "Action",        w: "14%", align: "center" },
@@ -1502,11 +1503,11 @@ function SenderTable({
                           {pct(d.burnRate)}
                         </td>
                         <td style={{
-                          padding: "8px 10px", textAlign: "right",
+                          padding: "8px 10px", textAlign: "right", whiteSpace: "nowrap",
                           color: d.disconnected > 0 || d.avgScore === null ? "#9ca3af"
                                : d.avgScore >= 98 ? "#15803D"
                                : d.avgScore >= 95 ? "#D97706" : "#B91C1C",
-                          fontWeight: 500,
+                          fontWeight: 500, fontVariantNumeric: "tabular-nums",
                         }}>
                           {d.disconnected > 0 || d.avgScore === null ? "—" : `${d.avgScore}%`}
                           <TrendDelta delta={d.disconnected === 0 ? d.warmupTrend : null} periodDays={warmupTrendPeriod} />
@@ -1534,11 +1535,11 @@ function SenderTable({
                           {pct(d.burnRate)}
                         </td>
                         <td style={{
-                          padding: "8px 10px", textAlign: "right",
+                          padding: "8px 10px", textAlign: "right", whiteSpace: "nowrap",
                           color: d.avgScore === null ? "#9ca3af"
                                : d.avgScore >= 98 ? "#15803D"
                                : d.avgScore >= 95 ? "#D97706" : "#B91C1C",
-                          fontWeight: 500,
+                          fontWeight: 500, fontVariantNumeric: "tabular-nums",
                         }}>
                           {d.avgScore === null ? "—" : `${d.avgScore}%`}
                           <TrendDelta delta={d.warmupTrend} periodDays={warmupTrendPeriod} />
@@ -1738,11 +1739,11 @@ function SenderTable({
                               {s.emails_sent === 0 ? "—" : pct(s.burn_rate)}
                             </td>
                             <td style={{
-                              padding: "8px 10px", textAlign: "right",
+                              padding: "8px 10px", textAlign: "right", whiteSpace: "nowrap",
                               color: s.warmup_score === null || s.warmup_score === 0 ? "#9ca3af"
                                    : s.warmup_score >= 98 ? "#15803D"
                                    : s.warmup_score >= 95 ? "#D97706" : "#B91C1C",
-                              fontWeight: 500,
+                              fontWeight: 500, fontVariantNumeric: "tabular-nums",
                             }}>
                               {s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
                               <TrendDelta delta={s.warmup_trend} periodDays={warmupTrendPeriod} />
@@ -1775,11 +1776,11 @@ function SenderTable({
                               {s.emails_sent === 0 ? "—" : pct(s.burn_rate)}
                             </td>
                             <td style={{
-                              padding: "8px 10px", textAlign: "right",
+                              padding: "8px 10px", textAlign: "right", whiteSpace: "nowrap",
                               color: s.warmup_score === null || s.warmup_score === 0 ? "#9ca3af"
                                    : s.warmup_score >= 98 ? "#15803D"
                                    : s.warmup_score >= 95 ? "#D97706" : "#B91C1C",
-                              fontWeight: 500,
+                              fontWeight: 500, fontVariantNumeric: "tabular-nums",
                             }}>
                               {s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
                               <TrendDelta delta={s.warmup_trend} periodDays={warmupTrendPeriod} />
