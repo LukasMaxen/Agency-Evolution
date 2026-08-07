@@ -341,18 +341,26 @@ function formatAddedDate(iso: string | null) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-// Plain signed warmup-score delta vs. the prior period of equal length
-// (period matches whichever of EB's own 3/7/10/30-day windows is closest
-// to the dashboard's current days filter). No threshold, no flagging --
-// just movement, colored green (up) / red (down) / gray (flat or no data).
+// Plain warmup-score delta vs. the prior period of equal length (period
+// matches whichever of EB's own 3/7/10/30-day windows is closest to the
+// dashboard's current days filter). No threshold, no flagging -- just
+// movement: a grey bracketed magnitude with a direction arrow. Always
+// renders a fixed-width box (blank when there's no delta) so the score
+// number in front of it never shifts left/right depending on whether a
+// delta happens to be present on that row.
 function TrendDelta({ delta, periodDays }: { delta: number | null; periodDays: number }) {
-  if (delta === null) return null;
-  const flat = Math.abs(delta) < 0.05;
-  const color = flat ? "#9ca3af" : delta > 0 ? "#15803D" : "#B91C1C";
-  const sign = delta > 0 ? "+" : "";
+  const flat = delta !== null && Math.abs(delta) < 0.05;
+  const arrow = delta === null || flat ? "" : delta > 0 ? "↑" : "↓";
   return (
-    <span title={`vs ${periodDays}d ago`} style={{ fontSize: 10, color, fontWeight: 500, marginLeft: 5 }}>
-      {sign}{delta.toFixed(1)}
+    <span
+      title={delta !== null ? `vs ${periodDays}d ago` : undefined}
+      style={{
+        display: "inline-block", width: 42, marginLeft: 4,
+        textAlign: "left", fontSize: 10, fontWeight: 500,
+        color: "#9ca3af", fontVariantNumeric: "tabular-nums",
+      }}
+    >
+      {delta !== null ? `(${Math.abs(delta).toFixed(1)}${arrow})` : ""}
     </span>
   );
 }
@@ -1501,7 +1509,7 @@ function SenderTable({
                           fontWeight: 500,
                         }}>
                           {d.disconnected > 0 || d.avgScore === null ? "—" : `${d.avgScore}%`}
-                          {d.disconnected === 0 && <TrendDelta delta={d.warmupTrend} periodDays={warmupTrendPeriod} />}
+                          <TrendDelta delta={d.disconnected === 0 ? d.warmupTrend : null} periodDays={warmupTrendPeriod} />
                         </td>
                         <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>
                           {formatAddedDate(d.addedAt)}
