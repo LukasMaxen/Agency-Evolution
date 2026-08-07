@@ -13,6 +13,8 @@
 //                                   are deleted from DB and disappear from UI)
 //   8. Sender daily stats sync      every 24 hours (per-sender Sent/Bounced/
 //                                   Replied history cache for account monitor)
+//   9. Sender warmup history sync   every 24 hours (per-sender 3/7/10/30d
+//                                   warmup_score + prior-period cache)
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
@@ -226,4 +228,40 @@ export async function register() {
   setInterval(() => void runDailyStatsSync("periodic"), 24 * 60 * 60_000);
 
   console.log("[instrumentation] sender daily stats sync started, 24h interval");
+
+  // ── 9. Sender warmup history sync ─────────────────────────────────────────
+  // Pulls current + prior 3/7/10/30-day warmup_score windows per sender
+  // from EB into sender_warmup_periods, so the account monitor can show a
+  // trend delta (e.g. "+2.1" or "-3.4") without any live EB calls at read
+  // time. 8 EB calls per sender (4 periods x current+prior), so staggered
+  // even later than the daily stats sync to avoid piling both heavy jobs
+  // on top of each other right at boot.
+  let warmupHistorySyncRunning = false;
+  const runWarmupHistorySync = async (label: string) => {
+    if (warmupHistorySyncRunning) return;
+    warmupHistorySyncRunning = true;
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const res = await fetch(`${baseUrl}/api/sync-sender-warmup-history`, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.text();
+        console.error(`[instrumentation] ${label} warmup history sync HTTP error:`, err);
+        return;
+      }
+      const data = await res.json();
+      console.log(
+        `[instrumentation] ${label} warmup history sync: ` +
+        `${data.synced}/${data.synced + data.failed} workspaces ok`
+      );
+    } catch (err: any) {
+      console.error(`[instrumentation] ${label} warmup history sync failed:`, err);
+    } finally {
+      warmupHistorySyncRunning = false;
+    }
+  };
+
+  setTimeout(() => void runWarmupHistorySync("initial"), 240_000);
+  setInterval(() => void runWarmupHistorySync("periodic"), 24 * 60 * 60_000);
+
+  console.log("[instrumentation] sender warmup history sync started, 24h interval");
 }

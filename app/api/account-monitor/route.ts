@@ -10,17 +10,29 @@ import { checkMxMissing } from "@/lib/dns-mx-cache";
 
 // ── Deliverability thresholds ────────────────────────────────────────────
 // Reply rate tiers (lower is worse):
-//   reply_rate <  0.5  -> CRITICAL_LOW_REPLIES (pause + warmup 1-2 weeks)
+//   reply_rate <  0.45 -> CRITICAL_LOW_REPLIES (pause + warmup 1-2 weeks)
 //   reply_rate <  1.0  -> LOW_REPLIES          (yellow, monitor only)
 //   reply_rate >= 1.0  -> healthy on the reply axis
 // Bounce rate target: <  2.0%   at/above = LIST_ISSUE signal fires
-// Burn rate target:   <  0.5%   at/above fires.
+// Burn rate target:   <  1.0%   at/above fires, UNLESS warmup health is
+//                     >= 98% AND reply rate is >= 1% (both green) -- in
+//                     that case the bar relaxes to < 2.0%. This is the one
+//                     deliberately non-deterministic rule in the tree: a
+//                     domain that's healthy on every other axis gets more
+//                     benefit of the doubt on burn before being flagged.
 //                     Account-level ALSO fires on any single burn event,
 //                     since one Barracuda/Mimecast block is a strong
 //                     per-sender signal. Domain rollup uses rate only
 //                     (pass rateOnlyBurn=true), so one struck-out account
 //                     does not flip the whole domain when the rest of the
 //                     senders are clean.
+// Warmup health (evaluated by the caller, not this file's classify() --
+// see MailboxMonitor.tsx domainStatusBadge/domainSeverity for where the
+// domain-level "Low health" badge actually renders):
+//   score <  95        -> Red, this is the only warmup tier that pauses
+//                          a domain / triggers "needs warming"
+//   95 <= score < 98    -> Amber, informational only, no action
+//   score >= 98        -> Green
 //
 // Confidence tiers (based on send volume):
 //   - sends >= full threshold:  status is confident (no asterisk)
@@ -35,7 +47,19 @@ import { checkMxMissing } from "@/lib/dns-mx-cache";
 const REPLY_RATE_CRITICAL = 0.45;  // < this is critical_low_replies (red); 0.45 floor means 0.5% displayed never flags critical
 const REPLY_RATE_MIN      = 1.0;   // < this is low_replies (yellow); >= is healthy
 const BOUNCE_RATE_MAX     = 2.0;
-const BURN_RATE_MAX       = 0.5;
+const BURN_RATE_MAX_BASE     = 1.0;  // normal burn ceiling
+const BURN_RATE_MAX_RELAXED  = 2.0;  // ceiling when warmup + reply are both green
+const WARMUP_GREEN_THRESHOLD = 98;   // matches the domainStatusBadge/domainSeverity green bar
+
+// The one conditional rule in the tree: burn tolerance depends on the
+// state of the OTHER two metrics, not a fixed number. warmupScore is
+// null when there's no scored sender in the group -- treated as "not
+// green" (falls back to the stricter base ceiling), same as a low score.
+function burnRateCeiling(warmupScore: number | null, replyRate: number): number {
+  const warmupGreen = warmupScore !== null && warmupScore >= WARMUP_GREEN_THRESHOLD;
+  const replyGreen  = replyRate >= REPLY_RATE_MIN;
+  return warmupGreen && replyGreen ? BURN_RATE_MAX_RELAXED : BURN_RATE_MAX_BASE;
+}
 
 // Volume thresholds are calibrated against a 7-day window. For shorter
 // or longer windows we scale by days/7 so a 24h view has tight-but-not-
@@ -89,6 +113,7 @@ function classify(args: {
   burnRate: number;
   bounceRate: number;
   replyRate: number;
+  warmupScore?: number | null;
   disconnected?: boolean;
   rateOnlyBurn?: boolean;
 }): { status: Status; confidence: Confidence; signals: SignalFlags } {
@@ -107,9 +132,10 @@ function classify(args: {
   // Require burnMinSample sends — no count-based bypass, because summing
   // per-sender burn counts across 5 senders inflates the total and would
   // re-trigger the flag on the same low-volume pattern we're trying to ignore.
+  const burnMax = burnRateCeiling(args.warmupScore ?? null, args.replyRate);
   const rawBurnFires = args.rateOnlyBurn
-    ? args.burnRate >= BURN_RATE_MAX
-    : args.burnCount > 0 || args.burnRate >= BURN_RATE_MAX;
+    ? args.burnRate >= burnMax
+    : args.burnCount > 0 || args.burnRate >= burnMax;
   const burnFires = rawBurnFires && args.sent >= args.burnMinSample;
 
   // Below the provisional floor and no burn event: truly no signal.
@@ -434,6 +460,32 @@ export async function GET(req: NextRequest) {
     );
     const lastSynced = syncResult.rows[0]?.last_synced ?? null;
 
+    // Warmup trend: current-vs-prior-period score delta, sourced from
+    // sender_warmup_periods (see app/api/sync-sender-warmup-history/route.ts).
+    // Mapped from the dashboard's 1/7/14/30-day toggle onto EB's own
+    // 3/7/10/30-day warmup windows (same periods EB's Sender Accounts
+    // dashboard shows), so the trend period always tracks whatever window
+    // the operator is already looking at. Just a signed delta, no flagging
+    // logic -- Lukas explicitly didn't want a threshold-based "watch" badge
+    // here, only a plain number.
+    const trendPeriodMap: Record<number, number> = { 1: 3, 7: 7, 14: 10, 30: 30 };
+    const trendPeriod = trendPeriodMap[days] ?? 7;
+    const warmupTrendParams: (number | string)[] = [trendPeriod];
+    if (workspace !== "all") warmupTrendParams.push(workspace);
+    const warmupTrendResult = await pool.query(
+      `SELECT workspace_slug, sender_email, current_score, prior_score
+         FROM sender_warmup_periods
+        WHERE period_days = $1
+          AND current_score IS NOT NULL AND prior_score IS NOT NULL
+          ${workspace !== "all" ? "AND workspace_slug = $2" : ""}`,
+      warmupTrendParams
+    );
+    const warmupTrendMap = new Map<string, number>();
+    for (const r of warmupTrendResult.rows) {
+      const delta = Math.round((parseFloat(r.current_score) - parseFloat(r.prior_score)) * 10) / 10;
+      warmupTrendMap.set(`${r.workspace_slug}::${r.sender_email.toLowerCase()}`, delta);
+    }
+
     type AccountRow = {
       sender_email:             string;
       workspace_slug:           string;
@@ -447,6 +499,7 @@ export async function GET(req: NextRequest) {
       tags:                     string[] | null;
       eb_created_at:            string | null;
       warmup_score:             number | null;
+      warmup_trend:             number | null;
       provider_type:            string | null;
       emails_sent:              number;
       bounces:                  number;
@@ -470,6 +523,7 @@ export async function GET(req: NextRequest) {
       const replyRate   = parseFloat(r.reply_rate  ?? 0);
       const connStatus  = r.conn_status ?? "Connected";
       const isDisconnected = connStatus === "Not connected";
+      const warmupScoreVal = r.warmup_score != null ? parseFloat(r.warmup_score) : null;
 
       const { status, confidence, signals } = classify({
         sent,
@@ -481,6 +535,7 @@ export async function GET(req: NextRequest) {
         burnRate,
         bounceRate,
         replyRate,
+        warmupScore: warmupScoreVal,
         disconnected: isDisconnected,
       });
 
@@ -497,6 +552,7 @@ export async function GET(req: NextRequest) {
         tags:                     Array.isArray(r.tags) ? r.tags.map(String) : null,
         eb_created_at:            r.eb_created_at ?? null,
         warmup_score:             r.warmup_score != null ? parseFloat(r.warmup_score) : null,
+        warmup_trend:             warmupTrendMap.get(`${r.workspace_slug}::${(r.sender_email as string).toLowerCase()}`) ?? null,
         provider_type:            r.provider_type ?? null,
         emails_sent:              sent,
         bounces, burns, replies,
@@ -602,6 +658,7 @@ export async function GET(req: NextRequest) {
         burnRate: acc.burn_rate,
         bounceRate: acc.bounce_rate,
         replyRate: acc.reply_rate,
+        warmupScore: acc.warmup_score,
         disconnected: acc.conn_status === "Not connected",
       });
       acc.status     = reclassified.status;
@@ -640,6 +697,14 @@ export async function GET(req: NextRequest) {
         // disconnected — one broken sender means the domain cannot send
         // at full capacity and needs operator attention.
         const anyDisconnected = d.accounts.some(a => a.status === "disconnected");
+        const scoredAccounts = d.accounts.filter(a => a.warmup_score !== null && a.warmup_score > 0);
+        const domainAvgWarmup = scoredAccounts.length > 0
+          ? scoredAccounts.reduce((sum, a) => sum + (a.warmup_score as number), 0) / scoredAccounts.length
+          : null;
+        const trendedAccounts = d.accounts.filter(a => a.warmup_trend !== null);
+        const domainAvgTrend = trendedAccounts.length > 0
+          ? Math.round(trendedAccounts.reduce((sum, a) => sum + (a.warmup_trend as number), 0) / trendedAccounts.length * 10) / 10
+          : null;
         const { status, confidence, signals } = classify({
           sent,
           fullMinSends,
@@ -650,6 +715,7 @@ export async function GET(req: NextRequest) {
           burnRate,
           bounceRate,
           replyRate,
+          warmupScore: domainAvgWarmup,
           disconnected: anyDisconnected,
           rateOnlyBurn: true,
         });
@@ -667,6 +733,7 @@ export async function GET(req: NextRequest) {
         return {
           domain:        d.domain,
           accounts:      d.accounts,
+          warmupTrend:   domainAvgTrend,
           totalSent:     sent,
           totalReplies:  d.totalReplies,
           totalBounces:  d.totalBounces,
@@ -899,7 +966,9 @@ export async function GET(req: NextRequest) {
       thresholds: {
         replyRateMin:  REPLY_RATE_MIN,
         bounceRateMax: BOUNCE_RATE_MAX,
-        burnRateMax:   BURN_RATE_MAX,
+        burnRateMax:        BURN_RATE_MAX_BASE,
+        burnRateMaxRelaxed: BURN_RATE_MAX_RELAXED,
+        warmupGreenThreshold: WARMUP_GREEN_THRESHOLD,
         accountMinSend:      T.ACCOUNT_MIN_SEND,
         domainMinPerAccount: T.DOMAIN_MIN_PER_ACCOUNT,
         domainMinFloor:      T.DOMAIN_MIN_FLOOR,
@@ -907,6 +976,7 @@ export async function GET(req: NextRequest) {
         criticalMinSend:     T.CRITICAL_MIN_SEND,
       },
       days,
+      warmupTrendPeriod: trendPeriod,
       lastSynced,
     });
 

@@ -108,13 +108,15 @@ export async function GET() {
     });
 
     // Warmup health threshold. Health is judged at the DOMAIN level, not the
-    // individual mailbox level: if the domain average drops below 98% we
+    // individual mailbox level: if the domain average drops below 95% we
     // treat the whole domain as unhealthy and push every reachable sender
     // on it back to warmup. Individual outliers inside a healthy domain are
     // left alone — they recover passively while peers carry the volume.
-    // 98 is intentional: EB scores are tightly distributed in the high 90s
-    // for healthy mailboxes, so anything below 98 stands out.
-    const LOW_HEALTH_THRESHOLD = 98;
+    // 95 is the "needs action" bar; 95-97.9 is Amber (shown as a color, no
+    // action) and >=98 is Green. Only the <95 tier pauses a domain -- see
+    // app/api/account-monitor/route.ts's threshold block for the full
+    // reasoning (this endpoint mirrors the same cutoff for consistency).
+    const LOW_HEALTH_THRESHOLD = 95;
 
     // warmup_score = 0 means "no warmup activity yet" in EB — the sender
     // was added but no warmup emails have been sent to or from it. Treat

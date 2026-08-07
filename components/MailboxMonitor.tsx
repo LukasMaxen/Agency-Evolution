@@ -30,12 +30,14 @@ interface AccountMonitorAccount {
   bounce_rate:              number;
   burn_rate:                number;
   reply_rate:               number;
+  warmup_trend:             number | null;
   status:                   string;
   confidence:               string;
 }
 interface AccountMonitorDomain {
   domain:        string;
   accounts:      AccountMonitorAccount[];
+  warmupTrend:   number | null;
   totalSent:     number;
   totalReplies:  number;
   totalBounces:  number;
@@ -67,6 +69,7 @@ interface AccountMonitorResponse {
   days:       number;
   lastSynced: string | null;
   mxMissingDomains?: string[];
+  warmupTrendPeriod?: number;
 }
 
 interface WarmupSender {
@@ -111,6 +114,7 @@ interface Sender {
   conn_status:              string;
   warmup_enabled:           boolean;
   warmup_score:             number | null;
+  warmup_trend:             number | null;
   warming_since:            string | null;
   warming_days:             number | null;
   ready_to_rejoin:          boolean;
@@ -337,6 +341,22 @@ function formatAddedDate(iso: string | null) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+// Plain signed warmup-score delta vs. the prior period of equal length
+// (period matches whichever of EB's own 3/7/10/30-day windows is closest
+// to the dashboard's current days filter). No threshold, no flagging --
+// just movement, colored green (up) / red (down) / gray (flat or no data).
+function TrendDelta({ delta, periodDays }: { delta: number | null; periodDays: number }) {
+  if (delta === null) return null;
+  const flat = Math.abs(delta) < 0.05;
+  const color = flat ? "#9ca3af" : delta > 0 ? "#15803D" : "#B91C1C";
+  const sign = delta > 0 ? "+" : "";
+  return (
+    <span title={`vs ${periodDays}d ago`} style={{ fontSize: 10, color, fontWeight: 500, marginLeft: 5 }}>
+      {sign}{delta.toFixed(1)}
+    </span>
+  );
+}
+
 // Stat card used by the SummaryPanel. Icon + label on top row, large value
 // below, optional sub text on its own line. Colour band on the left edge
 // fires only when the metric crosses a bad threshold.
@@ -395,7 +415,7 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
   // and individual cards, so the colour story is consistent.
   const healthColor = totals.warmupHealthAvg === null ? "#9ca3af"
                     : totals.warmupHealthAvg >= 98 ? "#15803D"
-                    : totals.warmupHealthAvg >= 90 ? "#D97706"
+                    : totals.warmupHealthAvg >= 95 ? "#D97706"
                                                    : "#B91C1C";
   // Reply: ≥1% is the operator target (green), 0.5-1% is the watch
   // band (amber), anything under 0.5% is a red flag.
@@ -433,7 +453,7 @@ function SummaryPanel({ totals, days }: { totals: Totals; days: number }) {
       <Stat label="Warming only"    value={fmt(totals.warmingOnly)} icon={<Bell size={13} />}     accent="info" />
       <Stat label="Warmup health"  value={totals.warmupHealthAvg !== null ? `${totals.warmupHealthAvg}%` : "—"}
         color={healthColor} subColor={healthColor} sub={warmupSub}
-        accent={totals.warmupHealthAvg === null ? undefined : totals.warmupHealthAvg >= 98 ? "good" : totals.warmupHealthAvg >= 90 ? "warn" : "bad"}
+        accent={totals.warmupHealthAvg === null ? undefined : totals.warmupHealthAvg >= 98 ? "good" : totals.warmupHealthAvg >= 95 ? "warn" : "bad"}
         icon={<Activity size={13} />} />
       <Stat label="Reply rate"     value={pct(totals.replyRate)}  color={replyColor}
         sub={totals.totalSent > 0 ? `${fmt(totals.totalReplies)} replies` : undefined}
@@ -544,7 +564,7 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
           performance triple (Warmup health, Reply, Burn). Each cell
           uses identical typography so the eye can compare straight
           across. Colour bands match the SummaryPanel up top:
-            warmup  >=98 green, >=90 amber, else red
+            warmup  >=98 green, >=95 amber, else red
             reply   >=1  green, >=0.5 amber, else red
             burn    <=0.25 green, <=0.5 amber, else red                  */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
@@ -553,7 +573,7 @@ function WorkspaceCard({ w, onClick }: { w: Workspace; onClick: () => void }) {
           { label: "Active",        value: fmt(w.active) },
           { label: "Warming only",  value: fmt(w.warmingOnly) },
           { label: "Warmup health", value: w.warmupHealthAvg !== null ? `${w.warmupHealthAvg}%` : "—",
-            color: w.warmupHealthAvg === null ? "#9ca3af" : w.warmupHealthAvg >= 98 ? "#15803D" : w.warmupHealthAvg >= 90 ? "#D97706" : "#B91C1C" },
+            color: w.warmupHealthAvg === null ? "#9ca3af" : w.warmupHealthAvg >= 98 ? "#15803D" : w.warmupHealthAvg >= 95 ? "#D97706" : "#B91C1C" },
           { label: "Reply rate",
             value: w.totalSent === 0 ? "—" : `${w.avgReplyRate.toFixed(1)}%`,
             color: w.totalSent === 0                                        ? "#9ca3af"
@@ -660,6 +680,11 @@ interface DomainGroup {
   notWarming:    number;
   warmingOnly:   number;
   avgScore:      number | null;
+  // Avg current-vs-prior-period warmup score delta across scored senders
+  // (null if none have trend data yet). Plain signed number, no flagging
+  // logic attached -- per Lukas: "I dont want you flag warm up score
+  // drop, I simply want a number to indicate movement."
+  warmupTrend:   number | null;
   lowHealth:     boolean;
   attachedMin:   number;
   attachedMax:   number;
@@ -689,11 +714,12 @@ interface DomainGroup {
 }
 
 function SenderTable({
-  ws, senders, days, mxMissingDomains, thresholds, onBack, onActionDone, refresh,
+  ws, senders, days, warmupTrendPeriod, mxMissingDomains, thresholds, onBack, onActionDone, refresh,
 }: {
   ws: Workspace;
   senders: Sender[];
   days: number;
+  warmupTrendPeriod: number;
   mxMissingDomains: Set<string>;
   thresholds: { criticalMinSend: number; provisionalFloor: number };
   onBack: () => void;
@@ -897,10 +923,18 @@ function SenderTable({
     const avg = scored.length > 0
       ? Math.round(scored.reduce((a, s) => a + (s.warmup_score as number), 0) / scored.length * 10) / 10
       : null;
+    const trended = reachable.filter(s => s.warmup_trend !== null);
+    const avgTrend = trended.length > 0
+      ? Math.round(trended.reduce((a, s) => a + (s.warmup_trend as number), 0) / trended.length * 10) / 10
+      : null;
     const disconnected = list.filter(isDisconnected).length;
     const notWarming   = list.filter(isNotWarming).length;
     const hasActive    = list.some(s => (s.attached_campaigns_count ?? 0) > 0);
-    const lowHealth    = hasActive && avg !== null && avg < 98;
+    // <95 is the only warmup tier that pauses a domain / triggers "needs
+    // warming"; 95-97.9 is Amber (color only, no action), >=98 is Green.
+    // See app/api/account-monitor/route.ts's threshold block for the
+    // full reasoning.
+    const lowHealth    = hasActive && avg !== null && avg < 95;
     const worstSev     = disconnected > 0 ? 0 : notWarming > 0 ? 1 : lowHealth ? 2 : 3;
     const attached     = reachable.map(s => s.attached_campaigns_count ?? 0);
     const attachedMin  = attached.length > 0 ? Math.min(...attached) : 0;
@@ -920,20 +954,28 @@ function SenderTable({
     // the worst per-sender status. One struck-out sender no longer
     // flips the whole domain when the average is still under thresholds.
     // Thresholds mirror /api/account-monitor/route.ts classify():
-    //   burn   >= 0.5%  -> burned
-    //   reply  <  0.5%  AND sends >= 200 -> critical_low_replies
+    //   burn   >= 1.0%  (2.0% if warmup avg >= 98 AND reply rate >= 1.0%) -> burned
+    //   reply  <  0.45% AND sends >= 200 -> critical_low_replies
     //   bounce >= 2.0%  -> list_issue
     //   reply  <  1.0%  -> low_replies
     //   else            -> healthy
     // Disconnected still inherits from "any sender disconnected".
     const anyDisconnected = list.some(isDisconnected);
-    const BURN_MAX           = 0.5;
+    const BURN_MAX_BASE      = 1.0;
+    const BURN_MAX_RELAXED   = 2.0;
+    const WARMUP_GREEN       = 98;
     const BURN_MIN_SAMPLE    = 200;  // need this many sends before 1 burn can flag "burned"
     const BOUNCE_MAX         = 2.0;
     const REPLY_MIN          = 1.0;
     const REPLY_CRITICAL     = 0.45;
     const CRITICAL_MIN_SEND  = 200;
     const PROVISIONAL_FLOOR  = 20;
+    // Burn rate ceiling relaxes to 2% only when BOTH the domain's warmup
+    // health and reply rate are green -- mirrors burnRateCeiling() in
+    // app/api/account-monitor/route.ts.
+    const BURN_MAX = (avg !== null && avg >= WARMUP_GREEN && replyRate >= REPLY_MIN)
+      ? BURN_MAX_RELAXED
+      : BURN_MAX_BASE;
     let accStatus: string;
     if (anyDisconnected)                                                                                                    accStatus = "disconnected";
     else if (burnRate >= BURN_MAX && totalSent >= BURN_MIN_SAMPLE)                                                          accStatus = "burned";
@@ -994,10 +1036,11 @@ function SenderTable({
       return (b.emails_sent ?? 0) - (a.emails_sent ?? 0);
     });
 
-    // Domain-aggregate burn rate >= 0.5%. Previously this fired if ANY
-    // sender hit the threshold or had any burn event, which flipped whole
-    // domains over a single Barracuda/Mimecast block. The domain rollup
-    // now judges by average so the rest of the senders can absorb noise.
+    // Domain-aggregate burn rate >= BURN_MAX (1%, or 2% when warmup +
+    // reply rate are both green). Previously this fired if ANY sender hit
+    // the threshold or had any burn event, which flipped whole domains
+    // over a single Barracuda/Mimecast block. The domain rollup now
+    // judges by average so the rest of the senders can absorb noise.
     const anyBurnFlagged = burnRate >= BURN_MAX && totalSent >= BURN_MIN_SAMPLE;
 
     // A domain is ready to rejoin only when at least one sender passes the
@@ -1009,7 +1052,7 @@ function SenderTable({
     return {
       domain: dom, senders: sortedList, disconnected, notWarming,
       warmingOnly: list.filter(isWarmingOnly).length,
-      avgScore: avg, lowHealth, attachedMin, attachedMax,
+      avgScore: avg, warmupTrend: avgTrend, lowHealth, attachedMin, attachedMax,
       totalSent, totalReplies, totalBounces, totalBurns,
       replyRate, bounceRate, burnRate,
       accStatus, worstSev,
@@ -1062,7 +1105,7 @@ function SenderTable({
       if (d.mxMissing)                                           return 1;
       if (d.anyBurnFlagged)                                      return 2;
       if (d.notWarming > 0)                                      return 3;
-      if (d.avgScore !== null && d.avgScore < 98)                return 4;
+      if (d.avgScore !== null && d.avgScore < 95)                return 4;
       if (!insufficientData && d.replyRate < 0.5)                return 5;
       if (!insufficientData && d.bounceRate >= 2)                return 6;
       if (!insufficientData && d.replyRate < 1)                  return 7;
@@ -1128,7 +1171,7 @@ function SenderTable({
   //   warmup      → DOMAIN-AGGREGATE avg score
   // Disconnected / MX-missing / Not-warming remain binary-any-sender.
   // Severity order (highest to lowest among amber+ tier):
-  //   Low warmup health (< 98%)     leading inbox indicator and root
+  //   Low warmup health (< 95%)     leading inbox indicator and root
   //                                 cause: when the score drops, replies
   //                                 collapse next. Outranks Critical
   //                                 reply because a 0% reply on a sender
@@ -1152,7 +1195,7 @@ function SenderTable({
     // Hardcoded 200/50 used to be 7d-only: at 24h a 59-send domain with
     // 0 replies would tip Low reply while a 49-send domain with 0 replies
     // (genuinely the same signal) would fall through to Healthy.
-    if (d.avgScore !== null && d.avgScore < 98)  return <PillBadge text="Low health" tone="red" />;
+    if (d.avgScore !== null && d.avgScore < 95)  return <PillBadge text="Low health" tone="red" />;
     // All rate-based checks below require enough volume to be statistically
     // meaningful. Below criticalMinSend (200) a single bounce or zero replies
     // is noise, not a signal — show No data instead.
@@ -1231,7 +1274,7 @@ function SenderTable({
       {tab === "active" && (() => {
         const flagged = domainGroups.filter(d => {
           const domCritReplyAction = d.totalSent >= 200 && d.replyRate < 0.5;
-          const shouldPause = d.anyBurnFlagged || domCritReplyAction || (d.avgScore !== null && d.avgScore < 98);
+          const shouldPause = d.anyBurnFlagged || domCritReplyAction || (d.avgScore !== null && d.avgScore < 95);
           const eligible = d.senders.filter(s => !isDisconnected(s) && (s.attached_campaigns_count ?? 0) > 0 && s.warming_since == null).length;
           return shouldPause && eligible > 0;
         });
@@ -1366,7 +1409,7 @@ function SenderTable({
               // outbound metrics.
               const domCritReply = tab === "active" && d.totalSent >= thresholds.criticalMinSend && d.replyRate < 0.5;
               const domListIssue = tab === "active" && d.totalSent >= thresholds.criticalMinSend && d.bounceRate >= 2;
-              const domLowHealth = d.avgScore !== null && d.avgScore < 98;
+              const domLowHealth = d.avgScore !== null && d.avgScore < 95;
               const showHistoricalSignals = tab === "active";
               // Low-reply-only domains (0.5%-1% reply with no other
               // issues) get the neutral background, not amber. The
@@ -1410,7 +1453,7 @@ function SenderTable({
                           width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
                           background:
                             d.disconnected > 0 || d.mxMissing ? "#6366F1" :
-                            d.anyBurnFlagged || d.notWarming > 0 || (d.avgScore !== null && d.avgScore < 98) ? "#E24B4A" :
+                            d.anyBurnFlagged || d.notWarming > 0 || (d.avgScore !== null && d.avgScore < 95) ? "#E24B4A" :
                             d.bounceRate >= 2 ? "#D97706" :
                             d.accStatus === "low_replies" ? "#D97706" :
                             d.totalSent < 20 ? "#9CA3AF" :
@@ -1454,9 +1497,12 @@ function SenderTable({
                           padding: "8px 10px", textAlign: "right",
                           color: d.disconnected > 0 || d.avgScore === null ? "#9ca3af"
                                : d.avgScore >= 98 ? "#15803D"
-                               : d.avgScore >= 90 ? "#D97706" : "#B91C1C",
+                               : d.avgScore >= 95 ? "#D97706" : "#B91C1C",
                           fontWeight: 500,
-                        }}>{d.disconnected > 0 || d.avgScore === null ? "—" : `${d.avgScore}%`}</td>
+                        }}>
+                          {d.disconnected > 0 || d.avgScore === null ? "—" : `${d.avgScore}%`}
+                          {d.disconnected === 0 && <TrendDelta delta={d.warmupTrend} periodDays={warmupTrendPeriod} />}
+                        </td>
                         <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>
                           {formatAddedDate(d.addedAt)}
                         </td>
@@ -1483,9 +1529,12 @@ function SenderTable({
                           padding: "8px 10px", textAlign: "right",
                           color: d.avgScore === null ? "#9ca3af"
                                : d.avgScore >= 98 ? "#15803D"
-                               : d.avgScore >= 90 ? "#D97706" : "#B91C1C",
+                               : d.avgScore >= 95 ? "#D97706" : "#B91C1C",
                           fontWeight: 500,
-                        }}>{d.avgScore === null ? "—" : `${d.avgScore}%`}</td>
+                        }}>
+                          {d.avgScore === null ? "—" : `${d.avgScore}%`}
+                          <TrendDelta delta={d.warmupTrend} periodDays={warmupTrendPeriod} />
+                        </td>
                         <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>
                           {formatAddedDate(d.addedAt)}
                         </td>
@@ -1573,7 +1622,7 @@ function SenderTable({
                         const shouldPause = tab === "active" && (
                              d.anyBurnFlagged
                           || domCritReplyAction
-                          || (d.avgScore !== null && d.avgScore < 98));
+                          || (d.avgScore !== null && d.avgScore < 95));
                         const eligible = d.senders.filter(s => !isDisconnected(s) && (s.attached_campaigns_count ?? 0) > 0 && s.warming_since == null).length;
                         if (tab === "active" && eligible > 0) {
                           return (
@@ -1684,10 +1733,11 @@ function SenderTable({
                               padding: "8px 10px", textAlign: "right",
                               color: s.warmup_score === null || s.warmup_score === 0 ? "#9ca3af"
                                    : s.warmup_score >= 98 ? "#15803D"
-                                   : s.warmup_score >= 90 ? "#D97706" : "#B91C1C",
+                                   : s.warmup_score >= 95 ? "#D97706" : "#B91C1C",
                               fontWeight: 500,
                             }}>
                               {s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
+                              <TrendDelta delta={s.warmup_trend} periodDays={warmupTrendPeriod} />
                             </td>
                             <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
                               {formatAddedDate(s.eb_created_at)}
@@ -1720,9 +1770,12 @@ function SenderTable({
                               padding: "8px 10px", textAlign: "right",
                               color: s.warmup_score === null || s.warmup_score === 0 ? "#9ca3af"
                                    : s.warmup_score >= 98 ? "#15803D"
-                                   : s.warmup_score >= 90 ? "#D97706" : "#B91C1C",
+                                   : s.warmup_score >= 95 ? "#D97706" : "#B91C1C",
                               fontWeight: 500,
-                            }}>{s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}</td>
+                            }}>
+                              {s.warmup_score === null || s.warmup_score === 0 ? "—" : `${Math.round(s.warmup_score)}%`}
+                              <TrendDelta delta={s.warmup_trend} periodDays={warmupTrendPeriod} />
+                            </td>
                             <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
                               {formatAddedDate(s.eb_created_at)}
                             </td>
@@ -1854,7 +1907,7 @@ function SenderTable({
 // ── Top-level component ──────────────────────────────────────────────
 
 export function MailboxMonitor() {
-  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[]; lastSynced: string | null; days: number; mxMissingDomains: Set<string>; thresholds: { criticalMinSend: number; provisionalFloor: number } } | null>(null);
+  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[]; lastSynced: string | null; days: number; mxMissingDomains: Set<string>; thresholds: { criticalMinSend: number; provisionalFloor: number }; warmupTrendPeriod: number } | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [selected, setSelected]   = useState<Workspace | null>(null);
@@ -1900,6 +1953,7 @@ export function MailboxMonitor() {
           conn_status:              s.conn_status,
           warmup_enabled:           s.warmup_enabled,
           warmup_score:             s.warmup_score,
+          warmup_trend:             a?.warmup_trend ?? null,
           warming_since:            s.warming_since,
           warming_days:             s.warming_days,
           ready_to_rejoin:          s.ready_to_rejoin,
@@ -1997,7 +2051,7 @@ export function MailboxMonitor() {
         criticalMinSend:  Number(th.criticalMinSend  ?? 200),
         provisionalFloor: Number(th.provisionalFloor ?? 20),
       };
-      setData({ workspaces, senders, lastSynced: acc.lastSynced, days: acc.days, mxMissingDomains, thresholds });
+      setData({ workspaces, senders, lastSynced: acc.lastSynced, days: acc.days, mxMissingDomains, thresholds, warmupTrendPeriod: acc.warmupTrendPeriod ?? 7 });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -2114,6 +2168,7 @@ export function MailboxMonitor() {
           ws={selected}
           senders={selectedSenders}
           days={data.days}
+          warmupTrendPeriod={data.warmupTrendPeriod}
           mxMissingDomains={data.mxMissingDomains}
           thresholds={data.thresholds}
           onBack={() => setSelected(null)}
