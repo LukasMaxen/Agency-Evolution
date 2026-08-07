@@ -27,7 +27,7 @@ export async function GET() {
   try {
     const CHURN_WINDOW_DAYS  = 7;
     const READY_MIN_DAYS     = 3;    // minimum warming days before rejoining
-    const READY_SCORE_FLOOR  = 98;   // warmup score must be back above threshold
+    const READY_SCORE_FLOOR  = 95;   // warmup score must be back above threshold
 
     // Active workspaces (any send in the last 7 days). Anything else is
     // treated as churned and hidden, same rule as /api/account-monitor.

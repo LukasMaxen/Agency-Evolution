@@ -1073,7 +1073,7 @@ function SenderTable({
         // Warming-only severity. Lower = worse / needs more attention.
         //   0 Disconnected   1 MX missing   2 Not warming
         //   3 Low warmup health (<90)       4 Almost ready (90-97)
-        //   5 No data        6 Ready to rejoin (>=98)
+        //   5 No data        6 Ready to rejoin (>=95)
         if (d.disconnected > 0)                                return 0;
         if (d.mxMissing)                                       return 1;
         if (d.notWarming > 0)                                  return 2;
@@ -1786,7 +1786,7 @@ function SenderTable({
                                 amber = close, red = keep warming. */}
                             <td style={{ padding: "8px 10px" }}>
                               {s.warmup_score === null || s.warmup_score === 0 ? <PillBadge text="Insufficient data"        tone="grey"  />
-                               : s.warmup_score >= 98                          ? <PillBadge text="Ready to rejoin" tone="green" />
+                               : s.warmup_score >= 95                          ? <PillBadge text="Ready to rejoin" tone="green" />
                                : s.warmup_score >= 90                          ? <PillBadge text="Almost ready"   tone="amber" />
                                :                                                 <PillBadge text="Keep warming"   tone="red"   />}
                             </td>
