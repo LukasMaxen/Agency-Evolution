@@ -46,10 +46,17 @@ export async function POST(req: NextRequest) {
       const eventName  = event.name ?? "";
       const eventUri   = event.uri ?? "";
       const inviteeUri = invitee.uri ?? "";
-      // Phone + website come from the booking (reminder number, or a Q&A answer).
-      const qa: Array<{ question?: string; answer?: string }> = invitee.questions_and_answers ?? [];
+      // Phone + website come from the booking (reminder number, or a Q&A answer). Every other
+      // question the lead answered (revenue, sales channel, timeline to exit, etc.) is passed
+      // through verbatim to the Slack message as a numbered list, in the order Calendly asked
+      // them — previously these were silently discarded since only phone/website were picked out.
+      const qa: Array<{ question?: string; answer?: string; position?: number }> = invitee.questions_and_answers ?? [];
       const phone   = invitee.text_reminder_number ?? qa.find(q => /phone|mobile|number/i.test(q.question ?? ""))?.answer ?? undefined;
       const website = qa.find(q => /website|url|site/i.test(q.question ?? ""))?.answer ?? undefined;
+      const otherQA = qa
+        .filter(q => q.question?.trim() && q.answer?.trim() && !/website|url|site/i.test(q.question ?? ""))
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        .map(q => ({ question: q.question!.trim(), answer: q.answer!.trim() }));
 
       // Match to existing reply by email — also match preferred_recipient_email so a
       // redirected/referred contact who books (a different address than the original lead)
@@ -173,6 +180,7 @@ export async function POST(req: NextRequest) {
         campaign,
         phone,
         website,
+        qa: otherQA,
       }).catch((err: any) => console.error("[calendly webhook] trackMeeting failed:", err?.message ?? err));
 
       // ── Cross-blacklist between the two Larsen workspaces (larsen-digital <-> acceler8rs):

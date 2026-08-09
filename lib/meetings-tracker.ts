@@ -162,6 +162,9 @@ export interface BookingInput {
   campaign?: string;         // campaign the lead came from (from the matched reply row)
   phone?: string;            // from the booking, if present
   website?: string;          // from the booking, if present (falls back to the record)
+  /** Every other Calendly questionnaire answer (revenue, sales channel, timeline to exit,
+   *  phone, etc.), in the order Calendly asked them. Shown verbatim, never summarized. */
+  qa?: Array<{ question: string; answer: string }>;
 }
 
 async function airtable(method: string, path: string, body?: unknown): Promise<any> {
