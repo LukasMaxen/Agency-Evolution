@@ -196,12 +196,21 @@ function slackMessage(verb: "New meeting booked" | "Meeting rescheduled", i: Boo
   const lines = [`${verb} with ${i.leadName || i.leadEmail}`, ""];
   if (cfg.workspaceLabel) lines.push(`Sender: ${cfg.workspaceLabel}`);
   lines.push(`Email: ${i.leadEmail}`);
-  if (i.phone) lines.push(`Phone: ${i.phone}`);
+  // Phone gets its own line only when it did NOT come from a Q&A answer already shown below
+  // (e.g. an SMS reminder number with no matching custom question) — otherwise it would
+  // print twice, once here and once as a numbered item.
+  if (i.phone && !(i.qa ?? []).some(q => q.answer === i.phone)) lines.push(`Phone: ${i.phone}`);
   if (i.campaign) lines.push(`Campaign: ${i.campaign}`);
   const website = i.website || (cfg.slackExtra?.website ? rec?.[cfg.slackExtra.website] : undefined);
   if (website) lines.push(`Website: ${website}`);
   if (i.eventTypeName) lines.push(`Event type: ${i.eventTypeName}`);
   lines.push(`Time: ${i.prettyTime ?? cet(i.meetingStartISO)}`);
+  // Raw Calendly questionnaire answers (revenue, sales channel, timeline to exit, phone,
+  // etc.), in the order Calendly asked them.
+  if (i.qa && i.qa.length) {
+    lines.push("");
+    i.qa.forEach((q, idx) => lines.push(`${idx + 1}. ${q.question}: ${q.answer}`));
+  }
   // Context block (Company / EBITDA / Context / ICP fit) comes from buildMeetingContext.
   if (extra.length) { lines.push(""); lines.push(...extra); }
   return lines.join("\n");
