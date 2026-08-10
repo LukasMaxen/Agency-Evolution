@@ -96,10 +96,12 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     source: "calendly",
     airtableBaseId: "appV8wpBdqTgCi4Ws",
     airtableTableId: "tblCATnaPTV9fb2Ab",
-    // Split back into its own channel 2026-08-05 — Slack channels renamed to "Larsen -
-    // Nicklas" (C03LPQ4G3HR) and "Larsen - Lukas" (C07CNPN71PS, formerly
-    // #acceler8rs-meetings), each workspace tracked individually per Kasper.
-    slackChannel: "C07CNPN71PS",
+    // 2026-08-10: the "Larsen - Lukas" channel (was C07CNPN71PS) went dead — the bot
+    // could not reach it (channel_not_found), so every acceler8rs/Lukas meeting was
+    // silently black-holed (fire-and-forget Slack post). Per Kasper, both Larsen sides
+    // now post to the one live #larsen-digital-meetings (C03LPQ4G3HR). They stay
+    // distinguishable via the "Sender:" line (workspaceLabel below vs "Nicklas Larsen").
+    slackChannel: "C03LPQ4G3HR",               // #larsen-digital-meetings (shared with Nicklas)
     workspaceLabel: "Lukas Maxen",
     fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
     crm: {
