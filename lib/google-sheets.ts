@@ -5,7 +5,20 @@
 import crypto from "crypto";
 
 const CLIENT_EMAIL = process.env.GOOGLE_SHEETS_CLIENT_EMAIL ?? "";
-const PRIVATE_KEY = (process.env.GOOGLE_SHEETS_PRIVATE_KEY ?? "").replace(/\\n/g, "\n");
+
+// Different env-var UIs mangle the \n-escaped private key differently (some preserve it
+// literally as we store it locally, some double-escape the backslash, some strip wrapping
+// quotes, some don't). Normalize defensively rather than relying on exact platform behavior.
+function normalizePrivateKey(raw: string): string {
+  let key = raw.trim();
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1).trim();
+  }
+  key = key.replace(/\\\\n/g, "\n").replace(/\\n/g, "\n");
+  return key;
+}
+
+const PRIVATE_KEY = normalizePrivateKey(process.env.GOOGLE_SHEETS_PRIVATE_KEY ?? "");
 
 function b64url(input: Buffer | string): string {
   return Buffer.from(input).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -16,6 +29,13 @@ let cachedToken: { token: string; expiresAt: number } | null = null;
 async function getAccessToken(): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) return cachedToken.token;
   if (!CLIENT_EMAIL || !PRIVATE_KEY) throw new Error("GOOGLE_SHEETS_CLIENT_EMAIL / GOOGLE_SHEETS_PRIVATE_KEY not set");
+  if (!PRIVATE_KEY.startsWith("-----BEGIN") || !PRIVATE_KEY.includes("-----END")) {
+    throw new Error(
+      `GOOGLE_SHEETS_PRIVATE_KEY does not look like a valid PEM key after normalization ` +
+      `(starts with "${PRIVATE_KEY.slice(0, 15)}", length ${PRIVATE_KEY.length}, ` +
+      `has real newlines: ${PRIVATE_KEY.includes("\n")}) — check how it was pasted into the host's env var UI`
+    );
+  }
 
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
