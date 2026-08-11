@@ -13,6 +13,7 @@ jewelry_portfolio: https://canva.link/hs3uwg2520jllvs
 website: https://gnmotion.co/
 always_send_calendly: false
 french_market: true (match language exactly if they reply in French)
+location: Based in France, works with brands worldwide (confirmed by Kasper 2026-08-11)
 
 reply_rules:
 - Lead asks for our WEBSITE, web page, "your site", "your link", or where to see us online: send the website (https://gnmotion.co/).
