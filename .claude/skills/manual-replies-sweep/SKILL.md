@@ -27,6 +27,11 @@ Work dir: `/tmp/manual-replies-sweep` (`pulled.json`, optionally `sends.json`).
 - `isPeter` — Peter Barsoom (`barsoom|pbarsoom|nukafoods|1906newhighs`), the standing cross-client exclusion.
 - `isNoise` — pure automated content, not a real lead reply: CSAT/star-rating survey emails (`nysonik.com`, "rate your experience", "how was your experience"). Generic bulk out-of-office autoresponders with **no named redirect contact** also count as noise (nothing to act on). An OOO **with** a named person to redirect to is NOT noise, see below.
 - `meetingScheduled` — a live row in the `calls` table for any address in the thread.
+- `supersededByDecline` — the lead sent a LATER message (any address in the thread, after this card's `received_at`) that already reads as `not_interested`/`unsubscribe`/`hard_no`/`wrong_target` (via `ai_analysis->>'intent'`). Whatever question this older card raised (pricing, ICP fit, timing) is moot, they walked away after asking it. Don't leave it open waiting on a decision nobody needs.
+
+`pull.cjs` also prints each "needs review" card's age and flags anything ≥7 days old as `[STALE]`, sorted oldest-first. A stale card usually means either a missed opportunity (a lead who was ready to book and got dropped) or a dead one, worth a quick human glance either way rather than sitting unsorted in the middle of the list.
+
+Every deletion is logged to `1. Departments/operations/manual-replies-deleted-log.md` BEFORE the Slack message is deleted (`chat.delete` is irreversible, and the card's reasoning text — why the auto-reply system routed it to manual in the first place — only lives in that message). If anyone later asks "why did that card disappear," check the log, don't guess.
 
 **Needs review** (leave alone, do not delete, do not fabricate an answer):
 - Off-ICP scope calls (services business, nonprofit, wrong category, below revenue floor) — these need a real "do we pursue this" decision. Exception: a nonprofit with no revenue history transitioning to for-profit is an automatic decline (precedent set 2026-08-11, AHVets) — clear it without a reply, don't ask again for that exact pattern.
