@@ -105,23 +105,41 @@ async function fetchAllAddresses(instanceUrl, apiKey, ebReplyId) {
     const isNoise = NOISE_PATTERNS.some((p) => p.test(full)) && !isCard === false; // pure CSAT/survey, never a real reply
     const calls = addrList.length ? (await pool.query("SELECT status FROM calls WHERE lead_email = ANY($1) AND status NOT IN ('cancelled') LIMIT 1", [addrList])).rows : [];
 
+    // Superseded: the lead themselves sent a LATER message (any address in this
+    // thread) that already reads as not_interested/unsubscribe/hard_no. The open
+    // question this card raised (pricing, ICP fit, whatever) is moot, they walked
+    // away after asking it. Don't hold it open waiting on a decision nobody needs anymore.
+    let supersededByDecline = false;
+    if (addrList.length) {
+      const later = await pool.query(
+        `SELECT ai_analysis->>'intent' AS intent, received_at FROM replies
+         WHERE lead_email = ANY($1) AND received_at > COALESCE($2, 'epoch'::timestamptz)
+         ORDER BY received_at DESC LIMIT 1`,
+        [addrList, db ? db.received_at : null]
+      );
+      const intent = later.rows[0]?.intent;
+      if (intent && ["not_interested", "unsubscribe", "hard_no", "wrong_target"].includes(intent)) supersededByDecline = true;
+    }
+
+    const ageDays = Math.floor((Date.now() - Number(m.ts) * 1000) / 86400000);
+
     out.push({
       ts: m.ts, kind: "card", rid, ebId, email, workspaceSlug, addrs: addrList,
       maxSent, maxRecv, alreadyResponded, isPeter, isNoise, meetingScheduled: calls.length > 0,
-      text: full.slice(0, 500),
+      supersededByDecline, ageDays, text: full.slice(0, 500),
     });
     await new Promise((r) => setTimeout(r, 120));
   }
 
   fs.writeFileSync(path.join(WORK, "pulled.json"), JSON.stringify(out, null, 1));
   const cards = out.filter((o) => o.kind === "card");
-  const autoDelete = cards.filter((o) => o.alreadyResponded || o.isPeter || o.isNoise || o.meetingScheduled);
-  const needsReview = cards.filter((o) => !o.alreadyResponded && !o.isPeter && !o.isNoise && !o.meetingScheduled);
+  const autoDelete = cards.filter((o) => o.alreadyResponded || o.isPeter || o.isNoise || o.meetingScheduled || o.supersededByDecline);
+  const needsReview = cards.filter((o) => !autoDelete.includes(o));
 
   console.log(`\ncards: ${cards.length} | auto-delete candidates: ${autoDelete.length} | needs human review: ${needsReview.length} | non-card chat: ${out.filter(o=>o.kind==="not_a_card").length}`);
-  console.log("\n--- AUTO-DELETE (already responded / Peter / pure noise / meeting already booked) ---");
-  autoDelete.forEach((o) => console.log(" ", o.email, "| reason:", o.alreadyResponded ? "already responded" : o.isPeter ? "Peter" : o.meetingScheduled ? "meeting scheduled" : "noise/CSAT"));
+  console.log("\n--- AUTO-DELETE (already responded / Peter / pure noise / meeting booked / lead later declined) ---");
+  autoDelete.forEach((o) => console.log(" ", o.email, "| reason:", o.alreadyResponded ? "already responded" : o.isPeter ? "Peter" : o.meetingScheduled ? "meeting scheduled" : o.supersededByDecline ? "lead later declined" : "noise/CSAT"));
   console.log("\n--- NEEDS REVIEW (real open questions/decisions, do not delete blindly) ---");
-  needsReview.forEach((o) => console.log(" ", o.email, "|", o.text.replace(/\n/g, " ").slice(0, 140)));
+  needsReview.sort((a, b) => b.ageDays - a.ageDays).forEach((o) => console.log(" ", o.ageDays >= 7 ? `[STALE ${o.ageDays}d]` : `[${o.ageDays}d]`, o.email, "|", o.text.replace(/\n/g, " ").slice(0, 130)));
   await pool.end();
 })().catch((e) => { console.error("ERR", e.message, e.stack); process.exit(1); });
