@@ -333,3 +333,9 @@ _Reviewer notes: Be more convincing "On fees, the details are easiest to walk th
 When a lead states they are focused on growth (rather than an exit), lead the reply by pitching Larsen Digital's operating/growth partner offer first — before mentioning M&A credentials or exit positioning. Mirror the lead's stated priority so the pitch feels directly responsive to what they said they care about.
 
 _Reviewer notes: They say they are focussed on growth, pitch our growthpartner then_
+
+### 2026-08-11: Send-time learning from Kasper Zacho
+
+When pivoting to the growth operating partner offer in a reply, frame it with uncertainty language such as 'I don't know if I mentioned this before' or 'not sure if I've shared this' before introducing the offer. Then invite a conversation to explain how we can help, rather than describing the offer in detail in the email itself. Why: keeps the pitch soft and conversational rather than assumptive, especially when the lead has already acknowledged prior outreach.
+
+_Reviewer notes: I like everything about this draft, except say something like “I don't know if I mentioned this before but we operate as a growth partner, I’d be happy to have a conversation and explain how we can help get you there” rough draft but you know what I mean_
