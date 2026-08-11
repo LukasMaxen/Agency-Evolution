@@ -327,3 +327,9 @@ This is a negative reference. The draft below was rejected. Do not replicate thi
 When a lead asks how fees or compensation are structured, acknowledge performance-based comp briefly but redirect to the call for details — use framing like 'On fees, the details are easiest to walk through on a call rather than over email' rather than explaining structure in the email body. The goal is to keep fee specifics off email to protect the call conversion.
 
 _Reviewer notes: Be more convincing "On fees, the details are easiest to walk through on a call rather than over email." Say that most are tied to performance, we need lead on calls_
+
+### 2026-08-11: Send-time learning from Kasper Zacho
+
+When a lead states they are focused on growth (rather than an exit), lead the reply by pitching Larsen Digital's operating/growth partner offer first — before mentioning M&A credentials or exit positioning. Mirror the lead's stated priority so the pitch feels directly responsive to what they said they care about.
+
+_Reviewer notes: They say they are focussed on growth, pitch our growthpartner then_
