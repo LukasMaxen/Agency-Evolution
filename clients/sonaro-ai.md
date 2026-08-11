@@ -315,3 +315,11 @@ Every reply must open by acknowledging what the lead actually asked or said — 
 Every call CTA must include a one-sentence reason why the call is the right next step. Make the call feel purposeful and specific to their practice, not optional or generic.
 
 Do not name the sender in the call framing until the lead has confirmed or scheduled the meeting. Keep call references generic before booking: "on a quick call" or "walk you through the setup on a call."
+
+## Weekly Review Learnings (auto-applied, apply always)
+
+### 2026-08-11: Time slot offers must be time-zone-matched to the lead
+
+## Booking CTA — Time Slot Format (sonaro-ai)
+
+When offering two specific time slots alongside the Calendly link, slots must be expressed in the lead's local time zone (not the sender's), and must reflect the sender's confirmed availability. Format example: "How about Wednesday at 10am or Thursday at 2pm (GMT)?" Confirm the lead's time zone from their location or email header before drafting slots.
