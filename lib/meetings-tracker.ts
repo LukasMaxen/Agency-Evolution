@@ -298,6 +298,27 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
     return true;
   } catch (err: any) {
     console.error(`[meetings-tracker] failed ${input.workspaceSlug}/${email}:`, err?.message ?? err);
+    // Never let an Airtable/enrichment/Slack hiccup silently drop the notification — the
+    // Postgres `calls` row is already committed regardless, but the team still needs to see
+    // this in Slack. Post a plain fallback (no enrichment) to the client channel; if even
+    // that fails, escalate to the internal fallback channel so it's never just gone.
+    try {
+      await postSlack(cfg.slackChannel, [
+        `:warning: New meeting booked with ${i.leadName || email} (notification pipeline failed, this is a plain backfill)`,
+        "",
+        cfg.workspaceLabel ? `Sender: ${cfg.workspaceLabel}` : "",
+        `Email: ${email}`,
+        i.campaign ? `Campaign: ${i.campaign}` : "",
+        i.eventTypeName ? `Event type: ${i.eventTypeName}` : "",
+        `Time: ${i.prettyTime ?? cet(i.meetingStartISO)}`,
+      ].filter(Boolean).join("\n"));
+    } catch (fallbackErr: any) {
+      console.error(`[meetings-tracker] fallback notify also failed ${input.workspaceSlug}/${email}:`, fallbackErr?.message ?? fallbackErr);
+      try {
+        await postSlack(FALLBACK_SLACK_CHANNEL,
+          `:warning: Meeting booked with ${i.leadName || email} (${email}) in ${input.workspaceSlug} — notification pipeline failed twice, check Airtable/Slack manually.`);
+      } catch { /* both channels failed — already logged above, nothing more we can do */ }
+    }
     return false;
   }
 }
