@@ -41,3 +41,9 @@ When a lead says "send over the details" or something similar, structure the rep
 When a lead asks about integration with a specific journal/booking system (e.g. OPUS, Dentally, etc.), research whether that system has API capabilities before drafting the reply. Structure the reply as: (1) acknowledge the question, (2) confirm whether the system has API capabilities and explain that Sonaro integrates via API — sitting on top of their existing journal system without replacing it, (3) give a brief description of what Sonaro does (appointment data reading, WhatsApp-layer automation: cancellation recovery, no-show follow-ups, dormant patient reactivation), (4) CTA for a call. The reason: leads ask about integrations because our value prop depends on connecting to their existing system, so confirming API compatibility directly addresses their core concern.
 
 _Reviewer notes: Before answering research Opus and the other journal system for dental clinics and see whether they have API capabilities. For the reply you should acknowledge, then give them the answer, and then give a brief description of what we do, and then let's have a CTA for the call. The reason he is asking is because our system integrates with their existing systems. It sits on top of it but it integrates with it so we need some form of API capabilities for that._
+
+### 2026-08-11: Send-time learning from dom.v.schmidt
+
+When booking a call, always offer two specific time options that are appropriate for the lead's time zone AND the sender's availability, in addition to the calendar booking link. Never suggest times without confirming they fit both the lead's time zone and the sender's schedule.
+
+_Reviewer notes: You need to also offer two different times along with the booking link, which is fit to their time zone and my availability. I believe this should already always be the case_
