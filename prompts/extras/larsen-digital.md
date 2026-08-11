@@ -319,3 +319,11 @@ This is a negative reference. The draft below was rejected. Do not replicate thi
 - Open with a warm, natural line that shows genuine familiarity with what they've built — one specific, accurate observation, written like a human made it.
 - Use a case study that mirrors their category or stage.
 - Keep the language plain and direct. If it sounds like a pitch deck, rewrite it.
+
+## Weekly Review Learnings (auto-applied, apply always)
+
+### 2026-08-11: Send-time learning from Kasper Zacho
+
+When a lead asks how fees or compensation are structured, acknowledge performance-based comp briefly but redirect to the call for details — use framing like 'On fees, the details are easiest to walk through on a call rather than over email' rather than explaining structure in the email body. The goal is to keep fee specifics off email to protect the call conversion.
+
+_Reviewer notes: Be more convincing "On fees, the details are easiest to walk through on a call rather than over email." Say that most are tied to performance, we need lead on calls_
