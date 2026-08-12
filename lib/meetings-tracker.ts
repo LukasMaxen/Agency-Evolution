@@ -15,7 +15,6 @@
 // the Postgres `calls` record (written by the webhooks) are unaffected.
 
 import { buildMeetingContext } from "@/lib/meeting-context";
-import { resolveCampaign } from "@/lib/resolve-campaign";
 
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY ?? "";
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN ?? "";
@@ -263,11 +262,7 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
     return false;
   }
 
-  // Fill in the campaign name if the webhook did not supply one (replies.campaign can be
-  // empty for a lead even when EmailBison knows the campaign). Best-effort, non-blocking.
-  const i: BookingInput = input.campaign?.trim()
-    ? input
-    : { ...input, campaign: await resolveCampaign(input.workspaceSlug, email) };
+  const i = input;
 
   const tbl = `${cfg.airtableBaseId}/${encodeURIComponent(cfg.airtableTableId)}`;
   try {

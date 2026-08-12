@@ -62,11 +62,10 @@ export async function POST(req: NextRequest) {
       // redirected/referred contact who books (a different address than the original lead)
       // still resolves to the right workspace.
       const replyResult = await pool.query(
-        "SELECT id, workspace_slug, campaign FROM replies WHERE lead_email = $1 OR preferred_recipient_email = $1 ORDER BY received_at DESC LIMIT 1",
+        "SELECT id, workspace_slug FROM replies WHERE lead_email = $1 OR preferred_recipient_email = $1 ORDER BY received_at DESC LIMIT 1",
         [leadEmail]
       );
       const replyId      = replyResult.rows[0]?.id ?? null;
-      const campaign     = replyResult.rows[0]?.campaign ?? undefined;
       // Precedence: hard ?ws override, then the email->reply match, then the ?wsDefault
       // fallback, then "unknown". Email match must beat wsDefault so that on a shared org
       // (Larsen + Acceler8rs) a matched Acceler8rs lead is not mis-filed under the default.
@@ -177,7 +176,6 @@ export async function POST(req: NextRequest) {
         bookedAtISO: new Date(bookedAt).toISOString(),
         prettyTime: scheduledAt.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Copenhagen" }) + " CET",
         eventTypeName: eventName,
-        campaign,
         phone,
         website,
         qa: otherQA,

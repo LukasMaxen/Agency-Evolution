@@ -1,10 +1,11 @@
 // Extra context lines for a booked-meeting Slack notification:
-//   1. Redirect note  — if we originally emailed a different address than the one that booked.
-//   2. Company        — what the lead's company actually sells/does.
-//   3. EBITDA         — approximate, tagged with its source (stated / public info / estimate).
-//   4. Context        — how the lead's business fits the buyer's criteria (about the LEAD,
-//                       researched — NEVER summarized from our own sales copy).
-//   5. ICP fit        — a one-line Yes / Partial / No verdict.
+//   1. Redirect note (if we originally emailed a different address than the one that booked)
+//   2. Company (what the lead's company actually sells/does, and how well it fits the buyer's
+//      criteria, in one line, researched, never summarized from our own sales copy)
+//   3. EBITDA (approximate, tagged with its source: stated / public info / estimate)
+//
+// The Website line itself is added separately in meetings-tracker.ts (booking answer, record,
+// or email domain), so the reader can judge fit themselves instead of only trusting this note.
 //
 // Everything about the company is grounded in research about the lead (web search + the
 // lead's own words + a site scrape), never in what we wrote to them. A failed site scrape
@@ -79,7 +80,7 @@ async function leadThreadText(workspaceSlug: string, emails: string[]): Promise<
 }
 
 function grab(out: string, label: string): string | null {
-  const m = out.match(new RegExp(`${label}:\\s*(.+?)(?:\\s+(?:COMPANY|EBITDA|CONTEXT|ICP FIT):|$)`, "i"));
+  const m = out.match(new RegExp(`${label}:\\s*(.+?)(?:\\s+(?:COMPANY|EBITDA):|$)`, "i"));
   const v = m?.[1]?.trim();
   if (!v) return null;
   return /^(n\/?a|unknown|none|n\/a\.)\.?$/i.test(v) ? null : v.slice(0, 220);
@@ -97,12 +98,12 @@ function companyFromSummary(summary: string): string | null {
   return first && first.length < 200 ? first : null;
 }
 
-interface LeadEnrichment { company: string | null; context: string | null; icpFit: string | null; }
+interface LeadEnrichment { company: string | null; }
 
-// Company / Context / ICP fit — PLAIN Haiku (no tools), so the strict three-line format is
+// Company (what + fit merged into one line) — PLAIN Haiku (no tools), so the strict format is
 // reliable. It is the FALLBACK used only when the web-search researchLead call is unavailable.
 // (Kept short; the web-search path handles EBITDA + company lookup.) Its verbose output can
-// never disturb these lines.
+// never disturb this line.
 async function enrichLead(o: { company: string; domain?: string; leadSaid?: string; scraped?: string; icp?: string }): Promise<LeadEnrichment> {
   const facts = [
     o.company ? `Company name: ${o.company}` : "",
@@ -116,14 +117,14 @@ async function enrichLead(o: { company: string; domain?: string; leadSaid?: stri
     `You are writing a short briefing for a sales rep about a company that just booked a call. Base everything on the ` +
     `COMPANY itself and what the LEAD said about themselves, plus anything you already know about this company. NEVER ` +
     `describe our own outreach or sales pitch.\n\n${facts}\n\n` +
-    `Return EXACTLY these three lines, nothing else, no preamble, no markdown:\n` +
-    `COMPANY: one short line on what they actually sell or do, with a category in parentheses. Write "unknown" ONLY if you genuinely have nothing to go on.\n` +
-    `CONTEXT: one short line (max 16 words) on how THIS company fits (or misses) the buyer's criteria and why. About the lead's business, never our pitch.\n` +
-    `ICP FIT: start with Yes, Partial, or No, then a 4-8 word reason.`;
+    `Return EXACTLY this line, nothing else, no preamble, no markdown:\n` +
+    `COMPANY: one line (max 30 words) on what they actually sell or do, with a category in parentheses, then how well ` +
+    `they fit the buyer's criteria and why. About the lead's business, never our pitch. Write "unknown" ONLY if you ` +
+    `genuinely have nothing to go on.`;
 
-  const out = await haiku(ask, 260);
-  if (!out) return { company: null, context: null, icpFit: null };
-  return { company: grab(out, "COMPANY"), context: grab(out, "CONTEXT"), icpFit: grab(out, "ICP FIT") };
+  const out = await haiku(ask, 180);
+  if (!out) return { company: null };
+  return { company: grab(out, "COMPANY") };
 }
 
 // Haiku with the web_search tool enabled. Used ONLY for the EBITDA lookup.
@@ -155,7 +156,7 @@ async function haikuWithSearch(prompt: string, maxTokens: number): Promise<strin
   }
 }
 
-interface LeadResearch { company: string | null; ebitda: string | null; context: string | null; icpFit: string | null; }
+interface LeadResearch { company: string | null; ebitda: string | null; }
 
 // Pull one labelled value out of a possibly-verbose web-search answer. Takes the LAST
 // occurrence of the label (so search narration earlier in the text is ignored) and cuts it
@@ -194,21 +195,18 @@ async function researchLead(o: { company: string; domains?: string[]; domain?: s
     `IMPORTANT: identify the SPECIFIC company from the domain(s) and what the lead said. The brand/store domain is the ` +
     `strongest signal; a holding-company domain is weaker. Do NOT confuse it with a similarly-named company in another ` +
     `country — cross-check against the lead's description and the phone's country. If sources conflict or you are not ` +
-    `confident which company it is, say so in CONTEXT and keep COMPANY to what the lead actually told you.\n\n${facts}\n\n` +
+    `confident which company it is, say so in COMPANY and keep it to what the lead actually told you.\n\n${facts}\n\n` +
     `When you are done searching, end your reply with EXACTLY this block and nothing after it:\n` +
-    `COMPANY: <specific line on what they really sell or do, with a category in parentheses>\n` +
-    `EBITDA: <~$amount | from public info OR from revenue OR stated in thread — or the single word none>\n` +
-    `CONTEXT: <max 16 words on how they fit or miss the buyer's criteria and why, about the lead's business>\n` +
-    `ICP FIT: <Yes, Partial, or No, then a 4-8 word reason>`;
+    `COMPANY: <one line (max 30 words) on what they really sell or do, with a category in parentheses, then how well ` +
+    `they fit or miss the buyer's criteria and why, about the lead's business>\n` +
+    `EBITDA: <~$amount | from public info OR from revenue OR stated in thread — or the single word none>`;
 
   const out = await haikuWithSearch(ask, 1400);
   if (!out) return null;
 
-  const company = pickBlock(out, "COMPANY", ["EBITDA", "CONTEXT", "ICP FIT"]);
-  const context = pickBlock(out, "CONTEXT", ["ICP FIT", "EBITDA", "COMPANY"]);
-  const icpFit = pickBlock(out, "ICP FIT", []);
-  const ebRaw = pickBlock(out, "EBITDA", ["CONTEXT", "ICP FIT"]);
-  if (!company && !context && !icpFit && !ebRaw) return null; // unparseable → fall back
+  const company = pickBlock(out, "COMPANY", ["EBITDA"]);
+  const ebRaw = pickBlock(out, "EBITDA", []);
+  if (!company && !ebRaw) return null; // unparseable → fall back
 
   let ebitda: string | null = null;
   if (ebRaw) {
