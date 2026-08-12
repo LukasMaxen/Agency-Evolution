@@ -161,7 +161,6 @@ export interface BookingInput {
   bookedAtISO: string;       // when booked (created_at)
   prettyTime?: string;       // formatted time for the Slack message
   eventTypeName?: string;    // Calendly/iClosed event type label
-  campaign?: string;         // campaign the lead came from (from the matched reply row)
   phone?: string;            // from the booking, if present
   website?: string;          // from the booking, if present (falls back to the record)
   /** Every other Calendly questionnaire answer (revenue, sales channel, timeline to exit,
@@ -194,16 +193,25 @@ const isoDate = (iso: string): string => new Date(iso).toISOString().slice(0, 10
 const cet = (iso: string): string =>
   new Date(iso).toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Copenhagen" }) + " CET";
 
+// Freemail domains never identify a company, so they never make a usable "Website:" fallback.
+const FREEMAIL = new Set(["gmail.com", "hotmail.com", "yahoo.com", "outlook.com", "icloud.com", "aol.com", "proton.me", "protonmail.com", "gmx.com", "gmx.net", "live.com", "msn.com", "me.com", "mail.com"]);
+function emailDomain(email: string): string | undefined {
+  const d = (email.split("@")[1] || "").toLowerCase().trim();
+  return d && !FREEMAIL.has(d) ? d : undefined;
+}
+
 function slackMessage(verb: "New meeting booked" | "Meeting rescheduled", i: BookingInput, rec: Record<string, any> | undefined, cfg: MeetingConfig, extra: string[] = []): string {
   const lines = [`${verb} with ${i.leadName || i.leadEmail}`, ""];
   if (cfg.workspaceLabel) lines.push(`Sender: ${cfg.workspaceLabel}`);
   lines.push(`Email: ${i.leadEmail}`);
   // Phone gets its own line only when it did NOT come from a Q&A answer already shown below
-  // (e.g. an SMS reminder number with no matching custom question) — otherwise it would
+  // (e.g. an SMS reminder number with no matching custom question), otherwise it would
   // print twice, once here and once as a numbered item.
   if (i.phone && !(i.qa ?? []).some(q => q.answer === i.phone)) lines.push(`Phone: ${i.phone}`);
-  if (i.campaign) lines.push(`Campaign: ${i.campaign}`);
-  const website = i.website || (cfg.slackExtra?.website ? rec?.[cfg.slackExtra.website] : undefined);
+  // Website: prefer what the lead actually typed (Calendly Q&A), then the Airtable record,
+  // then fall back to their email domain so this line is almost always there to self-assess
+  // the company from, without us editorializing on fit.
+  const website = i.website || (cfg.slackExtra?.website ? rec?.[cfg.slackExtra.website] : undefined) || emailDomain(i.leadEmail);
   if (website) lines.push(`Website: ${website}`);
   if (i.eventTypeName) lines.push(`Event type: ${i.eventTypeName}`);
   lines.push(`Time: ${i.prettyTime ?? cet(i.meetingStartISO)}`);
@@ -308,7 +316,6 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
         "",
         cfg.workspaceLabel ? `Sender: ${cfg.workspaceLabel}` : "",
         `Email: ${email}`,
-        i.campaign ? `Campaign: ${i.campaign}` : "",
         i.eventTypeName ? `Event type: ${i.eventTypeName}` : "",
         `Time: ${i.prettyTime ?? cet(i.meetingStartISO)}`,
       ].filter(Boolean).join("\n"));
