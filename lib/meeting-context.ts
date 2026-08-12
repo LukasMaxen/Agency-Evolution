@@ -194,7 +194,7 @@ async function researchLead(o: { company: string; domains?: string[]; domain?: s
     `the notes below, and never describe our own outreach.\n\n` +
     `IMPORTANT: identify the SPECIFIC company from the domain(s) and what the lead said. The brand/store domain is the ` +
     `strongest signal; a holding-company domain is weaker. Do NOT confuse it with a similarly-named company in another ` +
-    `country — cross-check against the lead's description and the phone's country. If sources conflict or you are not ` +
+    `country, cross-check against the lead's description and the phone's country. If sources conflict or you are not ` +
     `confident which company it is, say so in COMPANY and keep it to what the lead actually told you.\n\n${facts}\n\n` +
     `When you are done searching, end your reply with EXACTLY this block and nothing after it:\n` +
     `COMPANY: <one line (max 30 words) on what they really sell or do, with a category in parentheses, then how well ` +
@@ -223,7 +223,7 @@ async function researchLead(o: { company: string; domains?: string[]; domain?: s
       if (a) ebitda = `~${normalizeAmt(a[0].replace(/\s+/g, ""))} (from public info)`;
     }
   }
-  return { company, ebitda, context, icpFit };
+  return { company, ebitda };
 }
 
 /** Returns the extra context lines to append to the meeting Slack message. */
@@ -292,13 +292,11 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
     let r = await researchLead({ company: companyForLookup, domains, domain, leadSaid, scraped, icp: input.icpDescription, phone: input.phone });
     if (!r) {
       const e = await enrichLead({ company: companyForLookup, domain, leadSaid, scraped, icp: input.icpDescription });
-      r = { company: e.company, ebitda: null, context: e.context, icpFit: e.icpFit };
+      r = { company: e.company, ebitda: null };
     }
     const company = r.company || companyFromSummary(scraped) || (leadCompany || null);
     if (company) lines.push(`Company: ${company}`);
     if (r.ebitda) lines.push(`EBITDA: ${r.ebitda}`);
-    if (r.context) lines.push(`Context: ${r.context}`);
-    if (r.icpFit) lines.push(`ICP fit: ${r.icpFit}`);
   } else {
     // Non-M&A workspaces: just what the company does.
     const company = companyFromSummary(scraped) || (leadCompany || null);
