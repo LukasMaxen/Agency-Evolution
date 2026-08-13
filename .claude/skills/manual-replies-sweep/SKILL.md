@@ -50,7 +50,9 @@ For any of these, write the send job(s) to `WORK/sends.json` as an array:
 ```js
 [{ leadEmail: "original-lead@x.com", to: "recipient@y.com", toName: "Name or null", cc: ["original-lead@x.com"], body: `Hi ...\n\n...\n\n{SENDER_EMAIL_SIGNATURE}`, ts: "slack-message-ts-to-delete-after-send" }]
 ```
-Then run `send.cjs`. It re-checks the already-replied and duplicate-body guards fresh before sending (a stale sends.json can't double-email someone), and deletes the Slack card automatically on success.
+Then run `send.cjs`. It re-checks the already-replied and duplicate-body guards fresh before sending (a stale sends.json can't double-email someone), blocks banned case-study figures, and deletes the Slack card automatically on success.
+
+**Proposing a specific time (Larsen only):** add `slots: [{ iso, tz, wantMA }]` to the job. `send.cjs` blocks any body containing a day+time phrase ("Tuesday at...") unless every listed slot re-verifies live via `calendly-verify.cjs` at send time (real, available, 8am-8pm local). See the same mechanism in reply-approval-sweep's SKILL.md for the full rule.
 
 ## Never delete a real live opportunity
 

@@ -37,6 +37,19 @@ const normDedup = (b) => (b || "").replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").r
     const d = q.rows[0];
     if (!d) { console.log("NO DB ROW for", job.leadEmail); continue; }
 
+    if (bannedFig(job.body)) { console.log("BLOCKED banned figure/name", job.leadEmail); continue; }
+    if (/Monday at|Tuesday at|Wednesday at|Thursday at|Friday at|Saturday at|Sunday at/i.test(job.body)) {
+      const slots = Array.isArray(job.slots) ? job.slots : [];
+      if (!slots.length) { console.log("BLOCKED (time phrase, no verified slots supplied)", job.leadEmail); continue; }
+      let allOk = true;
+      for (const s of slots) {
+        const ok = await verifySlot(d.workspace_slug, s.iso, s.tz, !!s.wantMA);
+        if (!ok) { console.log("BLOCKED (slot failed live re-verification)", job.leadEmail, s.iso); allOk = false; break; }
+      }
+      if (!allOk) continue;
+      console.log("  verified", slots.length, "live slot(s) for", job.leadEmail);
+    }
+
     // guard: already replied (DB) — check both leadEmail and the new `to` address
     const ls = await pool.query("SELECT MAX(sent_at) mx FROM sent_emails WHERE lead_email ILIKE $1 OR lead_email ILIKE $2", [job.leadEmail, job.to]);
     const lr = await pool.query("SELECT MAX(received_at) mx FROM replies WHERE lead_email ILIKE $1 OR lead_email ILIKE $2", [job.leadEmail, job.to]);
