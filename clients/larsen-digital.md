@@ -332,7 +332,7 @@ Two links, pick by intent:
 
 ### More Info Response (lead asks "tell me more" / "send more info")
 
-Use when a lead replies positively to the cold email and asks for more details, more info, a deck, or how we work. Designed for DTC founders on large digital campaigns. Always personalize NAME and BRAND before sending. Pull two live Calendly slots in the lead's timezone before send (manual lookup until per-client Calendly tokens are wired, see "Open Workflow Items" below).
+Use when a lead replies positively to the cold email and asks for more details, more info, a deck, or how we work. Designed for DTC founders on large digital campaigns. Always personalize NAME and BRAND before sending. The automated pipeline pulls two live Calendly slots in the lead's timezone automatically (see "Live time proposals" above), falls back to Calendly-link-only if none are available.
 
 Subject (when threading is broken, otherwise reply in-thread):
 Re, more on how we work
