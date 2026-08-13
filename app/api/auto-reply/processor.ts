@@ -600,6 +600,32 @@ function isNoActionReply(message: string): boolean {
 }
 
 /**
+ * Bustem (brand-protection / threat-report campaign) detector. Bustem runs on the
+ * SAME EmailBison workspace as Larsen Digital / Acceler8rs (`acceler8rs` slug, "Larsen
+ * Digital - Lukas" sender account) purely for sending capacity, but is a completely
+ * unrelated offer (see clients/bustem.md). resolveClientSlug has no branch for it, so
+ * without this check every Bustem reply would silently draft as a Larsen Digital reply
+ * (wrong offer, wrong case studies, wrong Calendly link) — a routing gap the client file
+ * itself flags as unresolved. Campaign name is NOT reliable (Kasper confirmed 2026-08-12
+ * it won't follow a fixed pattern), so this content-sniffs the cold email / reply for
+ * Bustem's distinctive language instead. Also checks campaign name in case it ever does
+ * contain "bustem". No real Bustem replies exist yet to validate against (campaign had
+ * not started receiving replies as of 2026-08-13) — treat as best-effort until confirmed
+ * against live traffic.
+ */
+function isBustemReply(campaign: string | null | undefined, subject: string, message: string, coldEmailBody?: string | null): boolean {
+  const text = `${campaign ?? ""}\n${subject ?? ""}\n${message ?? ""}\n${coldEmailBody ?? ""}`.toLowerCase();
+  return (
+    /\bbustem\b/.test(text) ||
+    /threat report/.test(text) ||
+    /clone shopify stor/.test(text) ||
+    /fake amazon listing/.test(text) ||
+    /head of partnerships/.test(text) ||
+    /app\.iclosed\.io\/e\/bustem/.test(text)
+  );
+}
+
+/**
  * Conservative bulk-newsletter detector. Only matches mail carrying unambiguous
  * mass-send markers (List-Unsubscribe style footers, "view in browser", "manage
  * preferences", "Issue #N", explicit "Newsletter" subjects). Deliberately does
@@ -1185,7 +1211,13 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // ── Forwarding path ───────────────────────────────────────────────────────────
   // acceler8rs is split by campaign: Pathfinder (buy-side) keeps its own file, every
   // other acceler8rs campaign represents Larsen Digital. See resolveClientSlug.
-  const fileSlug = resolveClientSlug(workspaceSlug, reply.campaign);
+  // Bustem is checked FIRST and overrides both: it shares the acceler8rs sending
+  // account but is a completely unrelated offer with no branch in resolveClientSlug
+  // yet (see isBustemReply). messageText already includes the quoted cold email in
+  // most cases, so this content-sniff usually sees the original Bustem language even
+  // on a first reply.
+  const isBustem = isBustemReply(reply.campaign, reply.subject ?? "", messageText);
+  const fileSlug = isBustem ? "bustem" : resolveClientSlug(workspaceSlug, reply.campaign);
   // Pathfinder (buy-side) resolves to the acceler8rs playbook. In that mode we suppress
   // the sell-side "what made [BRAND] stand out" framing and the website-scraped exit
   // signals, which otherwise push the drafter to describe the lead's brand back and
@@ -1314,7 +1346,15 @@ If no LEAD COMPANY CONTEXT block appears (because the site was unreachable), fal
   // there is no human safety net anymore, the AI must never draft or send anything that
   // touches scheduling — a human takes over completely for any call/scheduling intent.
   // This OVERRIDES the general CALENDLY AND AVAILABILITY section below for this client.
-  const isLarsenDigital = fileSlug === "larsen-digital";
+  //
+  // Scope is the WORKSPACE (both `larsen-digital`/Nicklas and `acceler8rs`/Lukas),
+  // not the file/campaign type — confirmed by Kasper 2026-08-13: "everything for
+  // Larsen, both workspaces... everything except Bustem." This deliberately covers
+  // Pathfinder (buy-side) replies too (fileSlug resolves to "acceler8rs" for those),
+  // not just growth/exit replies (fileSlug "larsen-digital"). Bustem shares the
+  // acceler8rs sending account but is a different client entirely, so it's excluded
+  // and stays on the standard (approval-required) path — "handle those as usual".
+  const isLarsenDigital = (workspaceSlug === "larsen-digital" || workspaceSlug === "acceler8rs") && !isBustem;
   const larsenManualBookingBlock = isLarsenDigital
     ? `## MANUAL BOOKING TRIGGER RULE (Larsen Digital only, overrides the CALENDLY AND AVAILABILITY section below)
 
