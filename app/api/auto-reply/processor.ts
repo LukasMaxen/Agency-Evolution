@@ -662,6 +662,17 @@ function isBulkNewsletter(subject: string, message: string): boolean {
 function hasLarsenSchedulingTrigger(message: string): boolean {
   if (!message) return false;
   const m = message.toLowerCase();
+  // If the lead states they ALREADY booked/picked a time themselves (self-service via the
+  // Calendly link we sent), that is a confirmation, not a request for us to schedule them —
+  // never force manual for this, even if scheduling words appear elsewhere in the same
+  // message. Found via the Rebecca/epigenics.de incident (2026-08-13): "let's hop on a
+  // call... I picked a slot for early september" was wrongly forced to manual by this
+  // backstop despite Claude correctly classifying it as a confirmation to auto-send.
+  const alreadyBooked =
+    /\b(already )?(picked|grabbed|booked|selected|chose|scheduled)\b[^.!?]{0,25}\b(slot|time|date|spot|call|meeting)\b/.test(m) ||
+    /booked (it|a (slot|time|call|meeting))/.test(m) ||
+    /on your calendar/.test(m);
+  if (alreadyBooked) return false;
   return (
     /let'?s (chat|talk|jump on a call|hop on a call|get on a call)/.test(m) ||
     /when (are you|r u|would you be) (available|free)/.test(m) ||
@@ -1362,8 +1373,10 @@ The AI cannot send calendar invites. Whenever the lead's reply makes it clear th
 
 TRIGGER — any of these, or anything with the same intent, means action MUST be "manual":
 - "Let's chat", "Let's talk", "When are you available?", "What's your availability?", "Can we set up a call?", "Are you free [day/time]?", "Let me know a good time"
-- The lead names or suggests a specific day and/or time themselves ("Tuesday works for me", "How about 2pm Thursday?")
-- ANY message where the lead is proposing or asking to schedule a conversation directly, rather than being told to pick a slot from a link (this includes plain "happy to chat" / "sure, let's do a call" / "sounds good, when works?")
+- The lead names or suggests a specific day and/or time themselves, ASKING us to confirm or hold it ("Tuesday works for me, does that work for you?", "How about 2pm Thursday?")
+- ANY message where the lead is proposing or asking US to schedule a conversation, rather than being told to pick a slot from a link (this includes plain "happy to chat" / "sure, let's do a call" / "sounds good, when works?")
+
+NOT A TRIGGER — do not route to manual for this, it is a confirmation, not a scheduling request: the lead states they ALREADY booked or picked a time themselves, typically via the Calendly link we sent ("I picked a slot for early September", "just booked a time on your calendar", "grabbed 2pm Thursday on your calendar", "booked it, see you then"). There is nothing for a human to schedule, the lead self-served. Treat this the same as the base prompt's "they already booked... do NOT ask again, acknowledge and confirm" rule: set flag_meeting_booked true, action auto_send, and draft a short warm confirmation (no new Calendly link, no proposing alternate times, nothing that could contradict the slot they already picked). If a message mixes both ("let's hop on a call, I picked a slot for early September") and a specific self-booked time is named, treat it as NOT A TRIGGER, she told you what she already did, not asked you to do something.
 
 When triggered: set action "manual", manual_reason describing the trigger in one sentence (e.g. "Lead asked when we're available for a call, manual booking trigger"), reply_body empty. Do not send a Calendly link, do not propose times, do not acknowledge the scheduling request at all. Silence from the AI, a human replies directly.
 
