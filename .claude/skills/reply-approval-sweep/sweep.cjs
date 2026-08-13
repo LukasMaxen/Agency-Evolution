@@ -48,10 +48,26 @@ for(const c of cards){
   {const blob=[c.message,...(c.thread_replies||[]).map(r=>r.message),...(c.thread_sent||[]).map(s=>s.body)].join(' ');
    if(PETER.test(blob)){await eyes(c.ts);await pool.query(`UPDATE reply_drafts SET status='skipped', reviewed_at=NOW(), reviewed_by='Claude MCP' WHERE slack_ts=$1`,[c.ts]);skip++;console.log('SKIP (Peter in thread) '+email);await sleep(150);continue;}}
   if(manualRoute[email]){await slack('chat.postMessage',{channel:MAN,text:`:handshake: *Needs manual action*\n${manualRoute[email]}\nLead: ${c.lead_name} <${email}> | ${c.lead_company||''}\nEB reply: ${c.email_bison_reply_id}`});await eyes(c.ts);await pool.query(`UPDATE reply_drafts SET status='manual', reviewed_at=NOW(), reviewed_by='Claude MCP' WHERE slack_ts=$1`,[c.ts]);man++;console.log('-> MANUAL '+email);await sleep(300);continue;}
-  let body=norm(rewrites[email]||c.body);
-  const isRew=!!rewrites[email];
+  const rw=rewrites[email];
+  const rwIsObj=rw&&typeof rw==='object';
+  let body=norm(rwIsObj?rw.body:(rw||c.body));
+  const proposedSlots=rwIsObj&&Array.isArray(rw.slots)?rw.slots:[];
+  const isRew=!!rw;
   if(bannedFig(body)){console.log('BLOCKED banned figure/name',email);fail++;continue;}
-  if(/<https?:\/\//.test(body)||/https?:\/\/[^\s]*>/.test(body)||/lukasmaxen\/|larsen-digital-marketing\/intro|would.*work\?|either of these|Tuesday at|Thursday at|Monday at|Wednesday at/i.test(body)){console.log('!! FLAG, NOT sending',email,'::',body.replace(/\n/g,' ').slice(0,80));fail++;continue;}
+  if(/<https?:\/\//.test(body)||/https?:\/\/[^\s]*>/.test(body)||/lukasmaxen\/|larsen-digital-marketing\/intro|would.*work\?|either of these/i.test(body)){console.log('!! FLAG, NOT sending',email,'::',body.replace(/\n/g,' ').slice(0,80));fail++;continue;}
+  // Specific day+time phrasing is only allowed when decisions.js supplied `slots` for this
+  // card AND every one of those slots re-verifies as a REAL, currently-available, in-window
+  // (08:00-20:00 local) Calendly slot at send time. Fabricated/stale times still get blocked.
+  if(/Monday at|Tuesday at|Wednesday at|Thursday at|Friday at|Saturday at|Sunday at/i.test(body)){
+    if(!proposedSlots.length){console.log('!! FLAG, NOT sending (time phrase, no verified slots supplied)',email);fail++;continue;}
+    let allVerified=true;
+    for(const s of proposedSlots){
+      const ok=await verifySlot(c.workspace_slug,s.iso,s.tz,!!s.wantMA);
+      if(!ok){console.log('!! FLAG, NOT sending (slot failed live re-verification)',email,s.iso);allVerified=false;break;}
+    }
+    if(!allVerified){fail++;continue;}
+    console.log('   verified',proposedSlots.length,'live slot(s) for',email);
+  }
   const q=await pool.query(`SELECT r.email_bison_reply_id, r.sender_email_id, r.lead_name, r.lead_email, r.subject, r.preferred_recipient_email, r.preferred_recipient_name, r.workspace_slug, w.email_bison_api_key, w.email_bison_instance_url FROM replies r JOIN workspaces w ON w.slug=r.workspace_slug WHERE r.id=$1`,[c.reply_id]);
   const d=q.rows[0];
   const recip=d.preferred_recipient_email||d.lead_email; const recipName=d.preferred_recipient_name||d.lead_name;
