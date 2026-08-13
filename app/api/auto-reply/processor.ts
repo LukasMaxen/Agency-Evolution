@@ -1657,7 +1657,11 @@ ${ctx.summary}
   // (per CALENDLY_SLOT_PROMPT_RULE above) — no verified live feed exists for them.
   if (isLarsenDigital && CALENDLY_CLIENT_CONFIG[workspaceSlug]) {
     const calendlyCfg = CALENDLY_CLIENT_CONFIG[workspaceSlug];
-    const wantMA = /sell.?side/i.test((reply.campaign ?? "").toString());
+    // Pathfinder (buy-side) always uses the M&A link regardless of campaign naming
+    // (acceler8rs.md: "Use the M&A link (calendly_ma)" for every Pathfinder reply),
+    // it doesn't contain "sell side" in the campaign name the way sell-side growth
+    // campaigns do, so pathfinderMode is checked explicitly here too.
+    const wantMA = pathfinderMode || /sell.?side/i.test((reply.campaign ?? "").toString());
     const { tz: inferredTz } = inferLeadTimezone({
       enrichment: leadEnrichment,
       leadEmail: reply.lead_email,
