@@ -13,6 +13,7 @@ const WORK=process.env.RAS_WORKDIR || '/tmp/reply-approval-sweep';
 const env=fs.readFileSync(path.join(ROOT,'.env.local'),'utf8');
 const g=k=>{const m=env.match(new RegExp('^'+k+'=(.*)$','m'));return m?m[1].trim().replace(/^['"]|['"]$/g,''):null;};
 const pg=require(path.join(ROOT,'node_modules','pg'));
+const {verifySlot}=require('./calendly-verify.cjs');
 const DBURL=g('DATABASE_URL'), TOKEN=g('SLACK_BOT_TOKEN');
 const APP=process.env.REPLY_APPROVAL_CHANNEL || 'C0B183MQLKY';   // #reply-approval
 const MAN=process.env.MANUAL_REPLIES_CHANNEL || 'C0B0MMMMNKZ';   // #manual-replies
