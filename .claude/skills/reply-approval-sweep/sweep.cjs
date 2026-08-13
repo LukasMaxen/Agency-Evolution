@@ -58,7 +58,7 @@ for(const c of cards){
   // Specific day+time phrasing is only allowed when decisions.js supplied `slots` for this
   // card AND every one of those slots re-verifies as a REAL, currently-available, in-window
   // (08:00-20:00 local) Calendly slot at send time. Fabricated/stale times still get blocked.
-  if(/Monday at|Tuesday at|Wednesday at|Thursday at|Friday at|Saturday at|Sunday at/i.test(body)){
+  if(/\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/i.test(body)&&/\b\d{1,2}(:\d{2})?\s*(am|pm)\b/i.test(body)){
     if(!proposedSlots.length){console.log('!! FLAG, NOT sending (time phrase, no verified slots supplied)',email);fail++;continue;}
     let allVerified=true;
     for(const s of proposedSlots){

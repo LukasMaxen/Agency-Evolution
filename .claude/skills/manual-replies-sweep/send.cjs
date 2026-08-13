@@ -38,7 +38,7 @@ const normDedup = (b) => (b || "").replace(/\{SENDER_EMAIL_SIGNATURE\}/gi, "").r
     if (!d) { console.log("NO DB ROW for", job.leadEmail); continue; }
 
     if (bannedFig(job.body)) { console.log("BLOCKED banned figure/name", job.leadEmail); continue; }
-    if (/Monday at|Tuesday at|Wednesday at|Thursday at|Friday at|Saturday at|Sunday at/i.test(job.body)) {
+    if (/\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/i.test(job.body) && /\b\d{1,2}(:\d{2})?\s*(am|pm)\b/i.test(job.body)) {
       const slots = Array.isArray(job.slots) ? job.slots : [];
       if (!slots.length) { console.log("BLOCKED (time phrase, no verified slots supplied)", job.leadEmail); continue; }
       let allOk = true;
