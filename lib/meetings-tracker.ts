@@ -14,6 +14,8 @@
 // Best-effort: never throws — logs and returns false on failure so the booking flow and
 // the Postgres `calls` record (written by the webhooks) are unaffected.
 
+import pool from "@/lib/db";
+import { buildEmailBisonUrl } from "@/lib/utils";
 import { buildMeetingContext } from "@/lib/meeting-context";
 
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY ?? "";
@@ -199,10 +201,36 @@ function emailDomain(email: string): string | undefined {
   return d && !FREEMAIL.has(d) ? d : undefined;
 }
 
-function slackMessage(verb: "New meeting booked" | "Meeting rescheduled", i: BookingInput, rec: Record<string, any> | undefined, cfg: MeetingConfig, extra: string[] = []): string {
-  const lines = [`${verb} with ${i.leadName || i.leadEmail}`, ""];
-  if (cfg.workspaceLabel) lines.push(`Sender: ${cfg.workspaceLabel}`);
+// The EmailBison "View in inbox" link for this lead's thread in this workspace, so the
+// reader can jump straight to the conversation instead of searching for it. Best-effort:
+// requires both the workspace's instance URL (workspaces table) and a matched reply row
+// (email_bison_reply_id) — returns null (line omitted) if either is missing.
+async function getThreadUrl(workspaceSlug: string, leadEmail: string): Promise<string | null> {
+  try {
+    const email = leadEmail.toLowerCase();
+    const [ws, rep] = await Promise.all([
+      pool.query(`SELECT email_bison_instance_url FROM workspaces WHERE slug = $1 LIMIT 1`, [workspaceSlug]),
+      pool.query(
+        `SELECT email_bison_reply_id FROM replies
+          WHERE workspace_slug = $1 AND (LOWER(lead_email) = $2 OR LOWER(preferred_recipient_email) = $2)
+          ORDER BY received_at DESC LIMIT 1`,
+        [workspaceSlug, email],
+      ),
+    ]);
+    const instanceUrl = ws.rows[0]?.email_bison_instance_url;
+    const replyId = rep.rows[0]?.email_bison_reply_id;
+    return instanceUrl && replyId ? buildEmailBisonUrl(instanceUrl, replyId) : null;
+  } catch {
+    return null;
+  }
+}
+
+function slackMessage(verb: "New meeting booked" | "Meeting rescheduled", i: BookingInput, rec: Record<string, any> | undefined, cfg: MeetingConfig, extra: string[] = [], threadUrl?: string | null): string {
+  const firstName = cfg.workspaceLabel?.split(" ")[0];
+  const title = firstName ? `${firstName} - ${verb} with ${i.leadName || i.leadEmail}` : `${verb} with ${i.leadName || i.leadEmail}`;
+  const lines = [title, ""];
   lines.push(`Email: ${i.leadEmail}`);
+  if (threadUrl) lines.push(`Thread: ${threadUrl}`);
   // Phone gets its own line only when it did NOT come from a Q&A answer already shown below
   // (e.g. an SMS reminder number with no matching custom question), otherwise it would
   // print twice, once here and once as a numbered item.
@@ -272,6 +300,7 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
     const formula = `LOWER({${cfg.fields.email}}) = LOWER("${email.replace(/"/g, '\\"')}")`;
     const found = await airtable("GET", `${tbl}?maxRecords=1&${fieldsQ}&filterByFormula=${encodeURIComponent(formula)}`);
     const existing = found?.records?.[0];
+    const threadUrl = await getThreadUrl(input.workspaceSlug, email);
 
     if (!existing) {
       // 2a. New meeting -> create + "New meeting booked".
@@ -289,13 +318,13 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
       const created = await airtable("POST", tbl, { records: [{ fields: rec }], typecast: true });
       const cf = created?.records?.[0]?.fields;
       const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, revenue: cfg.slackExtra?.revenue ? cf?.[cfg.slackExtra.revenue] : undefined, phone: i.phone });
-      await postSlack(cfg.slackChannel, slackMessage("New meeting booked", i, cf, cfg, extra));
+      await postSlack(cfg.slackChannel, slackMessage("New meeting booked", i, cf, cfg, extra, threadUrl));
       console.log(`[meetings-tracker] created + notified (${input.workspaceSlug}) ${email}`);
     } else {
       // 2b. Reschedule -> update meeting date only + "Meeting rescheduled".
       await airtable("PATCH", tbl, { records: [{ id: existing.id, fields: { [cfg.fields.meetingDate]: isoDate(input.meetingStartISO) } }], typecast: true });
       const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, revenue: cfg.slackExtra?.revenue ? existing.fields?.[cfg.slackExtra.revenue] : undefined, phone: i.phone });
-      await postSlack(cfg.slackChannel, slackMessage("Meeting rescheduled", i, existing.fields, cfg, extra));
+      await postSlack(cfg.slackChannel, slackMessage("Meeting rescheduled", i, existing.fields, cfg, extra, threadUrl));
       console.log(`[meetings-tracker] updated + notified reschedule (${input.workspaceSlug}) ${email}`);
     }
     return true;
