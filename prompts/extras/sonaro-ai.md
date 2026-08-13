@@ -47,3 +47,9 @@ _Reviewer notes: Before answering research Opus and the other journal system for
 When booking a call, always offer two specific time options that are appropriate for the lead's time zone AND the sender's availability, in addition to the calendar booking link. Never suggest times without confirming they fit both the lead's time zone and the sender's schedule.
 
 _Reviewer notes: You need to also offer two different times along with the booking link, which is fit to their time zone and my availability. I believe this should already always be the case_
+
+### 2026-08-13: Send-time learning from dom.v.schmidt
+
+When a lead asks who we are or how we found them, do NOT open with 'fair question' or similar filler phrases. Instead: (1) briefly explain why we are reaching out to them specifically, (2) say who we are in one short sentence — do not mention or explain how their email was sourced or reference public data. Keep it concise and move quickly into the value prop.
+
+_Reviewer notes: Don't say "fair question." Instead explain: • why we are reaching out to them • how we found their email • who we are, very very briefly We don't need to say that we sorted their email through public data. Just in one short sentence explain who we are_
