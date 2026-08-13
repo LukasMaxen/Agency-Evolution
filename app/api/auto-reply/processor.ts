@@ -18,6 +18,7 @@ import { backsyncInterestedToEmailBison } from "@/lib/emailbison-backsync";
 import { lookupCategoryForDomain, inferLeadTimezone } from "@/lib/lead-timezone";
 import { CALENDLY_SLOT_PROMPT_RULE, suggestSlotsForClient, buildLiveCalendarBlock } from "@/lib/calendly-slot-suggestions";
 import { CALENDLY_CLIENT_CONFIG } from "@/lib/calendly";
+import { recordManualCard, closeManualCardsForLead } from "@/lib/manual-card";
 import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
 import { sanitizeJsonControlChars } from "@/lib/utils";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
@@ -949,13 +950,16 @@ async function forwardToClient(reply: Record<string, any>, forwardTo: string, cc
 // inbox, so nothing about it should ever appear in our Slack channels (2026-07-12).
 const SILENT_SLACK_WORKSPACES = new Set(["hahnbeck"]);
 
-async function postManual(workspaceSlug: string, payload: { blocks: object[]; text: string }): Promise<void> {
+async function postManual(workspaceSlug: string, replyId: string | null, payload: { blocks: object[]; text: string }): Promise<void> {
   if (SILENT_SLACK_WORKSPACES.has(workspaceSlug)) return; // never post Hahnbeck to Slack
   // Per-workspace override routes manual-replies to the same channel as that workspace's
   // approval cards (e.g. Sonaro's #reply-management). NULL override → global #manual-replies.
   const overrideChannel = await approvalChannelFor(workspaceSlug);
   const channel = overrideChannel === REPLY_APPROVAL_CHANNEL ? MANUAL_REPLIES_CHANNEL : overrideChannel;
-  await postToSlackShared({ channel, ...payload });
+  const ts = await postToSlackShared({ channel, ...payload });
+  // Track where this card landed so it can be auto-closed later if the lead ends up
+  // booking through another path before a human acts on it. See lib/manual-card.ts.
+  if (replyId && ts) await recordManualCard(replyId, channel, ts);
 }
 
 function buildCard(header: string, workspaceSlug: string, reply: Record<string, any>, instanceUrl: string, extra?: { reason?: string; intent?: string; sendingTo?: string }): object[] {
@@ -1052,7 +1056,7 @@ export async function processAutoReply(replyId: string, workspaceSlug: string): 
     try {
       const r = await pool.query(`SELECT r.lead_name, r.lead_email, r.subject, r.message, r.campaign, w.email_bison_instance_url FROM replies r LEFT JOIN workspaces w ON w.slug = r.workspace_slug WHERE r.id = $1`, [replyId]);
       const reply = r.rows[0] ?? {};
-      await postManual(workspaceSlug, {
+      await postManual(workspaceSlug, replyId, {
         text: `Auto-reply crashed, ${workspaceSlug} / ${reply.lead_name ?? replyId}`,
         blocks: buildCard("Auto-reply processor crashed", workspaceSlug, { id: replyId, ...reply }, reply.email_bison_instance_url ?? "", {
           reason: `${((err?.message ?? String(err)) || "unknown").slice(0, 400)}\n\nTo re-queue: UPDATE replies SET status='new' WHERE id='${replyId}'`,
