@@ -257,6 +257,42 @@ export async function addReaction(
 }
 
 /**
+ * Deletes a Slack message posted by the bot (used to remove a stale approval
+ * card once its reply has already been sent through another path, e.g. the
+ * Larsen Digital full-auto bypass, so nobody reacts to a card for a message
+ * that already went out). Silently no-ops if the message is already gone.
+ */
+export async function deleteSlackMessage(channel: string, ts: string): Promise<boolean> {
+  const token = process.env.SLACK_BOT_TOKEN;
+  if (!token) return false;
+  const dCtrl = new AbortController();
+  const dTimer = setTimeout(() => dCtrl.abort(), 10_000);
+  let response: Response;
+  try {
+    response = await fetch("https://slack.com/api/chat.delete", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ channel, ts }),
+      signal: dCtrl.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") console.error("[slack] chat.delete timed out after 10s, channel:", channel);
+    else console.error("[slack] chat.delete fetch error:", err?.message);
+    return false;
+  } finally {
+    clearTimeout(dTimer);
+  }
+  const data = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+  if (!data.ok && data.error !== "message_not_found") {
+    console.error("[slack] chat.delete failed:", data.error, "channel:", channel, "ts:", ts);
+  }
+  return data.ok === true;
+}
+
+/**
  * Look up a Slack user's display name. Returns the user ID on failure.
  */
 export async function getSlackUserName(userId: string): Promise<string> {

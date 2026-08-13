@@ -6,6 +6,7 @@ import {
   MANUAL_REPLIES_CHANNEL,
   approvalChannelFor,
   postToSlack as postToSlackShared,
+  deleteSlackMessage,
   approvalFooterBlock,
   quoteForSlack,
   slugToName as slugToNameShared,
@@ -14,8 +15,9 @@ import {
 } from "@/lib/slack-approval";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { backsyncInterestedToEmailBison } from "@/lib/emailbison-backsync";
-import { lookupCategoryForDomain } from "@/lib/lead-timezone";
-import { CALENDLY_SLOT_PROMPT_RULE } from "@/lib/calendly-slot-suggestions";
+import { lookupCategoryForDomain, inferLeadTimezone } from "@/lib/lead-timezone";
+import { CALENDLY_SLOT_PROMPT_RULE, suggestSlotsForClient, buildLiveCalendarBlock } from "@/lib/calendly-slot-suggestions";
+import { CALENDLY_CLIENT_CONFIG } from "@/lib/calendly";
 import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
 import { sanitizeJsonControlChars } from "@/lib/utils";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
