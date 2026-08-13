@@ -15,3 +15,6 @@
 ## 2026-08-13 sweep
 - **mike.lee@getsoul.com** (larsen-digital) — deleted, reason: already responded. Original: :handshake: *Needs manual action* Hemp/CBD brand (Soul). Lead asked directly if the buyer wants a hemp brand, buyer's stance on cannabis/hemp isn't documented in the client file, needs verification be
 - **carole@moroccannatural.com** (larsen-digital) — deleted, reason: meeting scheduled. Original: Manual handling needed, larsen-digital / Carole Manual handling needed *Client:* Larsen Digital *Campaign:* Re run: DTC brands 7+ figs (Stopped leads) *Lead:* Carole, <mailto:carole@moroccannatural.co
+
+## 2026-08-13 sweep
+- **fabio.marangoni@nectogroup.com** (gn-motion) — deleted, reason: noise/CSAT. Original: Interested reply needs human review, gn-motion / Fabio Couldn't draft a reply — needs human *Client:* Gn Motion *Campaign:* FindyVerifier - Consumer Products *Lead:* Fabio, <mailto:fabio.marangoni@nec
