@@ -152,6 +152,12 @@ export async function POST(req: NextRequest) {
           [replyId]
         );
       }
+      // Close out any outstanding #manual-replies card for this lead now that they've
+      // booked via Calendly — even if the card is tracked on a different (e.g. newer)
+      // reply row than the one matched above. See lib/manual-card.ts. The Rebecca /
+      // epigenics.de incident (2026-08-13) is exactly this: booking matched an older
+      // reply, but the manual card was posted against a newer reply from the same lead.
+      void closeManualCardsForLead(leadEmail);
 
       // Stop any active FU sequence for this lead and record the outcome
       await pool.query(
