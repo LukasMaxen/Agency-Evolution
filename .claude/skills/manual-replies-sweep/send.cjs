@@ -15,6 +15,8 @@ const WORK = process.env.MRS_WORKDIR || "/tmp/manual-replies-sweep";
 const env = fs.readFileSync(path.join(ROOT, ".env.local"), "utf8");
 const g = (k) => { const m = env.match(new RegExp("^" + k + "=(.*)$", "m")); return m ? m[1].trim().replace(/^['"]|['"]$/g, "") : null; };
 const pg = require(path.join(ROOT, "node_modules", "pg"));
+const { verifySlot } = require("../reply-approval-sweep/calendly-verify.cjs");
+const bannedFig = (t) => /25k[^.]{0,15}102k|102k[^.]{0,20}90\s*days|13k[^.]{0,15}140k|140k[^.]{0,20}60\s*days|headwaters|kyikyi|motel margarita/i.test(t || "");
 const DBURL = g("DATABASE_URL"), TOKEN = g("SLACK_BOT_TOKEN");
 const CH = process.env.MANUAL_REPLIES_CHANNEL_ID || "C0B0MMMMNKZ";
 const pool = new pg.Pool({ connectionString: DBURL, ssl: false, max: 3 });
