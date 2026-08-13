@@ -54,8 +54,14 @@ export async function suggestSlotsForClient(
     // Pass its scheduling_url here to pull slots for that calendar instead of the default.
     const targetUrl = normalize(eventTypeUrlOverride ?? config.eventTypeUrl);
     const eventType = eventTypes.find((e: any) => normalize(e.scheduling_url ?? "") === targetUrl)
-      ?? eventTypes.find((e: any) => normalize(e.scheduling_url ?? "").includes(targetUrl.split("/").pop() ?? ""))
-      ?? eventTypes[0];
+      ?? eventTypes.find((e: any) => normalize(e.scheduling_url ?? "").includes(targetUrl.split("/").pop() ?? ""));
+    // No blind "just use the first event type" fallback here on purpose: on the
+    // acceler8rs (Larsen-Lukas) account the configured operating-partner URL does not
+    // exist among that account's event types, and falling back to eventTypes[0] silently
+    // pulled slots for a totally unrelated event (buy-side-mandate-conversation) that did
+    // not match the Calendly link actually sent in the reply. Better to return no live
+    // slots (caller falls back to Calendly-link-only) than propose times for the wrong
+    // calendar. Found via a live smoke test on 2026-08-13, see [[feedback_larsen_247_manual_booking]].
     if (!eventType) return [];
     console.log(`[calendly-slots] matched event type: ${eventType.scheduling_url} for ${clientSlug}`);
 
