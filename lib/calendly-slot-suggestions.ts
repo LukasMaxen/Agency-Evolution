@@ -65,10 +65,12 @@ export async function suggestSlotsForClient(
 
     if (!slots || slots.length === 0) return [];
 
-    // Filter to slots that fall within the lead's business hours (8am-6pm in their TZ).
-    // No point proposing 10pm AEST just because Nicklas is free in his UK afternoon.
+    // Filter to slots that fall within the lead's business hours (8am-8pm in their TZ).
+    // Matches the documented standard in clients/larsen-digital.md and the human
+    // sweep tool (.claude/skills/reply-approval-sweep/calendly-verify.cjs) — kept in
+    // sync manually since that script runs outside Next.js and can't import this file.
     const BUSINESS_START_HOUR = 8;
-    const BUSINESS_END_HOUR = 18;
+    const BUSINESS_END_HOUR = 20;
     const hourInTz = (iso: string): number => {
       const d = new Date(iso);
       const hourStr = d.toLocaleString("en-US", { timeZone: tz, hour: "numeric", hour12: false });
