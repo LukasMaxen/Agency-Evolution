@@ -1932,9 +1932,14 @@ ${messageText.slice(0, 8000)}`;
   if (result.action === "auto_send" && result.reply_body) {
     const alwaysAutoSend = new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested"]);
 
-    // Every interested reply goes to #reply-approval for human review before sending.
-    // Hard closes (unsubscribe, not_interested, etc.) auto-send/close without review.
-    if (!alwaysAutoSend.has(result.intent)) {
+    // Every interested reply goes to #reply-approval for human review before sending,
+    // EXCEPT Larsen Digital (2026-08-13): fully automated 24/7, no human review step.
+    // Scheduling intent never reaches this branch for Larsen — the MANUAL BOOKING
+    // TRIGGER RULE in the system prompt routes it to action:"manual" before drafting
+    // a reply_body, so everything that lands here already cleared that check.
+    // Hard closes (unsubscribe, not_interested, etc.) auto-send/close without review
+    // for every client, same as before.
+    if (!alwaysAutoSend.has(result.intent) && !isLarsenDigital) {
       const draftId = `rd-${replyId}-${Date.now()}`;
       const slackTs = await postApprovalCard({ workspaceSlug, reply: replyWithCreds, instanceUrl: workspace.email_bison_instance_url ?? "", result });
 
@@ -1983,7 +1988,8 @@ ${messageText.slice(0, 8000)}`;
       return;
     }
 
-    // Direct send (only for hard closes — unsubscribe confirmations etc.)
+    // Direct send: hard closes for every client, plus Larsen Digital's interested/needs_info
+    // replies now that there is no human review step for them.
     const sent = await sendToEmailBison(replyWithCreds, result.reply_body, result.cc_emails);
     if (sent) {
       await pool.query(`INSERT INTO sent_emails (id,reply_id,workspace_slug,lead_email,lead_name,email_type,subject,body,sent_at) VALUES ($1,$2,$3,$4,$5,'auto_reply',$6,$7,NOW())`,
@@ -1993,6 +1999,26 @@ ${messageText.slice(0, 8000)}`;
         [interested ? true : null, JSON.stringify({ intent: result.intent, auto_replied: true, fu_sequence_type: result.fu_sequence_type }), replyId]);
       await createFuRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
       console.log(`[auto-reply] Sent ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
+
+      // Larsen Digital safety net: if this reply already has a pending approval card
+      // sitting in #reply-approval (e.g. a row manually requeued from before the
+      // full-auto switch), remove it now that the message has actually gone out via
+      // this direct-send path, so nobody reacts to a card for an already-sent reply.
+      if (isLarsenDigital) {
+        try {
+          const staleDraft = await pool.query(
+            `SELECT id, slack_ts FROM reply_drafts WHERE reply_id = $1 AND status = 'pending' AND slack_ts IS NOT NULL`,
+            [replyId]
+          );
+          for (const row of staleDraft.rows) {
+            const staleChannel = await approvalChannelFor(workspaceSlug);
+            await deleteSlackMessage(staleChannel, row.slack_ts);
+            await pool.query(`UPDATE reply_drafts SET status = 'superseded', reviewed_at = NOW() WHERE id = $1`, [row.id]);
+          }
+        } catch (err: any) {
+          console.error(`[auto-reply] Stale approval-card cleanup failed for ${replyId}:`, err?.message ?? err);
+        }
+      }
     } else {
       const prevAnalysis2 = reply.ai_analysis as Record<string, any> ?? {};
       const ebFails = (prevAnalysis2.eb_fail_count ?? 0) + 1;
