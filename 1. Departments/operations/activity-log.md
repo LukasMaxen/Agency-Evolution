@@ -4,6 +4,18 @@ Running record of significant actions, decisions, and corrections. Append to the
 
 ---
 
+## 2026-08-13
+
+### Larsen conversion investigation + live Calendly time proposals shipped
+
+Kasper flagged the CSM update's Larsen numbers as suspicious (1 meeting booked against 33 EmailBison-reported interested replies). Investigation found the real cause: DB shows 105 Larsen replies stuck in `awaiting_manual`/`awaiting_approval` (63+18 larsen-digital, 20+4 acceler8rs), most over 7 days old, acceler8rs's queue untouched since May. Interested leads were being classified correctly but never actually getting a reply, so they went cold before booking.
+
+- **Cleared what was reachable via the Slack-based sweep tools**: `manual-replies-sweep` (30-day Slack lookback) found 21 live cards, 11 Larsen. 2 auto-deleted (already-responded, meeting-scheduled). 3 confidently drafted and sent (diana@wasparfum.nl sourcing question, rbrisco@luckybevco.com closed-loop ack, alana@harpargrace.com/Erica Casey scheduling with live Calendly times). 6 left for Lukas (Pathfinder buyer-mandate judgment calls: fund verification, hemp-category stance, off-ICP/below-floor engagement decisions — none answerable without fabricating facts).
+- **`reply-approval-sweep` pull only reaches 5 days back** — just 1 live card (Ziv/REATHLETE). Rewrote it: original draft both exceeded the 90-word limit and described the lead's category ("sports recovery products... repeat-purchase category") using researched details never stated in the thread, a hard rule violation. Attempted send was blocked by guard 3 (someone had already replied manually via EmailBison directly, outside DB tracking) — guard worked correctly.
+- **KEY FINDING, unresolved:** the 105 DB-row backlog is mostly *not* reachable through either sweep tool's Slack lookback window (5-30 days). Most of it predates what these tools can see. This means the DB `awaiting_*` status is not a reliable live-queue indicator, some of it may already be resolved (as the Ziv guard-3 hit demonstrated) and some genuinely dead. **Next step: a DB-side reconciliation pass** (not Slack-based) to check each stale `awaiting_manual`/`awaiting_approval` row directly against EmailBison's live thread state and either close it out or re-surface it, so this can't silently regrow.
+- **Shipped: live Calendly time proposals for Larsen**, reinstating (with real verification this time) the specific-time proposal capability disabled 2026-08-04 after a hallucination incident. New `calendly-verify.cjs` pulls real availability via the already-live per-client Calendly tokens; `sweep.cjs` and `send.cjs` guards now hard-block any day+time phrase in a draft unless every stated slot re-verifies live at send time (real, available, 8am-8pm in the lead's resolved timezone). Timezone resolution: explicit lead statement > company-location inference.
+- **Bug found and fixed same session**: the guard's day+time detection regex (`"Tuesday at"` as a literal substring) missed real-world phrasing like "Tuesday 18 Aug at 5pm" (date text in between broke the match), so the alana@harpargrace.com send's verification step silently didn't run, even though the times used were genuinely live-verified by hand beforehand. Fixed the regex in both `sweep.cjs` and `send.cjs` to detect any day-name + clock-time combination independent of what's between them.
+
 ## 2026-07-07
 
 ### Reply-approval backlog cleared (catch-up run)
