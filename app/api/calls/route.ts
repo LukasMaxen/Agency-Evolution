@@ -1,6 +1,7 @@
 // app/api/calls/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
+import { closeManualCardsForLead } from "@/lib/manual-card";
 
 // ── GET — fetch calls for a reply ─────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -89,6 +90,9 @@ export async function POST(req: NextRequest) {
       `UPDATE replies SET meeting_booked = TRUE WHERE id = $1`,
       [replyId]
     );
+    // Close out any outstanding #manual-replies card for this lead now that a human
+    // has booked the call directly. See lib/manual-card.ts.
+    void closeManualCardsForLead(leadEmail);
 
     return NextResponse.json({ ok: true, callId, isReschedule });
   } catch (err: any) {

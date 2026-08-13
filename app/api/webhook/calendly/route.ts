@@ -4,6 +4,7 @@ import pool from "@/lib/db";
 import { trackMeeting } from "@/lib/meetings-tracker";
 import { isInternalContact } from "@/lib/internal-blocklist";
 import { crossBlacklistLarsen } from "@/lib/larsen-cross-blacklist";
+import { closeManualCardsForLead } from "@/lib/manual-card";
 
 export async function POST(req: NextRequest) {
   try {

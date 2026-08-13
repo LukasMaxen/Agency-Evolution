@@ -1826,7 +1826,7 @@ ${messageText.slice(0, 8000)}`;
         console.log(`[auto-reply] back-sync skipped for ${replyId}: ${bs.skipped}`);
         if (bs.skipped.startsWith("emailbison_refused:")) {
           const reason = bs.skipped.replace(/^emailbison_refused:\s*/, "");
-          await postManual(workspaceSlug, {
+          await postManual(workspaceSlug, replyId, {
             text: `EmailBison refused mark-as-interested, ${workspaceSlug} / ${reply.lead_name}`,
             blocks: buildCard(
               "EmailBison can't mark this reply as interested",
@@ -1955,6 +1955,9 @@ ${messageText.slice(0, 8000)}`;
   if (result.flag_meeting_booked) {
     await pool.query(`UPDATE replies SET meeting_booked = TRUE WHERE id = $1`, [replyId]);
     await pool.query(`UPDATE follow_ups SET meeting_booked = TRUE, next_fu_due = NULL, outcome = 'booked' WHERE reply_id = $1`, [replyId]);
+    // Close out any outstanding #manual-replies card for this lead (possibly on an
+    // earlier reply row) now that a meeting is confirmed booked. See lib/manual-card.ts.
+    void closeManualCardsForLead(reply.lead_email);
   }
 
   // Referral-CC backstop: if the draft greets a CC'd third party by first name but
@@ -2065,7 +2068,7 @@ ${messageText.slice(0, 8000)}`;
             reason: `Drafted reply could not be posted to ${REPLY_APPROVAL_CHANNEL} after 3 tries (Slack returned no ts — likely a token/channel/config issue in the deployed env). Send manually, or fix Slack and re-queue with: UPDATE replies SET status='new', ai_analysis = ai_analysis - 'slack_fail_count' WHERE id='${replyId}'`,
           });
           manualBlocks.push({ type: "section", text: { type: "mrkdwn", text: `*Drafted reply:*\n${quoteForSlack(result.reply_body ?? "", 2500)}` } });
-          await postManual(workspaceSlug, {
+          await postManual(workspaceSlug, replyId, {
             text: `Approval card post failed 3x, ${workspaceSlug} / ${reply.lead_name} — needs manual send`,
             blocks: manualBlocks,
           }).catch(() => { /* manual channel may share the outage; row is already at awaiting_manual */ });
@@ -2134,7 +2137,7 @@ ${messageText.slice(0, 8000)}`;
 
   } else if (result.action === "manual") {
     await pool.query(`UPDATE replies SET status = 'awaiting_manual', auto_reply_processed_at = NOW() WHERE id = $1`, [replyId]);
-    await postManual(workspaceSlug, { text: `Manual handling needed, ${workspaceSlug} / ${reply.lead_name}`,
+    await postManual(workspaceSlug, replyId, { text: `Manual handling needed, ${workspaceSlug} / ${reply.lead_name}`,
       blocks: buildCard("Manual handling needed", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", { reason: result.manual_reason ?? "Needs human attention.", intent: result.intent }) });
     await createFuRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
 
@@ -2150,7 +2153,7 @@ ${messageText.slice(0, 8000)}`;
     // send to #manual-replies so a human can handle it.
     const hardCloses = new Set(["not_interested", "hard_no", "unsubscribe", "wrong_target", "hostile"]);
     if (!hardCloses.has(result.intent)) {
-      await postManual(workspaceSlug, {
+      await postManual(workspaceSlug, replyId, {
         text: `Interested reply needs human review, ${workspaceSlug} / ${reply.lead_name}`,
         blocks: buildCard("Couldn't draft a reply — needs human", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", {
           reason: result.manual_reason ?? "Automation returned do_nothing for an interested-looking reply.",
