@@ -624,6 +624,32 @@ function isBulkNewsletter(subject: string, message: string): boolean {
 }
 
 /**
+ * Deterministic backstop for the Larsen Digital MANUAL BOOKING TRIGGER RULE (system
+ * prompt). Larsen has no human review step for interested/needs_info replies anymore
+ * (2026-08-13), so this catches the clearest, lowest-false-positive scheduling-intent
+ * phrases even if Claude's classification misses one, exactly like the banned-case-study
+ * and Dealgen backstops below catch drafting mistakes after the fact. Deliberately does
+ * NOT try to regex-match day names or "2pm Thursday" style specific times, too noisy
+ * (a lead can mention "Tuesday" for unrelated reasons), that nuance is left to Claude,
+ * this only catches the unambiguous direct scheduling asks.
+ */
+function hasLarsenSchedulingTrigger(message: string): boolean {
+  if (!message) return false;
+  const m = message.toLowerCase();
+  return (
+    /let'?s (chat|talk|jump on a call|hop on a call|get on a call)/.test(m) ||
+    /when (are you|r u|would you be) (available|free)/.test(m) ||
+    /what'?s your availability/.test(m) ||
+    /(can|could) we (set up|schedule|book|get on|jump on|hop on) a (call|chat|time)/.test(m) ||
+    /are you free\b/.test(m) ||
+    /let me know a good time/.test(m) ||
+    /let me know when (works|you'?re free|you'?re available)/.test(m) ||
+    /(call|phone) me\b/.test(m) ||
+    /give me a call/.test(m)
+  );
+}
+
+/**
  * Per-workspace hard suppression rules. A reply matching one of these is silently
  * closed (status='read') before it can be forwarded, auto-sent, or routed to
  * #reply-approval / #manual-replies. Deterministic and zero Claude cost.
@@ -1914,6 +1940,18 @@ ${messageText.slice(0, 8000)}`;
       result.manual_reason = `Draft referenced a deactivated case study ("${banned}"). Blocked from sending. Rewrite with an approved reference before sending.`;
       console.warn(`[auto-reply] Blocked banned case study "${banned}" in draft for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
     }
+  }
+
+  // ── Larsen Digital manual booking trigger backstop ───────────────────────────
+  // Deterministic safety net behind the MANUAL BOOKING TRIGGER RULE in the system
+  // prompt. Larsen has no human review step anymore, so if Claude still returned
+  // auto_send for a message that clearly asks to schedule, force it to manual
+  // rather than trust the model's classification alone. See hasLarsenSchedulingTrigger.
+  if (isLarsenDigital && result.action === "auto_send" && hasLarsenSchedulingTrigger(leadNewText)) {
+    result.action = "manual";
+    result.manual_reason = "Manual booking trigger detected (lead wants to schedule a call). AI cannot send calendar invites, routed to a human.";
+    result.reply_body = undefined;
+    console.log(`[auto-reply] Larsen scheduling-trigger backstop fired for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
   }
 
   // ── Dealgen Partners backstop ────────────────────────────────────────────────
