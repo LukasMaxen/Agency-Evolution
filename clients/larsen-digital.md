@@ -308,7 +308,13 @@ Happy with current setup, not looking to scale or exit, B2B pivot.
 Read the draft once as the person receiving it. Does it sound like a real reply to what they actually said, or like it's reaching for something to say? If the latter, rewrite it plainly.
 
 **Calendly rule (Larsen Digital only):**
-Always send the Calendly link — even when the lead mentions specific availability or a preferred time. Never book manually. Instead, find a natural, valid reason to send the link anyway (e.g. "easiest way to lock something in", "calendar fills up fast", "grab whichever slot works on your end"). The excuse must feel genuine, not forced. If the lead says yes/interested/happy to chat, always close with the Calendly link.
+Always include the Calendly link as the fallback/booking mechanism, even when also proposing specific times. Never book manually.
+
+**Live time proposals (reinstated 2026-08-13, verified-only):** You may propose specific times again, but ONLY times pulled live from `.claude/skills/reply-approval-sweep/calendly-verify.cjs` (`getLiveSlots`) in the same session, never invented. `sweep.cjs` guard 5 re-verifies every proposed time against live Calendly at send time and blocks anything that doesn't match a real, currently-available slot, so a fabricated time will not send even if drafted by mistake.
+- Timezone resolution, in priority order: (1) if the lead explicitly states a timezone or city, always use that, (2) otherwise infer from the company's location (domain/signature/lookup), and use that as the tz for both display and the 8am-8pm filter.
+- Only offer slots that fall between 8am and 8pm in the lead's resolved local time. `getLiveSlots` already filters to this window, don't hand-pick outside it.
+- Never assume a date/time the lead suggested is actually free. Always check real availability via `getLiveSlots` for the resolved timezone before confirming or countering with alternatives, even if they proposed the exact day.
+- If no live slot exists in the 8am-8pm window within the search range, don't invent one, fall back to Calendly-link-only for that reply.
 
 **Which Calendly link to send:**
 Two links, pick by intent:
@@ -349,15 +355,11 @@ Founder, Larsen Digital
 - NAME = lead first name from signature or LinkedIn
 - BRAND = the actual, correctly formatted brand name (from email signature, website, or LinkedIn). Never use the {COMPANY} merge variable
 - CATEGORY = the lead's actual product category, plural (e.g. "apparel", "beauty", "supplements", "footwear", "home & living", "food & beverage", "skincare", "sportswear"). Infer from the brand's website, product line, or LinkedIn industry. Avoid generic terms like "DTC" or "consumer", be specific to what they sell
-- Two time slot placeholders = pulled live from Nicklas's Calendly, converted into the lead's timezone. Pick one mid-morning and one early-afternoon slot in their TZ for best conversion
-- Lead's timezone = inferred from country/city in signature, LinkedIn location, or email domain. Always verify before proposing times. Default to the lead's country timezone, not BST or CET, unless they are clearly based in Europe. If genuinely unknown, note the assumed timezone explicitly (e.g. "10am UK time").
+- Two time slot placeholders = pulled live via `getLiveSlots('larsen-digital'|'acceler8rs', tz)` in `.claude/skills/reply-approval-sweep/calendly-verify.cjs`, in the lead's resolved timezone. Pick one mid-morning and one early-afternoon slot from the returned (already 8am-8pm-filtered) list for best conversion
+- Lead's timezone, in priority order: (1) explicit statement or city from the lead always wins, (2) otherwise infer from the company's location/domain/signature. Never hand-write a time that didn't come from `getLiveSlots` output, sweep.cjs's guard blocks unverified times anyway but don't rely on that as the first line of defense
 - Keep the Calendly link as the fallback even when proposing times
 
-**Open workflow items (unblock live slot pulling):**
-- Nicklas to generate a Calendly Personal Access Token from his Larsen Digital account (Integrations → API & Webhooks → Personal Access Tokens)
-- Add token to `.env.local` as `CALENDLY_TOKEN_LARSEN_DIGITAL`
-- Refactor `lib/calendly.ts` + `app/api/calendly/slots/route.ts` to support per-client tokens (lookup keyed by client slug, fallback to global token)
-- Same pattern will apply to other clients once they each provide their own Calendly token
+**Live slot pulling: LIVE as of 2026-08-13.** `CALENDLY_TOKEN_LARSEN_DIGITAL` and `ACCELER8RS_CALENDLY_TOKEN` are both set in `.env.local`. Use `getLiveSlots` from `.claude/skills/reply-approval-sweep/calendly-verify.cjs` to pull real availability before proposing any time, never assume a lead-suggested date/time is free, always check it. `app/api/calendly/slots/route.ts` supports the same per-client lookup for in-app use.
 
 ---
 

@@ -82,7 +82,16 @@ Send the draft as-is unless it trips one of these:
 ## House style (all sent replies)
 - No em/en dashes anywhere.
 - End with `{SENDER_EMAIL_SIGNATURE}` (the sweep resolves it); no "Best," before it.
-- Blank line between paragraphs. Never fabricate a specific day/time — link only.
+- Blank line between paragraphs. Never hand-write a specific day/time, always the Calendly link, UNLESS proposing a verified live slot (see below).
+
+## Proposing specific times (Larsen only, reinstated 2026-08-13)
+
+For Larsen (`larsen-digital` / `acceler8rs`), you may propose real times pulled from `calendly-verify.cjs`'s `getLiveSlots(clientSlug, tz, daysAhead, wantMA)`, which already filters to 8am-8pm in the given timezone:
+1. Resolve the lead's timezone: explicit statement/city from the lead always wins; otherwise infer from company location.
+2. Call `getLiveSlots` for that timezone. Never hand-pick a time outside its output, never assume a lead-proposed day/time is actually free, check it.
+3. Put the chosen slot(s) in `decisions.js` as an object instead of a plain string: `rewrites: { "lead@x.com": { body: "...", slots: [{ iso: "2026-08-18T14:00:00Z", tz: "Europe/Copenhagen", wantMA: false }] } }`. `wantMA: true` for the M&A/sell-side event type.
+4. `sweep.cjs` re-verifies every listed slot live at send time and blocks the card if any slot no longer checks out, don't skip this by writing a plain string body with a day+time phrase, that path is a hard block with no exceptions.
+5. If no live slot exists in the window, don't invent one, fall back to Calendly-link-only.
 
 ## Token efficiency
 - Run the 3 scripts; don't paste their code or re-explain the guards.
