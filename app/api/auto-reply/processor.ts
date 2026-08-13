@@ -1583,11 +1583,29 @@ ${ctx.summary}
   if (categoryOverride) {
     calendlyHint += `CATEGORY OVERRIDE for this lead, use exactly "${categoryOverride}" wherever the template asks for [CATEGORY]. Do not infer a different category.\n\n`;
   }
-  // Live-slot proposals are DISABLED (2026-08-04). The pipeline used a retired Calendly
-  // event URL so it never returned real slots, yet the slot templates in-context primed the
-  // model to fabricate times ("Monday at 10am EST"). Per the standing rule we schedule with
-  // the Calendly link only, never a specific day/time. Re-enable only with a verified live
-  // feed AND explicit sign-off (see lib/calendly-slot-suggestions.ts, kept for that purpose).
+  // Live-slot proposals: Larsen Digital only (2026-08-13), re-enabled now that fully
+  // automated sends have no human review step to catch a fabricated time. Pulls real,
+  // currently-available slots from the same live Calendly API the reply-approval-sweep
+  // tool (calendly-verify.cjs) already verifies against, so the model has something real
+  // to offer instead of inventing a day/time. Every other client stays Calendly-link-only
+  // (per CALENDLY_SLOT_PROMPT_RULE above) — no verified live feed exists for them.
+  if (isLarsenDigital && CALENDLY_CLIENT_CONFIG[workspaceSlug]) {
+    const calendlyCfg = CALENDLY_CLIENT_CONFIG[workspaceSlug];
+    const wantMA = /sell.?side/i.test((reply.campaign ?? "").toString());
+    const { tz: inferredTz } = inferLeadTimezone({
+      enrichment: leadEnrichment,
+      leadEmail: reply.lead_email,
+      leadCompany: reply.lead_company,
+      defaultTz: calendlyCfg.defaultTz,
+      defaultUsTz: "America/New_York",
+    });
+    const eventTypeUrlOverride = wantMA
+      ? "https://calendly.com/d/dvqt-b8q-ytq/m-a-conversation-larsen-digital"
+      : undefined;
+    const liveSlots = await suggestSlotsForClient(workspaceSlug, inferredTz, eventTypeUrlOverride);
+    const liveBlock = buildLiveCalendarBlock(liveSlots);
+    if (liveBlock) calendlyHint += `\n${liveBlock}\n\n`;
+  }
 
   // Recent approved sends as in-context positive examples. Updates the
   // processor's "what good looks like" every time it drafts. Silent fallback

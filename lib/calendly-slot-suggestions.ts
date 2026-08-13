@@ -39,7 +39,8 @@ Always pair with the Calendly link as a fallback. Do not reformat the slot strin
  */
 export async function suggestSlotsForClient(
   clientSlug: string,
-  tz: string
+  tz: string,
+  eventTypeUrlOverride?: string
 ): Promise<SuggestedSlot[]> {
   const token = resolveCalendlyToken(clientSlug);
   const config = CALENDLY_CLIENT_CONFIG[clientSlug];
@@ -49,7 +50,9 @@ export async function suggestSlotsForClient(
     const user = await getCalendlyUser(token);
     const eventTypes = await getEventTypes(token, user.uri);
     const normalize = (url: string) => url.toLowerCase().replace(/\/+$/, "");
-    const targetUrl = normalize(config.eventTypeUrl);
+    // Larsen Digital has a second (M&A / sell-side) event type sharing the same token.
+    // Pass its scheduling_url here to pull slots for that calendar instead of the default.
+    const targetUrl = normalize(eventTypeUrlOverride ?? config.eventTypeUrl);
     const eventType = eventTypes.find((e: any) => normalize(e.scheduling_url ?? "") === targetUrl)
       ?? eventTypes.find((e: any) => normalize(e.scheduling_url ?? "").includes(targetUrl.split("/").pop() ?? ""))
       ?? eventTypes[0];
