@@ -11,3 +11,7 @@
 - **tom@giginewyork.com** (larsen-digital) — deleted, reason: meeting scheduled. Original: Interested reply needs human review, larsen-digital / Thomas Couldn't draft a reply — needs human *Client:* Larsen Digital *Campaign:* Pathfinder  *Lead:* Thomas, <mailto:tom@giginewyork.com|tom@gigin
 
 - **d.savi@studioaziendalesavi.it** (gn-motion) — deleted, reason: noise (generic OOO, no named redirect, returns Sept). Original: Interested reply needs human review, gn-motion / Daniela -- Couldn't draft a reply. Lead: d.savi@studioaziendalesavi.it. Reply: Buongiorno, Saro fuori studio per ferie fino al 30/8/2026 e con difficolta di accedere alla mail. Potro rispondere ai messaggi urgenti al numero di cellulare. Ci vediamo a settembre! Daniela Savi -- generic OOO, no named redirect contact, pure noise.
+
+## 2026-08-13 sweep
+- **mike.lee@getsoul.com** (larsen-digital) — deleted, reason: already responded. Original: :handshake: *Needs manual action* Hemp/CBD brand (Soul). Lead asked directly if the buyer wants a hemp brand, buyer's stance on cannabis/hemp isn't documented in the client file, needs verification be
+- **carole@moroccannatural.com** (larsen-digital) — deleted, reason: meeting scheduled. Original: Manual handling needed, larsen-digital / Carole Manual handling needed *Client:* Larsen Digital *Campaign:* Re run: DTC brands 7+ figs (Stopped leads) *Lead:* Carole, <mailto:carole@moroccannatural.co
