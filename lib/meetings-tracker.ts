@@ -335,10 +335,11 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
     // this in Slack. Post a plain fallback (no enrichment) to the client channel; if even
     // that fails, escalate to the internal fallback channel so it's never just gone.
     try {
+      const firstName = cfg.workspaceLabel?.split(" ")[0];
+      const title = firstName ? `${firstName} - ` : "";
       await postSlack(cfg.slackChannel, [
-        `:warning: New meeting booked with ${i.leadName || email} (notification pipeline failed, this is a plain backfill)`,
+        `:warning: ${title}New meeting booked with ${i.leadName || email} (notification pipeline failed, this is a plain backfill)`,
         "",
-        cfg.workspaceLabel ? `Sender: ${cfg.workspaceLabel}` : "",
         `Email: ${email}`,
         i.eventTypeName ? `Event type: ${i.eventTypeName}` : "",
         `Time: ${i.prettyTime ?? cet(i.meetingStartISO)}`,
