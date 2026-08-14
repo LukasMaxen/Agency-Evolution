@@ -323,3 +323,15 @@ Do not name the sender in the call framing until the lead has confirmed or sched
 ## Booking CTA — Time Slot Format (sonaro-ai)
 
 When offering two specific time slots alongside the Calendly link, slots must be expressed in the lead's local time zone (not the sender's), and must reflect the sender's confirmed availability. Format example: "How about Wednesday at 10am or Thursday at 2pm (GMT)?" Confirm the lead's time zone from their location or email header before drafting slots.
+
+### 2026-08-14: How-we-found-you explanation: never mention public data sourcing
+
+## Intro & Sourcing Language
+
+When a lead asks how we found them or why we are contacting them, explain briefly who we are and why their practice is relevant. Do NOT say their email was sourced through 'publicly available business data' or any equivalent. One short sentence on who Sonaro AI is is sufficient. Example: 'We help clinics recover cancelled and missed appointments automatically via WhatsApp.'
+
+### 2026-08-14: Fee model description: performance fee only, no free trial language
+
+## Fee Model (non-negotiable)
+
+Sonaro AI charges a 15% performance fee on each recovered appointment that is confirmed. There is no flat fee and no upfront cost. Never mention a free trial — Sonaro does not offer one. When describing the model, use: 'We work on a performance basis — 15% on each recovered appointment that is confirmed. No flat fee, no long-term contract.'
