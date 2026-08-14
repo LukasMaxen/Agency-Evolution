@@ -4,6 +4,16 @@ Running record of significant actions, decisions, and corrections. Append to the
 
 ---
 
+## 2026-08-14
+
+### Reply-approval sweep, two runs
+
+Run 1: 2 gn-motion cards. Valerie/Smelly Cheese draft described her business back to her (subscription-model detail she never stated) — rewrote to drop it. Ebba/ICANIWILL replied "I'll keep this in mind for future projects" (a soft not-now) but the draft still carried the booking link — rewrote to a link-free gracious close per the "not now, usually no link" rule. Both sent clean.
+
+Run 2: 1 act-capital card, Farah/Heritage Point Partners. Inbound was a Constant Contact mass-send (press-release style, `shared1.ccsend.com` sender) announcing HPoint's Mayatax acquisition, not an obviously personal reply. Intended to route it to manual review given the uncertainty, but wrote the `decisions.js` `manual` key as the *preferred* recipient address (`farah@heritagepoint.com`) instead of the `lead_email` key the sweep actually matches on (`farah-heritagepointpartners.com@shared1.ccsend.com`, per `pulled.json`) — the key didn't match, so the card fell through to "send as-is" and the original ACT Capital landscape-mandate pitch went out unreviewed.
+- **On reread, the content itself was defensible**: the HPoint email explicitly said "Please reply to this email... to continue the conversation" and stated a real mandate ($1-8M EBITDA, property/industrial services) that the landscape teaser reasonably fits. So the send wasn't off-strategy, but it bypassed the manual check I'd decided it needed.
+- **Fix going forward**: `decisions.js` keys for `rewrites`/`manual`/`skip` must always be the `lead_email` field from `pulled.json` / the `LEAD:` line in `view.cjs` output, never the `PREF->` address, even when they differ. Double-check the key against `pulled.json` before running `sweep.cjs` when the lead and preferred-recipient addresses diverge.
+
 ## 2026-08-13
 
 ### Larsen conversion investigation + live Calendly time proposals shipped
