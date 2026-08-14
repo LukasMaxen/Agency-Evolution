@@ -18,3 +18,6 @@
 
 ## 2026-08-13 sweep
 - **fabio.marangoni@nectogroup.com** (gn-motion) — deleted, reason: noise/CSAT. Original: Interested reply needs human review, gn-motion / Fabio Couldn't draft a reply — needs human *Client:* Gn Motion *Campaign:* FindyVerifier - Consumer Products *Lead:* Fabio, <mailto:fabio.marangoni@nec
+
+## 2026-08-14 sweep
+- **rfoster@axismountain.ca** (act-capital) — deleted, reason: already responded. Original: Manual handling needed, act-capital / Ryan Manual handling needed *Client:* Act Capital *Campaign:* 26th Mar: Southern Cali - Sell Side  *Lead:* Ryan, <mailto:rfoster@axismountain.ca|rfoster@axismount
