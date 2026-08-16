@@ -4,6 +4,14 @@ Running record of significant actions, decisions, and corrections. Append to the
 
 ---
 
+## 2026-08-16
+
+### Reply-approval sweep, 1 card
+
+internal-campaigns, Juri/Clarke Advisors (replying as Norman Clarke) said "interested." Draft was otherwise clean but used `calendly.com/maxenlukas/buy-side-mandate-conversation`, on the banned-link list. Rewrote to the correct `calendly.com/lukasm-acceler8rs/buy-side-mandate-conversation` and sent.
+
+**Recurring pattern flagged**: this is the second internal-campaigns draft in the last two days (see 2026-08-14 entry, Zubair/ThinkVentures) generated with the banned `maxenlukas/` buy-side link instead of the correct `lukasm-acceler8rs/` one. Looks like the draft generator/processor for internal-campaigns is still defaulting to the old link somewhere. Worth checking the source (prompt/template/client file) that seeds this link for internal-campaigns rather than continuing to catch it per-card in sweep review.
+
 ## 2026-08-14
 
 ### Reply-approval sweep, two runs
