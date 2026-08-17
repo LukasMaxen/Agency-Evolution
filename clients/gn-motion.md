@@ -14,6 +14,8 @@ website: https://gnmotion.co/
 always_send_calendly: false
 french_market: true (match language exactly if they reply in French)
 location: Based in France, works with brands worldwide (confirmed by Kasper 2026-08-11)
+manual_booking_trigger: true (fully automated 2026-08-17, same pattern as Larsen Digital, see [[feedback_larsen_247_manual_booking]]. The AI cannot book calls. Any message where the lead wants to get on a call, general or a specific day/time they name themselves, routes to action:manual with NO drafted reply, NO booking link, NO acknowledgment. Only non-scheduling replies (portfolio requests, pricing questions, general interest in the sample) are eligible to auto-send, and those may close with the iClosed link above. Note: no iClosed webhook exists in this app, see [[project_gn_motion_iclosed_gap]] — if a lead later confirms they booked, set flag_meeting_booked true and send a short confirmation, not a new booking link.)
+fully_automated: true (no #reply-approval step for interested/needs_info, replies send directly once quality-checked)
 
 reply_rules:
 - Lead asks for our WEBSITE, web page, "your site", "your link", or where to see us online: send the website (https://gnmotion.co/).
