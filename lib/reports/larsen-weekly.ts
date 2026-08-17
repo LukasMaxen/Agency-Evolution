@@ -37,7 +37,7 @@ const PATHFINDER_EVENT_TYPE_URI = "https://api.calendly.com/event_types/439c2cb3
 const OPERATING_PARTNER_EVENT_TYPE_URI = "https://api.calendly.com/event_types/81068b27-3b45-4695-88cc-b0b54f0cb952"; // Intro Call | Operating Partner
 
 // Different env-var UIs mangle a pasted token differently (some preserve wrapping quotes
-// literally, some add trailing whitespace). Normalize defensively — same reasoning as
+// literally, some add trailing whitespace). Normalize defensively, same reasoning as
 // GOOGLE_SHEETS_PRIVATE_KEY in lib/google-sheets.ts. Without this, classifyMeeting() below
 // gets a 401 on every single Calendly lookup and silently buckets every meeting into
 // Operating Partner (confirmed as the cause of the 2026-08-17 Nicklas Pathfinder=0 bug).
