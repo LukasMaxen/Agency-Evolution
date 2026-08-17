@@ -651,20 +651,22 @@ function isBulkNewsletter(subject: string, message: string): boolean {
 }
 
 /**
- * Deterministic backstop for the Larsen Digital MANUAL BOOKING TRIGGER RULE (system
- * prompt). Larsen has no human review step for interested/needs_info replies anymore
- * (2026-08-13), so this catches the clearest, lowest-false-positive scheduling-intent
- * phrases even if Claude's classification misses one, exactly like the banned-case-study
- * and Dealgen backstops below catch drafting mistakes after the fact. Deliberately does
- * NOT try to regex-match day names or "2pm Thursday" style specific times, too noisy
- * (a lead can mention "Tuesday" for unrelated reasons), that nuance is left to Claude,
- * this only catches the unambiguous direct scheduling asks.
+ * Deterministic backstop for the MANUAL BOOKING TRIGGER RULE (system prompt), used by
+ * every fully-automated client (see FULLY_AUTOMATED_WORKSPACES) — none of them have a
+ * human review step for interested/needs_info replies, so this catches the clearest,
+ * lowest-false-positive scheduling-intent phrases even if Claude's classification misses
+ * one, exactly like the banned-case-study and Dealgen backstops below catch drafting
+ * mistakes after the fact. Deliberately does NOT try to regex-match day names or "2pm
+ * Thursday" style specific times, too noisy (a lead can mention "Tuesday" for unrelated
+ * reasons), that nuance is left to Claude, this only catches the unambiguous direct
+ * scheduling asks. Originally Larsen-only (2026-08-13), extended to ACT Capital, GN
+ * Motion, and Bustem 2026-08-17.
  */
-function hasLarsenSchedulingTrigger(message: string): boolean {
+function hasSchedulingTrigger(message: string): boolean {
   if (!message) return false;
   const m = message.toLowerCase();
   // If the lead states they ALREADY booked/picked a time themselves (self-service via the
-  // Calendly link we sent), that is a confirmation, not a request for us to schedule them —
+  // booking link we sent), that is a confirmation, not a request for us to schedule them —
   // never force manual for this, even if scheduling words appear elsewhere in the same
   // message. Found via the Rebecca/epigenics.de incident (2026-08-13): "let's hop on a
   // call... I picked a slot for early september" was wrongly forced to manual by this
