@@ -1112,8 +1112,14 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   );
   if (wsResult.rows.length === 0) {
     console.error("[auto-reply] Workspace not found in DB:", workspaceSlug);
-    await pool.query(`UPDATE replies SET status = 'errored', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+    await pool.query(`UPDATE replies SET status = 'awaiting_manual', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
       [JSON.stringify({ skipped_reason: "workspace_not_found", workspace_slug: workspaceSlug }), replyId]);
+    await postManual(workspaceSlug, replyId, {
+      text: `Workspace "${workspaceSlug}" not found in DB — reply cannot be auto-processed`,
+      blocks: buildCard("Workspace config missing — needs manual reply", workspaceSlug, reply, "", {
+        reason: `No row in the workspaces table for slug "${workspaceSlug}". This is a setup/config problem, not a normal lead issue — check the workspaces table before replying.`,
+      }),
+    });
     return;
   }
   const workspace = wsResult.rows[0];
@@ -1775,9 +1781,19 @@ ${messageText.slice(0, 8000)}`;
     const failCount = (prevAnalysis.claude_fail_count ?? 0) + 1;
 
     if (failCount >= 3) {
-      await pool.query(`UPDATE replies SET status = 'errored', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
+      // 'errored' used to be a silent dead end here too — no Slack card, so a lead whose
+      // classification kept failing (API outage, out of credits) got no response and
+      // nobody knew (found 198 historical rows like this in a 2026-08-17 audit). Post to
+      // #manual-replies so a human can see it and reply directly.
+      await pool.query(`UPDATE replies SET status = 'awaiting_manual', ai_analysis = $1, ai_analyzed_at = NOW() WHERE id = $2`,
         [JSON.stringify({ ...prevAnalysis, claude_fail_count: failCount, skipped_reason: "claude_repeated_failure" }), replyId]);
-      console.error(`[auto-reply] Claude failed 3x for ${workspaceSlug} / ${reply.lead_name} — marked errored`);
+      await postManual(workspaceSlug, replyId, {
+        text: `Claude classification failed 3x, ${workspaceSlug} / ${reply.lead_name} — needs manual reply`,
+        blocks: buildCard("AI classification kept failing — needs a human reply", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", {
+          reason: `Claude API failed ${failCount} times in a row while classifying this reply (outage, rate limit, or out of credits). No draft was ever produced. Read the thread and reply directly.`,
+        }),
+      });
+      console.error(`[auto-reply] Claude failed 3x for ${workspaceSlug} / ${reply.lead_name} — routed to manual`);
     } else {
       await pool.query(`UPDATE replies SET status = 'new', ai_analysis = $1 WHERE id = $2`,
         [JSON.stringify({ ...prevAnalysis, claude_fail_count: failCount }), replyId]);
@@ -2133,9 +2149,20 @@ ${messageText.slice(0, 8000)}`;
       const prevAnalysis2 = reply.ai_analysis as Record<string, any> ?? {};
       const ebFails = (prevAnalysis2.eb_fail_count ?? 0) + 1;
       if (ebFails >= 3) {
-        await pool.query(`UPDATE replies SET status = 'errored', ai_analysis = $1 WHERE id = $2`,
+        // 'errored' used to be a silent dead end — no Slack card, so a lead whose send
+        // kept failing (the Alexander/Flavien/Airinum incident, 2026-08-17: 4 failed
+        // sends, sat unnoticed for 3 days) got no response and nobody knew. Post to
+        // #manual-replies so a human can send it directly instead.
+        await pool.query(`UPDATE replies SET status = 'awaiting_manual', ai_analysis = $1 WHERE id = $2`,
           [JSON.stringify({ ...prevAnalysis2, eb_fail_count: ebFails }), replyId]);
-        console.error(`[auto-reply] EmailBison send failed 3x for ${workspaceSlug} / ${reply.lead_name} — marked errored`);
+        await postManual(workspaceSlug, replyId, {
+          text: `EmailBison send failed 3x, ${workspaceSlug} / ${reply.lead_name} — needs manual send`,
+          blocks: buildCard("EmailBison send kept failing — send this manually", workspaceSlug, replyWithCreds, workspace.email_bison_instance_url ?? "", {
+            intent: result.intent,
+            reason: `Automated send to EmailBison failed ${ebFails} times in a row and gave up retrying.${result.reply_body ? ` Drafted reply:\n\n${result.reply_body}` : ""}`,
+          }),
+        });
+        console.error(`[auto-reply] EmailBison send failed 3x for ${workspaceSlug} / ${reply.lead_name} — routed to manual`);
       } else {
         await pool.query(`UPDATE replies SET status = 'new', ai_analysis = $1 WHERE id = $2`,
           [JSON.stringify({ ...prevAnalysis2, eb_fail_count: ebFails }), replyId]);
