@@ -1364,31 +1364,33 @@ If no LEAD COMPANY CONTEXT block appears (because the site was unreachable), fal
   // touches scheduling — a human takes over completely for any call/scheduling intent.
   // This OVERRIDES the general CALENDLY AND AVAILABILITY section below for this client.
   //
-  // Scope is the WORKSPACE (both `larsen-digital`/Nicklas and `acceler8rs`/Lukas),
-  // not the file/campaign type — confirmed by Kasper 2026-08-13: "everything for
-  // Larsen, both workspaces... everything except Bustem." This deliberately covers
-  // Pathfinder (buy-side) replies too (fileSlug resolves to "acceler8rs" for those),
-  // not just growth/exit replies (fileSlug "larsen-digital"). Bustem shares the
-  // acceler8rs sending account but is a different client entirely, so it's excluded
-  // and stays on the standard (approval-required) path — "handle those as usual".
-  const isLarsenDigital = (workspaceSlug === "larsen-digital" || workspaceSlug === "acceler8rs") && !isBustem;
-  const larsenManualBookingBlock = isLarsenDigital
-    ? `## MANUAL BOOKING TRIGGER RULE (Larsen Digital only, overrides the CALENDLY AND AVAILABILITY section below)
+  // Scope is the WORKSPACE. Started with Larsen Digital only (2026-08-13, both
+  // `larsen-digital`/Nicklas and `acceler8rs`/Lukas, covering Pathfinder buy-side
+  // replies too since fileSlug resolves to "acceler8rs" for those). Extended to ACT
+  // Capital, GN Motion, and Bustem 2026-08-17 (confirmed by Kasper: "same rules,
+  // if in doubt... or belongs in manual replies due to needing to be booked... same
+  // rules as larsen"). Bustem runs on the acceler8rs workspace so it inherits this
+  // automatically — its own content/booking-link comes from fileSlug="bustem" via
+  // isBustemReply, this flag only controls whether the approval step is skipped.
+  const FULLY_AUTOMATED_WORKSPACES = new Set(["larsen-digital", "acceler8rs", "act-capital", "gn-motion"]);
+  const isFullyAutomated = FULLY_AUTOMATED_WORKSPACES.has(workspaceSlug);
+  const manualBookingTriggerBlock = isFullyAutomated
+    ? `## MANUAL BOOKING TRIGGER RULE (fully-automated clients only, overrides the CALENDLY AND AVAILABILITY section below)
 
-The AI cannot send calendar invites. Whenever the lead's reply makes it clear they want to get on a call, whether by asking generally or by suggesting a specific time, set action to "manual" and do NOT write a reply_body. A human takes over from here.
+The AI cannot book calls or send calendar invites. Whenever the lead's reply makes it clear they want to get on a call, whether by asking generally or by suggesting a specific time, set action to "manual" and do NOT write a reply_body. A human takes over from here.
 
 TRIGGER — any of these, or anything with the same intent, means action MUST be "manual":
 - "Let's chat", "Let's talk", "When are you available?", "What's your availability?", "Can we set up a call?", "Are you free [day/time]?", "Let me know a good time"
 - The lead names or suggests a specific day and/or time themselves, ASKING us to confirm or hold it ("Tuesday works for me, does that work for you?", "How about 2pm Thursday?")
 - ANY message where the lead is proposing or asking US to schedule a conversation, rather than being told to pick a slot from a link (this includes plain "happy to chat" / "sure, let's do a call" / "sounds good, when works?")
 
-NOT A TRIGGER — do not route to manual for this, it is a confirmation, not a scheduling request: the lead states they ALREADY booked or picked a time themselves, typically via the Calendly link we sent ("I picked a slot for early September", "just booked a time on your calendar", "grabbed 2pm Thursday on your calendar", "booked it, see you then"). There is nothing for a human to schedule, the lead self-served. Treat this the same as the base prompt's "they already booked... do NOT ask again, acknowledge and confirm" rule: set flag_meeting_booked true, action auto_send, and draft a short warm confirmation (no new Calendly link, no proposing alternate times, nothing that could contradict the slot they already picked). If a message mixes both ("let's hop on a call, I picked a slot for early September") and a specific self-booked time is named, treat it as NOT A TRIGGER, she told you what she already did, not asked you to do something.
+NOT A TRIGGER — do not route to manual for this, it is a confirmation, not a scheduling request: the lead states they ALREADY booked or picked a time themselves, typically via the booking link we sent ("I picked a slot for early September", "just booked a time on your calendar", "grabbed 2pm Thursday on your calendar", "booked it, see you then"). There is nothing for a human to schedule, the lead self-served. Treat this the same as the base prompt's "they already booked... do NOT ask again, acknowledge and confirm" rule: set flag_meeting_booked true, action auto_send, and draft a short warm confirmation (no new booking link, no proposing alternate times, nothing that could contradict the slot they already picked). If a message mixes both ("let's hop on a call, I picked a slot for early September") and a specific self-booked time is named, treat it as NOT A TRIGGER, they told you what they already did, not asked you to do something.
 
-When triggered: set action "manual", manual_reason describing the trigger in one sentence (e.g. "Lead asked when we're available for a call, manual booking trigger"), reply_body empty. Do not send a Calendly link, do not propose times, do not acknowledge the scheduling request at all. Silence from the AI, a human replies directly.
+When triggered: set action "manual", manual_reason describing the trigger in one sentence (e.g. "Lead asked when we're available for a call, manual booking trigger"), reply_body empty. Do not send the booking link, do not propose times, do not acknowledge the scheduling request at all. Silence from the AI, a human replies directly.
 
-WHAT STILL AUTO-SENDS: a reply is only eligible for auto_send when the lead is NOT expressing scheduling intent, e.g. they are asking for more information, sharing an objection, asking what we do, asking about pricing, agreeing to receive a case study, forwarding to a colleague, etc. For these, draft the full quality reply per every rule in this prompt (Triple A framework, tone, length cap), and if a scheduling CTA makes sense to close with, use the Calendly link. If a LIVE CALENDAR AVAILABILITY block appears below with real slot strings, you may propose those exact two times alongside the Calendly link as a natural "would either of these work" line, using the strings exactly as given, never inventing or reformatting them. If no LIVE CALENDAR AVAILABILITY block is present, Calendly link only, no times.
+WHAT STILL AUTO-SENDS: a reply is only eligible for auto_send when the lead is NOT expressing scheduling intent, e.g. they are asking for more information, sharing an objection, asking what we do, asking about pricing, agreeing to receive a case study or teaser, forwarding to a colleague, etc. For these, draft the full quality reply per every rule in this prompt (Triple A framework, tone, length cap), and if a scheduling CTA makes sense to close with, use the booking link from REPLY QUICK REFERENCE (Calendly for some clients, iClosed for others — use exactly the link and platform named there, never substitute one for the other). If a LIVE CALENDAR AVAILABILITY block appears below with real slot strings, you may propose those exact two times alongside the booking link as a natural "would either of these work" line, using the strings exactly as given, never inventing or reformatting them. If no LIVE CALENDAR AVAILABILITY block is present, booking link only, no times.
 
-UNCERTAINTY RULE (Larsen Digital only): if you are ever uncertain, unclear tone, ambiguous ask, unclear which campaign/persona/calendar link applies, or the thread is missing information you would need to answer confidently, do NOT guess and do NOT send anything. Set action "manual" with a one-sentence manual_reason explaining what is unclear. Never resolve uncertainty by picking the safest-sounding guess, an actual human reviews it instead.
+UNCERTAINTY RULE (fully-automated clients only): if you are ever uncertain, unclear tone, ambiguous ask, unclear which campaign/persona/booking link applies, or the thread is missing information you would need to answer confidently, do NOT guess and do NOT send anything. Set action "manual" with a one-sentence manual_reason explaining what is unclear. Never resolve uncertainty by picking the safest-sounding guess, an actual human reviews it instead.
 
 `
     : "";
@@ -1478,7 +1480,7 @@ When the lead's message contains a real question or a concern (anything beyond a
 
 Triple A is a CONTENT checklist, not a three-paragraph template. Weave it naturally, stay under the 150-word cap, and never output literal "Acknowledge / Answer / Ask" labels. Acknowledge and answer can share a sentence. Do not pad.
 
-${larsenManualBookingBlock}## CALENDLY AND AVAILABILITY${isLarsenDigital ? " (superseded above by MANUAL BOOKING TRIGGER RULE for Larsen Digital, this section is for every other client)" : ""}
+${manualBookingTriggerBlock}## CALENDLY AND AVAILABILITY${isFullyAutomated ? " (superseded above by MANUAL BOOKING TRIGGER RULE for this client)" : ""}
 
 Never confirm specific times. Never say "Thursday works" or "I have availability." Always use the Calendly link from the REPLY QUICK REFERENCE with a natural line: "Feel free to grab a time here: [link]"
 
@@ -1672,9 +1674,12 @@ ${ctx.summary}
   // automated sends have no human review step to catch a fabricated time. Pulls real,
   // currently-available slots from the same live Calendly API the reply-approval-sweep
   // tool (calendly-verify.cjs) already verifies against, so the model has something real
-  // to offer instead of inventing a day/time. Every other client stays Calendly-link-only
-  // (per CALENDLY_SLOT_PROMPT_RULE above) — no verified live feed exists for them.
-  if (isLarsenDigital && CALENDLY_CLIENT_CONFIG[workspaceSlug]) {
+  // to offer instead of inventing a day/time. Naturally scoped to Larsen even after the
+  // 2026-08-17 rollout to ACT/GN Motion/Bustem: CALENDLY_CLIENT_CONFIG only has entries
+  // for larsen-digital/acceler8rs, so this no-ops (falls back to link-only) for every
+  // other client — no live Calendly token exists for ACT, and GN Motion/Bustem use
+  // iClosed, not Calendly, entirely.
+  if (isFullyAutomated && CALENDLY_CLIENT_CONFIG[workspaceSlug]) {
     const calendlyCfg = CALENDLY_CLIENT_CONFIG[workspaceSlug];
     // Pathfinder (buy-side) always uses the M&A link regardless of campaign naming
     // (acceler8rs.md: "Use the M&A link (calendly_ma)" for every Pathfinder reply),
@@ -2008,16 +2013,16 @@ ${messageText.slice(0, 8000)}`;
     }
   }
 
-  // ── Larsen Digital manual booking trigger backstop ───────────────────────────
+  // ── Manual booking trigger backstop (fully-automated clients) ────────────────
   // Deterministic safety net behind the MANUAL BOOKING TRIGGER RULE in the system
-  // prompt. Larsen has no human review step anymore, so if Claude still returned
-  // auto_send for a message that clearly asks to schedule, force it to manual
-  // rather than trust the model's classification alone. See hasLarsenSchedulingTrigger.
-  if (isLarsenDigital && result.action === "auto_send" && hasLarsenSchedulingTrigger(leadNewText)) {
+  // prompt. These clients have no human review step anymore, so if Claude still
+  // returned auto_send for a message that clearly asks to schedule, force it to
+  // manual rather than trust the model's classification alone. See hasSchedulingTrigger.
+  if (isFullyAutomated && result.action === "auto_send" && hasSchedulingTrigger(leadNewText)) {
     result.action = "manual";
     result.manual_reason = "Manual booking trigger detected (lead wants to schedule a call). AI cannot send calendar invites, routed to a human.";
     result.reply_body = undefined;
-    console.log(`[auto-reply] Larsen scheduling-trigger backstop fired for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
+    console.log(`[auto-reply] Scheduling-trigger backstop fired for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
   }
 
   // ── Dealgen Partners backstop ────────────────────────────────────────────────
@@ -2037,13 +2042,14 @@ ${messageText.slice(0, 8000)}`;
     const alwaysAutoSend = new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested"]);
 
     // Every interested reply goes to #reply-approval for human review before sending,
-    // EXCEPT Larsen Digital (2026-08-13): fully automated 24/7, no human review step.
-    // Scheduling intent never reaches this branch for Larsen — the MANUAL BOOKING
-    // TRIGGER RULE in the system prompt routes it to action:"manual" before drafting
-    // a reply_body, so everything that lands here already cleared that check.
-    // Hard closes (unsubscribe, not_interested, etc.) auto-send/close without review
-    // for every client, same as before.
-    if (!alwaysAutoSend.has(result.intent) && !isLarsenDigital) {
+    // EXCEPT fully-automated clients (Larsen Digital 2026-08-13; ACT Capital, GN
+    // Motion, and Bustem added 2026-08-17): fully automated 24/7, no human review
+    // step. Scheduling intent never reaches this branch for these clients — the
+    // MANUAL BOOKING TRIGGER RULE in the system prompt routes it to action:"manual"
+    // before drafting a reply_body, so everything that lands here already cleared
+    // that check. Hard closes (unsubscribe, not_interested, etc.) auto-send/close
+    // without review for every client, same as before.
+    if (!alwaysAutoSend.has(result.intent) && !isFullyAutomated) {
       const draftId = `rd-${replyId}-${Date.now()}`;
       const slackTs = await postApprovalCard({ workspaceSlug, reply: replyWithCreds, instanceUrl: workspace.email_bison_instance_url ?? "", result });
 
@@ -2104,11 +2110,11 @@ ${messageText.slice(0, 8000)}`;
       await createFuRecord(replyId, workspaceSlug, reply, result.fu_sequence_type, result.flag_meeting_booked, result.flag_unsubscribe);
       console.log(`[auto-reply] Sent ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
 
-      // Larsen Digital safety net: if this reply already has a pending approval card
-      // sitting in #reply-approval (e.g. a row manually requeued from before the
+      // Fully-automated-client safety net: if this reply already has a pending approval
+      // card sitting in #reply-approval (e.g. a row manually requeued from before the
       // full-auto switch), remove it now that the message has actually gone out via
       // this direct-send path, so nobody reacts to a card for an already-sent reply.
-      if (isLarsenDigital) {
+      if (isFullyAutomated) {
         try {
           const staleDraft = await pool.query(
             `SELECT id, slack_ts FROM reply_drafts WHERE reply_id = $1 AND status = 'pending' AND slack_ts IS NOT NULL`,
