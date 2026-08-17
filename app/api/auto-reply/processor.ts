@@ -596,7 +596,19 @@ function isNoActionReply(message: string): boolean {
     // French OOO patterns ("currently absent", "return to office")
     /actuellement absent(e)?|de retour le|réponse automatique/.test(m) ||
     // Spanish OOO patterns ("currently on vacation", "out of office")
-    /actualmente de vacaciones|fuera de la oficina|respuesta automática/.test(m)
+    /actualmente de vacaciones|fuera de la oficina|respuesta automática/.test(m) ||
+    // Italian OOO patterns ("currently on leave", "out of office", "automatic reply")
+    /\bin ferie\b|\bassente\b|fuori sede|risposta automatica|di ritorno il/.test(m) ||
+    // Mailbox-migration / "our email address changed" auto-notices — same category as OOO,
+    // a fully automated system notice, never a real human reply. Added 2026-08-17 after the
+    // Sodini Bijoux (Italian) incident wasted a #manual-replies slot. Covers EN/IT/FR/DE/ES/NL,
+    // matching the language set already covered above for OOO.
+    /(our |the )?email address has changed|please update your (contacts?|records)|no longer (monitored|in use|active)|this (mailbox|inbox|email( address)?) (is|has been) (discontinued|deactivated|closed)/.test(m) ||
+    /indirizzo e?mail è cambiato|nuovo indirizzo e?mail|non è più (attivo|attiva|utilizzat)/.test(m) ||
+    /(notre |l')?adresse e-?mail a changé|nouvelle adresse e-?mail|n'est plus (utilisée?|active?)/.test(m) ||
+    /e-?mail-adresse hat sich geändert|neue e-?mail-adresse|wird nicht mehr (verwendet|genutzt)/.test(m) ||
+    /(nuestra )?dirección de correo( electrónico)? ha cambiado|nueva dirección de correo|ya no (está en uso|se utiliza)/.test(m) ||
+    /e-?mailadres is gewijzigd|nieuw e-?mailadres|wordt niet meer gebruikt/.test(m)
   );
 }
 
