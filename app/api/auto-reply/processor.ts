@@ -685,7 +685,12 @@ function hasSchedulingTrigger(message: string): boolean {
     /let me know a good time/.test(m) ||
     /let me know when (works|you'?re free|you'?re available)/.test(m) ||
     /(call|phone) me\b/.test(m) ||
-    /give me a call/.test(m)
+    /give me a call/.test(m) ||
+    // "open to a conversation/call/chat/connecting" etc — a general willingness signal,
+    // same category as "happy to chat" but phrased passively enough that Claude missed it
+    // once (the Zollipops/Tom Morse incident, 2026-08-17: "Open to having a conversation"
+    // auto-sent live-pulled times instead of routing to manual).
+    /(open|keen|willing|happy|glad) to (have |having )?(a )?(conversation|call|chat|talk|connect)/.test(m)
   );
 }
 
@@ -1388,7 +1393,7 @@ The AI cannot book calls or send calendar invites. Whenever the lead's reply mak
 TRIGGER — any of these, or anything with the same intent, means action MUST be "manual":
 - "Let's chat", "Let's talk", "When are you available?", "What's your availability?", "Can we set up a call?", "Are you free [day/time]?", "Let me know a good time"
 - The lead names or suggests a specific day and/or time themselves, ASKING us to confirm or hold it ("Tuesday works for me, does that work for you?", "How about 2pm Thursday?")
-- ANY message where the lead is proposing or asking US to schedule a conversation, rather than being told to pick a slot from a link (this includes plain "happy to chat" / "sure, let's do a call" / "sounds good, when works?")
+- ANY expression of willingness or openness to talk or connect, however it's phrased, not just the exact example phrases above. This is a broad category, judge the INTENT, not the exact words: "happy to chat", "sure, let's do a call", "sounds good, when works?", "open to a conversation", "open to connecting", "keen to talk", "would be good to speak", "willing to hear more on a call" — all of these mean the same thing as "let's chat" and MUST trigger manual. A short, generic, low-effort-looking reply is often the strongest signal, don't let brevity or vagueness read as "no scheduling intent", it is usually the opposite. Do not require the lead to explicitly say the word "call" or "schedule" or to literally ask a question, agreeing to talk at all is enough. If you are drafting anything that would close with a booking link or proposed times because the lead seems open to talking, stop, that is exactly this trigger, not an auto-send case.
 
 NOT A TRIGGER — do not route to manual for this, it is a confirmation, not a scheduling request: the lead states they ALREADY booked or picked a time themselves, typically via the booking link we sent ("I picked a slot for early September", "just booked a time on your calendar", "grabbed 2pm Thursday on your calendar", "booked it, see you then"). There is nothing for a human to schedule, the lead self-served. Treat this the same as the base prompt's "they already booked... do NOT ask again, acknowledge and confirm" rule: set flag_meeting_booked true, action auto_send, and draft a short warm confirmation (no new booking link, no proposing alternate times, nothing that could contradict the slot they already picked). If a message mixes both ("let's hop on a call, I picked a slot for early September") and a specific self-booked time is named, treat it as NOT A TRIGGER, they told you what they already did, not asked you to do something.
 
