@@ -188,6 +188,53 @@ export async function POST(req: NextRequest) {
         qa: otherQA,
       }).catch((err: any) => console.error("[calendly webhook] trackMeeting failed:", err?.message ?? err));
 
+      // ── High-value operating-partner booking alert (Kasper, 2026-08-18) ────────
+      // Any $10M+ annual-revenue lead booking the OPERATING PARTNER track (never
+      // M&A) on either Larsen workspace gets a dedicated heads-up card so it never
+      // gets lost in the general meetings channel. Both larsen-digital (Nicklas)
+      // and acceler8rs (Lukas) share the SAME physical Calendly event for this
+      // link (Lukas has no dedicated operating-partner event of his own, see
+      // CALENDLY_CLIENT_CONFIG), so one eventName check covers both workspaces
+      // without extra branching. "@Nicklas" is literal text, not a Slack mention,
+      // per Kasper — that's the outbound sender persona, not a workspace member.
+      if (
+        (workspaceSlug === "larsen-digital" || workspaceSlug === "acceler8rs") &&
+        /operating partner/i.test(eventName) &&
+        !/m&a/i.test(eventName)
+      ) {
+        try {
+          const revenueQA = qa.find(q => /annual revenue/i.test(q.question ?? ""));
+          const revenueAnswer = (revenueQA?.answer ?? "").trim();
+          // Calendly's fixed answer_choices for this question: "Less than $1M", "$1-2M",
+          // "$2-5M", "$5-10M", " $10-25M", "+$25M" (en dash, and a leading space on the
+          // $10-25M option — normalize whitespace and accept hyphen or en dash).
+          const normalized = revenueAnswer.replace(/\s+/g, "");
+          const isHighRevenue = /^\+?\$?25M\+?$/i.test(normalized) || /^\$?10[-–]25M$/i.test(normalized);
+          if (isHighRevenue) {
+            const slackToken = process.env.SLACK_BOT_TOKEN;
+            if (slackToken) {
+              const text = [
+                `Here's a $10M+ Booking @Nicklas`,
+                "",
+                `Name: ${leadName || "-"}`,
+                `Email: ${leadEmail}`,
+                `Revenue: ${revenueAnswer}`,
+                `Workspace: ${workspaceSlug === "larsen-digital" ? "Larsen - Nicklas" : "Larsen - Lukas"}`,
+                `Event: ${eventName}`,
+                `Time: ${scheduledAt.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Copenhagen" })} CET`,
+              ].join("\n");
+              await fetch("https://slack.com/api/chat.postMessage", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${slackToken}`, "Content-Type": "application/json; charset=utf-8" },
+                body: JSON.stringify({ channel: "C05C20PPTCN", text, mrkdwn: true }),
+              });
+            }
+          }
+        } catch (err: any) {
+          console.error("[calendly webhook] high-revenue alert failed:", err?.message ?? err);
+        }
+      }
+
       // ── Cross-blacklist between the two Larsen workspaces (larsen-digital <-> acceler8rs):
       //    a lead booked in one must stop receiving cold outreach from the other. No-op for
       //    every other workspace. Fire-and-forget, same reasoning as trackMeeting above.
