@@ -1,16 +1,18 @@
 // Extra context lines for a booked-meeting Slack notification:
 //   1. Redirect note (if we originally emailed a different address than the one that booked)
-//   2. Company (what the lead's company actually sells/does, and how well it fits the buyer's
-//      criteria, in one line, researched, never summarized from our own sales copy)
-//   3. EBITDA (approximate, tagged with its source: stated / public info / estimate)
+//   2. Context (M&A workspaces only, e.g. Larsen/Acceler8rs/internal-campaigns): ONE line on
+//      what the lead actually said in the thread about their business, situation, or revenue,
+//      and why they booked. Grounded ONLY in the thread, never web-researched or guessed.
+//      (2026-08-19: replaced the old researched "Company" line, which read as marketing fluff
+//      -- Kasper: "no BS".)
+//   3. EBITDA (approximate, tagged with its source: stated / public info / estimate) -- this
+//      one IS researched via web search, since it self-discloses its source instead of
+//      asserting fact.
 //
 // The Website line itself is added separately in meetings-tracker.ts (booking answer, record,
 // or email domain), so the reader can judge fit themselves instead of only trusting this note.
 //
-// Everything about the company is grounded in research about the lead (web search + the
-// lead's own words + a site scrape), never in what we wrote to them. A failed site scrape
-// must never leak into the note; it falls back to research, the lead's stated company, or
-// the line is dropped. Best-effort: every piece is independently try/caught.
+// Best-effort: every piece is independently try/caught.
 
 import pool from "@/lib/db";
 import { resolveLeadDomain, getLeadCompanyContext } from "@/lib/fetch-lead-website";
@@ -98,33 +100,23 @@ function companyFromSummary(summary: string): string | null {
   return first && first.length < 200 ? first : null;
 }
 
-interface LeadEnrichment { company: string | null; }
-
-// Company (what + fit merged into one line) — PLAIN Haiku (no tools), so the strict format is
-// reliable. It is the FALLBACK used only when the web-search researchLead call is unavailable.
-// (Kept short; the web-search path handles EBITDA + company lookup.) Its verbose output can
-// never disturb this line.
-async function enrichLead(o: { company: string; domain?: string; leadSaid?: string; scraped?: string; icp?: string }): Promise<LeadEnrichment> {
-  const facts = [
-    o.company ? `Company name: ${o.company}` : "",
-    o.domain ? `Website: ${o.domain}` : "",
-    o.leadSaid ? `What the lead said about their OWN business (use this, it is about them):\n${o.leadSaid}` : "",
-    (o.scraped && !looksLikeFailure(o.scraped)) ? `Notes scraped from their site: ${o.scraped}` : "",
-    o.icp ? `The buyer we represent is looking for: ${o.icp}` : "",
-  ].filter(Boolean).join("\n");
-
+// Context line -- PLAIN Haiku (no tools, no web search). Grounded ONLY in what the lead
+// literally wrote in the thread, never researched or guessed. Replaces the old web-searched
+// "Company" line (2026-08-19, Kasper: "no BS").
+async function threadContext(leadSaid: string, icp?: string): Promise<string | null> {
+  if (!leadSaid) return null;
   const ask =
-    `You are writing a short briefing for a sales rep about a company that just booked a call. Base everything on the ` +
-    `COMPANY itself and what the LEAD said about themselves, plus anything you already know about this company. NEVER ` +
-    `describe our own outreach or sales pitch.\n\n${facts}\n\n` +
-    `Return EXACTLY this line, nothing else, no preamble, no markdown:\n` +
-    `COMPANY: one line (max 30 words) on what they actually sell or do, with a category in parentheses, then how well ` +
-    `they fit the buyer's criteria and why. About the lead's business, never our pitch. Write "unknown" ONLY if you ` +
-    `genuinely have nothing to go on.`;
+    `Below is what a lead actually wrote to us in an email thread, before booking a call. Write ONE line ` +
+    `(max 30 words) on what THEY said about their business, situation, or revenue, and why they booked, ` +
+    `using ONLY what is in the thread below. Do not research, guess, or add anything not stated there.\n\n` +
+    `${icp ? `For reference, the buyer we represent looks for: ${icp}\n\n` : ""}` +
+    `THREAD:\n${leadSaid}\n\n` +
+    `Return EXACTLY this line, nothing else, no preamble, no markdown. If nothing useful is stated, write ` +
+    `"none".\nCONTEXT: <line or none>`;
 
-  const out = await haiku(ask, 180);
-  if (!out) return { company: null };
-  return { company: grab(out, "COMPANY") };
+  const out = await haiku(ask, 150);
+  if (!out) return null;
+  return grab(out, "CONTEXT");
 }
 
 // Haiku with the web_search tool enabled. Used ONLY for the EBITDA lookup.
@@ -156,7 +148,7 @@ async function haikuWithSearch(prompt: string, maxTokens: number): Promise<strin
   }
 }
 
-interface LeadResearch { company: string | null; ebitda: string | null; }
+interface LeadResearch { ebitda: string | null; }
 
 // Pull one labelled value out of a possibly-verbose web-search answer. Takes the LAST
 // occurrence of the label (so search narration earlier in the text is ignored) and cuts it
@@ -189,24 +181,21 @@ async function researchLead(o: { company: string; domains?: string[]; domain?: s
   ].filter(Boolean).join("\n");
 
   const ask =
-    `You are researching a company that just booked a sales call, to brief the rep. Use web search to find what ` +
-    `this company actually is and does, plus any public revenue or EBITDA. Actually look it up — do not rely only on ` +
-    `the notes below, and never describe our own outreach.\n\n` +
+    `You are researching a company that just booked a sales call, to brief the rep on their approximate ` +
+    `EBITDA. Use web search to find any public revenue or EBITDA for this company. Actually look it up, do ` +
+    `not rely only on the notes below.\n\n` +
     `IMPORTANT: identify the SPECIFIC company from the domain(s) and what the lead said. The brand/store domain is the ` +
     `strongest signal; a holding-company domain is weaker. Do NOT confuse it with a similarly-named company in another ` +
     `country, cross-check against the lead's description and the phone's country. If sources conflict or you are not ` +
-    `confident which company it is, say so in COMPANY and keep it to what the lead actually told you.\n\n${facts}\n\n` +
-    `When you are done searching, end your reply with EXACTLY this block and nothing after it:\n` +
-    `COMPANY: <one line (max 30 words) on what they really sell or do, with a category in parentheses, then how well ` +
-    `they fit or miss the buyer's criteria and why, about the lead's business>\n` +
-    `EBITDA: <~$amount | from public info OR from revenue OR stated in thread — or the single word none>`;
+    `confident which company it is, say "none".\n\n${facts}\n\n` +
+    `When you are done searching, end your reply with EXACTLY this line and nothing after it:\n` +
+    `EBITDA: <~$amount | from public info OR from revenue OR stated in thread, or the single word none>`;
 
-  const out = await haikuWithSearch(ask, 1400);
+  const out = await haikuWithSearch(ask, 800);
   if (!out) return null;
 
-  const company = pickBlock(out, "COMPANY", ["EBITDA"]);
   const ebRaw = pickBlock(out, "EBITDA", []);
-  if (!company && !ebRaw) return null; // unparseable → fall back
+  if (!ebRaw) return null; // unparseable → fall back
 
   let ebitda: string | null = null;
   if (ebRaw) {
@@ -223,7 +212,7 @@ async function researchLead(o: { company: string; domains?: string[]; domain?: s
       if (a) ebitda = `~${normalizeAmt(a[0].replace(/\s+/g, ""))} (from public info)`;
     }
   }
-  return { company, ebitda };
+  return { ebitda };
 }
 
 /** Returns the extra context lines to append to the meeting Slack message. */
@@ -280,7 +269,8 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
   try { if (domain) { const ctx = await getLeadCompanyContext(domain); if (ctx?.summary) scraped = ctx.summary; } } catch { /* omit */ }
 
   if (input.icpDescription) {
-    // M&A workspaces: full research-backed enrichment about the lead.
+    // M&A workspaces: Context is thread-only, never researched. EBITDA is still
+    // research-backed since it self-discloses its source instead of asserting fact.
     let leadSaid = "";
     try { leadSaid = await leadThreadText(input.workspaceSlug, [...threadEmails]); } catch { /* omit */ }
     const companyForLookup = leadCompany || domain || email;
@@ -288,15 +278,12 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
     // (e.g. loolia.com) is a far stronger identifier than a holding-company booking domain.
     const FREEMAIL = new Set(["gmail.com", "hotmail.com", "yahoo.com", "outlook.com", "icloud.com", "aol.com", "proton.me", "protonmail.com", "gmx.com", "gmx.net", "live.com", "msn.com", "me.com", "mail.com"]);
     const domains = [...new Set([...threadEmails].map(e => e.split("@")[1]).filter((d): d is string => !!d && !FREEMAIL.has(d)))];
-    // Primary: research the company on the web. Fallback: plain Haiku if search is unavailable.
-    let r = await researchLead({ company: companyForLookup, domains, domain, leadSaid, scraped, icp: input.icpDescription, phone: input.phone });
-    if (!r) {
-      const e = await enrichLead({ company: companyForLookup, domain, leadSaid, scraped, icp: input.icpDescription });
-      r = { company: e.company, ebitda: null };
-    }
-    const company = r.company || companyFromSummary(scraped) || (leadCompany || null);
-    if (company) lines.push(`Company: ${company}`);
-    if (r.ebitda) lines.push(`EBITDA: ${r.ebitda}`);
+    const [context, r] = await Promise.all([
+      threadContext(leadSaid, input.icpDescription),
+      researchLead({ company: companyForLookup, domains, domain, leadSaid, scraped, icp: input.icpDescription, phone: input.phone }),
+    ]);
+    if (context) lines.push(`Context: ${context}`);
+    if (r?.ebitda) lines.push(`EBITDA: ${r.ebitda}`);
   } else {
     // Non-M&A workspaces: just what the company does.
     const company = companyFromSummary(scraped) || (leadCompany || null);
