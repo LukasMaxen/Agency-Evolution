@@ -16,6 +16,7 @@
 
 import pool from "@/lib/db";
 import { resolveLeadDomain, getLeadCompanyContext } from "@/lib/fetch-lead-website";
+import { OPPOSITE_WORKSPACE } from "@/lib/larsen-cross-blacklist";
 
 export interface MeetingContextInput {
   workspaceSlug: string;
@@ -67,14 +68,18 @@ async function haiku(prompt: string, maxTokens: number): Promise<string | null> 
   }
 }
 
-/** The lead's OWN messages (never ours) — a grounding hint for research. */
+/** The lead's OWN messages (never ours) — a grounding hint for research. Larsen/Acceler8rs
+ *  share one lead universe (see lib/larsen-cross-blacklist.ts), so a lead can have replied
+ *  under the sibling workspace_slug rather than the one the meeting was booked under -- pull
+ *  both so real thread content (e.g. a stated EBITDA/revenue reply) is never missed. */
 async function leadThreadText(workspaceSlug: string, emails: string[]): Promise<string> {
   const lc = emails.map(e => e.toLowerCase());
+  const slugs = [workspaceSlug, ...(OPPOSITE_WORKSPACE[workspaceSlug] ? [OPPOSITE_WORKSPACE[workspaceSlug]] : [])];
   const rep = await pool.query(
     `SELECT message AS body FROM replies
-      WHERE workspace_slug = $1 AND (LOWER(lead_email) = ANY($2) OR LOWER(preferred_recipient_email) = ANY($2))
+      WHERE workspace_slug = ANY($1) AND (LOWER(lead_email) = ANY($2) OR LOWER(preferred_recipient_email) = ANY($2))
       ORDER BY received_at`,
-    [workspaceSlug, lc],
+    [slugs, lc],
   );
   const items = rep.rows.map((r: any) => stripQuoted(r.body)).filter(Boolean);
   if (!items.length) return "";

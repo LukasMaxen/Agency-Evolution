@@ -12,7 +12,7 @@
 
 import pool from "@/lib/db";
 
-const OPPOSITE_WORKSPACE: Record<string, string> = {
+export const OPPOSITE_WORKSPACE: Record<string, string> = {
   "larsen-digital": "acceler8rs",
   "acceler8rs": "larsen-digital",
 };
