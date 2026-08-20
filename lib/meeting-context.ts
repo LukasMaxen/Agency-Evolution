@@ -108,7 +108,7 @@ function companyFromSummary(summary: string): string | null {
 // Context line -- PLAIN Haiku (no tools, no web search). Grounded ONLY in what the lead
 // literally wrote in the thread, never researched or guessed. Replaces the old web-searched
 // "Company" line (2026-08-19, Kasper: "no BS").
-async function threadContext(leadSaid: string, icp?: string): Promise<string | null> {
+async function threadContext(leadSaid: string): Promise<string | null> {
   if (!leadSaid) return null;
   const ask =
     `Below is what a lead actually wrote to us in an email thread, before booking a call. Write ONE line ` +
@@ -118,7 +118,6 @@ async function threadContext(leadSaid: string, icp?: string): Promise<string | n
     `there. Never characterize the lead's intent or motivation (e.g. "seeking acquisition", "wants to ` +
     `sell") unless they said so in those words -- if they only asked a question, report the question, not ` +
     `an inferred reason for it.\n\n` +
-    `${icp ? `For reference, the buyer we represent looks for: ${icp}\n\n` : ""}` +
     `THREAD:\n${leadSaid}\n\n` +
     `Return EXACTLY this line, nothing else, no preamble, no markdown. Only write "none" if the thread is ` +
     `pure scheduling logistics with nothing else in it.\nCONTEXT: <line or none>`;
@@ -291,7 +290,7 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
     const FREEMAIL = new Set(["gmail.com", "hotmail.com", "yahoo.com", "outlook.com", "icloud.com", "aol.com", "proton.me", "protonmail.com", "gmx.com", "gmx.net", "live.com", "msn.com", "me.com", "mail.com"]);
     const domains = [...new Set([...threadEmails].map(e => e.split("@")[1]).filter((d): d is string => !!d && !FREEMAIL.has(d)))];
     const [context, r] = await Promise.all([
-      threadContext(leadSaid, input.icpDescription),
+      threadContext(leadSaid),
       researchLead({ company: companyForLookup, domains, domain, leadSaid, scraped, icp: input.icpDescription, phone: input.phone }),
     ]);
     if (context) lines.push(`Context: ${context}`);
