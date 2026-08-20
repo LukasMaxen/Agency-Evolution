@@ -110,6 +110,7 @@ function companyFromSummary(summary: string): string | null {
 // "Company" line (2026-08-19, Kasper: "no BS").
 async function threadContext(leadSaid: string): Promise<string | null> {
   if (!leadSaid) return null;
+  if (process.env.DEBUG_THREAD_CONTEXT) console.error("DEBUG leadSaid:", JSON.stringify(leadSaid));
   const ask =
     `Below is what a lead actually wrote to us in an email thread, before booking a call. Write ONE line ` +
     `(max 30 words) briefing a sales rep on what's useful going into the call: what the lead said about ` +
