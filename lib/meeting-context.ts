@@ -115,7 +115,9 @@ async function threadContext(leadSaid: string, icp?: string): Promise<string | n
     `(max 30 words) briefing a sales rep on what's useful going into the call: what the lead said about ` +
     `their business, situation, or revenue if stated, what they asked us, what we told them, or why they ` +
     `booked, using ONLY what is in the thread below. Do not research, guess, or add anything not stated ` +
-    `there.\n\n` +
+    `there. Never characterize the lead's intent or motivation (e.g. "seeking acquisition", "wants to ` +
+    `sell") unless they said so in those words -- if they only asked a question, report the question, not ` +
+    `an inferred reason for it.\n\n` +
     `${icp ? `For reference, the buyer we represent looks for: ${icp}\n\n` : ""}` +
     `THREAD:\n${leadSaid}\n\n` +
     `Return EXACTLY this line, nothing else, no preamble, no markdown. Only write "none" if the thread is ` +
