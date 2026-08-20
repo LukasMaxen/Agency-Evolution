@@ -110,7 +110,6 @@ function companyFromSummary(summary: string): string | null {
 // "Company" line (2026-08-19, Kasper: "no BS").
 async function threadContext(leadSaid: string): Promise<string | null> {
   if (!leadSaid) return null;
-  if (process.env.DEBUG_THREAD_CONTEXT) console.error("DEBUG leadSaid:", JSON.stringify(leadSaid));
   const ask =
     `Below is what a lead actually wrote to us in an email thread, before booking a call. Write ONE line ` +
     `(max 30 words) briefing a sales rep on what's useful going into the call: what the lead said about ` +
@@ -259,10 +258,15 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
   // Link the lead's thread when they booked from a different address than we emailed (same
   // person, different domain — e.g. wassim.kari@loolia.com vs wassim.kari@parallel-holding.com).
   // Match by a specific email local-part so we can still surface what the lead told us.
+  // Requires a separator (firstname.lastname-shaped) -- a bare first name like "amanda" is a
+  // common collision across unrelated leads and must never be used to pull in someone else's
+  // thread content. Confirmed live 2026-08-20: bare "amanda" pulled a different Amanda's
+  // "I would love to sell my brand" message into Thomson & Scott's meeting card.
   try {
     const local = email.split("@")[0] || "";
     const generic = /^(info|sales|contact|admin|hello|team|office|support|marketing|founders?|ceo|hi|no-?reply)$/i.test(local);
-    if (local.length > 4 && !generic) {
+    const hasSeparator = /[._-]/.test(local);
+    if (local.length > 4 && hasSeparator && !generic) {
       const r2 = await pool.query(
         `SELECT LOWER(lead_email) AS e, lead_company FROM replies
           WHERE workspace_slug = $1 AND split_part(LOWER(lead_email), '@', 1) = $2
