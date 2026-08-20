@@ -112,16 +112,21 @@ async function threadContext(leadSaid: string, icp?: string): Promise<string | n
   if (!leadSaid) return null;
   const ask =
     `Below is what a lead actually wrote to us in an email thread, before booking a call. Write ONE line ` +
-    `(max 30 words) on what THEY said about their business, situation, or revenue, and why they booked, ` +
-    `using ONLY what is in the thread below. Do not research, guess, or add anything not stated there.\n\n` +
+    `(max 30 words) briefing a sales rep on what's useful going into the call: what the lead said about ` +
+    `their business, situation, or revenue if stated, what they asked us, what we told them, or why they ` +
+    `booked, using ONLY what is in the thread below. Do not research, guess, or add anything not stated ` +
+    `there.\n\n` +
     `${icp ? `For reference, the buyer we represent looks for: ${icp}\n\n` : ""}` +
     `THREAD:\n${leadSaid}\n\n` +
-    `Return EXACTLY this line, nothing else, no preamble, no markdown. If nothing useful is stated, write ` +
-    `"none".\nCONTEXT: <line or none>`;
+    `Return EXACTLY this line, nothing else, no preamble, no markdown. Only write "none" if the thread is ` +
+    `pure scheduling logistics with nothing else in it.\nCONTEXT: <line or none>`;
 
   const out = await haiku(ask, 150);
   if (!out) return null;
-  return grab(out, "CONTEXT");
+  // Haiku sometimes skips the "CONTEXT:" prefix and replies with just the line (or bare
+  // "none") -- fall back to the raw output so real content is never dropped over a format slip.
+  const v = grab(out, "CONTEXT") ?? out.trim();
+  return v && !/^none\.?$/i.test(v) ? v.slice(0, 220) : null;
 }
 
 // Haiku with the web_search tool enabled. Used ONLY for the EBITDA lookup.
