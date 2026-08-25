@@ -48,9 +48,7 @@ interface AuthResult {
   error?: string;
 }
 
-async function checkToken(): Promise<AuthResult> {
-  const token = process.env.SLACK_BOT_TOKEN;
-  if (!token) return { ok: false, error: "no_token_in_env" };
+async function pingAuthTest(token: string): Promise<AuthResult> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 10_000);
   try {
@@ -65,6 +63,19 @@ async function checkToken(): Promise<AuthResult> {
   } finally {
     clearTimeout(t);
   }
+}
+
+// A single failed auth.test can be a transient network blip on the host
+// reaching slack.com, not a dead token. Retry once before declaring the
+// token dead, so a one-off timeout doesn't fire a false "pipeline DOWN"
+// alert. A genuinely dead/revoked token still fails both attempts.
+async function checkToken(): Promise<AuthResult> {
+  const token = process.env.SLACK_BOT_TOKEN;
+  if (!token) return { ok: false, error: "no_token_in_env" };
+  const first = await pingAuthTest(token);
+  if (first.ok) return first;
+  const retry = await pingAuthTest(token);
+  return retry;
 }
 
 // Best-effort alert. Tries the webhook (token-independent), then a bot-token
