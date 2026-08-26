@@ -4,6 +4,18 @@ Running record of significant actions, decisions, and corrections. Append to the
 
 ---
 
+## 2026-08-26
+
+### Larsen Digital auto-reply: information-first gate rule added after Nik Mellett incident
+
+Full reply automation data pull requested by Kasper turned up a live incident on `larsen-digital` (fully automated, no reply-approval step). Nik Mellett (nik@toughtrucksforkids.com) explicitly asked for a written summary with numbers, no jargon, no call push, and said not to bother replying if it was just a buzzword pitch for a retainer. The processor correctly classified exit intent and used the M&A template, but the template's call-first close ignored his conditions entirely: no numbers, generic "easiest to walk through on a call" line, plus two live-verified time slots he never asked for. He replied sarcastically ("you beautiful Claude bot") and disengaged. The follow-up correctly classified `not_interested` and stayed silent, so no further damage, but the send itself was a real quality miss with zero human review to catch it.
+
+Root cause: no rule told the drafter to route to manual when a lead conditions further engagement on real written specifics we cannot truthfully supply. The existing Triple-A rule 2 ("if you don't have the specific, say it's easiest to cover live") is exactly the deflection pattern the lead had preemptively rejected.
+
+**Fix shipped**: added an "INFORMATION-FIRST GATE RULE" to the fully-automated prompt block in `app/api/auto-reply/processor.ts` (same block as the Manual Booking Trigger Rule and Uncertainty Rule, scoped to `larsen-digital`/`acceler8rs`/`act-capital`/`gn-motion`). When a lead explicitly conditions engagement on written facts/numbers and rejects a vague or call-deflecting answer, the processor must either answer truthfully from real client-file data or route to manual, never fall back to a template call-ask. `tsc --noEmit` clean after the edit.
+
+**Also found during the same pull, not yet actioned**: `AUTO_REPLY_RUN_TOKEN` is documented in `.env.local.example` and read by both the webhook and `/run` route, but is not set in local `.env.local` (only `AUTO_REPLY_SWEEP_TOKEN` is). Unverified whether it's set in Coolify's production env; if not, the webhook self-fetch path 401s on every reply and the system runs entirely on the 60s self-sweeper backstop. Also, the stale `awaiting_approval`/`awaiting_manual` backlog flagged 2026-08-13 was never reconciled: 83 approval + 362 manual rows remain, oldest 120 days, a chunk in workspaces since moved to full automation (dead weight) but some (sonaro-ai, statera-capital, venture-exits, wrobel-capital) may still be live leads gone cold.
+
 ## 2026-08-16
 
 ### Reply-approval sweep, 1 card
