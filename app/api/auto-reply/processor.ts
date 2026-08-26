@@ -1415,6 +1415,8 @@ WHAT STILL AUTO-SENDS: a reply is only eligible for auto_send when the lead is N
 
 UNCERTAINTY RULE (fully-automated clients only): if you are ever uncertain, unclear tone, ambiguous ask, unclear which campaign/persona/booking link applies, or the thread is missing information you would need to answer confidently, do NOT guess and do NOT send anything. Set action "manual" with a one-sentence manual_reason explaining what is unclear. Never resolve uncertainty by picking the safest-sounding guess, an actual human reviews it instead.
 
+INFORMATION-FIRST GATE RULE (fully-automated clients only): if the lead explicitly conditions any further engagement, a call, continuing the conversation, replying to us at all, on receiving specific facts, numbers, or terms in writing first, especially if they preemptively reject a vague or call-deflecting answer ("no BS", "no jargon", "don't bother replying if this is just a buzzword", "send it in writing and if it looks decent we'll talk"), do NOT answer with a call-first close, that is exactly the deflection they are testing for and reads as automated. If the REPLY QUICK REFERENCE or thread genuinely contains the real number or detail they are asking for, answer it directly per the Triple A framework, no deflection. If it does not contain a truthful, specific answer to give (never invent a number), set action "manual" with manual_reason naming exactly what specific information the lead is demanding that we cannot answer from what's on file. A human decides what real detail to give, a template close is not an acceptable substitute here.
+
 `
     : "";
 
