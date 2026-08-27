@@ -275,6 +275,49 @@ function slackMessage(verb: "New meeting booked" | "Meeting rescheduled", i: Boo
   return lines.join("\n");
 }
 
+export interface CancellationInput {
+  workspaceSlug: string;
+  leadEmail: string;
+  leadName: string;
+  meetingStartISO: string;
+  prettyTime?: string;
+  eventTypeName?: string;
+  website?: string;
+}
+
+function cancellationMessage(i: CancellationInput, threadUrl?: string | null): string {
+  const lines = [`Cancelled meeting: ${i.leadName || i.leadEmail}`, ""];
+  lines.push(`Email: ${i.leadEmail}`);
+  if (threadUrl) lines.push(`Thread: ${threadUrl}`);
+  const website = i.website || emailDomain(i.leadEmail);
+  if (website) lines.push(`Website: ${website}`);
+  if (i.eventTypeName) lines.push(`Event type: ${i.eventTypeName}`);
+  lines.push(`Time: ${i.prettyTime ?? cet(i.meetingStartISO)}`);
+  return lines.join("\n");
+}
+
+/**
+ * Post a "Cancelled meeting" notice to the client's Slack meetings channel — same channel
+ * `trackMeeting` posts bookings to, so cancellations show up alongside them. No Airtable
+ * write (Airtable status is left to whatever the client already does with it). Falls back
+ * to the internal channel when the workspace has no meetings config, same as trackMeeting.
+ * Never throws.
+ */
+export async function trackCancellation(input: CancellationInput): Promise<boolean> {
+  if (!SLACK_BOT_TOKEN || !input.leadEmail) return false;
+  const cfg = MEETING_CONFIG[input.workspaceSlug];
+  const channel = cfg?.slackChannel ?? FALLBACK_SLACK_CHANNEL;
+  try {
+    const threadUrl = await getThreadUrl(input.workspaceSlug, input.leadEmail);
+    await postSlack(channel, cancellationMessage(input, threadUrl));
+    console.log(`[meetings-tracker] posted cancellation (${input.workspaceSlug}) ${input.leadEmail}`);
+    return true;
+  } catch (err: any) {
+    console.error(`[meetings-tracker] trackCancellation failed ${input.workspaceSlug}/${input.leadEmail}:`, err?.message ?? err);
+    return false;
+  }
+}
+
 /**
  * Upsert the booking into the client's Airtable table and post to their Slack meetings
  * channel — the in-app version of the Make scenario. Returns false (no-op) if the client

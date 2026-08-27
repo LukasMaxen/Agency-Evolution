@@ -1,7 +1,7 @@
 // app/api/webhook/calendly/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { trackMeeting } from "@/lib/meetings-tracker";
+import { trackMeeting, trackCancellation } from "@/lib/meetings-tracker";
 import { isInternalContact } from "@/lib/internal-blocklist";
 import { crossBlacklistLarsen } from "@/lib/larsen-cross-blacklist";
 import { closeManualCardsForLead } from "@/lib/manual-card";
@@ -248,13 +248,32 @@ export async function POST(req: NextRequest) {
     // ── Meeting canceled ──────────────────────────────────────────────────────
     if (eventType === "invitee.canceled") {
       const p = body.payload ?? {};
-      const eventUri = p.scheduled_event?.uri ?? (typeof p.event === "string" ? p.event : p.event?.uri) ?? "";
+      const invitee = (p.invitee && typeof p.invitee === "object") ? p.invitee : p;
+      const event   = (p.scheduled_event && typeof p.scheduled_event === "object") ? p.scheduled_event
+                    : (p.event && typeof p.event === "object") ? p.event
+                    : (invitee.scheduled_event && typeof invitee.scheduled_event === "object") ? invitee.scheduled_event
+                    : {};
+      const eventUri = event.uri ?? (typeof p.event === "string" ? p.event : "") ?? "";
       if (eventUri) {
-        await pool.query(
+        const updated = await pool.query(
           `UPDATE calls SET status = 'cancelled', updated_at = NOW()
-           WHERE calendly_event_uri = $1`,
+           WHERE calendly_event_uri = $1
+           RETURNING workspace_slug, lead_email, lead_name, scheduled_at`,
           [eventUri]
         );
+        const row = updated.rows[0];
+        if (row) {
+          const qa: Array<{ question?: string; answer?: string }> = invitee.questions_and_answers ?? [];
+          const website = qa.find(q => /website|url|site/i.test(q.question ?? ""))?.answer ?? undefined;
+          void trackCancellation({
+            workspaceSlug: row.workspace_slug,
+            leadEmail: row.lead_email,
+            leadName: row.lead_name,
+            meetingStartISO: new Date(row.scheduled_at).toISOString(),
+            eventTypeName: event.name ?? undefined,
+            website,
+          }).catch((err: any) => console.error("[calendly webhook] trackCancellation failed:", err?.message ?? err));
+        }
       }
       return NextResponse.json({ ok: true, event: "invitee.canceled" });
     }
