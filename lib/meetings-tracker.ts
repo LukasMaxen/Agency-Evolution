@@ -152,6 +152,28 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting Booked Date" },
     slackExtra: { website: "Website" },
   },
+  // Simple template. Onboarded 2026-08-27, still pre-kickoff (client file is a skeleton,
+  // no ICP filled in yet). Airtable base/table confirmed live via API. Calendly org/token
+  // not connected yet (Kasper to provide) — until then bookings for this workspace fall
+  // through to the "no config" branch only if the slug itself is wrong; once the client's
+  // Calendly webhook is registered with the matching ?ws= or lead-email match, this fires.
+  "with-pebble": {
+    source: "calendly",
+    airtableBaseId: "appjEe12UdVsRX10y",         // "WithPebble"
+    airtableTableId: "tblTnxArHDVMNOxSI",        // "Meetings"
+    slackChannel: "C0BT77Z29BN",                 // withpebble meetings channel (private)
+    fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
+  },
+  // Simple template. Onboarded 2026-08-27, still pre-kickoff (client file is a skeleton,
+  // no ICP filled in yet). Airtable base/table confirmed live via API. Calendly org/token
+  // not connected yet (Kasper to provide).
+  "ah-consulting": {
+    source: "calendly",
+    airtableBaseId: "appZhEsVN52VXPZ66",         // "Austin Heaton"
+    airtableTableId: "tblTnxArHDVMNOxSI",        // "Meetings"
+    slackChannel: "C0BSZGJPFTP",                 // austin heaton / AEO Consulting meetings channel (private)
+    fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
+  },
 };
 
 export interface BookingInput {
