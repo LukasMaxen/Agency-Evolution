@@ -97,6 +97,7 @@ _All N active campaigns have 3+ days of runway_
 | 911-restoration | 911 Restoration |
 | acceler8rs | Acceler8rs |
 | act-capital | ACT Capital |
+| ah-consulting | AEO Consulting |
 | gn-motion | GN Motion |
 | hahnbeck | Hahnbeck |
 | internal-campaigns | Agency Evolution CRM |
@@ -106,6 +107,7 @@ _All N active campaigns have 3+ days of runway_
 | sonaro-ai | Sonaro AI |
 | statera-capital | Statera Capital |
 | venture-exits | Venture Exits |
+| with-pebble | WithPebble |
 | wrobel-capital | Wrobel Capital |
 | zebs-ibs | Zebs IBS |
 | zenith-global | Zenith Global |
