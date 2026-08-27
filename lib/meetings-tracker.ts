@@ -65,6 +65,14 @@ export interface MeetingConfig {
    * Used when the client's Calendly org hosts other event types we should ignore.
    */
   eventNameContains?: string;
+  /**
+   * iClosed only. iClosed webhooks fire account-wide (no per-event scoping at
+   * registration), so when set, only bookings whose event_type.uuid is in this list are
+   * tracked — everything else is skipped. iClosed event names are inconsistent/duplicated
+   * (e.g. "Creative Campaign Strategy Call" vs "Creative campaign strategy call" vs
+   * "Creative campaign"), so filtering by numeric id is the only reliable match.
+   */
+  iclosedEventIds?: number[];
   /** Concise ICP definition — drives the one-line ICP-fit judgment in the Slack message. */
   icpDescription?: string;
 }
