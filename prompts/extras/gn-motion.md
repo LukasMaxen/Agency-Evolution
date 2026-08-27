@@ -65,7 +65,7 @@ When moving a lead toward a meeting or next step, use the following CTA pattern:
 
 **Rules:**
 - Always propose **two specific date placeholders** (DATE or DATE) first
-- Always end with the calendar link: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
+- Always end with the calendar link: https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call
 - Keep the CTA warm and conversational, not pushy
 - When including the calendar link, lead into it with a warm connector phrase such as "I'd love to have a quick chat with you. Feel free to grab a time here:" rather than dropping the link after a standalone sentence. This makes the CTA feel more inviting and personal.
 - Always use **"I'd love to"** when framing the call CTA — never use "Worth a" or similar passive phrases. "I'd love to" reads as warmer and more direct.
@@ -122,7 +122,7 @@ When the lead replies with just a thank you or a short neutral message:
 >
 > If you would like to see what we could do for one of your products, a quick call is the easiest way to align on the concept before we put the sample together.
 >
-> I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
+> I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call
 >
 > {SENDER_EMAIL_SIGNATURE}"
 
@@ -136,7 +136,7 @@ When a lead asks about pricing before a call has been booked, do not quote a num
 
 > "On pricing, it depends entirely on scope so I would not want to throw out a number that ends up being off. A quick call is the fastest way to understand what you need and make sure the sample we put together is actually matched to your brand rather than a generic concept.
 >
-> I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email"
+> I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call"
 
 ---
 
@@ -151,7 +151,7 @@ When a lead asks to see the portfolio or requests an example link, do not add sp
 > [One line acknowledging the request, e.g. "Totally get it, here is the portfolio:"]
 > [Portfolio link]
 >
-> I'd love to have a quick chat about what we could put together for [Brand/Name]. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
+> I'd love to have a quick chat about what we could put together for [Brand/Name]. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call
 >
 > {SENDER_EMAIL_SIGNATURE}"
 
@@ -175,7 +175,7 @@ When a lead asks for more information — case studies, company background, serv
 > [One short sentence with a specific, relevant example or client reference]
 > [Portfolio link if not already shared]
 >
-> I'd love to jump on a quick call to talk through what we could do for you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
+> I'd love to jump on a quick call to talk through what we could do for you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call
 >
 > {SENDER_EMAIL_SIGNATURE}"
 
@@ -201,7 +201,7 @@ When a lead shares a product URL or names a specific product they want used for 
 >
 > Got it. Let's hop on a quick call to align on the creative direction and I'll get the sample together from there.
 >
-> I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
+> I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call
 >
 > {SENDER_EMAIL_SIGNATURE}"
 
@@ -209,7 +209,7 @@ When a lead shares a product URL or names a specific product they want used for 
 
 ## Example CTA (use as template)
 
-> "If you are interested in getting a project underway, let's outline the scope over a quick meeting and we'll be able to give you a final quote. Are you available DATE or DATE? If not, I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email"
+> "If you are interested in getting a project underway, let's outline the scope over a quick meeting and we'll be able to give you a final quote. Are you available DATE or DATE? If not, I'd love to have a quick chat with you. Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call"
 
 ## Weekly Review Learnings (auto-applied, apply always)
 
@@ -217,4 +217,4 @@ When a lead shares a product URL or names a specific product they want used for 
 
 When a lead gives a vague timing response (e.g. 'maybe next week', 'I'm traveling'), acknowledge their specific context naturally (e.g. name the business trip), add a soft 'no worries' buffer before the CTA to reduce pressure, and close with a warm forward-looking line (e.g. 'Looking forward to speaking soon') before the signature. Why: this framing feels more human and considerate, which fits the GN Motion tone and improves the chance the lead follows through on booking.
 
-_Reviewer notes: Hi Esther, Thanks for letting me know. I hope your business trip goes well. No worries at all. If you already know your availability, feel free to book a time that works best for you here: <https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email|app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email> Looking forward to speaking soon. {SENDER_EMAIL_SIGNATURE}_
+_Reviewer notes: Hi Esther, Thanks for letting me know. I hope your business trip goes well. No worries at all. If you already know your availability, feel free to book a time that works best for you here: <https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call|app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call> Looking forward to speaking soon. {SENDER_EMAIL_SIGNATURE}_

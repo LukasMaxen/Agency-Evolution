@@ -7,7 +7,7 @@
 campaign_type: cgi
 sender: Romain Guillon, Owner, GN Motion
 offer: Premium CGI/3D video production for product brands. Complimentary sample matched to their specific product — zero commitment. Reference clients: L'Oreal (Revitalift), Audemars Piguet, Bang & Olufsen, Samsung.
-calendly: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
+calendly: https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call
 portfolio: https://www.canva.com/design/DAG54ftEXgA/NqsRscCn1P2PHx0ZGHLgoA/view?utm_content=DAG54ftEXgA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h1754ac6064
 jewelry_portfolio: https://canva.link/hs3uwg2520jllvs
 website: https://gnmotion.co/
@@ -48,7 +48,7 @@ sample_request_template: |
 
   That is great to hear. To make sure the sample really hits the mark, let us chat for a few minutes about your creative goals and which product would be best to showcase.
 
-  Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
+  Feel free to grab a time here: https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call
 
   {SENDER_EMAIL_SIGNATURE}
 
@@ -65,7 +65,7 @@ sample_request_template: |
 | **Primary contact** | Romain Guillon, Founder/Owner |
 | **Contact email** | [email] |
 | **Slack channel** | `#[channel-name]` |
-| **Calendly link** | https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email |
+| **Calendly link** | https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call |
 | **Monthly retainer** | [amount] |
 
 ---
@@ -201,7 +201,7 @@ When a lead asks to see a sample, use this:
 >
 > To make sure the sample really hits the mark, let's chat for a few minutes about your creative goals. I want to make sure the direction we take feels like a perfect extension of your brand.
 >
-> You can grab a spot on my calendar here: https://app.iclosed.io/e/GNMOTION/creative-campaign-strategy-call-email
+> You can grab a spot on my calendar here: https://app.iclosed.io/e/GNMOTION/creative-campaign-discovery-call
 >
 > Looking forward to it!
 >
