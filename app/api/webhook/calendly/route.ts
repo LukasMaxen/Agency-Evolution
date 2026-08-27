@@ -262,7 +262,13 @@ export async function POST(req: NextRequest) {
           [eventUri]
         );
         const row = updated.rows[0];
-        if (row) {
+        // Only notify Slack when the LEAD canceled — Calendly also fires invitee.canceled
+        // when a host (Nicklas/Lukas) deletes the event from their own connected calendar,
+        // and that's routine housekeeping, not something the team needs an alert for.
+        // Calendly's payload carries who canceled via payload.cancellation.canceler_type
+        // ("invitee" vs "host"); the DB status is still updated to 'cancelled' either way.
+        const cancelerType = p.cancellation?.canceler_type;
+        if (row && cancelerType === "invitee") {
           const qa: Array<{ question?: string; answer?: string }> = invitee.questions_and_answers ?? [];
           const website = qa.find(q => /website|url|site/i.test(q.question ?? ""))?.answer ?? undefined;
           void trackCancellation({
