@@ -32,7 +32,7 @@ Produces a performance report for all active client workspaces covering emails s
 | Postgres connection | `DATABASE_URL` in `.env.local` | Already set for the project. If missing, see `.env.local.example` and ask Lukas. |
 | Airtable token | `AIRTABLE_API_KEY` in `.env.local` | Required for the meetings query. Read-only PAT, shared across the team. |
 | EmailBison API key per workspace | DB table `workspaces.email_bison_api_key` | Each client workspace has its own key. Pull at query time. |
-| EmailBison instance URL per workspace | DB table `workspaces.email_bison_instance_url` | All current workspaces share `https://send.emailagencyevolution.com`, but read from DB to stay correct if that changes. |
+| EmailBison instance URL per workspace | DB table `workspaces.email_bison_instance_url` | Most workspaces share `https://send.emailagencyevolution.com`, but AH Consulting and WithPebble run on a separate EmailBison account at `https://send.shieldsoutbound.com`. Always read from DB per workspace, never hardcode the instance URL. |
 
 Fetch all workspace creds at the start of the run:
 
@@ -111,6 +111,7 @@ The count of meetings is `len(response.data.records)`. Note the field name varie
 | Client | Base ID | Table ID | Field name |
 |---|---|---|---|
 | 911 Restoration | appGTy1rR6eZjKu62 | tblVEhq27whUNk4KY | Meeting booked date |
+| AH Consulting (Austin Heaton) | appZhEsVN52VXPZ66 | tblTnxArHDVMNOxSI | Meeting booked date |
 | ACT Capital | appECObQrdSRjeXeM | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Larsen Digital - Lukas | appV8wpBdqTgCi4Ws | tblCATnaPTV9fb2Ab | Meeting booked date | MUST filter `Deal Source = 'Cold email (Acceler8rs)'`. This "Deals / Meetings" table is shared with Larsen Digital - Nicklas, whose meetings are tagged `Cold email (LD)`. Counting all records over-attributes them to the wrong sender. (DB slug still `acceler8rs` — see Larsen rename note below.) |
 | GN Motion | appL5fZEyULdqpyx5 | tblTnxArHDVMNOxSI | Meeting Booked Date | |
@@ -122,6 +123,7 @@ The count of meetings is `len(response.data.records)`. Note the field name varie
 | Statera Capital | app0EI3nqT3ScUJOf | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Venture Exits | appA3W783M4v9IShx | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Wrobel Capital | appFvPc98WyrPibkV | tblTnxArHDVMNOxSI | Meeting Booked Date |
+| WithPebble | appjEe12UdVsRX10y | tblTnxArHDVMNOxSI | Meeting booked date |
 | Zebs IBS | appdpPuzEjTqFSOi2 | tblTnxArHDVMNOxSI | Meeting Booked Date |
 
 ---
