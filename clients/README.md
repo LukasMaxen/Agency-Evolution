@@ -27,3 +27,5 @@ When onboarding a new client, copy `_template.md`, rename it to `[slug].md`, and
 | 13 | Sonaro AI | [sonaro-ai.md](sonaro-ai.md) | `sonaro-ai` | Active |
 | 14 | Zebs IBS | [zebs-ibs.md](zebs-ibs.md) | `zebs-ibs` | Active |
 | 15 | SRO Consulting | [sro-consulting.md](sro-consulting.md) | `sro-consulting` | Active |
+| 16 | AH Consulting | [ah-consulting.md](ah-consulting.md) | `ah-consulting` | Onboarding (pre-kickoff) |
+| 17 | WithPebble | [with-pebble.md](with-pebble.md) | `with-pebble` | Onboarding (pre-kickoff) |
