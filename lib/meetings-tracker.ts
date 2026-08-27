@@ -159,6 +159,12 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     slackChannel: "C09JHNBTTQD",                // gn-motion-meetings
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting Booked Date" },
     slackExtra: { website: "Website" },
+    // Only these two events, confirmed live via GET /v1/events on 2026-08-27 (Kasper):
+    // 43175 "Creative campaign" (GNMOTION/creative-campaign) and 21997 "Creative Campaign
+    // Discovery call" (GNMOTION/creative-campaign-discovery-call). GN Motion has 9 iClosed
+    // events total (incl. the id-20262 "Creative Campaign Strategy Call" that's actually
+    // advertised in clients/gn-motion.md) — everything else is intentionally excluded.
+    iclosedEventIds: [43175, 21997],
   },
   // Simple template. Onboarded 2026-08-27, still pre-kickoff (client file is a skeleton,
   // no ICP filled in yet). Airtable base/table confirmed live via API. Calendly org/token
