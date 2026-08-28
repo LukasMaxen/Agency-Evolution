@@ -179,8 +179,10 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
   },
   // Simple template. Onboarded 2026-08-27, still pre-kickoff (client file is a skeleton,
-  // no ICP filled in yet). Airtable base/table confirmed live via API. Calendly org/token
-  // not connected yet (Kasper to provide).
+  // no ICP filled in yet). Airtable base/table confirmed live via API. Calendly org
+  // webhook registered 2026-08-28 (org 931cbd2e-9542-4a05-8adb-cf92a1fb7822, scope
+  // organization, sub uri 4fb5c77d-2472-49ea-a006-dbe871acc3a2), callback
+  // .../api/webhook/calendly?wsDefault=ah-consulting.
   "ah-consulting": {
     source: "calendly",
     airtableBaseId: "appZhEsVN52VXPZ66",         // "Austin Heaton"

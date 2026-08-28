@@ -17,6 +17,15 @@ export const CALENDLY_CLIENT_CONFIG: Record<string, CalendlyClientConfig> = {
     eventTypeUrl: "https://calendly.com/d/dtm8-3nx-vr9/intro-call-operating-partner",
     defaultTz: "Europe/London",
   },
+  // Austin Heaton has 3 active Calendly event types (Lureon AEO Services,
+  // Redo AEO Services, and this general intro call). Defaulted to the
+  // general one since the current campaign doesn't name a specific product —
+  // confirm with Kasper if a specific campaign should use a different link.
+  "ah-consulting": {
+    tokenEnv: "AH_CONSULTING_CALENDLY_TOKEN",
+    eventTypeUrl: "https://calendly.com/austin-austinheaton/30min",
+    defaultTz: "Europe/Chisinau",
+  },
 };
 
 export function resolveCalendlyToken(client?: string | null): string | undefined {
