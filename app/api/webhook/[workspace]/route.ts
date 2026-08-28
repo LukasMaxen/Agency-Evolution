@@ -178,9 +178,10 @@ export async function POST(
 
         // Slack notification to the client's [client]-replies channel.
         // Replaces the Make.com "Email Reply Notifications" scenario for this workspace.
-        if (workspace.slack_channel_replies) {
+        const rawFeedChannel = workspace.slack_channel_replies ?? RAW_REPLY_FEED_CHANNELS[slug];
+        if (rawFeedChannel) {
           const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
-          const channel = workspace.slack_channel_replies as string;
+          const channel = rawFeedChannel as string;
           const workspaceName = (workspace.name ?? slug) as string;
           after(async () => {
             try {
