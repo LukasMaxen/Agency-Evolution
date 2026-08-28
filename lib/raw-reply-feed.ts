@@ -21,9 +21,14 @@ export const RAW_REPLY_FEED_CHANNELS: Record<string, string> = {
 // back from GET /api/replies, not the resolved objects the LEAD_REPLIED
 // webhook payload carries, so these are resolved here and cached in-process
 // to avoid one extra API call per reply.
-const senderCache = new Map<string, Map<number, string>>();
-const campaignCache = new Map<string, Map<number, string>>();
+const senderCache = new Map<string, Map<number, string | null>>();
+const campaignCache = new Map<string, Map<number, string | null>>();
 
+// EmailBison's sender-emails/campaigns list endpoints paginate at 15/page
+// with no size override that's honored, and IDs are not contiguous across
+// a workspace's history (accounts can be old shared instances with 1000+
+// unrelated senders) — scanning pages to find one ID is impractical.
+// Direct single-resource lookups exist and are cheap, so use those.
 async function resolveSenderEmail(
   workspaceSlug: string,
   instanceUrl: string,
@@ -32,24 +37,22 @@ async function resolveSenderEmail(
 ): Promise<string | null> {
   if (!senderEmailId) return null;
   let cache = senderCache.get(workspaceSlug);
-  if (!cache || !cache.has(senderEmailId)) {
+  if (!cache) {
     cache = new Map();
-    try {
-      const r = await fetch(`${instanceUrl}/api/sender-emails?page=1`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      });
-      if (r.ok) {
-        const body = await r.json();
-        for (const s of body?.data ?? []) {
-          if (s?.id && s?.email) cache.set(s.id, s.email);
-        }
-      }
-    } catch {
-      // best effort — fall through with whatever the cache already has
-    }
     senderCache.set(workspaceSlug, cache);
   }
-  return cache.get(senderEmailId) ?? null;
+  if (cache.has(senderEmailId)) return cache.get(senderEmailId) ?? null;
+
+  try {
+    const r = await fetch(`${instanceUrl}/api/sender-emails/${senderEmailId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    const email: string | null = r.ok ? (await r.json())?.data?.email ?? null : null;
+    cache.set(senderEmailId, email);
+    return email;
+  } catch {
+    return null;
+  }
 }
 
 async function resolveCampaignName(
@@ -60,24 +63,22 @@ async function resolveCampaignName(
 ): Promise<string | null> {
   if (!campaignId) return null;
   let cache = campaignCache.get(workspaceSlug);
-  if (!cache || !cache.has(campaignId)) {
+  if (!cache) {
     cache = new Map();
-    try {
-      const r = await fetch(`${instanceUrl}/api/campaigns?per_page=200`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      });
-      if (r.ok) {
-        const body = await r.json();
-        for (const c of body?.data ?? []) {
-          if (c?.id && c?.name) cache.set(c.id, c.name);
-        }
-      }
-    } catch {
-      // best effort
-    }
     campaignCache.set(workspaceSlug, cache);
   }
-  return cache.get(campaignId) ?? null;
+  if (cache.has(campaignId)) return cache.get(campaignId) ?? null;
+
+  try {
+    const r = await fetch(`${instanceUrl}/api/campaigns/${campaignId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    const name: string | null = r.ok ? (await r.json())?.data?.name ?? null : null;
+    cache.set(campaignId, name);
+    return name;
+  } catch {
+    return null;
+  }
 }
 
 export interface RawReplyFeedOpts {
