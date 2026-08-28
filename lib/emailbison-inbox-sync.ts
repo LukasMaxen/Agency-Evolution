@@ -1,8 +1,7 @@
 import pool from "@/lib/db";
 import { classifyBounce } from "@/lib/bounce-classifier";
 import { isOwnSenderAddress } from "@/lib/own-outbound";
-import { notifyReply } from "@/lib/slack-notifications";
-import { RAW_REPLY_FEED_CHANNELS } from "@/lib/raw-reply-feed";
+import { postRawReplyFeed, RAW_REPLY_FEED_CHANNELS } from "@/lib/raw-reply-feed";
 
 // EmailBison inbox poller. Catches inbound replies that the LEAD_REPLIED
 // webhook would not deliver:
@@ -204,18 +203,17 @@ export async function runEmailBisonInboxSync(): Promise<void> {
           // Raw unfiltered reply feed (mirrors Make.com) — fires for every
           // inbound reply regardless of what the AI classifier decides next.
           // See lib/raw-reply-feed.ts for why this is hardcoded for now.
-          const rawFeedChannel = RAW_REPLY_FEED_CHANNELS[ws.slug];
-          if (rawFeedChannel) {
-            const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
-            notifyReply({
-              channel: rawFeedChannel,
-              workspaceName: ws.name,
-              leadName,
+          if (RAW_REPLY_FEED_CHANNELS[ws.slug]) {
+            postRawReplyFeed({
+              workspaceSlug: ws.slug,
+              instanceUrl: ws.email_bison_instance_url,
+              apiKey: ws.email_bison_api_key,
               leadEmail: item.from_email_address,
-              campaign: "",
+              emailBisonUuid: item.uuid,
               subject: item.subject ?? "",
               message,
-              replyUrl: appUrl ? `${appUrl}/replies/${item.uuid}` : undefined,
+              senderEmailId: item.sender_email_id ?? null,
+              campaignId: item.campaign_id ?? null,
             }).catch(err =>
               console.error(`[inbox-sync] ${ws.slug} raw feed notify failed for ${item.uuid}:`, err?.message ?? err)
             );

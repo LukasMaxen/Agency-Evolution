@@ -176,28 +176,26 @@ export async function POST(
           headers: { "x-internal-token": process.env.AUTO_REPLY_RUN_TOKEN ?? "" },
         }).catch(err => console.error(`[webhook] /run dispatch failed for ${replyUuid} (${slug}):`, err?.message));
 
-        // Slack notification to the client's [client]-replies channel.
-        // Replaces the Make.com "Email Reply Notifications" scenario for this workspace.
+        // Raw unfiltered reply feed to the client's [client]-replies channel,
+        // mirrors the Make.com "Email Reply Notifications" scenario field for
+        // field. Fires for every reply regardless of AI classification.
         const rawFeedChannel = workspace.slack_channel_replies ?? RAW_REPLY_FEED_CHANNELS[slug];
         if (rawFeedChannel) {
-          const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
-          const channel = rawFeedChannel as string;
-          const workspaceName = (workspace.name ?? slug) as string;
           after(async () => {
             try {
-              await notifyReply({
-                channel,
-                workspaceName,
-                leadName,
+              await postRawReplyFeed({
+                workspaceSlug: slug,
+                instanceUrl: workspace.email_bison_instance_url,
+                apiKey: workspace.email_bison_api_key,
                 leadEmail,
-                leadCompany: lead.company ?? null,
-                campaign: campaign?.name ?? "",
+                emailBisonUuid: replyUuid,
                 subject: reply.email_subject ?? "",
                 message,
-                replyUrl: appUrl ? `${appUrl}/replies/${replyUuid}` : undefined,
+                senderEmail: senderEmail?.email ?? null,
+                campaignName: campaign?.name ?? null,
               });
             } catch (err: any) {
-              console.error(`[webhook] notifyReply (after) failure for ${replyUuid} (${slug}):`, err);
+              console.error(`[webhook] postRawReplyFeed (after) failure for ${replyUuid} (${slug}):`, err);
             }
           });
         }
