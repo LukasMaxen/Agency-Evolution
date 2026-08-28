@@ -3,6 +3,7 @@ import pool from "@/lib/db";
 import { processAutoReply } from "@/app/api/auto-reply/processor";
 import { notifyReply } from "@/lib/slack-notifications";
 import { isOwnSenderAddress } from "@/lib/own-outbound";
+import { RAW_REPLY_FEED_CHANNELS } from "@/lib/raw-reply-feed";
 
 function extractCleanBody(textBody: string): string {
   if (!textBody) return "";
