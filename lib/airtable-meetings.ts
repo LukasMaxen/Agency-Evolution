@@ -54,11 +54,11 @@ export const SUCCESS_METRIC_CONFIG: SuccessMetricConfig[] = [
   { workspaceSlug: "hahnbeck",           successLabel: "Est. Taliesen Handoffs", successType: "interested_proxy" },
 
   // Meeting-tracked workspaces (Airtable date column).
-  { workspaceSlug: "acceler8rs",         successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appV8wpBdqTgCi4Ws", tableId: "tblCATnaPTV9fb2Ab", field: "Meeting booked date", filter: `{Deal Source} = "Lukas"` },
+  { workspaceSlug: "acceler8rs",         successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appp8h0kv9DEHYpXR", tableId: "tblkoizZek5r5wi45", field: "Meeting booked date", filter: `{Deal Source} = "Lukas"` },
   { workspaceSlug: "gn-motion",          successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appL5fZEyULdqpyx5", tableId: "tblTnxArHDVMNOxSI", field: "Meeting Booked Date" },
   { workspaceSlug: "internal-campaigns", successLabel: "Meetings Booked", successType: "airtable_date", baseId: "app9rWZ2iE4eWECEN", tableId: "tblCATnaPTV9fb2Ab", field: "Meeting booked date" },
   { workspaceSlug: "itg-group",          successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appajhv22WuCEw7Aa", tableId: "tblTnxArHDVMNOxSI", field: "Meeting Booked Date" },
-  { workspaceSlug: "larsen-digital",     successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appV8wpBdqTgCi4Ws", tableId: "tblCATnaPTV9fb2Ab", field: "Meeting booked date", filter: `{Deal Source} = "Nicklas"` },
+  { workspaceSlug: "larsen-digital",     successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appp8h0kv9DEHYpXR", tableId: "tblkoizZek5r5wi45", field: "Meeting booked date", filter: `{Deal Source} = "Nicklas"` },
   { workspaceSlug: "sonaro-ai",          successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appNMGCTwXVOLLzmA", tableId: "tblTnxArHDVMNOxSI", field: "Meeting Booked Date" },
   { workspaceSlug: "venture-exits",      successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appA3W783M4v9IShx", tableId: "tblTnxArHDVMNOxSI", field: "Meeting Booked Date" },
   { workspaceSlug: "wrobel-capital",     successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appFvPc98WyrPibkV", tableId: "tblTnxArHDVMNOxSI", field: "Meeting Booked Date" },

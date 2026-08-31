@@ -84,12 +84,14 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     source: "calendly",
     // Larsen (Nicklas) and Acceler8rs (Lukas, retired brand, same "Larsen Digital" offer)
     // SHARE this Airtable base on purpose — the "Deal Source" field ("Nicklas" vs
-    // "Lukas", renamed 2026-08-31 from "Cold email (LD)" / "Cold email (Acceler8rs)")
-    // is what marks which sender each meeting belongs to.
+    // "Lukas") is what marks which sender each meeting belongs to.
     // Slack posts, however, go to SEPARATE channels per sender (split 2026-08-05, see the
     // acceler8rs entry below) — each workspace tracked individually per Kasper.
-    airtableBaseId: "appV8wpBdqTgCi4Ws",        // "Larsen Nicklas/Lukas" (shared, Deal Source = sender)
-    airtableTableId: "tblCATnaPTV9fb2Ab",       // Deals / Meetings
+    // 2026-08-31: moved to base appp8h0kv9DEHYpXR in the "Larsen Digital 2" workspace —
+    // the old base (appV8wpBdqTgCi4Ws, "Larsen Nicklas/Lukas") lived in a workspace whose
+    // Airtable plan hit its monthly API + records cap. See project_airtable_billing_limit_2026_08_31.
+    airtableBaseId: "appp8h0kv9DEHYpXR",        // "Larsen Nicklas/Lukas" in "Larsen Digital 2" workspace
+    airtableTableId: "tblkoizZek5r5wi45",       // Deals / Meetings
     slackChannel: "C03LPQ4G3HR",                // "Larsen - Nicklas" meetings channel
     workspaceLabel: "Nicklas Larsen",
     fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
@@ -99,13 +101,13 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
       nextStepField: "Next Step", nextStepValue: "Update Lead Info",
       nextStepDateField: "Next Step Date",
     },
-    slackExtra: { revenue: "DTC Revenue (Monthly)" },
+    slackExtra: { revenue: "DTC Revenue" },
     icpDescription: "Established consumer / CPG brands (beauty, personal care, food, supplements, household) doing roughly $5M+ in revenue with repeat-purchase products — the buyer's acquisition target. Also relevant: 7-figure+ DTC brands open to growth and a future exit. NOT a fit: pure services/agencies, B2B SaaS, pre-revenue, or clearly under $5M with no path.",
   },
   "acceler8rs": {
     source: "calendly",
-    airtableBaseId: "appV8wpBdqTgCi4Ws",
-    airtableTableId: "tblCATnaPTV9fb2Ab",
+    airtableBaseId: "appp8h0kv9DEHYpXR",        // "Larsen Nicklas/Lukas" in "Larsen Digital 2" workspace
+    airtableTableId: "tblkoizZek5r5wi45",       // Deals / Meetings
     // 2026-08-10: the "Larsen - Lukas" channel (was C07CNPN71PS) went dead — the bot
     // could not reach it (channel_not_found), so every acceler8rs/Lukas meeting was
     // silently black-holed (fire-and-forget Slack post). Per Kasper, both Larsen sides
@@ -120,7 +122,7 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
       nextStepField: "Next Step", nextStepValue: "Update Lead Info",
       nextStepDateField: "Next Step Date",
     },
-    slackExtra: { revenue: "DTC Revenue (Monthly)" },
+    slackExtra: { revenue: "DTC Revenue" },
     icpDescription: "Established consumer / CPG brands (beauty, personal care, food, supplements, household) doing roughly $5M+ in revenue with repeat-purchase products — the buyer's acquisition target. Also relevant: 7-figure+ DTC brands open to growth and a future exit. NOT a fit: pure services/agencies, B2B SaaS, pre-revenue, or clearly under $5M with no path.",
   },
   "internal-campaigns": {
