@@ -169,17 +169,19 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     // advertised in clients/gn-motion.md) — everything else is intentionally excluded.
     iclosedEventIds: [43175, 21997],
   },
-  // Simple template. Onboarded 2026-08-27, still pre-kickoff (client file is a skeleton,
-  // no ICP filled in yet). Airtable base/table confirmed live via API. Calendly org/token
-  // not connected yet (Kasper to provide) — until then bookings for this workspace fall
-  // through to the "no config" branch only if the slug itself is wrong; once the client's
-  // Calendly webhook is registered with the matching ?ws= or lead-email match, this fires.
+  // Simple template. Onboarded 2026-08-27, still pre-kickoff (client file is a skeleton
+  // beyond ICP, no campaign/reply content filled in yet). Airtable base/table confirmed
+  // live via API. Calendly org/token not connected yet (Kasper to provide) — until then
+  // bookings for this workspace fall through to the "no config" branch only if the slug
+  // itself is wrong; once the client's Calendly webhook is registered with the matching
+  // ?ws= or lead-email match, this fires.
   "with-pebble": {
     source: "calendly",
     airtableBaseId: "appjEe12UdVsRX10y",         // "WithPebble"
     airtableTableId: "tblTnxArHDVMNOxSI",        // "Meetings"
     slackChannel: "C0BT77Z29BN",                 // withpebble meetings channel (private)
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
+    icpDescription: "Beauty/health/wellness brands selling physical goods (not medspas or services) doing $1M+ annual revenue, 5-100 employees, selling to US customers. Retail presence is fine. TikTok Shop presence is a plus but not required. Also relevant: consumer apps with $50K+ MRR. NOT a fit: services/medspas, non-physical-goods brands outside consumer apps, sub-$1M revenue, or not selling to the US.",
   },
   // Simple template. Onboarded 2026-08-27, still pre-kickoff (client file is a skeleton,
   // no ICP filled in yet). Airtable base/table confirmed live via API. Calendly org

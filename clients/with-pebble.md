@@ -53,8 +53,15 @@ Daily creator/UGC content posted across a network, driving real organic purchase
 **What the prospect is asked to do first:**
 Take a quick call. WithPebble offers to build a custom content concept for their brand first, before any commitment.
 
-**ICP:**
-Same as Larsen Digital's targeting — DTC/ecommerce brands, primarily Shopify-based, US, meaningful revenue scale (7-figure range). Confirm with Kasper if a specific list diverges from this.
+**ICP (confirmed by Kasper, 2026-08-28):**
+- Beauty / health / wellness brands, physical goods only (not a medspa or services business)
+- $1M+ annual revenue
+- 5-100 employees
+- Must sell to US customers
+- Retail presence is fine
+- TikTok Shop presence is optional, not required
+
+**Other areas in scope:** consumer apps with $50K+ MRR (a separate, secondary ICP outside beauty/wellness).
 
 **Proof points to use:**
 - 40M organic views in 30 days for a recent beauty brand (anonymized — never name the brand)
@@ -91,7 +98,7 @@ Same as Larsen Digital's targeting — DTC/ecommerce brands, primarily Shopify-b
 Same as above — creator/UGC network driving organic views and purchase intent, custom concept built first.
 
 #### Target Audience (ICP)
-Same as above — DTC/ecommerce brands, Shopify-based, US, 7-figure+ revenue (Larsen-equivalent targeting).
+Same as above — beauty/health/wellness physical-goods brands, $1M+ revenue, 5-100 employees, selling to US. Also: consumer apps with $50K+ MRR.
 
 #### Script Rules
 **Step 1 CTA:** "Worth a quick call?"
