@@ -147,6 +147,7 @@ Subject: [subject]
 
 ## Internal Notes
 
-- **Routing tier (set 2026-08-27 by Kasper):** 100% of eligible replies go to the reply-approval Slack channel (`C0BSXAE4JLB`), no auto-send sampling, until Kasper says otherwise.
+- **Channel routing (corrected 2026-08-31 by Kasper):** `C0BSXAE4JLB` (`#with-pebble` or similar) is the raw reply feed ONLY — every single reply, unfiltered, mirrors Make's old "Reply received" format. It is NOT the approval channel.
+- Actionable replies (interested / needs_info / neutral) get an AI-drafted approval card in the **global** `#reply-approval` channel, same as every standard (non-fully-automated) client. Ambiguous/time-sensitive ones go to the **global** `#manual-replies` channel. `workspaces.slack_approval_channel` is NULL for this workspace so it falls back to those global channels — do not set it back to the client's own channel.
 - **If in doubt on intent or how to respond, route to `#manual-replies` rather than guessing or auto-drafting.**
-- Replacing an existing Make (Integromat) raw-reply-notification scenario that posts to this same channel — see [[project_make_replacement_withpebble_aeo]] once that migration is done.
+- Replaced the old Make (Integromat) raw-reply-notification scenario — see [[project_make_replacement_withpebble_aeo]].
