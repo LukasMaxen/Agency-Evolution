@@ -23,6 +23,7 @@ import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-websi
 import { sanitizeJsonControlChars } from "@/lib/utils";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
 import { weSpokeLast, alreadySentBody } from "@/lib/reply-send-guard";
+import { trackInterestedLead } from "@/lib/airtable-cold-leads";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1900,6 +1901,11 @@ ${messageText.slice(0, 8000)}`;
     } catch (err: any) {
       console.error(`[auto-reply] back-sync failed for ${replyId}:`, err?.message);
     }
+
+    // Larsen Digital ("Cold Email Leads" Airtable table, shared by both sender
+    // workspaces) — fire-and-forget, never blocks the reply pipeline. No-ops for
+    // every other workspace (see lib/airtable-cold-leads.ts).
+    trackInterestedLead({ workspaceSlug, leadEmail: reply.lead_email, leadName: reply.lead_name }).catch(() => {});
   }
 
   // ── Forward-workspace branch ────────────────────────────────────────────────
