@@ -113,12 +113,12 @@ The count of meetings is `len(response.data.records)`. Note the field name varie
 | 911 Restoration | appGTy1rR6eZjKu62 | tblVEhq27whUNk4KY | Meeting booked date |
 | AH Consulting (Austin Heaton) | appZhEsVN52VXPZ66 | tblTnxArHDVMNOxSI | Meeting booked date |
 | ACT Capital | appECObQrdSRjeXeM | tblTnxArHDVMNOxSI | Meeting Booked Date |
-| Larsen Digital - Lukas | appV8wpBdqTgCi4Ws | tblCATnaPTV9fb2Ab | Meeting booked date | MUST filter `Deal Source = 'Cold email (Acceler8rs)'`. This "Deals / Meetings" table is shared with Larsen Digital - Nicklas, whose meetings are tagged `Cold email (LD)`. Counting all records over-attributes them to the wrong sender. (DB slug still `acceler8rs` — see Larsen rename note below.) |
+| Larsen Digital - Lukas | appV8wpBdqTgCi4Ws | tblCATnaPTV9fb2Ab | Meeting booked date | MUST filter `Deal Source = 'Lukas'` (renamed 2026-08-31 from `Cold email (Acceler8rs)`). This "Deals / Meetings" table is shared with Larsen Digital - Nicklas, whose meetings are tagged `Nicklas`. Counting all records over-attributes them to the wrong sender. (DB slug still `acceler8rs` — see Larsen rename note below.) |
 | GN Motion | appL5fZEyULdqpyx5 | tblTnxArHDVMNOxSI | Meeting Booked Date | |
 | Hahnbeck | appUZr45I0MK7uv3w | tbl9KatGYqPFB45Hs | Meeting booked date | |
 | Internal Campaigns | app9rWZ2iE4eWECEN | tblCATnaPTV9fb2Ab | Meeting booked date | |
 | ITG Group | appajhv22WuCEw7Aa | tblTnxArHDVMNOxSI | Meeting Booked Date | |
-| Larsen Digital - Nicklas | appV8wpBdqTgCi4Ws | tblCATnaPTV9fb2Ab | Meeting booked date | MUST filter `Deal Source = 'Cold email (LD)'`. Shared base with Larsen Digital - Lukas (see above). As of 2026-08-05 this is the SAME base/table as Lukas — the two are distinguished only by Deal Source, not by base. (DB slug `larsen-digital`.) |
+| Larsen Digital - Nicklas | appV8wpBdqTgCi4Ws | tblCATnaPTV9fb2Ab | Meeting booked date | MUST filter `Deal Source = 'Nicklas'` (renamed 2026-08-31 from `Cold email (LD)`). Shared base with Larsen Digital - Lukas (see above). As of 2026-08-05 this is the SAME base/table as Lukas — the two are distinguished only by Deal Source, not by base. (DB slug `larsen-digital`.) |
 | Sonaro AI | appNMGCTwXVOLLzmA | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Statera Capital | app0EI3nqT3ScUJOf | tblTnxArHDVMNOxSI | Meeting Booked Date |
 | Venture Exits | appA3W783M4v9IShx | tblTnxArHDVMNOxSI | Meeting Booked Date |
