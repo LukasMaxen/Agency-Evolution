@@ -54,7 +54,7 @@ export const SUCCESS_METRIC_CONFIG: SuccessMetricConfig[] = [
   { workspaceSlug: "hahnbeck",           successLabel: "Est. Taliesen Handoffs", successType: "interested_proxy" },
 
   // Meeting-tracked workspaces (Airtable date column).
-  { workspaceSlug: "acceler8rs",         successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appV8wpBdqTgCi4Ws", tableId: "tblCATnaPTV9fb2Ab", field: "Meeting booked date", filter: `{Deal Source} = "Cold email (Acceler8rs)"` },
+  { workspaceSlug: "acceler8rs",         successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appV8wpBdqTgCi4Ws", tableId: "tblCATnaPTV9fb2Ab", field: "Meeting booked date", filter: `{Deal Source} = "Lukas"` },
   { workspaceSlug: "gn-motion",          successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appL5fZEyULdqpyx5", tableId: "tblTnxArHDVMNOxSI", field: "Meeting Booked Date" },
   { workspaceSlug: "internal-campaigns", successLabel: "Meetings Booked", successType: "airtable_date", baseId: "app9rWZ2iE4eWECEN", tableId: "tblCATnaPTV9fb2Ab", field: "Meeting booked date" },
   { workspaceSlug: "itg-group",          successLabel: "Meetings Booked", successType: "airtable_date", baseId: "appajhv22WuCEw7Aa", tableId: "tblTnxArHDVMNOxSI", field: "Meeting Booked Date" },

@@ -83,17 +83,18 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
   "larsen-digital": {
     source: "calendly",
     // Larsen (Nicklas) and Acceler8rs (Lukas, retired brand, same "Larsen Digital" offer)
-    // SHARE this Airtable base on purpose — the "Deal Source" field ("Cold email (LD)" vs
-    // "Cold email (Acceler8rs)") is what marks which sender each meeting belongs to.
+    // SHARE this Airtable base on purpose — the "Deal Source" field ("Nicklas" vs
+    // "Lukas", renamed 2026-08-31 from "Cold email (LD)" / "Cold email (Acceler8rs)")
+    // is what marks which sender each meeting belongs to.
     // Slack posts, however, go to SEPARATE channels per sender (split 2026-08-05, see the
     // acceler8rs entry below) — each workspace tracked individually per Kasper.
-    airtableBaseId: "appV8wpBdqTgCi4Ws",        // Acceler8rs CRM (shared, Deal Source = workspace)
+    airtableBaseId: "appV8wpBdqTgCi4Ws",        // "Larsen Nicklas/Lukas" (shared, Deal Source = sender)
     airtableTableId: "tblCATnaPTV9fb2Ab",       // Deals / Meetings
     slackChannel: "C03LPQ4G3HR",                // "Larsen - Nicklas" meetings channel
     workspaceLabel: "Nicklas Larsen",
     fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
     crm: {
-      dealSourceField: "Deal Source", dealSource: "Cold email (LD)",
+      dealSourceField: "Deal Source", dealSource: "Nicklas",
       statusField: "Status", statusValue: "Intro Call Booked",
       nextStepField: "Next Step", nextStepValue: "Update Lead Info",
       nextStepDateField: "Next Step Date",
@@ -114,7 +115,7 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     workspaceLabel: "Lukas Maxen",
     fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
     crm: {
-      dealSourceField: "Deal Source", dealSource: "Cold email (Acceler8rs)",
+      dealSourceField: "Deal Source", dealSource: "Lukas",
       statusField: "Status", statusValue: "Intro Call Booked",
       nextStepField: "Next Step", nextStepValue: "Update Lead Info",
       nextStepDateField: "Next Step Date",
