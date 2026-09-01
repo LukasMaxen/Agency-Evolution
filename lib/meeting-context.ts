@@ -211,40 +211,57 @@ async function researchLead(o: { company: string; domains?: string[]; domain?: s
     o.icp ? `The buyer we represent is looking for: ${o.icp}` : "",
   ].filter(Boolean).join("\n");
 
+  const icpTask = o.icp
+    ? `\nTASK 2 - ICP FIT. Here is what we're looking for in a company for this offer:\n${o.icp}\n\n` +
+      `Based on your web research into the company AND what they said in the correspondence above (if given), ` +
+      `decide whether they are a genuine fit. You must answer "Yes" or "No", always pick one, never "partial" ` +
+      `or "unsure" -- use your judgment on a genuine edge case, but commit to a side. Then give a reason in 5 ` +
+      `words or fewer, no more. Ground the reason in an actual fact you found or that they stated (their ` +
+      `industry, size, what they sell, who they serve), never a generic assumption or a restatement of the ICP ` +
+      `itself.\n`
+    : "";
+
   const ask =
-    `You are researching a company that just booked a sales call, to check for a PUBLICLY DISCLOSED EBITDA ` +
-    `figure. Use web search to check.\n\n` +
+    `You are researching a company that just booked a sales call. Use web search to check.\n\n` +
     `IMPORTANT: identify the SPECIFIC company from the domain(s) and what the lead said. The brand/store domain is the ` +
     `strongest signal; a holding-company domain is weaker. Do NOT confuse it with a similarly-named company in another ` +
-    `country, cross-check against the lead's description and the phone's country.\n\n` +
-    `Only report a number if you find one of these:\n` +
+    `country, cross-check against the lead's description and the phone's country.\n\n${facts}\n\n` +
+    `TASK 1 - EBITDA. Only report a number if you find one of these:\n` +
     `  (a) an EBITDA figure actually disclosed publicly for this exact company (filing, press release, ` +
     `credible business database), or\n` +
-    `  (b) a specific dollar EBITDA figure the LEAD stated themselves in the thread below.\n` +
+    `  (b) a specific dollar EBITDA figure the LEAD stated themselves in the thread above.\n` +
     `A multiple alone (e.g. "18x EBITDA") is NOT a figure -- never multiply it against a revenue estimate, ` +
     `industry margin assumption, or any other number to derive one. NEVER estimate or back-calculate EBITDA ` +
     `from revenue or any indirect signal. Saying "none" is the correct, expected answer for most private ` +
-    `companies -- most have no public EBITDA and it is far better to omit than to guess.\n\n${facts}\n\n` +
-    `When you are done searching, end your reply with EXACTLY this line and nothing after it:\n` +
-    `EBITDA: <~$amount (from public info) OR ~$amount (stated in thread) OR the single word none>`;
+    `companies -- most have no public EBITDA and it is far better to omit than to guess.\n` +
+    `${icpTask}\n` +
+    `When you are done searching, end your reply with EXACTLY these line(s) and nothing after:\n` +
+    `EBITDA: <~$amount (from public info) OR ~$amount (stated in thread) OR the single word none>` +
+    (o.icp ? `\nICP_FIT: <Yes or No>, <reason, 5 words or fewer>` : "");
 
   const out = await haikuWithSearch(ask, 800);
   if (!out) return null;
 
-  const ebRaw = pickBlock(out, "EBITDA", []);
-  if (!ebRaw || /^none\.?$/i.test(ebRaw)) return { ebitda: null };
-
+  const ebRaw = pickBlock(out, "EBITDA", o.icp ? ["ICP_FIT"] : []);
   let ebitda: string | null = null;
-  const m = ebRaw.match(/(~?\$[\d][\d.,]*\s?[kmbKMB]?)\s*\(([^)]+)\)/);
-  if (m) {
-    const amt = normalizeAmt(m[1].replace(/\s+/g, ""));
-    const tag = /stated/i.test(m[2]) ? "stated in thread" : "from public info";
-    ebitda = `~${amt} (${tag})`;
-  } else {
-    const a = ebRaw.match(/~?\$[\d][\d.,]*\s?[kmbKMB]?/);
-    if (a) ebitda = `~${normalizeAmt(a[0].replace(/\s+/g, ""))} (from public info)`;
+  if (ebRaw && !/^none\.?$/i.test(ebRaw)) {
+    const m = ebRaw.match(/(~?\$[\d][\d.,]*\s?[kmbKMB]?)\s*\(([^)]+)\)/);
+    if (m) {
+      const amt = normalizeAmt(m[1].replace(/\s+/g, ""));
+      const tag = /stated/i.test(m[2]) ? "stated in thread" : "from public info";
+      ebitda = `~${amt} (${tag})`;
+    } else {
+      const a = ebRaw.match(/~?\$[\d][\d.,]*\s?[kmbKMB]?/);
+      if (a) ebitda = `~${normalizeAmt(a[0].replace(/\s+/g, ""))} (from public info)`;
+    }
   }
-  return { ebitda };
+
+  // pickBlock's "none/unknown/n/a" guard doesn't false-positive on a genuine "No, ..." answer
+  // (it matches the literal word "none", not "no"), so it's safe to reuse here.
+  const icpRaw = o.icp ? pickBlock(out, "ICP_FIT", []) : null;
+  const icpFit = icpRaw ? formatIcpFit(icpRaw) : null;
+
+  return { ebitda, icpFit };
 }
 
 /** Returns the extra context lines to append to the meeting Slack message. */
@@ -320,6 +337,7 @@ export async function buildMeetingContext(input: MeetingContextInput): Promise<s
       researchLead({ company: companyForLookup, domains, domain, leadSaid, scraped, icp: input.icpDescription, phone: input.phone }),
     ]);
     if (context) lines.push(`Context: ${context}`);
+    if (input.icpFitCheck && r?.icpFit) lines.push(`ICP fit: ${r.icpFit}`);
     if (r?.ebitda) lines.push(`EBITDA: ${r.ebitda}`);
   } else {
     // Non-M&A workspaces: just what the company does.
