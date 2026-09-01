@@ -75,6 +75,13 @@ export interface MeetingConfig {
   iclosedEventIds?: number[];
   /** Concise ICP definition — drives the one-line ICP-fit judgment in the Slack message. */
   icpDescription?: string;
+  /**
+   * Fillout only. Fillout has no documented cancellation webhook — a lead cancelling via
+   * their `rescheduleOrCancelUrl` fires nothing. `lib/fillout-cancellation-sweep.ts` polls
+   * GET /forms/{formId}/submissions on an interval and diffs against `calls` rows still
+   * `status='scheduled'` for this workspace to detect cancellations after the fact.
+   */
+  fillout?: { formId: string; apiKeyEnvVar: string };
 }
 
 // Keyed by our workspace slug (replies.workspace_slug). Channel ids verified live via
@@ -181,6 +188,7 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     slackChannel: "C0BT77Z29BN",                 // withpebble meetings channel (private)
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
     icpDescription: "Beauty/health/wellness brands selling physical goods (not medspas or services) doing $1M+ annual revenue, 5-100 employees, selling to US customers. Retail presence is fine. TikTok Shop presence is a plus but not required. Also relevant: consumer apps with $50K+ MRR. NOT a fit: services/medspas, non-physical-goods brands outside consumer apps, sub-$1M revenue, or not selling to the US.",
+    fillout: { formId: "pvazF8omZwus", apiKeyEnvVar: "WITHPEBBLE_FILLOUT_API_KEY" },
   },
   // Simple template. Onboarded 2026-08-27, still pre-kickoff (client file is a skeleton,
   // no ICP filled in yet). Airtable base/table confirmed live via API. Calendly org

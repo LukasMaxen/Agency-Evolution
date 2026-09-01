@@ -264,4 +264,24 @@ export async function register() {
   setInterval(() => void runWarmupHistorySync("periodic"), 24 * 60 * 60_000);
 
   console.log("[instrumentation] sender warmup history sync started, 24h interval");
+
+  // ── 10. Fillout cancellation sweep ────────────────────────────────────────
+  // Fillout (WithPebble's booking tool) has no cancellation webhook — see
+  // lib/fillout-cancellation-sweep.ts. Polls GET /forms/{formId}/submissions and diffs
+  // against `calls` rows still status='scheduled' to catch cancellations after the fact.
+  const { sweepFilloutCancellations } = await import("@/lib/fillout-cancellation-sweep");
+
+  setTimeout(() => {
+    sweepFilloutCancellations().catch(err =>
+      console.error("[instrumentation] initial fillout cancellation sweep failed:", err)
+    );
+  }, 60_000);
+
+  setInterval(() => {
+    sweepFilloutCancellations().catch(err =>
+      console.error("[instrumentation] periodic fillout cancellation sweep failed:", err)
+    );
+  }, 15 * 60_000);
+
+  console.log("[instrumentation] fillout cancellation sweep started, 15min interval");
 }
