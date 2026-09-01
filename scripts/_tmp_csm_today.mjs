@@ -32,7 +32,7 @@ const AIRTABLE = {
   "internal-campaigns": { base: "app9rWZ2iE4eWECEN", table: "tblCATnaPTV9fb2Ab", field: "Meeting booked date" },
   "sonaro-ai": { base: "appNMGCTwXVOLLzmA", table: "tblTnxArHDVMNOxSI", field: "Meeting Booked Date" },
   "statera-capital": { base: "app0EI3nqT3ScUJOf", table: "tblTnxArHDVMNOxSI", field: "Meeting Booked Date" },
-  "withpebble": { base: "appjEe12UdVsRX10y", table: "tblTnxArHDVMNOxSI", field: "Meeting booked date" },
+  "with-pebble": { base: "appjEe12UdVsRX10y", table: "tblTnxArHDVMNOxSI", field: "Meeting booked date" },
 };
 
 const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
