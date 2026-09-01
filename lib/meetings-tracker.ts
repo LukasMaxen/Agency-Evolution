@@ -76,6 +76,16 @@ export interface MeetingConfig {
   /** Concise ICP definition — drives the one-line ICP-fit judgment in the Slack message. */
   icpDescription?: string;
   /**
+   * When true (with icpDescription set), the Slack message gets an "ICP fit: Yes/No, <=5
+   * word reason" line, researched the same way as EBITDA (web search + the lead's own
+   * correspondence). Off by default even when icpDescription is set, so turning this on
+   * for a new client never changes the existing M&A workspaces' card format (Larsen,
+   * Acceler8rs, internal-campaigns use icpDescription only to disambiguate the company for
+   * the EBITDA lookup, not to show a fit verdict). Added 2026-09-01 for WithPebble and AEO
+   * Consulting per Kasper.
+   */
+  showIcpFit?: boolean;
+  /**
    * Fillout only. Fillout has no documented cancellation webhook — a lead cancelling via
    * their `rescheduleOrCancelUrl` fires nothing. `lib/fillout-cancellation-sweep.ts` polls
    * GET /forms/{formId}/submissions on an interval and diffs against `calls` rows still
@@ -188,6 +198,7 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     slackChannel: "C0BT77Z29BN",                 // withpebble meetings channel (private)
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
     icpDescription: "Beauty/health/wellness brands selling physical goods (not medspas or services) doing $1M+ annual revenue, 5-100 employees, selling to US customers. Retail presence is fine. TikTok Shop presence is a plus but not required. Also relevant: consumer apps with $50K+ MRR. NOT a fit: services/medspas, non-physical-goods brands outside consumer apps, sub-$1M revenue, or not selling to the US.",
+    showIcpFit: true, // added 2026-09-01 per Kasper
     fillout: { formId: "pvazF8omZwus", apiKeyEnvVar: "WITHPEBBLE_FILLOUT_API_KEY" },
   },
   // Simple template. Onboarded 2026-08-27, still pre-kickoff (client file is a skeleton,
@@ -201,6 +212,8 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     airtableTableId: "tblTnxArHDVMNOxSI",        // "Meetings"
     slackChannel: "C0BSZGJPFTP",                 // austin heaton / AEO Consulting meetings channel (private)
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
+    icpDescription: "AI companies, marketing agencies, and other AI service providers, i.e. peer/adjacent companies in the AI and marketing-agency space, who would want to be recommended by AI models (ChatGPT, Claude, Gemini) when their own buyers are researching. NOT a fit: companies with no plausible reason to care about AI-driven recommendations, e.g. purely local/offline businesses or industries with no AI-model visibility angle at all.",
+    showIcpFit: true, // added 2026-09-01 per Kasper
   },
 };
 
@@ -410,13 +423,13 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
       }
       const created = await airtable("POST", tbl, { records: [{ fields: rec }], typecast: true });
       const cf = created?.records?.[0]?.fields;
-      const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, revenue: cfg.slackExtra?.revenue ? cf?.[cfg.slackExtra.revenue] : undefined, phone: i.phone });
+      const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, icpFitCheck: cfg.showIcpFit, revenue: cfg.slackExtra?.revenue ? cf?.[cfg.slackExtra.revenue] : undefined, phone: i.phone });
       await postSlack(cfg.slackChannel, slackMessage("New meeting booked", i, cf, cfg, extra, threadUrl));
       console.log(`[meetings-tracker] created + notified (${input.workspaceSlug}) ${email}`);
     } else {
       // 2b. Reschedule -> update meeting date only + "Meeting rescheduled".
       await airtable("PATCH", tbl, { records: [{ id: existing.id, fields: { [cfg.fields.meetingDate]: isoDate(input.meetingStartISO) } }], typecast: true });
-      const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, revenue: cfg.slackExtra?.revenue ? existing.fields?.[cfg.slackExtra.revenue] : undefined, phone: i.phone });
+      const extra = await buildMeetingContext({ workspaceSlug: input.workspaceSlug, leadEmail: email, icpDescription: cfg.icpDescription, icpFitCheck: cfg.showIcpFit, revenue: cfg.slackExtra?.revenue ? existing.fields?.[cfg.slackExtra.revenue] : undefined, phone: i.phone });
       await postSlack(cfg.slackChannel, slackMessage("Meeting rescheduled", i, existing.fields, cfg, extra, threadUrl));
       console.log(`[meetings-tracker] updated + notified reschedule (${input.workspaceSlug}) ${email}`);
     }

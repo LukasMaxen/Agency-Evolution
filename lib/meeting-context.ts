@@ -23,6 +23,14 @@ export interface MeetingContextInput {
   leadEmail: string;
   /** Concise ICP / buyer definition for this workspace. Present only for M&A workspaces. */
   icpDescription?: string;
+  /**
+   * When true (with icpDescription set), adds an "ICP fit: Yes/No, <=5 word reason" line,
+   * researched in the same web-search call as EBITDA. Kept separate from icpDescription's
+   * presence so turning this on for WithPebble/AEO Consulting doesn't change the Larsen/
+   * Acceler8rs/internal-campaigns card format, which only uses icpDescription to help the
+   * EBITDA lookup disambiguate the company.
+   */
+  icpFitCheck?: boolean;
   /** Revenue value if we have it (from the Airtable record). */
   revenue?: string | number | null;
   /** Booking phone — its country code helps the research disambiguate the company. */
@@ -159,7 +167,19 @@ async function haikuWithSearch(prompt: string, maxTokens: number): Promise<strin
   }
 }
 
-interface LeadResearch { ebitda: string | null; }
+interface LeadResearch { ebitda: string | null; icpFit: string | null; }
+
+// Formats a raw "Yes, some reason here" / "No, some reason" model answer into a clean
+// "Yes, <=5 words>" line -- enforced in code since a max-5-words instruction alone isn't
+// reliable. Returns null if the answer doesn't parse as a clear Yes/No.
+function formatIcpFit(raw: string): string | null {
+  const m = raw.match(/^(Yes|No)\b[,.\s]*(.*)$/i);
+  if (!m) return null;
+  const verdict = /^yes/i.test(m[1]) ? "Yes" : "No";
+  const reason = m[2].trim().replace(/^[-,.\s]+|[.\s]+$/g, "");
+  const words = reason.split(/\s+/).filter(Boolean).slice(0, 5).join(" ");
+  return words ? `${verdict}, ${words}` : verdict;
+}
 
 // Pull one labelled value out of a possibly-verbose web-search answer. Takes the LAST
 // occurrence of the label (so search narration earlier in the text is ignored) and cuts it
