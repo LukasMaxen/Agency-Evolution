@@ -341,3 +341,23 @@ Sonaro AI charges a 15% performance fee on each recovered appointment that is co
 1) Never mention or imply a free trial — Sonaro AI does not offer any free trial under any circumstances. 2) When addressing CRM requirements, always specify that the CRM must have API integrations. 3) When addressing GDPR/KVKK compliance, state that Sonaro AI operates fully in accordance with GDPR and KVKK requirements. 4) When explaining the performance fee structure, elaborate clearly: we only take a percentage of the appointments that are actually booked through our system — no flat fee, no upfront cost.
 
 _Reviewer notes: We do not offer any sort of free trial ever so make sure that is saved in your memory. Also you should still say that for CRM requirements we need the CRM to have API integrations. We should say that we do everything according to GDPR, KVKK requirements. Elaborate a little bit on the performance fee, saying that we only take a percentage of the appointments that get booked through our system_
+
+### 2026-09-01: Performance fee must be elaborated — percentage on booked appointments only, no flat fee, no upfront cost
+
+## Offer & Pricing Rules
+
+When the fee structure comes up (or needs to be stated proactively), always describe it as: a pure performance basis with no flat fee and no upfront cost. We take a percentage only on appointments that are actually booked through our system. Never summarise it as simply 'performance-based' without this detail. The lead must understand they pay nothing unless results are delivered.
+
+### 2026-09-01: Free trial — never offer or imply one
+
+## Hard Content Rules
+
+Never mention, offer, or imply a free trial of any kind. Sonaro AI does not offer free trials. If a lead asks about trying before committing, redirect to the performance fee model (no upfront cost, pay only on results) as the low-risk entry point.
+
+### 2026-09-01: CRM integration requirement and compliance framing must always be stated explicitly
+
+## Technical & Compliance Talking Points
+
+When CRM is raised, always state: we require the CRM to have API integrations in place to connect with our system.
+
+When compliance is raised, always state: we operate fully in line with GDPR and KVKK requirements, including patient consent frameworks, with EU data storage standard across all deployments. Do not generalise to 'all applicable regulations' — name GDPR and KVKK explicitly.
