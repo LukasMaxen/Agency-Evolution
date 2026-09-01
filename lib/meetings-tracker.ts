@@ -26,7 +26,7 @@ const FALLBACK_SLACK_CHANNEL = process.env.MEETINGS_FALLBACK_CHANNEL ?? "C05SEP3
 
 export interface MeetingConfig {
   /** Booking tool whose webhook fires for this client. */
-  source: "calendly" | "iclosed";
+  source: "calendly" | "iclosed" | "fillout";
   airtableBaseId: string;
   airtableTableId: string;
   /** Slack channel id for this client's "-meetings" channel. */
@@ -171,12 +171,11 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
   },
   // Simple template. Onboarded 2026-08-27, still pre-kickoff (client file is a skeleton
   // beyond ICP, no campaign/reply content filled in yet). Airtable base/table confirmed
-  // live via API. Calendly org/token not connected yet (Kasper to provide) — until then
-  // bookings for this workspace fall through to the "no config" branch only if the slug
-  // itself is wrong; once the client's Calendly webhook is registered with the matching
-  // ?ws= or lead-email match, this fires.
+  // live via API. WithPebble books via a native FILLOUT scheduling block (form
+  // pvazF8omZwus, "Strategy Call"), not Calendly — the booking_link in clients/with-pebble.md
+  // is a Fillout form, and its Calendly link is "TBD"/unused. See app/api/webhook/fillout/route.ts.
   "with-pebble": {
-    source: "calendly",
+    source: "fillout",
     airtableBaseId: "appjEe12UdVsRX10y",         // "WithPebble"
     airtableTableId: "tblTnxArHDVMNOxSI",        // "Meetings"
     slackChannel: "C0BT77Z29BN",                 // withpebble meetings channel (private)
