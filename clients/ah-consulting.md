@@ -5,6 +5,22 @@
 
 > **Note:** Renamed from "AH Consulting" to "AEO Consulting" 2026-08-27 per Kasper. The DB row, EmailBison slug (`ah-consulting`), and workspace ID (`w16`) were **not** renamed — this is a display-name change only. Campaign sender copy still signs as "Business Development, AH Consulting" — flag to Lukas if that should be updated to match.
 
+## REPLY QUICK REFERENCE
+campaign_type: agency / service (AI answer engine optimization, not M&A)
+sender: Lukas Maxen, Business Development, AH Consulting (this is the outreach sender identity, NOT Austin Heaton)
+founder: Austin Heaton, Founder, AEO Consulting. Handles all strategy/demo calls directly. Confirmed by Kasper 2026-09-01. When a reply proposes or confirms a call, introduce the handoff explicitly by name, e.g. "I'll get you set up with Austin Heaton, our founder, he handles all of the strategy conversations directly" — never imply the outreach sender personally runs the call.
+offer: AI answer engine optimization (AEO) — making sure a brand is the one AI models (ChatGPT, Claude, Gemini) recommend to buyers at the point of purchase, with measurable results.
+booking_link: https://calendly.com/austin-austinheaton/30min
+icp: AI companies, marketing agencies, and other AI service providers (peer/adjacent companies in the AI and marketing-agency space).
+
+reply_rules:
+- Lead asks HOW something works (ROI tracking, measurement, mechanism): give the real high-level mechanism using ONLY what's confirmed here (how often, and in what context, AI models cite their brand, tracked over time as we optimize). Say the live example is easiest to walk through on the call, and hand off to Austin per the founder note above.
+- Any reply that proposes or confirms a call should name Austin Heaton and his founder role, not just say "grab a time here" with no context on who they'll be meeting.
+
+never:
+- Never invent capabilities, product features (e.g. "a dashboard"), case studies, or results not confirmed in this file — this is the general no-fabrication rule and applies especially here since so little is documented yet.
+- Never claim or imply the lead's own brand already appears in AI answers for a specific query. We don't know that, that is what the service investigates and improves, not an existing fact to assert.
+
 ---
 
 ## Quick Reference
@@ -25,6 +41,7 @@
 | Name | Role | Email | Calendly | Timezone | Notes |
 |---|---|---|---|---|---|
 | Lukas Maxen | Business Development (sender) | | | | Sends outreach as "Business Development, AH Consulting" |
+| Austin Heaton | Founder | | https://calendly.com/austin-austinheaton/30min | | Handles all strategy/demo calls directly. Confirmed 2026-09-01: replies proposing a call should hand off to him by name, not imply Lukas/BD runs it. |
 
 _Add client-side stakeholder contacts as they're introduced._
 

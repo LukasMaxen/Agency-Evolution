@@ -19,6 +19,7 @@ When a new client is signed, run through every step below in order. Each step ha
 **AI action:** Copy `clients/_template.md` → `clients/[slug].md`
 
 Fill in during or immediately after kickoff call:
+- [ ] `## REPLY QUICK REFERENCE` section at the top, filled in (not left as placeholder text). This exact heading is required — the auto-reply drafter looks for it by name and silently degrades to a full-file fallback without it, which has caused bad drafts before (see [[project_hook_vs_exit_signals_fabrication]]). Do not skip this even for a "simple" client.
 - [ ] Client name + slug
 - [ ] Primary contact name, role, email
 - [ ] Slack channel

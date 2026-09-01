@@ -142,7 +142,17 @@ function resolveClientSlug(workspaceSlug: string, campaign: string | null | unde
 function extractQuickReference(clientFileContent: string): string {
   const marker = "## REPLY QUICK REFERENCE";
   const start = clientFileContent.indexOf(marker);
-  if (start === -1) return clientFileContent.slice(0, 2000); // fallback: first 2000 chars
+  if (start === -1) {
+    // No dedicated quick-reference block in this client file — a blind first-N-chars
+    // slice silently cut off mid-sentence before the Reply Guidelines section for
+    // with-pebble.md and ah-consulting.md (2026-09-01 incident: VoltaWell + Thriwin
+    // drafts both missed client rules that existed in the file but past the cutoff).
+    // Every client file onboarded via SKILL_OnboardClient.md should get an explicit
+    // "## REPLY QUICK REFERENCE" section — this is a degraded fallback, not a fix,
+    // so pass the whole file rather than guess where the important part ends.
+    console.warn(`[auto-reply] Client file has no "${marker}" section — passing full file as a fallback. Add the section to this client file.`);
+    return clientFileContent;
+  }
 
   // Find the next ## heading after the quick reference
   const rest = clientFileContent.slice(start + marker.length);

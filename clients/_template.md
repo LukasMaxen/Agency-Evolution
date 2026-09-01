@@ -3,6 +3,23 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+
+**Required.** This exact heading is what the auto-reply drafter (app/api/auto-reply/processor.ts) looks for. Without it, the drafter falls back to the whole file, which works but is noisier and less reliable than a condensed block — fill this in properly rather than leaving it out. Keep it short and directive, this is what actually reaches the model at draft time.
+
+campaign_type: [e.g. "M&A sell-side", "agency / service (not M&A)", "buy-side mandate"]
+sender: [Name, Role, Client] — note if outreach sender is a role/persona distinct from who actually takes calls (e.g. a founder who handles all strategy calls, per [[project_hook_vs_exit_signals_fabrication]])
+offer: [one or two sentences — what we're selling, the concrete first step offered]
+booking_link: [the exact link used in sends, verified real, not a placeholder]
+icp: [who qualifies]
+
+reply_rules:
+- [Specific instruction for a recurring question pattern, e.g. "Lead asks HOW it works: answer with X, using only confirmed facts."]
+
+never:
+- [Never invent capabilities/results/case studies not confirmed in this file — always include this one]
+- [Any other hard client-specific bans]
+
 ---
 
 ## Quick Reference

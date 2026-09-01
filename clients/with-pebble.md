@@ -3,6 +3,23 @@
 > This is the single source of truth for everything about this client.
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
+## REPLY QUICK REFERENCE
+campaign_type: agency / service (creator/UGC content network, not M&A)
+sender: Lukas Maxen, Business Development, WithPebble
+offer: Daily creator/UGC content posted across a creator network, driving real organic reach and purchase intent for DTC/ecommerce brands, without added ad spend. We build a custom content concept for the prospect's brand first, before any commitment.
+booking_link: https://withpebble.fillout.com/strategy-call
+icp: Beauty/health/wellness brands selling physical goods (not medspa/services) to US customers, $1M+ revenue, 5-100 employees. Secondary ICP: consumer apps with $50K+ MRR.
+proof_point: 40M organic views in 30 days for a recent beauty brand. NEVER name the brand, anonymous reference only, see [[feedback_never_name_sell_side_company]] / [[feedback_larsen_case_study_ban]].
+
+reply_rules:
+- Lead asks "why me" / "what would the concept be" / "how does this work for my brand": answer with the actual mechanism (match creators to their audience, build a content angle around a real product detail from their site), using ONE concrete, verifiable detail about their specific product, not a generic category label like "science-backed" or "consumable repeat-purchase model". If LEAD COMPANY CONTEXT only gives generic category-level signals and no specific named feature, keep the answer to the general mechanism and skip the personalization rather than inventing one.
+- Lead agrees / says interested: offer the free custom concept, then the booking link.
+
+never:
+- Never guarantee a specific view count, engagement level, or sales result for a new prospect's brand.
+- Never name the beauty brand behind the 40M-views case study.
+- Never invent a reason a creator audience would want the lead's product (e.g. "an audience that is actively looking for X") unless it is directly and plainly supported by a specific fact about their product, not a category assumption.
+
 ---
 
 ## Quick Reference
