@@ -2050,6 +2050,34 @@ ${messageText.slice(0, 8000)}`;
     replyWithCreds.preferred_recipient_name = result.recipient_name ?? null;
   }
 
+  // ── Greeting/recipient consistency backstop ──────────────────────────────────
+  // Claude can correctly set recipient_email to someone other than the lead on
+  // record (a forward handed off mid-thread, e.g. Paul -> Frederick) while still
+  // greeting the drafted body by the ORIGINAL lead's first name, because the
+  // detectAlternateSender hint that catches these mid-thread handoffs on the FIRST
+  // reply where they're detected is a soft "check whether to set recipient_email"
+  // suggestion, not the hard "you MUST address X, NOT Y" directive that only fires
+  // once preferred_recipient_email is already known from an earlier reply on the
+  // same thread. Net effect: routing was right, the email text still said "Hi
+  // Paul" (WithPebble / Frederick Felman, 2026-09-02). Deterministic fix, mirrors
+  // the Referral-CC backstop above but for the inverse mismatch (body text stale,
+  // not recipient_email stale).
+  if (
+    result.recipient_email &&
+    result.reply_body &&
+    result.recipient_email.toLowerCase() !== (reply.lead_email ?? "").toLowerCase()
+  ) {
+    const leadFirst = (reply.lead_name ?? "").trim().split(/\s+/)[0];
+    const recipFirst = (result.recipient_name ?? "").trim().split(/\s+/)[0];
+    if (leadFirst && recipFirst && leadFirst.toLowerCase() !== recipFirst.toLowerCase()) {
+      const greetRe = new RegExp(`^(\\s*(?:hi|hello|hey|dear)\\s+)${leadFirst}\\b`, "i");
+      if (greetRe.test(result.reply_body)) {
+        result.reply_body = result.reply_body.replace(greetRe, `$1${recipFirst}`);
+        console.log(`[auto-reply] Greeting backstop: rewrote "${leadFirst}" -> "${recipFirst}" for ${replyId} (recipient override to ${result.recipient_email})`);
+      }
+    }
+  }
+
   // ── Deactivated case study backstop ──────────────────────────────────────────
   // Last line of defence: if a drafted body still references a banned case study
   // (stale client-file line, recycled example, or model hallucination slipped
