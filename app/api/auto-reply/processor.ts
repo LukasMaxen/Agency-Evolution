@@ -937,7 +937,7 @@ async function forwardToClient(reply: Record<string, any>, forwardTo: string, cc
   const { email_bison_instance_url: url, email_bison_api_key: key, email_bison_reply_id: ebId, sender_email_id: senderId } = reply;
   if (!url || !key || !ebId || !senderId) return false;
 
-  const ebLink = `${url}/inbox/replies/${reply.id}`;
+  const ebLink = `${url}/inbox/replies/${ebId}`;
   const leadLine = [reply.lead_name, reply.lead_company].filter(Boolean).join(" at ") || reply.lead_email;
   const body = `FYI, new inbound reply from ${leadLine}.\n\nOpen in EmailBison to read the full thread and respond.\n\n${ebLink}`;
   const linkify = (t: string) => t
@@ -993,7 +993,7 @@ async function postManual(workspaceSlug: string, replyId: string | null, payload
 }
 
 function buildCard(header: string, workspaceSlug: string, reply: Record<string, any>, instanceUrl: string, extra?: { reason?: string; intent?: string; sendingTo?: string }): object[] {
-  const ebLink = reply.id && instanceUrl ? `${instanceUrl}/inbox/replies/${reply.id}` : null;
+  const ebLink = reply.email_bison_reply_id && instanceUrl ? `${instanceUrl}/inbox/replies/${reply.email_bison_reply_id}` : null;
   const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(", ");
   const blocks: object[] = [
     { type: "header", text: { type: "plain_text", text: header, emoji: true } },
@@ -1016,7 +1016,7 @@ async function postApprovalCard(opts: {
   workspaceSlug: string; reply: Record<string, any>; instanceUrl: string; result: AutoReplyResult;
 }): Promise<string | null> {
   const { workspaceSlug, reply, instanceUrl, result } = opts;
-  const ebLink = reply.id && instanceUrl ? `${instanceUrl}/inbox/replies/${reply.id}` : null;
+  const ebLink = reply.email_bison_reply_id && instanceUrl ? `${instanceUrl}/inbox/replies/${reply.email_bison_reply_id}` : null;
   const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(", ");
 
   // Prefer Claude's explicit override, fall back to the webhook-detected one.
