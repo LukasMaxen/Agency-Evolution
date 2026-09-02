@@ -264,15 +264,26 @@ function emailDomain(email: string): string | undefined {
   return d && !FREEMAIL.has(d) ? d : undefined;
 }
 
-// The EmailBison inbox link for this workspace. EmailBison's inbox is a single-page app
-// with no per-thread routing (confirmed 2026-09-03), so this can only point at the inbox
-// root, not the specific lead's thread. Best-effort: returns null if the workspace has no
-// instance URL on file.
-async function getThreadUrl(workspaceSlug: string): Promise<string | null> {
+// The EmailBison "View in inbox" link for this lead's thread in this workspace, so the
+// reader can jump straight to the conversation instead of searching for it. Best-effort:
+// requires both the workspace's instance URL (workspaces table) and a matched reply row's
+// EmailBison UUID (email_bison_id — NOT email_bison_reply_id, a different numeric id that
+// 404s) — returns null if either is missing.
+async function getThreadUrl(workspaceSlug: string, leadEmail: string): Promise<string | null> {
   try {
-    const ws = await pool.query(`SELECT email_bison_instance_url FROM workspaces WHERE slug = $1 LIMIT 1`, [workspaceSlug]);
+    const email = leadEmail.toLowerCase();
+    const [ws, rep] = await Promise.all([
+      pool.query(`SELECT email_bison_instance_url FROM workspaces WHERE slug = $1 LIMIT 1`, [workspaceSlug]),
+      pool.query(
+        `SELECT email_bison_id FROM replies
+          WHERE workspace_slug = $1 AND (LOWER(lead_email) = $2 OR LOWER(preferred_recipient_email) = $2)
+          ORDER BY received_at DESC LIMIT 1`,
+        [workspaceSlug, email],
+      ),
+    ]);
     const instanceUrl = ws.rows[0]?.email_bison_instance_url;
-    return instanceUrl ? buildEmailBisonUrl(instanceUrl) : null;
+    const uuid = rep.rows[0]?.email_bison_id;
+    return instanceUrl && uuid ? buildEmailBisonUrl(instanceUrl, uuid) : null;
   } catch {
     return null;
   }
@@ -339,7 +350,7 @@ export async function trackCancellation(input: CancellationInput): Promise<boole
   const cfg = MEETING_CONFIG[input.workspaceSlug];
   const channel = cfg?.slackChannel ?? FALLBACK_SLACK_CHANNEL;
   try {
-    const threadUrl = await getThreadUrl(input.workspaceSlug);
+    const threadUrl = await getThreadUrl(input.workspaceSlug, input.leadEmail);
     await postSlack(channel, cancellationMessage(input, threadUrl));
     console.log(`[meetings-tracker] posted cancellation (${input.workspaceSlug}) ${input.leadEmail}`);
     return true;
@@ -396,7 +407,7 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
     const formula = `LOWER({${cfg.fields.email}}) = LOWER("${email.replace(/"/g, '\\"')}")`;
     const found = await airtable("GET", `${tbl}?maxRecords=1&${fieldsQ}&filterByFormula=${encodeURIComponent(formula)}`);
     const existing = found?.records?.[0];
-    const threadUrl = await getThreadUrl(input.workspaceSlug);
+    const threadUrl = await getThreadUrl(input.workspaceSlug, email);
 
     if (!existing) {
       // 2a. New meeting -> create + "New meeting booked".

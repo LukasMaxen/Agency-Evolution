@@ -937,9 +937,9 @@ async function forwardToClient(reply: Record<string, any>, forwardTo: string, cc
   const { email_bison_instance_url: url, email_bison_api_key: key, email_bison_reply_id: ebId, sender_email_id: senderId } = reply;
   if (!url || !key || !ebId || !senderId) return false;
 
-  // EmailBison's inbox is a single-page app with no per-thread routing, so this can only
-  // point at the inbox root, not this specific reply (confirmed 2026-09-03).
-  const ebLink = `${url}/inbox`;
+  // Web UI deep link needs the EB *UUID* (email_bison_id), not the numeric ebId used above
+  // for the send API — that numeric id 404s in the inbox route.
+  const ebLink = `${url}/inbox/replies/${reply.email_bison_id}`;
   const leadLine = [reply.lead_name, reply.lead_company].filter(Boolean).join(" at ") || reply.lead_email;
   const body = `FYI, new inbound reply from ${leadLine}.\n\nOpen in EmailBison to read the full thread and respond.\n\n${ebLink}`;
   const linkify = (t: string) => t
@@ -995,9 +995,9 @@ async function postManual(workspaceSlug: string, replyId: string | null, payload
 }
 
 function buildCard(header: string, workspaceSlug: string, reply: Record<string, any>, instanceUrl: string, extra?: { reason?: string; intent?: string; sendingTo?: string }): object[] {
-  // EmailBison's inbox is a single-page app with no per-thread routing, so this can only
-  // point at the inbox root, not this specific reply (confirmed 2026-09-03).
-  const ebLink = instanceUrl ? `${instanceUrl}/inbox` : null;
+  // Needs the EB UUID (email_bison_id) — email_bison_reply_id is a different, numeric
+  // EB id that looks plausible but 404s in the inbox route.
+  const ebLink = reply.email_bison_id && instanceUrl ? `${instanceUrl}/inbox/replies/${reply.email_bison_id}` : null;
   const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(", ");
   const blocks: object[] = [
     { type: "header", text: { type: "plain_text", text: header, emoji: true } },
@@ -1020,9 +1020,9 @@ async function postApprovalCard(opts: {
   workspaceSlug: string; reply: Record<string, any>; instanceUrl: string; result: AutoReplyResult;
 }): Promise<string | null> {
   const { workspaceSlug, reply, instanceUrl, result } = opts;
-  // EmailBison's inbox is a single-page app with no per-thread routing, so this can only
-  // point at the inbox root, not this specific reply (confirmed 2026-09-03).
-  const ebLink = instanceUrl ? `${instanceUrl}/inbox` : null;
+  // Needs the EB UUID (email_bison_id) — email_bison_reply_id is a different, numeric
+  // EB id that looks plausible but 404s in the inbox route.
+  const ebLink = reply.email_bison_id && instanceUrl ? `${instanceUrl}/inbox/replies/${reply.email_bison_id}` : null;
   const leadLine = [reply.lead_name, reply.lead_email].filter(Boolean).join(", ");
 
   // Prefer Claude's explicit override, fall back to the webhook-detected one.
