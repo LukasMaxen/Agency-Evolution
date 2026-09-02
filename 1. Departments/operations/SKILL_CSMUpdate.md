@@ -188,14 +188,12 @@ WHERE (
 GROUP BY c.workspace_slug;
 ```
 
-If the `internal-campaigns` count from this query is greater than 0, add an `Observation:` line to BOTH affected blocks (not just one, so the split reads clearly wherever someone looks first):
+Let X = the `internal-campaigns` count from this query (Austin-attributed bookings tracked under Internal Campaigns).
 
-- Under **AH Consulting**: `Note: X/Y Austin-themed meetings this period landed under Internal Campaigns (see that block), true Austin total is Y.`
-- Under **Internal Campaigns**: `Note: X of these meetings were from Austin-themed campaigns (AustinHeaton AE/AEO), not organic Internal Campaigns leads.`
+- Under **Internal Campaigns**, only if that block's Meetings Booked > 0 for the period: add a single `Note:` line (no `Observation:` header, no divider) stating the split, e.g. `Note: X Austin Heaton, Y Internal Campaigns.` where Y = Meetings Booked − X (do not show a negative Y — if X ≥ the block's own Meetings Booked count, the two sources disagree on the day boundary; say so in one short clause instead of forcing a split, e.g. `Note: X Austin Heaton meetings tracked this period (Airtable shows Y total booked-date matches, likely a timing offset).`).
+- Under **AH Consulting**: only if X > 0, add one brief `Note:` line flagging the possibility, e.g. `Note: additional Austin meetings may be booked under Internal Campaigns, real count is Y.` where Y = X + the `ah-consulting` count from the query.
 
-Where X = the `internal-campaigns` count from the query and Y = X + the `ah-consulting` count. Do NOT move the meeting between the two per-client numbers themselves (each still reports its own real Airtable/EmailBison numbers) — the Observation line is a pointer, not a correction.
-
-If the query returns 0 for `internal-campaigns`, skip the note entirely, don't pad every report with an empty flag.
+If X = 0, skip both notes entirely — don't pad every report with an empty flag. Do NOT move the meeting between the two per-client numbers themselves (each still reports its own real Airtable/EmailBison numbers) — the note is a pointer, not a correction.
 
 ---
 
@@ -216,7 +214,7 @@ The following workspaces exist in the DB but are excluded from every CSM update:
 
 ## Output format
 
-Use this exact per-client block (confirmed 2026-05-14):
+Use this exact per-client block (updated 2026-09-03: no generic `Observation:` line/header — only a specific `Note:` line, and only for clients where the recipe explicitly calls for one, e.g. the AH Consulting / Internal Campaigns Austin split below):
 
 ```
 [Client Name]:
@@ -225,8 +223,19 @@ Total Replies: XX
 Reply Rate: X,XX%
 Interested Replies: X - XX,XX%
 Meetings Booked: X - XX,XX%
+________________________________________
+```
 
-Observation:
+With a note (only when the recipe calls for one on this client):
+
+```
+[Client Name]:
+Emails Sent: X,XXX
+Total Replies: XX
+Reply Rate: X,XX%
+Interested Replies: X - XX,XX%
+Meetings Booked: X - XX,XX%
+Note: <brief one-line note>
 ________________________________________
 ```
 
@@ -266,8 +275,8 @@ When asked for a CSM update, do this in order:
 2. **Load workspace creds.** Run the SQL above against the `workspaces` table to get every client's `slug`, `email_bison_instance_url`, and `email_bison_api_key`.
 3. **For each workspace, fetch the stats.** Call `/api/workspaces/v1.1/stats` with the date window. Extract `emails_sent`, `unique_replies_per_contact`, `interested`.
 4. **For each workspace, fetch meetings.** Call Airtable with that client's base ID, table ID, and field name (from the Airtable meetings config table). Count the records.
-4a. **Run the AH Consulting / Internal Campaigns cross-check** (see that section above). If it flags any meetings, prepare the two Observation notes for step 5.
-5. **Format each per-client block** using the exact template under "Output format". Use comma as decimal separator. TBD% when interested = 0.
+4a. **Run the AH Consulting / Internal Campaigns cross-check** (see that section above). If X > 0, prepare the relevant `Note:` line(s) for step 5 (Internal Campaigns note only if that block has Meetings Booked > 0; AH Consulting note only if X > 0).
+5. **Format each per-client block** using the exact template under "Output format". Use comma as decimal separator. TBD% when interested = 0. No `Observation:` header/divider-only blocks — a client gets a `Note:` line only when the recipe specifically calls for one.
 6. **Compute the totals block** by summing across all clients. Skip Micro Nordic's emails sent (N/A) from the totals.
 7. **Output everything in chat.** Do NOT post to Slack automatically.
 
