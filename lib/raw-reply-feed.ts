@@ -113,7 +113,9 @@ export async function postRawReplyFeed(opts: RawReplyFeedOpts): Promise<void> {
       : resolveCampaignName(opts.workspaceSlug, opts.instanceUrl, opts.apiKey, opts.campaignId),
   ]);
 
-  const viewUrl = `${opts.instanceUrl}/inbox/replies/${opts.emailBisonUuid}`;
+  // EmailBison's inbox is a single-page app with no per-thread routing, so this can only
+  // point at the inbox root, not this specific reply (confirmed 2026-09-03).
+  const viewUrl = `${opts.instanceUrl}/inbox`;
 
   const text = [
     "*Reply received*",
