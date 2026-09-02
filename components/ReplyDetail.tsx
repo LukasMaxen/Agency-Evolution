@@ -94,7 +94,7 @@ export function ReplyDetail({
   
 const workspaces = useWorkspaces();
   const workspace = findWorkspace(workspaces, reply.workspaceId);
-  const emailBisonUrl = buildEmailBisonUrl(workspace.instanceUrl);
+  const emailBisonUrl = buildEmailBisonUrl(workspace.instanceUrl, reply.emailBisonId);
 
   useEffect(() => {
     setReplyText("");

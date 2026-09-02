@@ -22,11 +22,11 @@ export function applyTemplate(body: string, leadName: string): string {
   return body.replace(/{{first_name}}/g, firstName);
 }
 
-// EmailBison's inbox is a single-page app with no per-thread routing: the address bar
-// stays on /inbox no matter which reply is open, so there is no deep link to build.
-// Confirmed 2026-09-03 after /inbox/replies/{id} 404'd for every id shape we tried.
-export function buildEmailBisonUrl(instanceUrl: string): string {
-  return `${instanceUrl}/inbox`;
+// Deep link to a specific reply's thread. Must be built from the reply's EmailBison UUID
+// (DB column email_bison_id) — NOT email_bison_reply_id, which is a different, numeric EB
+// id that looks plausible but 404s here. Confirmed working 2026-09-03 against a live thread.
+export function buildEmailBisonUrl(instanceUrl: string, emailBisonUuid: string): string {
+  return `${instanceUrl}/inbox/replies/${emailBisonUuid}`;
 }
 
 export function clsx(...classes: (string | boolean | undefined | null)[]): string {
