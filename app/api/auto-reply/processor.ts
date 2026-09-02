@@ -1406,6 +1406,17 @@ If no LEAD COMPANY CONTEXT block appears (because the site was unreachable), fal
   // isBustemReply, this flag only controls whether the approval step is skipped.
   const FULLY_AUTOMATED_WORKSPACES = new Set(["larsen-digital", "acceler8rs", "act-capital", "gn-motion"]);
   const isFullyAutomated = FULLY_AUTOMATED_WORKSPACES.has(workspaceSlug);
+
+  // 2026-09-02 (Kasper): WithPebble + AH/AEO Consulting sell a fixed monthly retainer.
+  // A lead who states their own budget is below that (or that they otherwise don't
+  // qualify) has told us a call cannot fix the mismatch — pushing a booking link in
+  // the same reply reads as ignoring what they just said. Caught on a Jeff King
+  // (clubfurniture.com) draft that offered a free concept + "grab a time here" right
+  // after he said he doesn't have the $15K/month.
+  const selfDisqualifyNoCallWorkspaces = new Set(["with-pebble", "ah-consulting"]);
+  const selfDisqualifyNoCallBlock = selfDisqualifyNoCallWorkspaces.has(workspaceSlug)
+    ? `\nSELF-DISQUALIFICATION RULE (this client only): if the lead states, in their own words, a firm reason they don't qualify or can't proceed (a budget figure below what the offer costs, "we don't have $X in our budget", or a stated requirement of theirs we plainly do not meet), do NOT close with a call/booking ask. A call does not fix a budget mismatch, offering one anyway ignores what they just told you. Acknowledge the constraint honestly, answer anything else in their message, and end WITHOUT a CTA to book, no Calendly/Fillout link, no "grab a time here." If genuine, leave the door open with one plain low-pressure line ("if that changes down the road, happy to reconnect") but do not pair it with a booking link in the same reply. This overrides the general "every reply should move toward the call" guidance below for this specific case.\n`
+    : "";
   const manualBookingTriggerBlock = isFullyAutomated
     ? `## MANUAL BOOKING TRIGGER RULE (fully-automated clients only, overrides the CALENDLY AND AVAILABILITY section below)
 
@@ -1511,7 +1522,7 @@ When the lead's message contains a real question or a concern (anything beyond a
    - Permission-ask CTA (E2) or an early "what do you actually do": keep the ask SOFT, Calendly as an option at the end, do not hard-push.
    - They already booked, or proposed a specific time: do NOT ask again. Acknowledge and answer, then confirm. (Specific human-stated times still route to manual per the Calendly rules below.)
    - They deferred ("let me review", "circle back later", "not right now"): acknowledge and answer, then leave the door open ("whenever you are ready, happy to find a time") instead of pushing a slot.
-
+${selfDisqualifyNoCallBlock}
 Triple A is a CONTENT checklist, not a three-paragraph template. Weave it naturally, stay under the 150-word cap, and never output literal "Acknowledge / Answer / Ask" labels. Acknowledge and answer can share a sentence. Do not pad.
 
 ${manualBookingTriggerBlock}## CALENDLY AND AVAILABILITY${isFullyAutomated ? " (superseded above by MANUAL BOOKING TRIGGER RULE for this client)" : ""}
