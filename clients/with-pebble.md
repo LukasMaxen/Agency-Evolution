@@ -6,19 +6,22 @@
 ## REPLY QUICK REFERENCE
 campaign_type: agency / service (creator/UGC content network, not M&A)
 sender: Lukas Maxen, Business Development, WithPebble
-offer: Daily creator/UGC content posted across a creator network, driving real organic reach and purchase intent for DTC/ecommerce brands, without added ad spend. We build a custom content concept for the prospect's brand first, before any commitment.
+offer: Daily creator/UGC content posted across a creator network, driving real organic reach and purchase intent for DTC/ecommerce brands, without added ad spend. Process order (corrected 2026-09-02, do not reverse this): a short call FIRST, then we build a custom content concept based on what we learn there (creator fit, platform mix, angle specific to their brand). No cost or commitment tied to the call itself, and no commitment until they've seen the concept. The concept is a reason to take the call, not something delivered instead of one.
 booking_link: https://withpebble.fillout.com/strategy-call
 icp: Beauty/health/wellness brands selling physical goods (not medspa/services) to US customers, $1M+ revenue, 5-100 employees. Secondary ICP: consumer apps with $50K+ MRR.
 proof_point: 40M organic views in 30 days for a recent beauty brand. NEVER name the brand, anonymous reference only, see [[feedback_never_name_sell_side_company]] / [[feedback_larsen_case_study_ban]].
 
 reply_rules:
 - Lead asks "why me" / "what would the concept be" / "how does this work for my brand": answer with the actual mechanism (match creators to their audience, build a content angle around a real product detail from their site), using ONE concrete, verifiable detail about their specific product, not a generic category label like "science-backed" or "consumable repeat-purchase model". If LEAD COMPANY CONTEXT only gives generic category-level signals and no specific named feature, keep the answer to the general mechanism and skip the personalization rather than inventing one.
-- Lead agrees / says interested: offer the free custom concept, then the booking link.
+- Lead agrees / says interested: the call comes first, the concept is built from it, never say the concept is delivered before or instead of a call. Offer the quick, no-cost/no-commitment call, then the booking link.
+- Lead asks several detailed technical/category-specific sub-questions before booking (e.g. platform mix for their category, creator count/type, compliance approach for their industry, results in their specific vertical): do not manufacture confident-sounding specifics to sound thorough. If it isn't a documented fact here, say plainly that it depends on their specifics and is genuinely more accurate to walk through live, and if there's no proof point in their exact category, say that honestly rather than imply one exists. Naming that you're deferring several of their questions to the call, in one honest line, reads more human than deflecting each one separately without acknowledging it.
 
 never:
 - Never guarantee a specific view count, engagement level, or sales result for a new prospect's brand.
 - Never name the beauty brand behind the 40M-views case study.
 - Never invent a reason a creator audience would want the lead's product (e.g. "an audience that is actively looking for X") unless it is directly and plainly supported by a specific fact about their product, not a category assumption.
+- Never invent category-specific performance claims (e.g. "short-form video tends to drive the strongest purchase intent for supplements"), typical creator-mix numbers, or a compliance/regulatory stance not documented here. These read as confident but are fabricated, defer to the call instead.
+- Never say or imply the custom concept is built before, or as an alternative to, the call. The call always comes first.
 
 ---
 
@@ -51,7 +54,7 @@ _Add client-side stakeholder contacts as they're introduced._
 WithPebble runs a creator/UGC content network that posts daily branded content across creators to drive organic reach and purchase intent for DTC/ecommerce brands, without increasing ad spend.
 
 **What makes them different:**
-Builds a custom content concept for the prospect's brand before any commitment is made. Proof point: 40M organic views in 30 days for a recent beauty brand (keep anonymized, never name the brand per standing rule, see [[feedback_never_name_sell_side_company]]).
+After a short, no-cost/no-commitment call, builds a custom content concept for the prospect's brand before any paid commitment is made — the call comes first, the concept follows from it (corrected 2026-09-02, was previously mis-stated as concept-before-call). Proof point: 40M organic views in 30 days for a recent beauty brand (keep anonymized, never name the brand per standing rule, see [[feedback_never_name_sell_side_company]]).
 
 **What they can never say / promise:**
 No confirmed hard constraints yet. Default: never guarantee a specific view count, engagement level, or sales result for a new prospect's brand. The 40M views example is a past result, not a promise.
@@ -68,7 +71,7 @@ _This client's offer is a marketing service, not M&A — the standard GTM psycho
 Daily creator/UGC content posted across a network, driving real organic purchase intent for the brand without added ad spend.
 
 **What the prospect is asked to do first:**
-Take a quick call. WithPebble offers to build a custom content concept for their brand first, before any commitment.
+Take a quick, no-cost/no-commitment call. WithPebble builds the custom content concept for their brand from that call, not before it — the concept is the reason to take the call, never a substitute for one.
 
 **ICP (confirmed by Kasper, 2026-08-28):**
 - Beauty / health / wellness brands, physical goods only (not a medspa or services business)
@@ -86,7 +89,7 @@ Take a quick call. WithPebble offers to build a custom content concept for their
 **Hooks ranked by effectiveness:**
 1. Organic reach/purchase intent without more ad spend
 2. Concrete proof point (40M views/30 days)
-3. Custom concept built before any commitment — low-risk first step
+3. Custom concept, built from a quick no-cost/no-commitment call — low-risk first step
 
 **Reply Guidelines**
 
@@ -112,7 +115,7 @@ Take a quick call. WithPebble offers to build a custom content concept for their
 **Calendly link:** TBD
 
 #### Offer
-Same as above — creator/UGC network driving organic views and purchase intent, custom concept built first.
+Same as above — creator/UGC network driving organic views and purchase intent, quick call first, custom concept built from that call.
 
 #### Target Audience (ICP)
 Same as above — beauty/health/wellness physical-goods brands, $1M+ revenue, 5-100 employees, selling to US. Also: consumer apps with $50K+ MRR.
