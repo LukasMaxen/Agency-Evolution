@@ -170,6 +170,35 @@ As of 2026-08-05, "Acceler8rs" is retired as a separate brand. Larsen Digital no
 
 ---
 
+## AH Consulting / Internal Campaigns — Austin-themed campaigns split across two workspaces
+
+Lukas runs "AustinHeaton"-branded campaigns (seen as `AE Version - AustinHeaton | AI Companies`, `AEO Version - AustinHeaton | AI Companies`, and `AE Version - AustinHeaton | AI Companies (our leads)`) through the **Internal Campaigns** EmailBison workspace, not through AH Consulting's own workspace. Any lead from one of these who books a meeting shows up correctly in `calls`/Airtable under `internal-campaigns` — that part isn't a bug — but it means a meeting that is conceptually "for Austin" gets counted in the Internal Campaigns line item instead of the AH Consulting line item, splitting the true Austin meeting count across both. Found 2026-09-02 (Evan Back / syntheticturing.com booked, landed under Internal Campaigns, Kasper asked why nothing posted to the AH Consulting meetings channel).
+
+Run this cross-check every report, right after step 4 (meetings pull):
+
+```sql
+SELECT c.workspace_slug, COUNT(*) AS n
+FROM calls c
+JOIN replies r ON r.lead_email = c.lead_email AND r.workspace_slug = c.workspace_slug
+WHERE (
+    c.workspace_slug = 'ah-consulting'
+    OR (c.workspace_slug = 'internal-campaigns' AND r.campaign ILIKE '%austinheaton%')
+  )
+  AND c.created_at >= '<window_start>' AND c.created_at < '<window_end_exclusive>'
+GROUP BY c.workspace_slug;
+```
+
+If the `internal-campaigns` count from this query is greater than 0, add an `Observation:` line to BOTH affected blocks (not just one, so the split reads clearly wherever someone looks first):
+
+- Under **AH Consulting**: `Note: X/Y Austin-themed meetings this period landed under Internal Campaigns (see that block), true Austin total is Y.`
+- Under **Internal Campaigns**: `Note: X of these meetings were from Austin-themed campaigns (AustinHeaton AE/AEO), not organic Internal Campaigns leads.`
+
+Where X = the `internal-campaigns` count from the query and Y = X + the `ah-consulting` count. Do NOT move the meeting between the two per-client numbers themselves (each still reports its own real Airtable/EmailBison numbers) — the Observation line is a pointer, not a correction.
+
+If the query returns 0 for `internal-campaigns`, skip the note entirely, don't pad every report with an empty flag.
+
+---
+
 ## Excluded clients (never include in reports)
 
 The following workspaces exist in the DB but are excluded from every CSM update:
@@ -237,6 +266,7 @@ When asked for a CSM update, do this in order:
 2. **Load workspace creds.** Run the SQL above against the `workspaces` table to get every client's `slug`, `email_bison_instance_url`, and `email_bison_api_key`.
 3. **For each workspace, fetch the stats.** Call `/api/workspaces/v1.1/stats` with the date window. Extract `emails_sent`, `unique_replies_per_contact`, `interested`.
 4. **For each workspace, fetch meetings.** Call Airtable with that client's base ID, table ID, and field name (from the Airtable meetings config table). Count the records.
+4a. **Run the AH Consulting / Internal Campaigns cross-check** (see that section above). If it flags any meetings, prepare the two Observation notes for step 5.
 5. **Format each per-client block** using the exact template under "Output format". Use comma as decimal separator. TBD% when interested = 0.
 6. **Compute the totals block** by summing across all clients. Skip Micro Nordic's emails sent (N/A) from the totals.
 7. **Output everything in chat.** Do NOT post to Slack automatically.
