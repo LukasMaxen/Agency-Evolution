@@ -7,19 +7,22 @@
 
 ## REPLY QUICK REFERENCE
 campaign_type: agency / service (AI answer engine optimization, not M&A)
-sender: Lukas Maxen, Business Development, AH Consulting (this is the outreach sender identity, NOT Austin Heaton)
-founder: Austin Heaton, Founder, AEO Consulting. Handles all strategy/demo calls directly. Confirmed by Kasper 2026-09-01. When a reply proposes or confirms a call, introduce the handoff explicitly by name, e.g. "I'll get you set up with Austin Heaton, our founder, he handles all of the strategy conversations directly" — never imply the outreach sender personally runs the call.
+sender: **Austin Heaton himself, always.** Corrected 2026-09-02: the DB shows every reply on this workspace comes from a rotating alias of "Austin Heaton" (aust_h@austinheatonteam.com, austin.support@austinheatonteam.com, austi_heaton@austinheatongroup.com, etc, 130+ variants, all signing as Austin Heaton / Founder of AH Consulting). There is no "Lukas Maxen, Business Development" sender identity in actual use, despite what this file said until 2026-09-02. Do not reintroduce that assumption without checking `replies.sender_email` for the actual thread.
+founder: Austin Heaton, Founder, AEO Consulting. Since Austin IS the sender on every thread (see above), replies must be written in the FIRST PERSON as Austin throughout, start to finish, including the call proposal. **Never** refer to "Austin" in the third person ("Austin walks through...", "Austin Heaton, our founder, handles...", "I'll get you set up with Austin") — that reads as a different person writing on his behalf, which is false and confusing since he already wrote the previous email in the thread. Just say "I'll walk you through it on the call" / "happy to show you a live example."
+pricing_model: **Monthly retainer, confirmed 2026-09-02 by Kasper.** Not pay-after-results / performance-based / pay-per-outcome. If a lead asks about payment terms, answer this directly and plainly, do not deflect to "Austin will cover that on the call."
 offer: AI answer engine optimization (AEO) — making sure a brand is the one AI models (ChatGPT, Claude, Gemini) recommend to buyers at the point of purchase, with measurable results.
 booking_link: https://calendly.com/austin-austinheaton/30min
 icp: AI companies, marketing agencies, and other AI service providers (peer/adjacent companies in the AI and marketing-agency space).
 
 reply_rules:
-- Lead asks HOW something works (ROI tracking, measurement, mechanism): give the real high-level mechanism using ONLY what's confirmed here (how often, and in what context, AI models cite their brand, tracked over time as we optimize). Say the live example is easiest to walk through on the call, and hand off to Austin per the founder note above.
-- Any reply that proposes or confirms a call should name Austin Heaton and his founder role, not just say "grab a time here" with no context on who they'll be meeting.
+- Lead asks HOW something works (ROI tracking, measurement, mechanism): give the real high-level mechanism using ONLY what's confirmed here (how often, and in what context, AI models cite their brand, tracked over time as we optimize). It's fine to say the live example is easiest to walk through on the call, first person ("I can show you a live example on the call").
+- Lead asks a direct factual/pricing question (e.g. "do you offer pay-after-results?"): answer it truthfully and directly using the pricing_model fact above. Never dodge a specific factual question by pushing it to the call, that is fabrication-by-deflection, see [[feedback_no_fabricate_facts]] in the AI's memory. If a fact isn't documented here, route to manual instead of guessing, don't deflect either.
+- A reply proposing or confirming a call is fine as a plain first-person invite ("grab a time here"), no third-person handoff needed since Austin is already the one writing.
 
 never:
 - Never invent capabilities, product features (e.g. "a dashboard"), case studies, or results not confirmed in this file — this is the general no-fabrication rule and applies especially here since so little is documented yet.
 - Never claim or imply the lead's own brand already appears in AI answers for a specific query. We don't know that, that is what the service investigates and improves, not an existing fact to assert.
+- Never write about "Austin" in the third person or imply someone else (BD, an assistant) is handling outreach on his behalf. He is the sender.
 
 ---
 
@@ -40,8 +43,7 @@ never:
 
 | Name | Role | Email | Calendly | Timezone | Notes |
 |---|---|---|---|---|---|
-| Lukas Maxen | Business Development (sender) | | | | Sends outreach as "Business Development, AH Consulting" |
-| Austin Heaton | Founder | | https://calendly.com/austin-austinheaton/30min | | Handles all strategy/demo calls directly. Confirmed 2026-09-01: replies proposing a call should hand off to him by name, not imply Lukas/BD runs it. |
+| Austin Heaton | Founder (actual sender, all outreach) | rotating aliases, e.g. aust_h@austinheatonteam.com | https://calendly.com/austin-austinheaton/30min | | Corrected 2026-09-02: Austin is the sender on every thread (130+ rotating mailbox aliases confirmed in DB, all signed as him). Replies must be first-person as Austin, never third-person handoff. |
 
 _Add client-side stakeholder contacts as they're introduced._
 
