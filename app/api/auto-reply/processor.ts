@@ -1084,7 +1084,7 @@ export async function processAutoReply(replyId: string, workspaceSlug: string): 
     console.error(`[auto-reply] CRASH for ${replyId} (${workspaceSlug}):`, err);
     try { await pool.query(`UPDATE replies SET status = 'errored' WHERE id = $1`, [replyId]); } catch { /* ignore */ }
     try {
-      const r = await pool.query(`SELECT r.lead_name, r.lead_email, r.subject, r.message, r.campaign, w.email_bison_instance_url FROM replies r LEFT JOIN workspaces w ON w.slug = r.workspace_slug WHERE r.id = $1`, [replyId]);
+      const r = await pool.query(`SELECT r.lead_name, r.lead_email, r.subject, r.message, r.campaign, r.email_bison_reply_id, w.email_bison_instance_url FROM replies r LEFT JOIN workspaces w ON w.slug = r.workspace_slug WHERE r.id = $1`, [replyId]);
       const reply = r.rows[0] ?? {};
       await postManual(workspaceSlug, replyId, {
         text: `Auto-reply crashed, ${workspaceSlug} / ${reply.lead_name ?? replyId}`,
