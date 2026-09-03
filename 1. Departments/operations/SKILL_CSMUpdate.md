@@ -195,7 +195,7 @@ The following workspaces exist in the DB but are excluded from every CSM update:
 
 ## Output format
 
-Use this exact per-client block (updated 2026-09-03: no generic `Observation:` line/header — only a specific `Note:` line, and only for clients where the recipe explicitly calls for one, e.g. the AH Consulting / Internal Campaigns Austin split below):
+Use this exact per-client block (updated 2026-09-03: no `Observation:` or `Note:` lines at all, ever — every client, no exceptions):
 
 ```
 [Client Name]:
@@ -204,19 +204,6 @@ Total Replies: XX
 Reply Rate: X,XX%
 Interested Replies: X - XX,XX%
 Meetings Booked: X - XX,XX%
-________________________________________
-```
-
-With a note (only when the recipe calls for one on this client):
-
-```
-[Client Name]:
-Emails Sent: X,XXX
-Total Replies: XX
-Reply Rate: X,XX%
-Interested Replies: X - XX,XX%
-Meetings Booked: X - XX,XX%
-Note: <brief one-line note>
 ________________________________________
 ```
 
