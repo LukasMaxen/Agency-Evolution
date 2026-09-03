@@ -46,17 +46,50 @@ export async function POST(req: NextRequest) {
 
     const eventTypeId: number | undefined = eventType.uuid;
     const cfg = MEETING_CONFIG[workspaceSlug];
-    if (cfg?.iclosedEventIds && (eventTypeId === undefined || !cfg.iclosedEventIds.includes(eventTypeId))) {
-      console.log(`[iclosed webhook] event id ${eventTypeId} not tracked for ${workspaceSlug} — skipping`);
-      return NextResponse.json({ ok: true, hookType, note: "event_not_tracked" });
-    }
-
     const leadName = invitee.name ?? [invitee.first_name, invitee.last_name].filter(Boolean).join(" ") ?? "";
     const leadEmail = invitee.email ?? "";
     // callPreviewId is stable across booked -> rescheduled -> cancelled for the same call,
     // so it doubles as our dedup/lookup key. Reused from the Calendly column on purpose —
     // both are just "this source's unique id for the call", no schema change needed.
     const callPreviewId: string = event.callPreviewId ?? "";
+
+    if (cfg?.iclosedEventIds && (eventTypeId === undefined || !cfg.iclosedEventIds.includes(eventTypeId))) {
+      console.log(`[iclosed webhook] event id ${eventTypeId} not tracked for ${workspaceSlug} — skipping Airtable/Slack`);
+      // Intentionally no Airtable/Slack post here — most GN Motion historical bookings land
+      // on the excluded default event and alerting on every one would flood the channel
+      // (see project_gn_motion_iclosed_gap memory). But a booking against an untracked event
+      // still happened and was previously left with zero trace anywhere, which is how the
+      // Cordaroys/Daryl Drown booking (2026-09-03) went undetected for days. Log a bare
+      // discoverable row so a later "did X actually book?" check can find it directly instead
+      // of manually cross-referencing EmailBison threads and Slack history.
+      if ((hookType === "Call booked" || hookType === "Call rescheduled") && leadEmail) {
+        const scheduledAt = new Date(event.utc_start_time);
+        if (!isNaN(scheduledAt.getTime())) {
+          try {
+            await pool.query(
+              `INSERT INTO calls (
+                id, reply_id, workspace_slug, lead_email, lead_name,
+                source, calendly_event_uri, scheduled_at,
+                status, is_reschedule, original_call_id,
+                created_at, updated_at
+              ) VALUES ($1,NULL,$2,$3,$4,'iclosed',$5,$6,'untracked_event',FALSE,NULL,NOW(),NOW())
+              ON CONFLICT (id) DO NOTHING`,
+              [
+                `call-icl-untracked-${callPreviewId || Date.now()}`,
+                workspaceSlug,
+                leadEmail,
+                leadName,
+                callPreviewId || null,
+                scheduledAt,
+              ]
+            );
+          } catch (e: any) {
+            console.error("[iclosed webhook] failed to log untracked-event booking:", e?.message ?? e);
+          }
+        }
+      }
+      return NextResponse.json({ ok: true, hookType, note: "event_not_tracked" });
+    }
 
     if (isInternalContact(workspaceSlug, leadEmail, leadName)) {
       console.log(`[iclosed webhook] internal contact ${leadEmail} in ${workspaceSlug} — blocklisted, skipping`);
