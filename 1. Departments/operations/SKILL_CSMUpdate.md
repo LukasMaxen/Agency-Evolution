@@ -172,28 +172,9 @@ As of 2026-08-05, "Acceler8rs" is retired as a separate brand. Larsen Digital no
 
 ## AH Consulting / Internal Campaigns — Austin-themed campaigns split across two workspaces
 
-Lukas runs "AustinHeaton"-branded campaigns (seen as `AE Version - AustinHeaton | AI Companies`, `AEO Version - AustinHeaton | AI Companies`, and `AE Version - AustinHeaton | AI Companies (our leads)`) through the **Internal Campaigns** EmailBison workspace, not through AH Consulting's own workspace. Any lead from one of these who books a meeting shows up correctly in `calls`/Airtable under `internal-campaigns` — that part isn't a bug — but it means a meeting that is conceptually "for Austin" gets counted in the Internal Campaigns line item instead of the AH Consulting line item, splitting the true Austin meeting count across both. Found 2026-09-02 (Evan Back / syntheticturing.com booked, landed under Internal Campaigns, Kasper asked why nothing posted to the AH Consulting meetings channel).
+Lukas runs "AustinHeaton"-branded campaigns (seen as `AE Version - AustinHeaton | AI Companies`, `AEO Version - AustinHeaton | AI Companies`, and `AE Version - AustinHeaton | AI Companies (our leads)`) through the **Internal Campaigns** EmailBison workspace, not through AH Consulting's own workspace. Any lead from one of these who books a meeting shows up correctly in `calls`/Airtable under `internal-campaigns` — that part isn't a bug — but it means a meeting that is conceptually "for Austin" gets counted in the Internal Campaigns line item instead of the AH Consulting line item, splitting the true Austin meeting count across both.
 
-Run this cross-check every report, right after step 4 (meetings pull):
-
-```sql
-SELECT c.workspace_slug, COUNT(*) AS n
-FROM calls c
-JOIN replies r ON r.lead_email = c.lead_email AND r.workspace_slug = c.workspace_slug
-WHERE (
-    c.workspace_slug = 'ah-consulting'
-    OR (c.workspace_slug = 'internal-campaigns' AND r.campaign ILIKE '%austinheaton%')
-  )
-  AND c.created_at >= '<window_start>' AND c.created_at < '<window_end_exclusive>'
-GROUP BY c.workspace_slug;
-```
-
-Let X = the `internal-campaigns` count from this query (Austin-attributed bookings tracked under Internal Campaigns).
-
-- Under **Internal Campaigns**, only if that block's Meetings Booked > 0 for the period: add a single `Note:` line (no `Observation:` header, no divider) stating the split, e.g. `Note: X Austin Heaton, Y Internal Campaigns.` where Y = Meetings Booked − X (do not show a negative Y — if X ≥ the block's own Meetings Booked count, the two sources disagree on the day boundary; say so in one short clause instead of forcing a split, e.g. `Note: X Austin Heaton meetings tracked this period (Airtable shows Y total booked-date matches, likely a timing offset).`).
-- Under **AH Consulting**: only if X > 0, add one brief `Note:` line flagging the possibility, e.g. `Note: additional Austin meetings may be booked under Internal Campaigns, real count is Y.` where Y = X + the `ah-consulting` count from the query.
-
-If X = 0, skip both notes entirely — don't pad every report with an empty flag. Do NOT move the meeting between the two per-client numbers themselves (each still reports its own real Airtable/EmailBison numbers) — the note is a pointer, not a correction.
+Report each client's real Airtable/EmailBison numbers as-is, with no cross-check query and no `Note:` line about this split — a prior version of this skill added one and it read as confusing noise in the report. Removed 2026-09-03 per Kasper.
 
 ---
 
@@ -275,8 +256,7 @@ When asked for a CSM update, do this in order:
 2. **Load workspace creds.** Run the SQL above against the `workspaces` table to get every client's `slug`, `email_bison_instance_url`, and `email_bison_api_key`.
 3. **For each workspace, fetch the stats.** Call `/api/workspaces/v1.1/stats` with the date window. Extract `emails_sent`, `unique_replies_per_contact`, `interested`.
 4. **For each workspace, fetch meetings.** Call Airtable with that client's base ID, table ID, and field name (from the Airtable meetings config table). Count the records.
-4a. **Run the AH Consulting / Internal Campaigns cross-check** (see that section above). If X > 0, prepare the relevant `Note:` line(s) for step 5 (Internal Campaigns note only if that block has Meetings Booked > 0; AH Consulting note only if X > 0).
-5. **Format each per-client block** using the exact template under "Output format". Use comma as decimal separator. TBD% when interested = 0. No `Observation:` header/divider-only blocks — a client gets a `Note:` line only when the recipe specifically calls for one.
+5. **Format each per-client block** using the exact template under "Output format". Use comma as decimal separator. TBD% when interested = 0. No `Observation:` or `Note:` lines — report each client's real numbers as-is.
 6. **Compute the totals block** by summing across all clients. Skip Micro Nordic's emails sent (N/A) from the totals.
 7. **Output everything in chat.** Do NOT post to Slack automatically.
 
