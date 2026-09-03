@@ -174,7 +174,7 @@ As of 2026-08-05, "Acceler8rs" is retired as a separate brand. Larsen Digital no
 
 Lukas runs "AustinHeaton"-branded campaigns (seen as `AE Version - AustinHeaton | AI Companies`, `AEO Version - AustinHeaton | AI Companies`, and `AE Version - AustinHeaton | AI Companies (our leads)`) through the **Internal Campaigns** EmailBison workspace, not through AH Consulting's own workspace. Any lead from one of these who books a meeting shows up correctly in `calls`/Airtable under `internal-campaigns` — that part isn't a bug — but it means a meeting that is conceptually "for Austin" gets counted in the Internal Campaigns line item instead of the AH Consulting line item, splitting the true Austin meeting count across both.
 
-Report each client's real Airtable/EmailBison numbers as-is, with no cross-check query and no `Note:` line about this split — a prior version of this skill added one and it read as confusing noise in the report. Removed 2026-09-03 per Kasper.
+Report each client's real Airtable/EmailBison numbers as-is, with no cross-check query. The generated `Note:` line stays blank for both clients regardless of this split — do not auto-fill it with a note about the split. Kasper can add that context manually if he wants it for a given report.
 
 ---
 
@@ -244,7 +244,7 @@ When asked for a CSM update, do this in order:
 2. **Load workspace creds.** Run the SQL above against the `workspaces` table to get every client's `slug`, `email_bison_instance_url`, and `email_bison_api_key`.
 3. **For each workspace, fetch the stats.** Call `/api/workspaces/v1.1/stats` with the date window. Extract `emails_sent`, `unique_replies_per_contact`, `interested`.
 4. **For each workspace, fetch meetings.** Call Airtable with that client's base ID, table ID, and field name (from the Airtable meetings config table). Count the records.
-5. **Format each per-client block** using the exact template under "Output format". Use comma as decimal separator. TBD% when interested = 0. No `Observation:` or `Note:` lines — report each client's real numbers as-is.
+5. **Format each per-client block** using the exact template under "Output format". Use comma as decimal separator. TBD% when interested = 0. End every block with a blank `Note:` line (nothing after the colon) for Kasper to fill in manually — never generate the note content yourself.
 6. **Compute the totals block** by summing across all clients. Skip Micro Nordic's emails sent (N/A) from the totals.
 7. **Output everything in chat.** Do NOT post to Slack automatically.
 
