@@ -195,7 +195,7 @@ The following workspaces exist in the DB but are excluded from every CSM update:
 
 ## Output format
 
-Use this exact per-client block (updated 2026-09-03: no `Observation:` or `Note:` lines at all, ever — every client, no exceptions):
+Use this exact per-client block (updated 2026-09-04: every client block ends with a blank `Note:` line for Kasper to fill in manually. Never pre-fill it with a generated observation, e.g. the Austin/Internal Campaigns split, high-Hahnbeck-interested flag, etc. Leave it empty as `Note:` with nothing after the colon):
 
 ```
 [Client Name]:
@@ -204,6 +204,7 @@ Total Replies: XX
 Reply Rate: X,XX%
 Interested Replies: X - XX,XX%
 Meetings Booked: X - XX,XX%
+Note:
 ________________________________________
 ```
 
