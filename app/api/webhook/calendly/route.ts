@@ -6,6 +6,13 @@ import { isInternalContact } from "@/lib/internal-blocklist";
 import { crossBlacklistLarsen } from "@/lib/larsen-cross-blacklist";
 import { closeManualCardsForLead } from "@/lib/manual-card";
 
+// Workspaces that share one Calendly org/webhook and should be allowed to cross-match by
+// email (see the reply lookup below). Any wsDefault not listed here is its own family of one.
+const WORKSPACE_FAMILY: Record<string, string[]> = {
+  "larsen-digital": ["larsen-digital", "acceler8rs"],
+  "acceler8rs": ["larsen-digital", "acceler8rs"],
+};
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -62,9 +69,19 @@ export async function POST(req: NextRequest) {
       // Match to existing reply by email — also match preferred_recipient_email so a
       // redirected/referred contact who books (a different address than the original lead)
       // still resolves to the right workspace.
+      // Scoped to the webhook's own workspace "family" when a ?wsDefault is set, so a lead
+      // who ALSO exists in some unrelated client's replies table (e.g. cold-emailed by both
+      // Larsen and Hahnbeck) can't hijack the match just by having a more recent row there.
+      // Without this, Lara Morgan (lara@kitbrix.com) booked Larsen's operating-partner
+      // Calendly link but resolved to workspace_slug='hahnbeck' — her Hahnbeck reply (Sep 4,
+      // not_interested) briefly outranked her Larsen thread's most recent reply, which landed
+      // 87 seconds AFTER the booking. Found + fixed 2026-09-06.
+      const family = wsDefault ? (WORKSPACE_FAMILY[wsDefault] ?? [wsDefault]) : null;
       const replyResult = await pool.query(
-        "SELECT id, workspace_slug FROM replies WHERE lead_email = $1 OR preferred_recipient_email = $1 ORDER BY received_at DESC LIMIT 1",
-        [leadEmail]
+        family
+          ? "SELECT id, workspace_slug FROM replies WHERE (lead_email = $1 OR preferred_recipient_email = $1) AND workspace_slug = ANY($2) ORDER BY received_at DESC LIMIT 1"
+          : "SELECT id, workspace_slug FROM replies WHERE lead_email = $1 OR preferred_recipient_email = $1 ORDER BY received_at DESC LIMIT 1",
+        family ? [leadEmail, family] : [leadEmail]
       );
       const replyId      = replyResult.rows[0]?.id ?? null;
       // Precedence: hard ?ws override, then the email->reply match, then the ?wsDefault
