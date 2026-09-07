@@ -1410,7 +1410,10 @@ If no LEAD COMPANY CONTEXT block appears (because the site was unreachable), fal
   // rules as larsen"). Bustem runs on the acceler8rs workspace so it inherits this
   // automatically — its own content/booking-link comes from fileSlug="bustem" via
   // isBustemReply, this flag only controls whether the approval step is skipped.
-  const FULLY_AUTOMATED_WORKSPACES = new Set(["larsen-digital", "acceler8rs", "act-capital", "gn-motion"]);
+  // GN Motion reverted to the standard #reply-approval flow 2026-09-07 (Kasper):
+  // back on the same basis as the non-fully-automated clients, every interested
+  // reply goes to #reply-approval or #manual-replies, no more direct auto-send.
+  const FULLY_AUTOMATED_WORKSPACES = new Set(["larsen-digital", "acceler8rs", "act-capital"]);
   const isFullyAutomated = FULLY_AUTOMATED_WORKSPACES.has(workspaceSlug);
 
   // 2026-09-02 (Kasper): WithPebble + AH/AEO Consulting sell a fixed monthly retainer.
@@ -2138,9 +2141,10 @@ ${messageText.slice(0, 8000)}`;
     const alwaysAutoSend = new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested"]);
 
     // Every interested reply goes to #reply-approval for human review before sending,
-    // EXCEPT fully-automated clients (Larsen Digital 2026-08-13; ACT Capital, GN
-    // Motion, and Bustem added 2026-08-17): fully automated 24/7, no human review
-    // step. Scheduling intent never reaches this branch for these clients — the
+    // EXCEPT fully-automated clients (Larsen Digital 2026-08-13; ACT Capital and
+    // Bustem added 2026-08-17; GN Motion reverted back to standard 2026-09-07):
+    // fully automated 24/7, no human review step. Scheduling intent never reaches
+    // this branch for these clients — the
     // MANUAL BOOKING TRIGGER RULE in the system prompt routes it to action:"manual"
     // before drafting a reply_body, so everything that lands here already cleared
     // that check. Hard closes (unsubscribe, not_interested, etc.) auto-send/close
