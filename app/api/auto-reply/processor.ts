@@ -2001,12 +2001,15 @@ ${messageText.slice(0, 8000)}`;
     }
   }
 
-  // Self-critique pass: for interested/needs_info auto-sends, run a second Claude call
-  // that checks the draft against three criteria and rewrites only if something fails.
+  // Self-critique pass: for interested/needs_info/neutral auto-sends, run a second Claude
+  // call that checks the draft against three criteria and rewrites only if something fails.
+  // Neutral added 2026-09-07 when neutral replies stopped going through #reply-approval:
+  // since a human no longer reviews these before send, they get the same automated
+  // double-check interested/needs_info drafts already got.
   if (
     result.action === "auto_send" &&
     result.reply_body &&
-    (result.intent === "interested" || result.intent === "needs_info")
+    (result.intent === "interested" || result.intent === "needs_info" || result.intent === "neutral")
   ) {
     const revised = await callClaudeCritique(
       messageText,
@@ -2138,16 +2141,20 @@ ${messageText.slice(0, 8000)}`;
   // ── Route ─────────────────────────────────────────────────────────────────────
 
   if (result.action === "auto_send" && result.reply_body) {
-    const alwaysAutoSend = new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested"]);
+    // Neutral added 2026-09-07 (Kasper): an obvious/low-signal reply like a bare "Nope"
+    // doesn't warrant a human review card, only genuine interest or a relevant question
+    // should reach #reply-approval. Neutral drafts now auto-send directly (after the
+    // self-critique pass above) for every client, same as the other no-review intents.
+    const alwaysAutoSend = new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested","neutral"]);
 
-    // Every interested reply goes to #reply-approval for human review before sending,
+    // Interested/needs_info replies go to #reply-approval for human review before sending,
     // EXCEPT fully-automated clients (Larsen Digital 2026-08-13; ACT Capital and
     // Bustem added 2026-08-17; GN Motion reverted back to standard 2026-09-07):
     // fully automated 24/7, no human review step. Scheduling intent never reaches
     // this branch for these clients — the
     // MANUAL BOOKING TRIGGER RULE in the system prompt routes it to action:"manual"
     // before drafting a reply_body, so everything that lands here already cleared
-    // that check. Hard closes (unsubscribe, not_interested, etc.) auto-send/close
+    // that check. Hard closes (unsubscribe, not_interested, neutral, etc.) auto-send/close
     // without review for every client, same as before.
     if (!alwaysAutoSend.has(result.intent) && !isFullyAutomated) {
       const draftId = `rd-${replyId}-${Date.now()}`;
