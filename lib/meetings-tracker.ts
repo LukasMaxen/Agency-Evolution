@@ -214,6 +214,14 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
     icpDescription: "AI companies, marketing agencies, and other AI service providers, i.e. peer/adjacent companies in the AI and marketing-agency space, who would want to be recommended by AI models (ChatGPT, Claude, Gemini) when their own buyers are researching. NOT a fit: companies with no plausible reason to care about AI-driven recommendations, e.g. purely local/offline businesses or industries with no AI-model visibility angle at all.",
     showIcpFit: true, // added 2026-09-01 per Kasper
+    // The org-wide webhook (org 931cbd2e-...) fires for EVERY event type on Austin's
+    // Calendly account, not just the AEO Consulting one. Confirmed live via the Calendly
+    // API 2026-09-07: the org also has "Lureon AEO Services" (/lureon-aeo-services) and
+    // "Redo AEO Services" (/redo-aeo-services) — separate white-label businesses unrelated
+    // to this cold-email campaign. Per Kasper, only bookings on the AEO Consulting link
+    // (https://calendly.com/austin-austinheaton/30min, event name "Meeting with Austin
+    // Heaton AEO Consultant") should be tracked to Airtable/Slack as ah-consulting meetings.
+    eventNameContains: "AEO Consultant",
   },
 };
 
