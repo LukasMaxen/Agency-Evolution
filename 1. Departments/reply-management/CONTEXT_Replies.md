@@ -1101,6 +1101,16 @@ Each draft must contain at least one piece of information specific to that lead 
 
 ---
 
+### 15. Reverse solicitation (lead pitches their own product/tool back at us) is not_interested, never interested
+
+Sometimes a "lead" replies with no real engagement on our offer at all and instead pitches THEIR OWN product, service, or tool back at the sender, using the reply as a hook to get us to look at something they built or sell. Real incident (AEO Consulting, 2026-09-09): Jason at titaniumcomputing.com replied to Austin's cold email saying he ran Austin's own site through "our AEO checker, the one we built for exactly this" and linked to a report on his own domain, offering to "walk you through it." The auto-reply classified this as `interested` and drafted a reply agreeing to review Jason's findings and asking curious questions about Jason's own compliance-IT business, an AI doing outbound lead-gen for the person soliciting us, and quoting an unverified "Compliance+ / HIPAA / CMMC / SOC 2" claim about his business that was not documented anywhere.
+
+Signals this is a reverse pitch, not interest: they describe running our brand/website through their own tool and report what it found, they offer to walk us through their product or findings, they link to their own report/demo/deck, or the whole reply is about their capabilities rather than any interest in ours.
+
+**How to apply:** Classify as `not_interested`, action `do_nothing`. Per the absolute rule above, not_interested means no reply of any kind, not a soft acknowledgment either. Never click through, credit, or reference the substance of a link an unsolicited pitch sends (also a security consideration, not just a relevance one). Never ask the lead questions about their own business or capabilities. Fixed in the classifier prompt in `processor.ts` (REVERSE SOLICITATION / VENDOR PITCH block) 2026-09-09.
+
+---
+
 ## Training & Testing Scope (multi-workspace, not single-workspace)
 
 When training, testing, or drafting batches of replies, work across multiple client workspaces in the same session, not one workspace at a time. Each workspace has a distinct offer, ICP, voice, and language. Training on one teaches the AI that client's patterns but leaves it unprepared for the 14 others.
