@@ -84,3 +84,11 @@ When a lead asks multiple detailed questions before agreeing to a call, apply th
 - Uses conversational CTA phrasing ("hop on a call and go through it properly")
 - Calendar link dropped on its own line with no surrounding filler text
 - Does not re-pitch after sharing the link
+
+## Weekly Review Learnings (auto-applied, apply always)
+
+### 2026-09-09: Send-time learning from Kasper Zacho
+
+When including the Calendly link (https://calendly.com/austin-austinheaton/30min), always format it as a Slack-style hyperlink: <https://calendly.com/austin-austinheaton/30min|calendly.com/austin-austinheaton/30min> rather than a bare URL.
+
+_Reviewer notes: Send this exactly: Hi Moid, I'll get you set up with Austin Heaton, our founder. He runs the scan live on the call so you can see exactly where Boltout shows up across ChatGPT, Claude, and Gemini in real time. Feel free to grab a time on his calendar here: <https://calendly.com/austin-austinheaton/30min|calendly.com/austin-austinheaton/30min> Best, Lukas Maxen Business Development, AH Consulting_
