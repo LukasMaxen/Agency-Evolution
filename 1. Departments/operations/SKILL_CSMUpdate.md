@@ -5,6 +5,37 @@ Produces a performance report for all active client workspaces covering emails s
 
 ---
 
+## Run the script. Do not hand-roll this anymore.
+
+As of 2026-09-11 this whole process is one command:
+
+```bash
+node scripts/csm-update.mjs                        # yesterday (default)
+node scripts/csm-update.mjs --date 2026-09-10       # one specific day
+node scripts/csm-update.mjs --window last7          # rolling 7 days ending yesterday
+node scripts/csm-update.mjs --window last30         # rolling 30 days ending yesterday
+node scripts/csm-update.mjs --window monday-week    # last Mon-Fri, the Monday report
+node scripts/csm-update.mjs --start 2026-09-01 --end 2026-09-07
+```
+
+It queries `workspaces` once, fetches every client's EmailBison stats and Airtable meetings in parallel, and prints the fully formatted report (including the totals/efficiency block) straight to stdout. Runs in 1-3 seconds. Just copy the output into chat for Kasper, do not recompute or reformat it by hand.
+
+**Never do this manually with shell loops or one curl call per workspace again.** A prior manual pass took 20+ minutes and multiple failed attempts because of two sharp edges the script now handles for you:
+- An EmailBison `email_bison_api_key` can contain a literal `|` character. Any pipe-delimited text parsing of `psql` output (or similarly naive delimiter) silently truncates the key and produces 401s. The script reads the DB with `pg` directly (real JS values, no delimiter), so this can't happen.
+- A `while read ... done < file` shell loop that also runs `curl` inside it can hang indefinitely (`curl` inherits the loop's stdin fd and races the `read`). The script does all fetches with `Promise.all` in a single Node process, no shell loop involved.
+
+**Before reading it, always check the top of the output for a `=== WARNINGS ===` block.** It means one of:
+- A workspace exists in the DB that isn't in `scripts/csm-update.config.json` (not excluded, not mapped to a report line). **Stop and ask Kasper whether to include it and how** (own line, folded into an existing client, or excluded) **before adding anything to the config or reporting numbers.** Do not guess.
+- An EmailBison or Airtable fetch failed for a specific client. That client's numbers are incomplete or zeroed in the output below — say so explicitly when you hand the report to Kasper, don't present the totals as if they're complete.
+
+**Config lives in `scripts/csm-update.config.json`**, not in this skill file or in code. It has two parts:
+- `excludedSlugs` — workspaces that should never be reported (mirrors the "Excluded clients" section below).
+- `reportLines` — one entry per report line: its label, which workspace slug(s) roll into it (usually one; two for Larsen's separate sender lines and for any client running dual EmailBison instances, see AH Consulting / WithPebble below), and its Airtable meetings base/table/field (plus an optional Deal Source filter, used by the two Larsen lines that share one base).
+
+When Kasper confirms a new workspace's treatment, edit `csm-update.config.json` directly (add a new `reportLines` entry, or add its slug to an existing entry's `workspaceSlugs`, or add it to `excludedSlugs`) and re-run the script to confirm the warning is gone. Update the rest of this skill file (the tables below) to match, so the two never drift apart.
+
+---
+
 ## Trigger phrases
 - "Give me the CSM update"
 - "CSM numbers for yesterday / last week / last month"
