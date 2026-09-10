@@ -52,6 +52,11 @@ const CLIENT_FILE_ALIASES: Record<string, string> = {
   // {SENDER_EMAIL_SIGNATURE} variable resolves correctly. So acceler8rs draws Larsen's
   // wording, case studies, links, and rules from the larsen-digital client file + extras.
   "acceler8rs": "larsen-digital",
+  // New agencyevolution-instance workspaces for the same clients as the legacy
+  // Shields Outbound workspaces (2026-09-11). Same offer/ICP/tone, draw from the
+  // same client file until with-pebble-2 / ah-consulting-2 get their own.
+  "ah-consulting-2": "ah-consulting",
+  "with-pebble-2": "with-pebble",
 };
 
 // Workspaces that skip auto-reply entirely (handled externally, churned, or excluded).
