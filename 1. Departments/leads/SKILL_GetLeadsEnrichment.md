@@ -24,7 +24,7 @@ Confirmed 2026-09-10: GetLeads' contact export CSVs (e.g. Apollo-sourced Sonaro 
    ```
    python3 "1. Departments/leads/extract_linkedin_urls.py" <filtered_input.csv> <output.csv> ["Company Linkedin Url"]
    ```
-   Third arg is optional, defaults to `Company Linkedin Url` (the Apollo export header). Output is a single-column CSV headed `LinkedIn Url`, deduped.
+   Third arg is optional, defaults to `Company Linkedin Url` (the Apollo export header). Output is a deduped CSV with two columns, `LinkedIn Url` and `Company Name` — never single-column (see gotcha below).
 
 3. **Create the enrichment upload link**, mapped to that exact column name so no manual mapping is needed on the upload page:
    ```
