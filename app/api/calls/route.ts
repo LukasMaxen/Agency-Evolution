@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { closeManualCardsForLead } from "@/lib/manual-card";
+import { blacklistLarsenDomain } from "@/lib/larsen-cross-blacklist";
 
 // ── GET — fetch calls for a reply ─────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -93,6 +94,13 @@ export async function POST(req: NextRequest) {
     // Close out any outstanding #manual-replies card for this lead now that a human
     // has booked the call directly. See lib/manual-card.ts.
     void closeManualCardsForLead(leadEmail);
+
+    // Same domain-level Larsen lockout as the Calendly webhook — manual bookings never
+    // ran this before, so a call booked by hand left the lead (and any other-domain
+    // identity of theirs) fully exposed to ongoing outreach in both Larsen workspaces.
+    void blacklistLarsenDomain(workspaceSlug, leadEmail).catch((err: any) =>
+      console.error("[calls POST] blacklistLarsenDomain failed:", err?.message ?? err)
+    );
 
     return NextResponse.json({ ok: true, callId, isReschedule });
   } catch (err: any) {

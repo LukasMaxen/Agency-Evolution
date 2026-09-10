@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { trackMeeting, trackCancellation } from "@/lib/meetings-tracker";
 import { isInternalContact } from "@/lib/internal-blocklist";
-import { crossBlacklistLarsen } from "@/lib/larsen-cross-blacklist";
+import { blacklistLarsenDomain } from "@/lib/larsen-cross-blacklist";
 import { closeManualCardsForLead } from "@/lib/manual-card";
 
 // Workspaces that share one Calendly org/webhook and should be allowed to cross-match by
@@ -252,11 +252,11 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // ── Cross-blacklist between the two Larsen workspaces (larsen-digital <-> acceler8rs):
-      //    a lead booked in one must stop receiving cold outreach from the other. No-op for
-      //    every other workspace. Fire-and-forget, same reasoning as trackMeeting above.
-      void crossBlacklistLarsen(workspaceSlug, leadEmail).catch((err: any) =>
-        console.error("[calendly webhook] crossBlacklistLarsen failed:", err?.message ?? err)
+      // ── Cross-blacklist between the two Larsen workspaces (larsen-digital <-> acceler8rs),
+      //    plus any other same-domain contact identity in either workspace. No-op for every
+      //    other workspace. Fire-and-forget, same reasoning as trackMeeting above.
+      void blacklistLarsenDomain(workspaceSlug, leadEmail).catch((err: any) =>
+        console.error("[calendly webhook] blacklistLarsenDomain failed:", err?.message ?? err)
       );
 
       return NextResponse.json({ ok: true, event: "invitee.created", callId, isReschedule });
