@@ -717,6 +717,32 @@ function hasSchedulingTrigger(message: string): boolean {
   );
 }
 
+const SCHEDULING_LINK_RE = /https?:\/\/(?:[a-z0-9-]+\.)*(?:calendly\.com|cal\.com|meetings\.hubspot\.com|chilipiper\.com|acuityscheduling\.com|savvycal\.com|app\.reclaim\.ai|scheduler\.zoom\.us)\/[^\s)>\]"']+/gi;
+
+function normalizeLink(url: string): string {
+  return url.toLowerCase().replace(/^https?:\/\//, "").replace(/\/+$/, "").split("?")[0];
+}
+
+/**
+ * Detects a scheduling-service link (Calendly, Cal.com, HubSpot Meetings, Acuity,
+ * SavvyCal, etc.) in the lead's own reply text that is NOT one of our own booking
+ * links. A lead handing over their own calendar and asking us to book time on it is
+ * functionally the same as naming a specific day/time, there is nothing for the AI
+ * to send, a human needs to actually place the booking (Merv/medialister.com, AH
+ * Consulting, 2026-09-10: "Book 15 minutes directly in my calendar [their Calendly
+ * link]" was missed by hasSchedulingTrigger and the standard-client CALENDLY AND
+ * AVAILABILITY rule, both of which only looked for a stated day/time). ourLinksText
+ * is the REPLY QUICK REFERENCE block (or any text containing our own booking links)
+ * so a lead pasting OUR link back does not false-positive.
+ */
+function hasLeadSharedBookingLink(message: string, ourLinksText?: string): boolean {
+  if (!message) return false;
+  const found = message.match(SCHEDULING_LINK_RE) ?? [];
+  if (found.length === 0) return false;
+  const ours = new Set((ourLinksText ?? "").match(SCHEDULING_LINK_RE)?.map(normalizeLink) ?? []);
+  return found.some(link => !ours.has(normalizeLink(link)));
+}
+
 /**
  * Per-workspace hard suppression rules. A reply matching one of these is silently
  * closed (status='read') before it can be forwarded, auto-sent, or routed to
@@ -2122,11 +2148,25 @@ ${messageText.slice(0, 8000)}`;
   // prompt. These clients have no human review step anymore, so if Claude still
   // returned auto_send for a message that clearly asks to schedule, force it to
   // manual rather than trust the model's classification alone. See hasSchedulingTrigger.
-  if (isFullyAutomated && result.action === "auto_send" && hasSchedulingTrigger(leadNewText)) {
+  if (isFullyAutomated && result.action === "auto_send" && (hasSchedulingTrigger(leadNewText) || hasLeadSharedBookingLink(leadNewText, quickRef))) {
     result.action = "manual";
     result.manual_reason = "Manual booking trigger detected (lead wants to schedule a call). AI cannot send calendar invites, routed to a human.";
     result.reply_body = undefined;
     console.log(`[auto-reply] Scheduling-trigger backstop fired for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
+  }
+
+  // ── Lead shared their own booking link (standard clients) ────────────────────
+  // Standard (non-fully-automated) clients only route to manual when the lead names
+  // a specific day/time or asks to be called on a phone number (CALENDLY AND
+  // AVAILABILITY rule in the system prompt) — a lead offering their OWN scheduling
+  // link with no stated day/time slipped through that narrower rule (Merv/medialister.com,
+  // AH Consulting, 2026-09-10). Kasper: "send those to manual." Deterministic backstop,
+  // same pattern as the fully-automated one above.
+  if (!isFullyAutomated && result.action === "auto_send" && hasLeadSharedBookingLink(leadNewText, quickRef)) {
+    result.action = "manual";
+    result.manual_reason = "Lead shared their own scheduling link and wants us to book time on it. AI cannot place bookings on someone else's calendar, routed to a human.";
+    result.reply_body = undefined;
+    console.log(`[auto-reply] Lead-shared-booking-link backstop fired for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
   }
 
   // ── Dealgen Partners backstop ────────────────────────────────────────────────
