@@ -1,0 +1,65 @@
+{
+  "excludedSlugs": [
+    "micro-nordic",
+    "sro-consulting",
+    "zenith-global",
+    "venture-exits",
+    "zebs-ibs",
+    "wrobel-capital",
+    "itg-group",
+    "911-restoration"
+  ],
+  "reportLines": [
+    {
+      "label": "ACT Capital",
+      "workspaceSlugs": ["act-capital"],
+      "meetings": { "baseId": "appECObQrdSRjeXeM", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting Booked Date" }
+    },
+    {
+      "label": "AH Consulting",
+      "workspaceSlugs": ["ah-consulting", "ah-consulting-2"],
+      "meetings": { "baseId": "appZhEsVN52VXPZ66", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
+    },
+    {
+      "label": "GN Motion",
+      "workspaceSlugs": ["gn-motion"],
+      "meetings": { "baseId": "appL5fZEyULdqpyx5", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting Booked Date" }
+    },
+    {
+      "label": "Hahnbeck",
+      "workspaceSlugs": ["hahnbeck"],
+      "meetings": { "baseId": "appUZr45I0MK7uv3w", "tableId": "tbl9KatGYqPFB45Hs", "bookedDateField": "Meeting booked date" }
+    },
+    {
+      "label": "Internal Campaigns",
+      "workspaceSlugs": ["internal-campaigns"],
+      "meetings": { "baseId": "app9rWZ2iE4eWECEN", "tableId": "tblCATnaPTV9fb2Ab", "bookedDateField": "Meeting booked date" },
+      "alwaysInclude": true
+    },
+    {
+      "label": "Larsen Digital - Lukas",
+      "workspaceSlugs": ["acceler8rs"],
+      "meetings": { "baseId": "appp8h0kv9DEHYpXR", "tableId": "tblkoizZek5r5wi45", "bookedDateField": "Meeting booked date", "dealSourceField": "Deal Source", "dealSourceValue": "Lukas" }
+    },
+    {
+      "label": "Larsen Digital - Nicklas",
+      "workspaceSlugs": ["larsen-digital"],
+      "meetings": { "baseId": "appp8h0kv9DEHYpXR", "tableId": "tblkoizZek5r5wi45", "bookedDateField": "Meeting booked date", "dealSourceField": "Deal Source", "dealSourceValue": "Nicklas" }
+    },
+    {
+      "label": "Sonaro AI",
+      "workspaceSlugs": ["sonaro-ai"],
+      "meetings": { "baseId": "appNMGCTwXVOLLzmA", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting Booked Date" }
+    },
+    {
+      "label": "Statera Capital",
+      "workspaceSlugs": ["statera-capital"],
+      "meetings": { "baseId": "app0EI3nqT3ScUJOf", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting Booked Date" }
+    },
+    {
+      "label": "WithPebble",
+      "workspaceSlugs": ["with-pebble", "with-pebble-2"],
+      "meetings": { "baseId": "appjEe12UdVsRX10y", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
+    }
+  ]
+}
