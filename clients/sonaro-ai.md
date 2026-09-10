@@ -94,16 +94,16 @@ Never describe the offer as an "AI receptionist" — always frame it as a manage
 |---|---|
 | **Industry** | Healthcare clinics: GP, dental, physio, aesthetics, chiropractic |
 | **Company size** | Small-to-mid size clinic operators |
-| **Geography** | EU-focused (not UK-specific) |
+| **Geography** | US and EU (expanded from EU-only, 2026-09-09) |
 | **Job title / role** | Clinic Owner, Practice Manager, Medical Director |
 | **Revenue range** | [fill in] |
 | **Other criteria** | Must be running an active patient-facing clinic |
 
 **What qualifies a lead:**
-EU-based clinic owner or practice manager running an active patient-facing practice — anyone losing revenue from missed calls or no-shows.
+US or EU-based clinic owner or practice manager running an active patient-facing practice — anyone losing revenue from missed calls or no-shows.
 
 **What disqualifies a lead:**
-Hospital groups (too large/complex), non-patient-facing healthcare, outside EU.
+Hospital groups (too large/complex), non-patient-facing healthcare, non-clinic verticals (veterinary, cardiology, radiology/imaging, ophthalmology, hearing aid centers, home health/home care, hospice, skilled nursing/rehab facilities, billing/admin companies, associations).
 
 ---
 
