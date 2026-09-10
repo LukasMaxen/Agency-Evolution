@@ -40,7 +40,11 @@ Confirmed 2026-09-10: GetLeads' contact export CSVs (e.g. Apollo-sourced Sonaro 
 
 6. **Poll `check_enrichment_status`** with `run_id` until `status` is `completed`.
 
-7. **Call `get_enrichment_result`** with `run_id` for the presigned download URL (1-hour TTL). Hand the user the link — never paste enriched row data into chat.
+7. **Call `get_enrichment_result`** with `run_id` for the presigned download URL (1-hour TTL).
+
+8. **Fetch the file myself** — `curl` the presigned URL directly to a local path (project folder, not scratchpad, since the enriched CSV is a real deliverable) and read/report from that file. The download URL requires no further auth beyond what's already in it, so this needs no action from the user. Only hand the user the raw URL as a fallback if the curl fetch itself fails.
+
+**The whole pipeline needs exactly one manual step from the user: opening `upload_url` once to submit the file.** Everything before and after that — building the input CSV, creating the job, polling both stages, and pulling down the finished result — is fully automated on this end. If asked "do you have the enriched data," the answer is yes once step 8 completes; it's a real file on disk, not just a link waiting to be opened.
 
 ---
 
