@@ -7,7 +7,9 @@
     "zebs-ibs",
     "wrobel-capital",
     "itg-group",
-    "911-restoration"
+    "911-restoration",
+    "ah-consulting",
+    "with-pebble"
   ],
   "reportLines": [
     {
@@ -17,7 +19,7 @@
     },
     {
       "label": "AH Consulting",
-      "workspaceSlugs": ["ah-consulting", "ah-consulting-2"],
+      "workspaceSlugs": ["ah-consulting-2"],
       "meetings": { "baseId": "appZhEsVN52VXPZ66", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
     },
     {
@@ -58,7 +60,7 @@
     },
     {
       "label": "WithPebble",
-      "workspaceSlugs": ["with-pebble", "with-pebble-2"],
+      "workspaceSlugs": ["with-pebble-2"],
       "meetings": { "baseId": "appjEe12UdVsRX10y", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
     }
   ]
