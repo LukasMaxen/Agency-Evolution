@@ -201,6 +201,21 @@ As of 2026-08-05, "Acceler8rs" is retired as a separate brand. Larsen Digital no
 
 ---
 
+## AH Consulting / WithPebble — dual EmailBison instances (found 2026-09-11, pending confirmation)
+
+Discovered while building the automated script: both AH Consulting and WithPebble now have a SECOND workspace row in the DB, on a different EmailBison instance than their original one:
+
+| Client | Original slug | Instance | Second slug | Instance |
+|---|---|---|---|---|
+| AH Consulting | `ah-consulting` ("Austin Heaton Shields") | send.shieldsoutbound.com | `ah-consulting-2` ("Austin Heaton AE") | send.emailagencyevolution.com |
+| WithPebble | `with-pebble` ("WithPebble Shields") | send.shieldsoutbound.com | `with-pebble-2` ("WithPebble AE") | send.emailagencyevolution.com |
+
+Neither client's Airtable Meetings base has a field to attribute a meeting to one instance vs the other (checked both `tblTnxArHDVMNOxSI` schemas directly — no Deal Source or equivalent, unlike Larsen). Since meetings can't be split, `scripts/csm-update.config.json` currently rolls both slugs into ONE report line per client (summed sends/replies/interested, one shared meetings count) rather than reporting them separately like Larsen.
+
+**This is a guess, not a confirmed decision — ask Kasper what the second workspace actually is (a real dual-instance sending setup vs. a leftover/duplicate/test workspace) and whether combining is the right call**, same as Larsen's split-by-Deal-Source, or something else. Update this section and the config once he confirms.
+
+---
+
 ## AH Consulting / Internal Campaigns — Austin-themed campaigns split across two workspaces
 
 Lukas runs "AustinHeaton"-branded campaigns (seen as `AE Version - AustinHeaton | AI Companies`, `AEO Version - AustinHeaton | AI Companies`, and `AE Version - AustinHeaton | AI Companies (our leads)`) through the **Internal Campaigns** EmailBison workspace, not through AH Consulting's own workspace. Any lead from one of these who books a meeting shows up correctly in `calls`/Airtable under `internal-campaigns` — that part isn't a bug — but it means a meeting that is conceptually "for Austin" gets counted in the Internal Campaigns line item instead of the AH Consulting line item, splitting the true Austin meeting count across both.

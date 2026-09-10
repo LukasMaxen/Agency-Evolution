@@ -65,6 +65,10 @@ node .claude/skills/onboard-client/test.cjs <slug>
 
 Only after the webhook is registered in EmailBison. This checks EmailBison auth, fires one synthetic `LEAD_REPLIED` event at the real production webhook, confirms the row lands under the right `workspace_slug`, and deletes it before the 2-minute auto-reply hold could turn it into a real Slack post. All four checks must pass. If any fail, do not tell the user the workspace is live.
 
+## Expected, not a bug: Account Monitor stays empty until warmup starts
+
+The "Account Monitor" tab (`components/MailboxMonitor.tsx`, backed by `/api/warmup-monitor`) only lists workspaces with a row in `emails_sent` in the trailing 7 days (real sends or warmup probes). A brand-new workspace with no sender accounts added / warmup not started yet in EmailBison will not appear there, no matter how correctly it's wired in our DB. It shows up on its own once warmup begins and the `EMAIL_SENT` webhook starts logging probe sends -- don't chase this as a bug during onboarding, it's Step 5 (domain/sender setup) not done yet, not Steps 2-4 (DB/webhook/routing) covered by this skill.
+
 ## 5. Final report
 
 One consolidated checklist: what's done (wired + verified), what's still needed from the user (webhook registration if not done yet, Coolify env var if a new Calendly token was added), and what's still manual/out of scope for this skill (domain + sender warmup, DNS records, contract/invoice, lead sourcing, campaign copy, the full GTM-brief client-file interview). Pull the "still manual" list from `1. Departments/operations/SKILL_OnboardClient.md` steps 5-10 rather than re-deriving it.
