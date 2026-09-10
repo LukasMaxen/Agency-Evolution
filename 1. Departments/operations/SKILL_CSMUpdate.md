@@ -201,26 +201,24 @@ As of 2026-08-05, "Acceler8rs" is retired as a separate brand. Larsen Digital no
 
 ---
 
-## AH Consulting / WithPebble — dual EmailBison instances (found 2026-09-11, pending confirmation)
+## AH Consulting / WithPebble — Shields workspaces retired, Agency Evolution is the source now (resolved 2026-09-11)
 
-Discovered while building the automated script: both AH Consulting and WithPebble now have a SECOND workspace row in the DB, on a different EmailBison instance than their original one:
+Both AH Consulting and WithPebble briefly had two EmailBison workspace rows in the DB, on two different instances:
 
-| Client | Original slug | Instance | Second slug | Instance |
+| Client | Shields slug (retired) | Instance | AE slug (in use) | Instance |
 |---|---|---|---|---|
 | AH Consulting | `ah-consulting` ("Austin Heaton Shields") | send.shieldsoutbound.com | `ah-consulting-2` ("Austin Heaton AE") | send.emailagencyevolution.com |
 | WithPebble | `with-pebble` ("WithPebble Shields") | send.shieldsoutbound.com | `with-pebble-2` ("WithPebble AE") | send.emailagencyevolution.com |
 
-Neither client's Airtable Meetings base has a field to attribute a meeting to one instance vs the other (checked both `tblTnxArHDVMNOxSI` schemas directly — no Deal Source or equivalent, unlike Larsen). Since meetings can't be split, `scripts/csm-update.config.json` currently rolls both slugs into ONE report line per client (summed sends/replies/interested, one shared meetings count) rather than reporting them separately like Larsen.
-
-**This is a guess, not a confirmed decision — ask Kasper what the second workspace actually is (a real dual-instance sending setup vs. a leftover/duplicate/test workspace) and whether combining is the right call**, same as Larsen's split-by-Deal-Source, or something else. Update this section and the config once he confirms.
+Per Kasper 2026-09-11: outreach on the Shields instance is being wound down for both clients (Austin Heaton's Internal-Campaigns-routed outreach is also stopping, see below). Going forward, report each client from its Agency Evolution (`-2`) workspace only. `scripts/csm-update.config.json` now maps `AH Consulting` → `ah-consulting-2` only and `WithPebble` → `with-pebble-2` only, and `ah-consulting` / `with-pebble` (the Shields slugs) are in `excludedSlugs` so the script never flags them as new/unmapped. If Shields outreach fully stops and those DB rows get archived/deleted later, no config change is needed beyond this.
 
 ---
 
-## AH Consulting / Internal Campaigns — Austin-themed campaigns split across two workspaces
+## AH Consulting / Internal Campaigns — Austin-themed campaigns split across two workspaces (winding down)
 
-Lukas runs "AustinHeaton"-branded campaigns (seen as `AE Version - AustinHeaton | AI Companies`, `AEO Version - AustinHeaton | AI Companies`, and `AE Version - AustinHeaton | AI Companies (our leads)`) through the **Internal Campaigns** EmailBison workspace, not through AH Consulting's own workspace. Any lead from one of these who books a meeting shows up correctly in `calls`/Airtable under `internal-campaigns` — that part isn't a bug — but it means a meeting that is conceptually "for Austin" gets counted in the Internal Campaigns line item instead of the AH Consulting line item, splitting the true Austin meeting count across both.
+Lukas ran "AustinHeaton"-branded campaigns (seen as `AE Version - AustinHeaton | AI Companies`, `AEO Version - AustinHeaton | AI Companies`, and `AE Version - AustinHeaton | AI Companies (our leads)`) through the **Internal Campaigns** EmailBison workspace, not through AH Consulting's own workspace. Any lead from one of these who books a meeting shows up correctly in `calls`/Airtable under `internal-campaigns` — that part isn't a bug — but it means a meeting that is conceptually "for Austin" gets counted in the Internal Campaigns line item instead of the AH Consulting line item, splitting the true Austin meeting count across both.
 
-Report each client's real Airtable/EmailBison numbers as-is, with no cross-check query. The generated `Note:` line stays blank for both clients regardless of this split — do not auto-fill it with a note about the split. Kasper can add that context manually if he wants it for a given report.
+Per Kasper 2026-09-11, this Austin-via-Internal-Campaigns outreach is being stopped. Once it's fully off, the Internal Campaigns line item goes back to being purely Maxen's own buy-side/sell-side outreach and this split stops mattering. Until confirmed fully stopped, report each client's real Airtable/EmailBison numbers as-is, with no cross-check query. The generated `Note:` line stays blank for both clients regardless of this split — do not auto-fill it with a note about the split. Kasper can add that context manually if he wants it for a given report.
 
 ---
 
@@ -236,6 +234,8 @@ The following workspaces exist in the DB but are excluded from every CSM update:
 - **Wrobel Capital** (slug: `wrobel-capital`)
 - **ITG Group** (slug: `itg-group`)
 - **911 Restoration** (slug: `911-restoration`)
+- **AH Consulting Shields** (slug: `ah-consulting`) — Shields instance retired 2026-09-11, see above. AH Consulting is now reported from `ah-consulting-2` only.
+- **WithPebble Shields** (slug: `with-pebble`) — Shields instance retired 2026-09-11, see above. WithPebble is now reported from `with-pebble-2` only.
 
 ---
 
