@@ -26,6 +26,13 @@ export const CALENDLY_CLIENT_CONFIG: Record<string, CalendlyClientConfig> = {
     eventTypeUrl: "https://calendly.com/austin-austinheaton/30min",
     defaultTz: "Europe/Chisinau",
   },
+  // Same Austin Heaton, same Calendly account, new agencyevolution-instance
+  // workspace (2026-09-11). Reuses the same token/link as ah-consulting.
+  "ah-consulting-2": {
+    tokenEnv: "AH_CONSULTING_CALENDLY_TOKEN",
+    eventTypeUrl: "https://calendly.com/austin-austinheaton/30min",
+    defaultTz: "Europe/Chisinau",
+  },
 };
 
 export function resolveCalendlyToken(client?: string | null): string | undefined {
