@@ -1453,7 +1453,7 @@ If no LEAD COMPANY CONTEXT block appears (because the site was unreachable), fal
   // the same reply reads as ignoring what they just said. Caught on a Jeff King
   // (clubfurniture.com) draft that offered a free concept + "grab a time here" right
   // after he said he doesn't have the $15K/month.
-  const selfDisqualifyNoCallWorkspaces = new Set(["with-pebble", "ah-consulting"]);
+  const selfDisqualifyNoCallWorkspaces = new Set(["with-pebble", "ah-consulting", "with-pebble-2", "ah-consulting-2"]);
   const selfDisqualifyNoCallBlock = selfDisqualifyNoCallWorkspaces.has(workspaceSlug)
     ? `\nSELF-DISQUALIFICATION RULE (this client only): if the lead states, in their own words, a firm reason they don't qualify or can't proceed (a budget figure below what the offer costs, "we don't have $X in our budget", or a stated requirement of theirs we plainly do not meet), do NOT close with a call/booking ask. A call does not fix a budget mismatch, offering one anyway ignores what they just told you. Acknowledge the constraint honestly, answer anything else in their message, and end WITHOUT a CTA to book, no Calendly/Fillout link, no "grab a time here." If genuine, leave the door open with one plain low-pressure line ("if that changes down the road, happy to reconnect") but do not pair it with a booking link in the same reply. This overrides the general "every reply should move toward the call" guidance below for this specific case.\n`
     : "";
