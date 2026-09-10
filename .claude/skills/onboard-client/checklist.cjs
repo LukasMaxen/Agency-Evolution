@@ -36,18 +36,19 @@ function aliasTarget(src, needle) {
     console.log(`[x] DB workspace row -- name="${w.name}", instance=${w.email_bison_instance_url}, api_key=${w.has_key ? 'present' : 'MISSING'}`);
   }
 
-  const clientFile = path.join(ROOT, 'clients', `${slug}.md`);
+  const proc = readSrc('app/api/auto-reply/processor.ts');
+  const alias = aliasTarget(proc, slug);
+
+  const contentSlug = alias || slug;
+  const clientFile = path.join(ROOT, 'clients', `${contentSlug}.md`);
   if (fs.existsSync(clientFile)) {
     const content = fs.readFileSync(clientFile, 'utf8');
     const hasQuickRef = /^## REPLY QUICK REFERENCE/m.test(content);
-    console.log(`[${hasQuickRef ? 'x' : '!'}] clients/${slug}.md exists${hasQuickRef ? '' : ' -- MISSING "## REPLY QUICK REFERENCE" heading. The auto-reply drafter looks for this exact heading and silently degrades to a full-file fallback without it.'}`);
+    console.log(`[${hasQuickRef ? 'x' : '!'}] clients/${contentSlug}.md exists${hasQuickRef ? '' : ' -- MISSING "## REPLY QUICK REFERENCE" heading. The auto-reply drafter looks for this exact heading and silently degrades to a full-file fallback without it.'}`);
   } else {
-    console.log(`[ ] clients/${slug}.md -- MISSING. Run the intake interview (SKILL_IntakeClient.md) or write it directly.`);
+    console.log(`[ ] clients/${contentSlug}.md -- MISSING. Run the intake interview (SKILL_IntakeClient.md) or write it directly.`);
   }
 
-  const proc = readSrc('app/api/auto-reply/processor.ts');
-
-  const alias = aliasTarget(proc, slug);
   console.log(alias
     ? `[i] CLIENT_FILE_ALIASES -- draws client content from clients/${alias}.md instead of its own file`
     : '[i] CLIENT_FILE_ALIASES -- none (uses its own client file directly)');
