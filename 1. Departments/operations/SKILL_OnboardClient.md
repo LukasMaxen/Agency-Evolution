@@ -37,58 +37,21 @@ Fill in during or immediately after kickoff call:
 
 ---
 
-## Step 2 — EmailBison Workspace Setup
+## Steps 2-4 — EmailBison Workspace, Database, Webhook (automated: use the `onboard-client` skill)
 
-**Owner:** Sunny
+**Owner:** Whoever creates the EmailBison workspace (get the API key from them) + Claude for the rest.
 
-- [ ] Create new workspace in EmailBison at `https://send.emailagencyevolution.com`
-- [ ] Name it exactly: `[Client Name]` (matches slug convention)
-- [ ] Note the `email_bison_api_key` for this workspace
-- [ ] Confirm `email_bison_instance_url` = `https://send.emailagencyevolution.com`
+Say "onboard [client]" / "new workspace for [client]" and Claude runs `.claude/skills/onboard-client/SKILL.md`, which:
+1. Takes the `email_bison_api_key` + `email_bison_instance_url` once the EmailBison workspace exists (**this part is still manual** — no API creates an EmailBison workspace) and upserts the `workspaces` DB row via `setup.cjs` (no hand-written SQL).
+2. Decides, with you: is this a brand-new client, or a second workspace for an existing one (needs a `CLIENT_FILE_ALIASES` entry in `processor.ts` instead of a duplicate client file)? Is this client fully-automated (auto-send, no human review — rare, currently only Larsen Digital/Acceler8rs/ACT Capital) or standard (every interested/needs_info reply to `#reply-approval`/`#manual-replies` for approval — the default for a new client)?
+3. Wires Calendly (`CALENDLY_CLIENT_CONFIG` in `lib/calendly.ts`) or flags that Fillout/iClosed needs a different pattern.
+4. Tells you the exact webhook URL (`https://inbox.agencyevolution.eu/api/webhook/[slug]`) and event list to register in EmailBison — **registering it is still a manual EmailBison-dashboard step, no API for this either.**
+5. Once registered, runs `test.cjs <slug>` — verifies EmailBison auth, fires one synthetic reply at the real webhook, confirms it lands in the DB, and deletes it before the 2-minute hold could turn it into a real Slack post. All checks must pass before the workspace is considered live.
 
----
-
-## Step 3 — Database Setup
-
-**Owner:** Sunny / Lukas
-
-Run this SQL against the PostgreSQL instance:
-
-```sql
-INSERT INTO workspaces (id, slug, name, email_bison_api_key, email_bison_instance_url)
-VALUES (
-  gen_random_uuid(),
-  '[slug]',
-  '[Client Name]',
-  '[api_key_from_step_2]',
-  'https://send.emailagencyevolution.com'
-);
-```
-
-- [ ] Row inserted in `workspaces` table
-- [ ] Confirm slug matches exactly what's in EmailBison
-
----
-
-## Step 4 — Webhook Registration
-
-**Owner:** Sunny
-
-In EmailBison, register the webhook for this workspace:
-
-- **URL:** `https://[your-vercel-domain]/api/webhook/[slug]`
-- **Events to enable:**
-  - `LEAD_REPLIED`
-  - `CONTACT_INTERESTED`
-  - `CONTACT_UNSUBSCRIBED`
-  - `EMAIL_SENT`
-  - `MANUAL_EMAIL_SENT`
-  - `EMAIL_OPENED`
-  - `EMAIL_BOUNCED`
-  - `CONTACT_FIRST_EMAILED`
-
-- [ ] Webhook registered in EmailBison
-- [ ] Test webhook fires correctly (send a test event, confirm it lands in DB)
+- [ ] EmailBison workspace created, name matches the slug convention
+- [ ] `onboard-client` skill run: DB row upserted, client-file/alias resolved, automation tier confirmed, Calendly wired if applicable
+- [ ] Webhook registered in EmailBison (URL + all 8 events)
+- [ ] `test.cjs` run and all checks passed
 
 ---
 
