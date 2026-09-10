@@ -44,6 +44,11 @@ Confirmed 2026-09-10: GetLeads' contact export CSVs (e.g. Apollo-sourced Sonaro 
 
 ---
 
+## Confirmed gotchas (found in production, not theoretical)
+
+- **A single-column CSV fails GetLeads' upload parser outright.** Confirmed 2026-09-10: uploading a CSV with only a `LinkedIn Url` column failed with `"Unable to auto-detect delimiting character; defaulted to ','"`, `items_processed: 0`. The parser needs at least one comma on every line to detect the delimiter. `extract_linkedin_urls.py` now always emits two columns (`LinkedIn Url`, `Company Name`) — never generate a single-column upload CSV for any GetLeads CSV enrichment or batch flow.
+- **No MCP tool can submit file contents directly — a one-time browser step is unavoidable.** GetLeads' own docs state explicitly: "Never try to pass CSV file contents through MCP tool calls — always use the upload link for files." Creating the job, polling status, and fetching the result are all fully scriptable via MCP; only the initial upload/paste itself requires the user to open `upload_url` once. Don't imply this can be fully eliminated — it can't, per GetLeads' own design.
+
 ## Efficiency rules (token + credit usage)
 
 - **Dedupe before upload, always.** Enrichment bills 1 credit per row processed — never upload a CSV with repeated LinkedIn URLs.
