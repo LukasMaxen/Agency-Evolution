@@ -128,7 +128,7 @@ async function fetchAirtableMeetingCount(meetingsCfg, start, end) {
   const dateClause =
     start === end
       ? `IS_SAME({${bookedDateField}}, '${start}', 'day')`
-      : `AND(IS_ON_OR_AFTER({${bookedDateField}}, '${start}'), IS_ON_OR_BEFORE({${bookedDateField}}, '${end}'))`;
+      : `AND(IS_AFTER({${bookedDateField}}, '${addDaysToDateString(start, -1)}'), IS_BEFORE({${bookedDateField}}, '${addDaysToDateString(end, 1)}'))`;
   const formula = dealSourceField
     ? `AND(${dateClause}, {${dealSourceField}} = '${dealSourceValue}')`
     : dateClause;
