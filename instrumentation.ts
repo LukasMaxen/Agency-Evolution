@@ -198,6 +198,22 @@ export async function register() {
   // EMAIL_SENT webhook outage (see app/api/webhook/[workspace]/route.ts)
   // showed the dashboard's old approach -- local tables fed only by that
   // webhook -- had no safety net when EB stopped delivering it.
+  //
+  // FIXED 2026-09-14: this used to be a single setTimeout 2min after boot
+  // plus a blind setInterval(24h). Coolify redeploys more often than every
+  // 24h (auto-sync commits land daily or more), which kills the process
+  // before the 24h interval ever gets a chance to fire -- the ONE boot-time
+  // attempt was the only shot this job ever got. When that one attempt hit
+  // any transient failure the cache went stale with no retry until the next
+  // redeploy, which hit the same fate. Result: sender_daily_stats and
+  // sender_warmup_periods silently froze at 2026-08-21 for 3+ weeks and the
+  // account monitor served stale sent/bounce/reply/warmup-trend numbers for
+  // any 14d/30d window without any error or indication. Fixed the same way
+  // job #5 (sender account sync) already self-heals: check the DB for how
+  // stale the cache actually is on a short poll interval, and only pay for
+  // the heavy EB sweep when it's actually due. This makes correctness
+  // depend on DB state, not on the container surviving 24h uninterrupted.
+  const DAILY_STATS_STALE_HOURS = 20;
   let dailyStatsSyncRunning = false;
   const runDailyStatsSync = async (label: string) => {
     if (dailyStatsSyncRunning) return;
@@ -221,13 +237,25 @@ export async function register() {
       dailyStatsSyncRunning = false;
     }
   };
+  const tryDailyStatsSync = async (label: string) => {
+    try {
+      const { default: pool } = await import("@/lib/db");
+      const { rows } = await pool.query(`SELECT MAX(synced_at) AS last_synced FROM sender_daily_stats`);
+      const lastSynced = rows[0]?.last_synced ? new Date(rows[0].last_synced).getTime() : 0;
+      if (Date.now() - lastSynced < DAILY_STATS_STALE_HOURS * 60 * 60_000) return;
+    } catch (err: any) {
+      console.error("[instrumentation] daily stats staleness check failed, attempting sync anyway:", err);
+    }
+    await runDailyStatsSync(label);
+  };
 
-  // Run once 2min after boot (it's the heaviest job, let the fast timers
-  // settle first), then once every 24h.
-  setTimeout(() => void runDailyStatsSync("initial"), 120_000);
-  setInterval(() => void runDailyStatsSync("periodic"), 24 * 60 * 60_000);
+  // Check every 30min (cheap: one MAX() query) but only actually run the
+  // heavy EB sweep once the cache is >20h old, so it survives redeploys
+  // that land more often than once a day.
+  setTimeout(() => void tryDailyStatsSync("initial"), 120_000);
+  setInterval(() => void tryDailyStatsSync("periodic"), 30 * 60_000);
 
-  console.log("[instrumentation] sender daily stats sync started, 24h interval");
+  console.log("[instrumentation] sender daily stats sync started, staleness-checked every 30min (>20h triggers a real sync)");
 
   // ── 9. Sender warmup history sync ─────────────────────────────────────────
   // Pulls current + prior 3/7/10/30-day warmup_score windows per sender
@@ -236,6 +264,11 @@ export async function register() {
   // time. 8 EB calls per sender (4 periods x current+prior), so staggered
   // even later than the daily stats sync to avoid piling both heavy jobs
   // on top of each other right at boot.
+  //
+  // FIXED 2026-09-14: same staleness-checked pattern as job #8 above, same
+  // reason -- see that comment. This table froze on the same date (2026-08-21)
+  // for the same root cause.
+  const WARMUP_HISTORY_STALE_HOURS = 20;
   let warmupHistorySyncRunning = false;
   const runWarmupHistorySync = async (label: string) => {
     if (warmupHistorySyncRunning) return;
@@ -259,11 +292,22 @@ export async function register() {
       warmupHistorySyncRunning = false;
     }
   };
+  const tryWarmupHistorySync = async (label: string) => {
+    try {
+      const { default: pool } = await import("@/lib/db");
+      const { rows } = await pool.query(`SELECT MAX(synced_at) AS last_synced FROM sender_warmup_periods`);
+      const lastSynced = rows[0]?.last_synced ? new Date(rows[0].last_synced).getTime() : 0;
+      if (Date.now() - lastSynced < WARMUP_HISTORY_STALE_HOURS * 60 * 60_000) return;
+    } catch (err: any) {
+      console.error("[instrumentation] warmup history staleness check failed, attempting sync anyway:", err);
+    }
+    await runWarmupHistorySync(label);
+  };
 
-  setTimeout(() => void runWarmupHistorySync("initial"), 240_000);
-  setInterval(() => void runWarmupHistorySync("periodic"), 24 * 60 * 60_000);
+  setTimeout(() => void tryWarmupHistorySync("initial"), 240_000);
+  setInterval(() => void tryWarmupHistorySync("periodic"), 30 * 60_000);
 
-  console.log("[instrumentation] sender warmup history sync started, 24h interval");
+  console.log("[instrumentation] sender warmup history sync started, staleness-checked every 30min (>20h triggers a real sync)");
 
   // ── 10. Fillout cancellation sweep ────────────────────────────────────────
   // Fillout (WithPebble's booking tool) has no cancellation webhook — see
