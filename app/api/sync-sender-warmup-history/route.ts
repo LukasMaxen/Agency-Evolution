@@ -21,6 +21,28 @@ function toYmd(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
+// FIXED 2026-09-14: a full run against production showed 17/20 workspaces
+// sharing the same EB instance (send.emailagencyevolution.com) came back
+// with rowsUpserted=0 despite having plenty of warmup_enabled senders --
+// this fetch previously treated ANY non-ok response (429 rate limit
+// included) identically to "EB returned no warmup data for this sender",
+// silently writing null scores instead of surfacing the real cause. That
+// made every failed workspace report failed:0, hiding the problem. This
+// wrapper retries once on 429 with a short backoff and reports the raw
+// status so callers can tell "no data" apart from "the call failed."
+async function fetchWithRateLimitRetry(url: string, apiKey: string): Promise<{ ok: boolean; status: number; json: any | null }> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } });
+    if (r.status === 429 && attempt === 0) {
+      await new Promise(res => setTimeout(res, 1500));
+      continue;
+    }
+    if (!r.ok) return { ok: false, status: r.status, json: null };
+    return { ok: true, status: r.status, json: await r.json() };
+  }
+  return { ok: false, status: 429, json: null };
+}
+
 export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const targetSlug = searchParams.get("workspace");
