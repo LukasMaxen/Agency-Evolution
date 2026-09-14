@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
             try {
               const values: any[] = [];
               let hadAnyScore = false;
+              let hadHttpError = false;
 
               for (let i = 0; i < PERIODS.length; i++) {
                 const periodDays = PERIODS[i];
@@ -100,28 +101,33 @@ export async function POST(req: NextRequest) {
                 const priorStart   = toYmd(new Date(today.getTime() - 2 * periodDays * 24 * 60 * 60 * 1000));
 
                 const [currentRes, priorRes] = await Promise.all([
-                  fetch(`${instanceUrl}/api/warmup/sender-emails?start_date=${currentStart}&end_date=${currentEnd}&search=${encodeURIComponent(sender.email)}&per_page=5`,
-                    { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } }),
-                  fetch(`${instanceUrl}/api/warmup/sender-emails?start_date=${priorStart}&end_date=${priorEnd}&search=${encodeURIComponent(sender.email)}&per_page=5`,
-                    { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } }),
+                  fetchWithRateLimitRetry(`${instanceUrl}/api/warmup/sender-emails?start_date=${currentStart}&end_date=${currentEnd}&search=${encodeURIComponent(sender.email)}&per_page=5`, apiKey),
+                  fetchWithRateLimitRetry(`${instanceUrl}/api/warmup/sender-emails?start_date=${priorStart}&end_date=${priorEnd}&search=${encodeURIComponent(sender.email)}&per_page=5`, apiKey),
                 ]);
 
                 let currentScore: number | null = null;
                 let priorScore: number | null = null;
                 if (currentRes.ok) {
-                  const j = await currentRes.json();
-                  const row = (j.data || []).find((x: any) => x.id === sender.eb_sender_id);
+                  const row = (currentRes.json?.data || []).find((x: any) => x.id === sender.eb_sender_id);
                   currentScore = typeof row?.warmup_score === "number" && row.warmup_score > 0 ? row.warmup_score : null;
+                } else {
+                  hadHttpError = true;
                 }
                 if (priorRes.ok) {
-                  const j = await priorRes.json();
-                  const row = (j.data || []).find((x: any) => x.id === sender.eb_sender_id);
+                  const row = (priorRes.json?.data || []).find((x: any) => x.id === sender.eb_sender_id);
                   priorScore = typeof row?.warmup_score === "number" && row.warmup_score > 0 ? row.warmup_score : null;
+                } else {
+                  hadHttpError = true;
                 }
                 if (currentScore !== null) hadAnyScore = true;
                 values.push(slug, sender.email.toLowerCase(), sender.eb_sender_id, currentScore, priorScore);
               }
 
+              // A real HTTP failure (rate limit, 5xx, etc.) is not the same
+              // as "EB legitimately has no warmup data for this sender" --
+              // count it as failed so the response's failed total reflects
+              // reality instead of silently reporting 0.
+              if (hadHttpError && !hadAnyScore) { failed++; continue; }
               if (!hadAnyScore) continue;
 
               // 5 params per period: slug, sender_email, eb_sender_id,
