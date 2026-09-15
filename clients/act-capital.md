@@ -14,6 +14,7 @@ fully_automated: true (no #reply-approval step for interested/needs_info, replie
 campaign_types_in_this_account:
 - "Sell Side Advisory" / "Northern Cali" / "Contractor Acquisition (Strategic buyer outreach from owners)" = sell_side_advisory. Jeff represents a buyer. Lead is a business owner. Goal: get them on a call. NO teaser. Send Calendly only.
 - "Tequila Acquisition" / "Excavation" / "Contractor Acquisition" / "Landscaping" (emailing PE firms/buyers) = mandate_buyer. Jeff represents a company for sale. Lead is a PE firm or investor. Send correct teaser + Calendly.
+- "Seminar | San Diego, Orange, Los Angeles, and Riverside" = summit_invite. Lead is a business owner. Step 1 invites them to a complimentary in-person summit, October 15, The Ritz-Carlton Laguna Niguel, Robert Hild speaking on M&A cycles and increasing business value ahead of an exit. CTA is "Mind if I send over the details?" On a yes/interested reply, send the event details link below plus a warm, friendly close. No Calendly, no pitch, no teaser, this is an event RSVP, not a deal.
 
 mandate_teasers:
 - Tequila: https://www.actcapitaladvisors.com/open-deals/high-growth-premium-tequila-company/ (triggers: tequila, spirits, beverage, alcohol)
@@ -25,6 +26,7 @@ mandate_teasers:
 reply_rules:
 - sell_side_advisory leads: interested = send Calendly, no teaser. "Feel free to grab a time here: [calendly]"
 - mandate_buyer leads: interested = send correct teaser + Calendly. Match teaser to campaign using trigger keywords above.
+- summit_invite leads: yes/interested to receiving details = send the event details link (see Summit Invite section below) with a warm, friendly close ("Hope to see you there" or similar). No Calendly needed unless they specifically ask to speak with Jeff directly, in which case add the Calendly link too.
 - Buyer asks about financials, key deal details, or more information — and teaser has NOT yet been shared: embed the teaser link directly in the reply body. Do not direct them to a webpage to find it themselves. Send the asset to them.
 - Buyer asks about valuation: redirect to teaser and call. "Best discussed on a call."
 - Buyer asks who the seller is: NDA framing. "Standard practice to keep confidential before NDA."
@@ -134,6 +136,13 @@ _What's being pitched: Representing a contractor business for acquisition to str
 |---|---|
 | Strategic buyers in contracting and construction | Active |
 
+### Seminar | San Diego, Orange, Los Angeles, and Riverside
+_What's being pitched: Invite to a complimentary in-person summit for business owners, October 15 at The Ritz-Carlton Laguna Niguel. Robert Hild speaking on M&A cycles and increasing business value ahead of an exit. Goal: get the lead to accept the invite, then send event details._
+
+| ICP | Status |
+|---|---|
+| Business owners — San Diego, Orange, Los Angeles, Riverside counties | Active |
+
 ---
 
 ## Campaign Strategy
@@ -230,6 +239,34 @@ ACT Capital also runs **buyer outreach campaigns** — where they represent a co
 > Happy to walk you through the details on a quick call. Feel free to grab a time here: https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting or let me know what works for you and we will coordinate.
 >
 > {SENDER_EMAIL_SIGNATURE}
+
+---
+
+## Summit Invite Campaign
+
+**Campaign name in EmailBison:** Seminar | San Diego, Orange, Los Angeles, and Riverside
+**Sender:** Jeffery Zanardi, Managing Director, ACT Capital Advisors
+**Event:** Complimentary summit for business owners, October 15, The Ritz-Carlton, Laguna Niguel. Robert Hild speaking on M&A cycles and increasing business value ahead of an exit.
+**Event details link:** https://drive.google.com/file/d/1a-VjklxBhyfWzgnM6ozWYhdcxi-Xuc6C/view?usp=sharing
+**Step 1 CTA:** "Mind if I send over the details?"
+**Trigger keywords:** summit, seminar, event, Ritz-Carlton, Laguna Niguel, Robert Hild, October 15
+
+This is an event RSVP, not a deal or mandate. No teaser, no valuation talk, no confidentiality framing. Keep the reply short and warm.
+
+**Reply template (yes/interested to receiving details):**
+> Hi {FIRST_NAME},
+>
+> Glad to hear it. Here are the full details for the summit on October 15 at The Ritz-Carlton, Laguna Niguel.
+>
+> https://drive.google.com/file/d/1a-VjklxBhyfWzgnM6ozWYhdcxi-Xuc6C/view?usp=sharing
+>
+> Robert will be walking through M&A cycles and how to increase business value ahead of an exit, should be a great session for anyone thinking about timing.
+>
+> Hope to see you there.
+>
+> {SENDER_EMAIL_SIGNATURE}
+
+**If they ask to speak with Jeff directly first:** add the Calendly link above the signature, keep the same warm tone, do not drop the event details link.
 
 ---
 
