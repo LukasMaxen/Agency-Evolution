@@ -253,6 +253,8 @@ ACT Capital also runs **buyer outreach campaigns** — where they represent a co
 
 This is an event RSVP, not a deal or mandate. No teaser, no valuation talk, no confidentiality framing. Keep the reply short and warm.
 
+**After the details link has been sent:** any further question from the lead on this thread routes to #reply-approval, no auto-draft/auto-send. This overrides the account-level full-automation setting for this campaign only, once the link has gone out.
+
 **Reply template (yes/interested to receiving details):**
 > Hi {FIRST_NAME},
 >
