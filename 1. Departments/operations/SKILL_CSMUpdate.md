@@ -241,7 +241,19 @@ The following workspaces exist in the DB but are excluded from every CSM update:
 
 ## Output format
 
-Use this exact per-client block (updated 2026-09-04: every client block ends with a blank `Note:` line for Kasper to fill in manually. Never pre-fill it with a generated observation, e.g. the Austin/Internal Campaigns split, high-Hahnbeck-interested flag, etc. Leave it empty as `Note:` with nothing after the colon):
+Header (updated 2026-09-16: plain date range only, no "yesterday"/"last 7 days" wording):
+
+```
+CSM Update — YYYY-MM-DD
+```
+
+or, for any multi-day window (last7, last30, monday-week, or explicit --start/--end):
+
+```
+CSM Update — YYYY-MM-DD to YYYY-MM-DD
+```
+
+Then this exact per-client block (updated 2026-09-04: every client block ends with a blank `Note:` line for Kasper to fill in manually. Never pre-fill it with a generated observation, e.g. the Austin/Internal Campaigns split, high-Hahnbeck-interested flag, etc. Leave it empty as `Note:` with nothing after the colon):
 
 ```
 [Client Name]:
@@ -254,10 +266,10 @@ Note:
 ________________________________________
 ```
 
-Totals block:
+Totals block (header updated 2026-09-16 to match the same plain date range as the top header, e.g. `Total Numbers (2026-09-15):` or `Total Numbers (2026-09-07 to 2026-09-13):`):
 
 ```
-Total Numbers Yesterday:
+Total Numbers (YYYY-MM-DD[ to YYYY-MM-DD]):
 
 Emails Sent: XX,XXX
 Total Replies: XXX
