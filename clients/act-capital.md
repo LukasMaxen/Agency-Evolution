@@ -247,7 +247,7 @@ ACT Capital also runs **buyer outreach campaigns** — where they represent a co
 **Campaign name in EmailBison:** Seminar | San Diego, Orange, Los Angeles, and Riverside
 **Sender:** Jeffery Zanardi, Managing Director, ACT Capital Advisors
 **Event:** Complimentary summit for business owners, October 15, The Ritz-Carlton, Laguna Niguel. Robert Hild speaking on M&A cycles and increasing business value ahead of an exit.
-**Event details link:** https://drive.google.com/file/d/1a-VjklxBhyfWzgnM6ozWYhdcxi-Xuc6C/view?usp=sharing
+**Event details link:** https://www.actcapitaladvisors.com/summit
 **Step 1 CTA:** "Mind if I send over the details?"
 **Trigger keywords:** summit, seminar, event, Ritz-Carlton, Laguna Niguel, Robert Hild, October 15
 
@@ -258,7 +258,7 @@ This is an event RSVP, not a deal or mandate. No teaser, no valuation talk, no c
 >
 > Glad to hear it. Here are the full details for the summit on October 15 at The Ritz-Carlton, Laguna Niguel.
 >
-> https://drive.google.com/file/d/1a-VjklxBhyfWzgnM6ozWYhdcxi-Xuc6C/view?usp=sharing
+> https://www.actcapitaladvisors.com/summit
 >
 > Robert will be walking through M&A cycles and how to increase business value ahead of an exit, should be a great session for anyone thinking about timing.
 >
