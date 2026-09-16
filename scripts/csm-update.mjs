@@ -259,8 +259,10 @@ async function main() {
   const emailsPerLead = totalInterested === 0 ? "N/A" : fmtInt(totalSent / totalInterested);
   const emailsPerMeeting = totalMeetings === 0 ? "N/A" : fmtInt(totalSent / totalMeetings);
 
+  const dateRange = `${start}${end !== start ? " to " + end : ""}`;
+
   const out = [];
-  out.push(`CSM Update — ${label} (${start}${end !== start ? " to " + end : ""})`);
+  out.push(`CSM Update — ${dateRange}`);
   out.push("");
   if (warnings.length) {
     out.push("=== WARNINGS (resolve/ask before trusting totals) ===");
@@ -269,7 +271,7 @@ async function main() {
   }
   out.push(...lines);
   out.push("");
-  out.push(`Total Numbers ${label === "yesterday" ? "Yesterday" : `(${label})`}:`);
+  out.push(`Total Numbers (${dateRange}):`);
   out.push("");
   out.push(`Emails Sent: ${fmtInt(totalSent)}`);
   out.push(`Total Replies: ${fmtInt(totalReplies)}`);
