@@ -2211,7 +2211,17 @@ ${messageText.slice(0, 8000)}`;
     // doesn't warrant a human review card, only genuine interest or a relevant question
     // should reach #reply-approval. Neutral drafts now auto-send directly (after the
     // self-critique pass above) for every client, same as the other no-review intents.
-    const alwaysAutoSend = new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested","neutral"]);
+    //
+    // 2026-09-17 (Kasper, escalated/angry): a "neutral" banter reply on Austin Heaton AE
+    // (leo@letspresta.com) auto-sent a re-pitch with a call ask, unreviewed. Kasper's
+    // standing instruction for Austin Heaton, WithPebble, and GN Motion is that anything
+    // that isn't an unambiguous hard close must go through #reply-approval or
+    // #manual-replies, no exceptions, including neutral. These three clients are pulled
+    // out of the global neutral-auto-send rule below.
+    const STRICT_REVIEW_WORKSPACES = new Set(["ah-consulting", "ah-consulting-2", "with-pebble", "with-pebble-2", "gn-motion"]);
+    const alwaysAutoSend = STRICT_REVIEW_WORKSPACES.has(workspaceSlug)
+      ? new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested"])
+      : new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested","neutral"]);
 
     // Interested/needs_info replies go to #reply-approval for human review before sending,
     // EXCEPT fully-automated clients (Larsen Digital 2026-08-13; ACT Capital and
