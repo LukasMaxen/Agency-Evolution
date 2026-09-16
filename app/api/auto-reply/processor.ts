@@ -1368,6 +1368,20 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // EB's Sent folder first, then the chain quoted in the lead's reply.
   const coldEmailBody = ebThread.coldEmailBody ?? (quotedChain ? quotedChain.slice(0, 2000) : null);
 
+  // ── ACT Capital summit invite: force #reply-approval once the details link is out ──
+  // Kasper (2026-09-16): this campaign auto-sends normally (act-capital is in
+  // FULLY_AUTOMATED_WORKSPACES), but once the summit details link has actually gone
+  // out to a lead, any further reply from them (a question, a follow-up) must go
+  // through #reply-approval for human review, not straight to EmailBison. Checked
+  // against the real EmailBison thread (US-direction messages), not our own DB, per
+  // the standing rule to verify sends against EmailBison directly.
+  const SUMMIT_DETAILS_LINK = "exitseminars.com/seminar/lagunabeach-2026-10-15";
+  const isActCapitalSummitCampaign = workspaceSlug === "act-capital" && /seminar/i.test((reply.campaign ?? "").toString());
+  const summitLinkAlreadySent = isActCapitalSummitCampaign && (
+    ebThread.messages.some((m) => m.dir !== "inbound" && m.body.includes(SUMMIT_DETAILS_LINK)) ||
+    (quotedChain ?? "").includes(SUMMIT_DETAILS_LINK)
+  );
+
   // ── Thread interest anchor ────────────────────────────────────────────────────
   // Has this lead shown interest EARLIER in this thread (a prior interested flag,
   // a booked meeting, or a prior interested/needs_info classification)? If so, a
@@ -2208,7 +2222,7 @@ ${messageText.slice(0, 8000)}`;
     // before drafting a reply_body, so everything that lands here already cleared
     // that check. Hard closes (unsubscribe, not_interested, neutral, etc.) auto-send/close
     // without review for every client, same as before.
-    if (!alwaysAutoSend.has(result.intent) && !isFullyAutomated) {
+    if (!alwaysAutoSend.has(result.intent) && (!isFullyAutomated || summitLinkAlreadySent)) {
       const draftId = `rd-${replyId}-${Date.now()}`;
       const slackTs = await postApprovalCard({ workspaceSlug, reply: replyWithCreds, instanceUrl: workspace.email_bison_instance_url ?? "", result });
 
