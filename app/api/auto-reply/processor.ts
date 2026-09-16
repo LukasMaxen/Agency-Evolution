@@ -2354,8 +2354,12 @@ ${messageText.slice(0, 8000)}`;
     }
 
     // If it looks like an interested reply but the automation couldn't figure out what to do,
-    // send to #manual-replies so a human can handle it.
-    const hardCloses = new Set(["not_interested", "hard_no", "unsubscribe", "wrong_target", "hostile"]);
+    // send to #manual-replies so a human can handle it. "neutral" is excluded here too
+    // (2026-09-17): a neutral do_nothing means the message was genuinely low-signal
+    // banter/small talk that correctly does not warrant any reply, not a case the
+    // automation "couldn't figure out" — routing it to #manual-replies anyway would
+    // just move the noise from an unwanted auto-send to an unwanted manual card.
+    const hardCloses = new Set(["not_interested", "hard_no", "unsubscribe", "wrong_target", "hostile", "neutral"]);
     if (!hardCloses.has(result.intent)) {
       await postManual(workspaceSlug, replyId, {
         text: `Interested reply needs human review, ${workspaceSlug} / ${reply.lead_name}`,
