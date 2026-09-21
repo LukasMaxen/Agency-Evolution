@@ -139,7 +139,7 @@ async function fetchSenderSeriesSent(slug, instanceUrl, apiKey, senders, start, 
     while (queue.length) {
       const sender = queue.shift();
       let done = false;
-      for (let attempt = 0; attempt < 3 && !done; attempt++) {
+      for (let attempt = 0; attempt < 6 && !done; attempt++) {
         try {
           const res = await fetch(
             `${base}/api/campaign-events/stats?start_date=${start}&end_date=${end}&sender_email_ids[]=${sender.eb_sender_id}`,
@@ -151,13 +151,13 @@ async function fetchSenderSeriesSent(slug, instanceUrl, apiKey, senders, start, 
           total += (sent?.dates ?? []).filter(([d]) => d >= start && d <= end).reduce((a, [, v]) => a + (Number(v) || 0), 0);
           done = true;
         } catch {
-          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+          await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
         }
       }
       if (!done) failed++;
     }
   };
-  await Promise.all(Array.from({ length: 8 }, worker));
+  await Promise.all(Array.from({ length: 4 }, worker));
   return failed === 0
     ? { slug, ok: true, emails_sent: total }
     : { slug, ok: false, error: `${failed} of ${senders.length} sender calls failed` };
@@ -233,6 +233,20 @@ async function main() {
     );
     for (const r of rows) (sendersBySlug[r.workspace_slug] ??= []).push(r);
   }
+  // Independent cross-check: sends the webhook log recorded in this window (US Eastern days).
+  // Never used as the reported number (it can undercount), only to flag a suspicious gap.
+  const dbLogBySlug = {};
+  {
+    const nextDay = addDaysToDateString(end, 1);
+    const { rows } = await pool.query(
+      `SELECT workspace_slug, count(*)::int AS n FROM emails_sent
+        WHERE (sent_at AT TIME ZONE 'America/New_York') >= $1::date
+          AND (sent_at AT TIME ZONE 'America/New_York') < $2::date
+        GROUP BY 1`,
+      [start, nextDay]
+    );
+    for (const r of rows) dbLogBySlug[r.workspace_slug] = r.n;
+  }
   await pool.end();
 
   const wsBySlug = Object.fromEntries(workspaces.map((w) => [w.slug, w]));
@@ -295,22 +309,30 @@ async function main() {
       if (r?.ok) { sent += r.emails_sent; replies += r.replies; interested += r.interested; }
     }
     if (sendsSourceOf(cfg) === "senderSeries") {
-      let seriesSent = 0, seriesOk = true;
+      // Resolve per workspace: a report line can roll up several workspaces (Larsen, AH, WithPebble),
+      // and some have no sender list, so line-level comparison would mix apples and oranges.
+      let lineSent = 0;
       for (const slug of cfg.workspaceSlugs) {
+        const statsSent = ebBySlug[slug]?.ok ? ebBySlug[slug].emails_sent : 0;
         const sr = seriesBySlug[slug];
-        if (sr?.ok) seriesSent += sr.emails_sent;
-        else { seriesOk = false; warnings.push(`Per-sender sends FAILED for "${cfg.label}" (${sr?.error ?? "no result"}) — Emails Sent below falls back to the workspace stats number, which undercounts deleted campaigns.`); }
-      }
-      if (seriesOk) {
-        if (seriesSent !== sent) dataNotes.push(`${cfg.label}: Emails Sent is counted from per-sender activity (${fmtInt(seriesSent)}); EmailBison's workspace stats show ${fmtInt(sent)} because they drop the sends of campaigns deleted in EmailBison. Replies and interested still come from workspace stats.`);
-        if (seriesSent < sent) {
-          // Sender coverage gap (sender missing from sender_accounts, or filtered out). Per-sender can
-          // never legitimately be BELOW workspace stats, so never report the lower number.
-          warnings.push(`${cfg.label}: per-sender sends (${fmtInt(seriesSent)}) came out BELOW EmailBison workspace stats (${fmtInt(sent)}). Sender list is probably incomplete (sender_accounts). Reporting the higher workspace number, which may still miss deleted campaigns. Verify before sending.`);
+        const hasSenders = (sendersBySlug[slug] ?? []).length > 0;
+        let slugSent = statsSent;
+        if (!hasSenders) {
+          if (statsSent > 0 || (dbLogBySlug[slug] ?? 0) > 0) dataNotes.push(`${cfg.label} (${slug}): no sender list, so Emails Sent uses EmailBison workspace stats (${fmtInt(statsSent)}), which drop deleted campaigns.`);
+        } else if (!sr?.ok) {
+          warnings.push(`Per-sender sends FAILED for "${cfg.label}" (${slug}: ${sr?.error ?? "no result"}). Emails Sent for it falls back to workspace stats (${fmtInt(statsSent)}), which undercounts deleted campaigns. Re-run before sending.`);
+        } else if (sr.emails_sent < statsSent) {
+          // Per-sender should never be below workspace stats. Never report the lower number.
+          warnings.push(`${cfg.label} (${slug}): per-sender sends (${fmtInt(sr.emails_sent)}) are BELOW EmailBison workspace stats (${fmtInt(statsSent)}). Reporting the higher number. Verify before sending.`);
         } else {
-          sent = seriesSent;
+          slugSent = sr.emails_sent;
+          if (sr.emails_sent !== statsSent) dataNotes.push(`${cfg.label} (${slug}): Emails Sent ${fmtInt(sr.emails_sent)} from per-sender activity; EmailBison workspace stats show ${fmtInt(statsSent)} (they drop the sends of deleted campaigns).`);
         }
+        const dbLog = dbLogBySlug[slug] ?? 0;
+        if (dbLog > slugSent * 1.03 + 5) warnings.push(`${cfg.label} (${slug}): webhook log recorded ${fmtInt(dbLog)} sends but the reported number is ${fmtInt(slugSent)}. Investigate before sending.`);
+        lineSent += slugSent;
       }
+      sent = lineSent;
     }
     const meetingsRes = meetingResults[i];
     const meetings = meetingsRes.ok ? meetingsRes.count : 0;
