@@ -51,10 +51,22 @@ When Kasper confirms a new workspace's treatment, edit `csm-update.config.json` 
 
 | Metric | Source | Why |
 |---|---|---|
-| Emails sent | EmailBison API (`/api/workspaces/v1.1/stats`) | Source of truth. Matches the EmailBison UI exactly. Counts initial sends AND follow-ups, no `sequence_step` filter. |
+| Emails sent | EmailBison per-sender activity (`/api/campaign-events/stats`, summed over every sender of the workspace, `Sent` series) | Counts what mailboxes actually sent. The workspace `/stats` endpoint DROPS the sends of any campaign deleted in EmailBison (found 2026-09-21: GN Motion showed 0 for a week with 5,312 real sends, Sonaro 0 vs 4,815). Counts initial sends AND follow-ups. The script never reports a number below workspace stats. |
 | Replies | EmailBison API (`/api/workspaces/v1.1/stats`) — field `unique_replies_per_contact` | Same call as emails sent, returned in the same response. |
 | Interested | EmailBison API (`/api/workspaces/v1.1/stats`) — field `interested` | Same call. EmailBison runs its own AI categorization and is treated as authoritative. Our DB's AI intent classification feeds back into EmailBison via a sync (see "Back-sync" section) so EmailBison stays correct. |
 | Meetings | Airtable only (`Meeting Booked Date` field) | Source of truth. Never use `meeting_booked` from the DB — it is not reliably set. |
+
+---
+
+## Send-count safeguards (added 2026-09-21, non-negotiable)
+
+Kasper's rule: only true numbers, never a silent wrong one. The script enforces this on every run:
+- Sends come from per-sender activity for EVERY client (`defaultSendsSource` in the config), not workspace stats.
+- Per workspace, if per-sender is BELOW workspace stats, the higher number is reported and a WARNING is printed.
+- The webhook log (`emails_sent` table) is used ONLY as a cross-check: if it exceeds the reported number by more than 3%, a WARNING is printed. It is never the reported number.
+- A failed per-sender call falls back to stats with a WARNING.
+- **Any WARNING in the output means the numbers are not confirmed. Tell Kasper about it in plain words next to the report, never hand over the report as if clean.** Known standing warnings: Shields instances for AH/WithPebble (per-sender comes back lower than stats), small Statera and Larsen Nicklas gaps.
+- Replies and interested still come from workspace stats, which can also miss deleted campaigns. For any client whose sends note says stats were far below real sends, spot-check replies against the DB `replies` table and say so.
 
 ---
 
