@@ -32,6 +32,8 @@ It queries `workspaces` once, fetches every client's EmailBison stats and Airtab
 - `excludedSlugs` — workspaces that should never be reported (mirrors the "Excluded clients" section below).
 - `reportLines` — one entry per report line: its label, which workspace slug(s) roll into it (usually one; two for Larsen's separate sender lines and for any client running dual EmailBison instances, see AH Consulting / WithPebble below), and its Airtable meetings base/table/field (plus an optional Deal Source filter, used by the two Larsen lines that share one base).
 
+**Emails Sent for GN Motion comes from per-sender activity, not the workspace stats endpoint** (set with `"sendsSource": "senderSeries"` on its report line). EmailBison's workspace stats drop the sends of campaigns that were deleted in EmailBison, while the mailboxes really sent them: GN Motion showed 716 for 2026-09-14 to 2026-09-21 against 2,546 actually sent (per-sender data and the webhook log agree). The script sums each connected sender's own daily "Sent" series, prints a "Data notes" line under the report whenever the two numbers differ, and falls back to the workspace number with a WARNINGS line if any sender call fails. Replies and interested still come from workspace stats. Any other client can be switched over by adding the same key to its report line.
+
 When Kasper confirms a new workspace's treatment, edit `csm-update.config.json` directly (add a new `reportLines` entry, or add its slug to an existing entry's `workspaceSlugs`, or add it to `excludedSlugs`) and re-run the script to confirm the warning is gone. Update the rest of this skill file (the tables below) to match, so the two never drift apart.
 
 ---
