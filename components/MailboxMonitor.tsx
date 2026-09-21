@@ -70,6 +70,7 @@ interface AccountMonitorResponse {
   lastSynced: string | null;
   mxMissingDomains?: string[];
   warmupTrendPeriod?: number;
+  staleWorkspaces?: string[];
 }
 
 interface WarmupSender {
@@ -1930,7 +1931,7 @@ function SenderTable({
 // ── Top-level component ──────────────────────────────────────────────
 
 export function MailboxMonitor() {
-  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[]; lastSynced: string | null; days: number; mxMissingDomains: Set<string>; thresholds: { criticalMinSend: number; provisionalFloor: number }; warmupTrendPeriod: number } | null>(null);
+  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[]; lastSynced: string | null; days: number; mxMissingDomains: Set<string>; thresholds: { criticalMinSend: number; provisionalFloor: number }; warmupTrendPeriod: number; staleWorkspaces: string[] } | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [selected, setSelected]   = useState<Workspace | null>(null);
@@ -2074,7 +2075,7 @@ export function MailboxMonitor() {
         criticalMinSend:  Number(th.criticalMinSend  ?? 200),
         provisionalFloor: Number(th.provisionalFloor ?? 20),
       };
-      setData({ workspaces, senders, lastSynced: acc.lastSynced, days: acc.days, mxMissingDomains, thresholds, warmupTrendPeriod: acc.warmupTrendPeriod ?? 7 });
+      setData({ workspaces, senders, lastSynced: acc.lastSynced, days: acc.days, mxMissingDomains, thresholds, warmupTrendPeriod: acc.warmupTrendPeriod ?? 7, staleWorkspaces: acc.staleWorkspaces ?? [] });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -2131,6 +2132,11 @@ export function MailboxMonitor() {
           {data?.lastSynced && (
             <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
               Last synced {new Date(data.lastSynced).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+            </p>
+          )}
+          {(data?.staleWorkspaces?.length ?? 0) > 0 && (
+            <p style={{ fontSize: 11, color: "#B45309", marginTop: 2 }}>
+              Send stats are refreshing for {data!.staleWorkspaces.join(", ")}. Numbers for these may be incomplete, reload in a minute.
             </p>
           )}
         </div>

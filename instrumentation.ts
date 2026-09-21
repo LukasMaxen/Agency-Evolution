@@ -215,6 +215,7 @@ export async function register() {
   // depend on DB state, not on the container surviving 24h uninterrupted.
   const DAILY_STATS_STALE_HOURS = 20;
   let dailyStatsSyncRunning = false;
+  let lastDailyStatsAttempt = 0;
   const runDailyStatsSync = async (label: string) => {
     if (dailyStatsSyncRunning) return;
     dailyStatsSyncRunning = true;
@@ -240,12 +241,27 @@ export async function register() {
   const tryDailyStatsSync = async (label: string) => {
     try {
       const { default: pool } = await import("@/lib/db");
-      const { rows } = await pool.query(`SELECT MAX(synced_at) AS last_synced FROM sender_daily_stats`);
+      // Staleness = the STALEST workspace, not the global MAX. A global MAX
+      // let one partial or single-workspace run (a manual sync, the UI Sync
+      // button, a run that died mid-way) mark every other workspace fresh,
+      // which is how most workspaces sat frozen for weeks. Workspaces with
+      // no cache rows at all count as stale.
+      const { rows } = await pool.query(
+        `SELECT MIN(COALESCE(s.last_synced, 'epoch'::timestamptz)) AS last_synced
+           FROM (SELECT DISTINCT workspace_slug FROM sender_accounts) a
+           LEFT JOIN (SELECT workspace_slug, MAX(synced_at) AS last_synced
+                        FROM sender_daily_stats GROUP BY workspace_slug) s
+             USING (workspace_slug)`
+      );
       const lastSynced = rows[0]?.last_synced ? new Date(rows[0].last_synced).getTime() : 0;
       if (Date.now() - lastSynced < DAILY_STATS_STALE_HOURS * 60 * 60_000) return;
+      // Cooldown so a workspace that can never produce rows doesn't
+      // retrigger the full sweep every 30 minutes.
+      if (Date.now() - lastDailyStatsAttempt < 3 * 60 * 60_000) return;
     } catch (err: any) {
       console.error("[instrumentation] daily stats staleness check failed, attempting sync anyway:", err);
     }
+    lastDailyStatsAttempt = Date.now();
     await runDailyStatsSync(label);
   };
 
@@ -270,6 +286,7 @@ export async function register() {
   // for the same root cause.
   const WARMUP_HISTORY_STALE_HOURS = 20;
   let warmupHistorySyncRunning = false;
+  let lastWarmupHistoryAttempt = 0;
   const runWarmupHistorySync = async (label: string) => {
     if (warmupHistorySyncRunning) return;
     warmupHistorySyncRunning = true;
@@ -295,12 +312,23 @@ export async function register() {
   const tryWarmupHistorySync = async (label: string) => {
     try {
       const { default: pool } = await import("@/lib/db");
-      const { rows } = await pool.query(`SELECT MAX(synced_at) AS last_synced FROM sender_warmup_periods`);
+      // Same stalest-workspace rule as the daily stats job. Only workspaces
+      // that actually have a scored sender count, since the sync skips
+      // senders with no score and would otherwise look stale forever.
+      const { rows } = await pool.query(
+        `SELECT MIN(COALESCE(s.last_synced, 'epoch'::timestamptz)) AS last_synced
+           FROM (SELECT DISTINCT workspace_slug FROM sender_accounts WHERE warmup_score > 0) a
+           LEFT JOIN (SELECT workspace_slug, MAX(synced_at) AS last_synced
+                        FROM sender_warmup_periods GROUP BY workspace_slug) s
+             USING (workspace_slug)`
+      );
       const lastSynced = rows[0]?.last_synced ? new Date(rows[0].last_synced).getTime() : 0;
       if (Date.now() - lastSynced < WARMUP_HISTORY_STALE_HOURS * 60 * 60_000) return;
+      if (Date.now() - lastWarmupHistoryAttempt < 6 * 60 * 60_000) return;
     } catch (err: any) {
       console.error("[instrumentation] warmup history staleness check failed, attempting sync anyway:", err);
     }
+    lastWarmupHistoryAttempt = Date.now();
     await runWarmupHistorySync(label);
   };
 
