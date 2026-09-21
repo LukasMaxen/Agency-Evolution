@@ -62,6 +62,11 @@ interface AccountMonitorWorkspace {
   domainCount:    number;
   statusCounts:   Record<string, number>;
 }
+function fmtDay(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
 interface AccountMonitorResponse {
   workspaces: AccountMonitorWorkspace[];
   summary:    any;
@@ -71,6 +76,8 @@ interface AccountMonitorResponse {
   mxMissingDomains?: string[];
   warmupTrendPeriod?: number;
   staleWorkspaces?: string[];
+  window?:    { days: number; start: string; end: string };
+  freshness?: { slug: string; statsSyncedAt: string | null; accountsSyncedAt: string | null; warmupSyncedAt: string | null; statsStale: boolean; accountsStale: boolean; warmupStale: boolean }[];
 }
 
 interface WarmupSender {
@@ -1931,7 +1938,7 @@ function SenderTable({
 // ── Top-level component ──────────────────────────────────────────────
 
 export function MailboxMonitor() {
-  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[]; lastSynced: string | null; days: number; mxMissingDomains: Set<string>; thresholds: { criticalMinSend: number; provisionalFloor: number }; warmupTrendPeriod: number; staleWorkspaces: string[] } | null>(null);
+  const [data, setData]           = useState<{ workspaces: Workspace[]; senders: Sender[]; lastSynced: string | null; days: number; mxMissingDomains: Set<string>; thresholds: { criticalMinSend: number; provisionalFloor: number }; warmupTrendPeriod: number; staleWorkspaces: string[]; window: { days: number; start: string; end: string } | null; freshness: NonNullable<AccountMonitorResponse["freshness"]> } | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [selected, setSelected]   = useState<Workspace | null>(null);
@@ -2075,7 +2082,7 @@ export function MailboxMonitor() {
         criticalMinSend:  Number(th.criticalMinSend  ?? 200),
         provisionalFloor: Number(th.provisionalFloor ?? 20),
       };
-      setData({ workspaces, senders, lastSynced: acc.lastSynced, days: acc.days, mxMissingDomains, thresholds, warmupTrendPeriod: acc.warmupTrendPeriod ?? 7, staleWorkspaces: acc.staleWorkspaces ?? [] });
+      setData({ workspaces, senders, lastSynced: acc.lastSynced, days: acc.days, mxMissingDomains, thresholds, warmupTrendPeriod: acc.warmupTrendPeriod ?? 7, staleWorkspaces: acc.staleWorkspaces ?? [], window: acc.window ?? null, freshness: acc.freshness ?? [] });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -2084,22 +2091,51 @@ export function MailboxMonitor() {
   }, [days]);
 
   useEffect(() => { load(); }, [load]);
+  // Reload every 5 minutes while the tab is open so the numbers on screen
+  // never drift behind the background syncs (which run every 10 to 15 min).
+  useEffect(() => {
+    const t = setInterval(() => { if (document.visibilityState === "visible") load(); }, 5 * 60_000);
+    return () => clearInterval(t);
+  }, [load]);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Sync = every pipeline behind the numbers, ONE WORKSPACE AT A TIME. A single
+  // all-workspaces request runs for minutes and is cut off by the proxy partway
+  // through, leaving the later workspaces silently un-synced.
   const pullFromEB = useCallback(async (slug?: string) => {
     if (pulling) return;
     setPulling(true);
-    setToast({ msg: slug ? `Syncing ${slug}…` : "Syncing all workspaces from EB (1-5 min)…", type: "success" });
     try {
-      const url = slug ? `/api/sync-sender-accounts?workspace=${encodeURIComponent(slug)}` : "/api/sync-sender-accounts";
-      const res = await fetch(url, { method: "POST" });
-      const j = await res.json();
-      if (!res.ok || !j.ok) setToast({ msg: j.error ?? "Sync failed", type: "error" });
-      else setToast({ msg: `Synced ${j.synced ?? 0} workspace(s)${(j.failed ?? 0) > 0 ? ` · ${j.failed} failed` : ""}.`, type: (j.failed ?? 0) > 0 ? "error" : "success" });
+      let slugs: string[];
+      if (slug) slugs = [slug];
+      else {
+        const list = await fetch("/api/sync-sender-accounts").then(r => r.json());
+        slugs = (list.workspaces ?? []).map((w: { workspace_slug: string }) => w.workspace_slug);
+      }
+      const steps: [string, string][] = [
+        ["/api/sync-sender-accounts", ""],
+        ["/api/sync-sender-daily-stats", ""],
+        ["/api/sync-sender-warmup-history", ""],
+      ];
+      let failed = 0;
+      for (let i = 0; i < slugs.length; i++) {
+        setToast({ msg: `Syncing ${slugs[i]} (${i + 1}/${slugs.length})…`, type: "success" });
+        for (const [path, extra] of steps) {
+          try {
+            const res = await fetch(`${path}?workspace=${encodeURIComponent(slugs[i])}${extra}`, { method: "POST" });
+            const j = await res.json().catch(() => null);
+            if (!res.ok || !j || j.ok === false || (j.failed ?? 0) > 0) failed++;
+          } catch { failed++; }
+        }
+      }
+      setToast({
+        msg: failed > 0 ? `Synced ${slugs.length} workspace(s), ${failed} step(s) had errors.` : `Synced ${slugs.length} workspace(s).`,
+        type: failed > 0 ? "error" : "success",
+      });
       load();
     } catch (err: any) {
       setToast({ msg: err.message ?? "Network error", type: "error" });
@@ -2129,16 +2165,26 @@ export function MailboxMonitor() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
         <div>
           <p style={{ fontSize: 18, fontWeight: 600 }}>Account Monitor</p>
-          {data?.lastSynced && (
-            <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-              Last synced {new Date(data.lastSynced).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+          {data?.window && (
+            <p style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+              Showing {fmtDay(data.window.start)} to {fmtDay(data.window.end)} (today included, calendar days)
             </p>
           )}
-          {(data?.staleWorkspaces?.length ?? 0) > 0 && (
-            <p style={{ fontSize: 11, color: "#B45309", marginTop: 2 }}>
-              Send stats are refreshing for {data!.staleWorkspaces.join(", ")}. Numbers for these may be incomplete, reload in a minute.
-            </p>
-          )}
+          {data && (() => {
+            const ageMin = data.lastSynced ? Math.max(0, Math.round((Date.now() - new Date(data.lastSynced).getTime()) / 60000)) : null;
+            const stale  = data.freshness.filter(f => f.statsStale || f.accountsStale || f.warmupStale);
+            const tone   = ageMin === null || ageMin > 120 ? "#B91C1C" : ageMin > 30 || stale.length > 0 ? "#B45309" : "#15803D";
+            const label  = ageMin === null ? "never synced"
+              : ageMin < 1 ? "just now"
+              : ageMin < 60 ? `${ageMin} min ago`
+              : `${Math.floor(ageMin / 60)}h ${ageMin % 60}m ago`;
+            return (
+              <p style={{ fontSize: 11, color: tone, marginTop: 2 }}>
+                Data as of {label} (oldest sync across all workspaces, refreshed automatically every 10 to 15 min)
+                {stale.length > 0 && `. Behind schedule: ${stale.map(f => f.slug).join(", ")}`}
+              </p>
+            );
+          })()}
         </div>
         <div style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {/* Days range toggle — affects sends/reply/bounce/burn windows

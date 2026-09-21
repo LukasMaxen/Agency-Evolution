@@ -8,12 +8,12 @@
 //   2. EmailBison inbox sync        every 2 minutes (catches untracked replies)
 //   3. Follow-up processor          every 5 minutes
 //   4. Weekly feedback review       hourly check, fires Mondays 08-11 UTC
-//   5. Sender account sync          every 6 hours (keeps sender_accounts in
+//   5. Sender account sync          every 15 min, per workspace (keeps sender_accounts in
 //                                   sync with EmailBison — removed senders
 //                                   are deleted from DB and disappear from UI)
-//   8. Sender daily stats sync      every 24 hours (per-sender Sent/Bounced/
+//   8. Sender daily stats sync      every 10 min, per workspace (per-sender Sent/Bounced/
 //                                   Replied history cache for account monitor)
-//   9. Sender warmup history sync   every 24 hours (per-sender 3/7/10/30d
+//   9. Sender warmup history sync   staleness-checked every 30 min, per workspace (per-sender 3/7/10/30d
 //                                   warmup_score + prior-period cache)
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
