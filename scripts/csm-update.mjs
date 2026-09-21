@@ -163,6 +163,24 @@ async function fetchSenderSeriesSent(slug, instanceUrl, apiKey, senders, start, 
     : { slug, ok: false, error: `${failed} of ${senders.length} sender calls failed` };
 }
 
+// Live sender list straight from EmailBison, used when sender_accounts has no rows for a workspace
+// (e.g. the Shields instances). Returns [{ eb_sender_id }].
+async function fetchLiveSenders(instanceUrl, apiKey) {
+  const base = instanceUrl.replace(/\/$/, "");
+  const out = [];
+  for (let page = 1; page <= 60; page++) {
+    const res = await fetch(`${base}/api/sender-emails?page=${page}`, {
+      headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) throw new Error(`sender list HTTP ${res.status}`);
+    const j = await res.json();
+    for (const x of j.data ?? []) out.push({ eb_sender_id: x.id });
+    if (!j.links?.next) break;
+  }
+  return out;
+}
+
 // ---- Airtable ----
 async function fetchAirtableMeetingCount(meetingsCfg, start, end) {
   const { baseId, tableId, bookedDateField, dealSourceField, dealSourceValue } = meetingsCfg;
@@ -266,6 +284,17 @@ async function main() {
     })
   );
   const ebBySlug = Object.fromEntries(ebResults.map((r) => [r.slug, r]));
+  const dataNotes = [];
+  const warnings = [];
+
+  for (const slug of seriesSlugs) {
+    if ((sendersBySlug[slug] ?? []).length || !wsBySlug[slug]) continue;
+    try {
+      sendersBySlug[slug] = await fetchLiveSenders(wsBySlug[slug].email_bison_instance_url, wsBySlug[slug].email_bison_api_key);
+    } catch (err) {
+      warnings.push(`Could not load sender list for "${slug}" (${err.message}). Emails Sent for it uses workspace stats, which drop deleted campaigns.`);
+    }
+  }
 
   const seriesResults = await Promise.all(
     seriesSlugs.filter((slug) => wsBySlug[slug]).map((slug) => {
@@ -274,14 +303,12 @@ async function main() {
     })
   );
   const seriesBySlug = Object.fromEntries(seriesResults.map((r) => [r.slug, r]));
-  const dataNotes = [];
 
   // Fetch Airtable meetings for every report line in one parallel batch.
   const meetingResults = await Promise.all(
     CONFIG.reportLines.map((line) => fetchAirtableMeetingCount(line.meetings, start, end))
   );
 
-  const warnings = [];
   if (unmapped.length) {
     warnings.push(
       "NEW / UNMAPPED WORKSPACE(S) FOUND — not included below, ask Kasper before adding:\n" +
