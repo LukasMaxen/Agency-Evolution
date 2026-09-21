@@ -291,18 +291,37 @@ export async function register() {
     if (warmupHistorySyncRunning) return;
     warmupHistorySyncRunning = true;
     try {
+      // One request PER WORKSPACE, stalest first. A single all-workspaces
+      // request takes minutes (8 EB calls per sender) and the request dies
+      // partway when a proxy/idle timeout cuts it (~40-60s), so only the
+      // first few alphabetical workspaces ever synced and the rest stayed
+      // frozen for weeks. Per-workspace calls finish in ~10s each, and
+      // stalest-first means progress carries across runs even if one dies.
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-      const res = await fetch(`${baseUrl}/api/sync-sender-warmup-history`, { method: "POST" });
-      if (!res.ok) {
-        const err = await res.text();
-        console.error(`[instrumentation] ${label} warmup history sync HTTP error:`, err);
-        return;
-      }
-      const data = await res.json();
-      console.log(
-        `[instrumentation] ${label} warmup history sync: ` +
-        `${data.synced}/${data.synced + data.failed} workspaces ok`
+      const { default: pool } = await import("@/lib/db");
+      const { rows: stale } = await pool.query(
+        `SELECT a.workspace_slug
+           FROM (SELECT DISTINCT workspace_slug FROM sender_accounts WHERE warmup_score > 0) a
+           LEFT JOIN (SELECT workspace_slug, MAX(synced_at) AS last_synced
+                        FROM sender_warmup_periods GROUP BY workspace_slug) s
+             USING (workspace_slug)
+          WHERE s.last_synced IS NULL OR s.last_synced < NOW() - INTERVAL '${WARMUP_HISTORY_STALE_HOURS} hours'
+          ORDER BY s.last_synced ASC NULLS FIRST`
       );
+      let ok = 0, bad = 0;
+      for (const { workspace_slug } of stale) {
+        try {
+          const res = await fetch(
+            `${baseUrl}/api/sync-sender-warmup-history?workspace=${encodeURIComponent(workspace_slug)}`,
+            { method: "POST" }
+          );
+          if (res.ok) ok++; else { bad++; console.error(`[instrumentation] ${label} warmup history ${workspace_slug} HTTP ${res.status}`); }
+        } catch (err: any) {
+          bad++;
+          console.error(`[instrumentation] ${label} warmup history ${workspace_slug} failed:`, err);
+        }
+      }
+      console.log(`[instrumentation] ${label} warmup history sync: ${ok}/${ok + bad} workspaces ok`);
     } catch (err: any) {
       console.error(`[instrumentation] ${label} warmup history sync failed:`, err);
     } finally {
