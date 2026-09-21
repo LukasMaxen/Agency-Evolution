@@ -23,6 +23,7 @@
     {
       "label": "GN Motion",
       "workspaceSlugs": ["gn-motion"],
+      "sendsSource": "senderSeries",
       "meetings": { "baseId": "appL5fZEyULdqpyx5", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting Booked Date" }
     },
     {

@@ -122,6 +122,47 @@ async function fetchEBStats(slug, instanceUrl, apiKey, start, end) {
   }
 }
 
+// Emails sent from per-sender activity instead of the workspace stats endpoint.
+// The workspace endpoint drops the sends of any campaign that was deleted in
+// EmailBison, while the mailboxes really sent them (GN Motion: 716 reported vs
+// ~2,546 actually sent in one week, confirmed against the webhook log). Summing
+// each sender's own daily "Sent" series over [start, end] counts what went out.
+// Opt in per report line with "sendsSource": "senderSeries" in the config.
+// Disconnected senders return 422 (no stats to give) and count as zero. Any
+// other failure makes the whole result not-ok so the caller falls back loudly.
+async function fetchSenderSeriesSent(slug, instanceUrl, apiKey, senders, start, end) {
+  const base = instanceUrl.replace(/\/$/, "");
+  let total = 0;
+  let failed = 0;
+  const queue = [...senders];
+  const worker = async () => {
+    while (queue.length) {
+      const sender = queue.shift();
+      let done = false;
+      for (let attempt = 0; attempt < 3 && !done; attempt++) {
+        try {
+          const res = await fetch(
+            `${base}/api/campaign-events/stats?start_date=${start}&end_date=${end}&sender_email_ids[]=${sender.eb_sender_id}`,
+            { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" }, signal: AbortSignal.timeout(15000) }
+          );
+          if (res.status === 422) { done = true; break; }
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const sent = ((await res.json())?.data ?? []).find((x) => x.label === "Sent");
+          total += (sent?.dates ?? []).filter(([d]) => d >= start && d <= end).reduce((a, [, v]) => a + (Number(v) || 0), 0);
+          done = true;
+        } catch {
+          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        }
+      }
+      if (!done) failed++;
+    }
+  };
+  await Promise.all(Array.from({ length: 8 }, worker));
+  return failed === 0
+    ? { slug, ok: true, emails_sent: total }
+    : { slug, ok: false, error: `${failed} of ${senders.length} sender calls failed` };
+}
+
 // ---- Airtable ----
 async function fetchAirtableMeetingCount(meetingsCfg, start, end) {
   const { baseId, tableId, bookedDateField, dealSourceField, dealSourceValue } = meetingsCfg;
@@ -180,6 +221,17 @@ async function main() {
   const { rows: workspaces } = await pool.query(
     "SELECT slug, name, email_bison_instance_url, email_bison_api_key FROM workspaces ORDER BY slug"
   );
+  const seriesSlugs = CONFIG.reportLines.filter((l) => l.sendsSource === "senderSeries").flatMap((l) => l.workspaceSlugs);
+  const sendersBySlug = {};
+  if (seriesSlugs.length) {
+    const { rows } = await pool.query(
+      `SELECT workspace_slug, eb_sender_id FROM sender_accounts
+        WHERE workspace_slug = ANY($1::text[]) AND eb_sender_id IS NOT NULL
+          AND provider_type IS NOT NULL AND provider_type !~* '(microsoft|office365|outlook)'`,
+      [seriesSlugs]
+    );
+    for (const r of rows) (sendersBySlug[r.workspace_slug] ??= []).push(r);
+  }
   await pool.end();
 
   const wsBySlug = Object.fromEntries(workspaces.map((w) => [w.slug, w]));
@@ -199,6 +251,15 @@ async function main() {
     })
   );
   const ebBySlug = Object.fromEntries(ebResults.map((r) => [r.slug, r]));
+
+  const seriesResults = await Promise.all(
+    seriesSlugs.filter((slug) => wsBySlug[slug]).map((slug) => {
+      const w = wsBySlug[slug];
+      return fetchSenderSeriesSent(slug, w.email_bison_instance_url, w.email_bison_api_key, sendersBySlug[slug] ?? [], start, end);
+    })
+  );
+  const seriesBySlug = Object.fromEntries(seriesResults.map((r) => [r.slug, r]));
+  const dataNotes = [];
 
   // Fetch Airtable meetings for every report line in one parallel batch.
   const meetingResults = await Promise.all(
@@ -231,6 +292,18 @@ async function main() {
     for (const slug of cfg.workspaceSlugs) {
       const r = ebBySlug[slug];
       if (r?.ok) { sent += r.emails_sent; replies += r.replies; interested += r.interested; }
+    }
+    if (cfg.sendsSource === "senderSeries") {
+      let seriesSent = 0, seriesOk = true;
+      for (const slug of cfg.workspaceSlugs) {
+        const sr = seriesBySlug[slug];
+        if (sr?.ok) seriesSent += sr.emails_sent;
+        else { seriesOk = false; warnings.push(`Per-sender sends FAILED for "${cfg.label}" (${sr?.error ?? "no result"}) — Emails Sent below falls back to the workspace stats number, which undercounts deleted campaigns.`); }
+      }
+      if (seriesOk) {
+        if (seriesSent !== sent) dataNotes.push(`${cfg.label}: Emails Sent is counted from per-sender activity (${fmtInt(seriesSent)}); EmailBison's workspace stats show ${fmtInt(sent)} because they drop the sends of campaigns deleted in EmailBison. Replies and interested still come from workspace stats.`);
+        sent = seriesSent;
+      }
     }
     const meetingsRes = meetingResults[i];
     const meetings = meetingsRes.ok ? meetingsRes.count : 0;
@@ -284,6 +357,12 @@ async function main() {
   out.push("Efficiency");
   out.push(`Emails to get a Lead: ${emailsPerLead}`);
   out.push(`Emails to get a Meeting: ${emailsPerMeeting}`);
+
+  if (dataNotes.length) {
+    out.push("");
+    out.push("Data notes:");
+    out.push(...dataNotes.map((n) => `- ${n}`));
+  }
 
   console.log(out.join("\n"));
 }
