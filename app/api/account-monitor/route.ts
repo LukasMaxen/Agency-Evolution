@@ -914,8 +914,12 @@ export async function GET(req: NextRequest) {
     // Workspaces that stay visible even with zero sends in the churn window
     // (e.g. a paused sending stretch on a live client we still monitor).
     const ALWAYS_SHOW_WORKSPACES = ["larsen-digital"];
+    // A workspace whose churn check FAILED (rate limit, EB hiccup) is unknown,
+    // not inactive: keep it visible. Previously a failed fetch left it out of
+    // churnSentBySlug and it silently vanished from the dashboard.
     const activeWorkspaces = new Set([
       ...Object.entries(churnSentBySlug).filter(([, sent]) => sent > 0).map(([slug]) => slug),
+      ...ebCreds.rows.map(w => w.slug as string).filter(slug => !(slug in churnSentBySlug)),
       ...ALWAYS_SHOW_WORKSPACES,
     ]);
     const filteredWorkspaces = workspaces.filter(w => activeWorkspaces.has(w.slug));
