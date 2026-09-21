@@ -2,6 +2,7 @@
 //
 //   node scripts/verify-account-monitor.mjs                 # against production
 //   node scripts/verify-account-monitor.mjs --base http://localhost:3000
+//   node scripts/verify-account-monitor.mjs --days 30 --workspace ah-consulting-2,statera-capital
 //
 // For each of the 24h / 7d / 14d / 30d views and every workspace it shown:
 //   1. Pulls the dashboard API.
@@ -24,6 +25,8 @@ const { Pool } = require("pg");
 
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : d; };
 const BASE = arg("--base", "https://inbox.agencyevolution.eu");
+const ONLY_DAYS = arg("--days", null)?.split(",").map(Number);
+const ONLY_WS = arg("--workspace", null)?.split(",");
 const env = Object.fromEntries(
   fs.readFileSync(`${process.cwd()}/.env.local`, "utf8").split("\n")
     .filter(l => l.includes("=") && !l.startsWith("#"))
@@ -36,6 +39,12 @@ const bad = (msg) => { problems++; console.log(`  FAIL  ${msg}`); };
 const ok  = (msg) => console.log(`  ok    ${msg}`);
 
 async function ebSeries(url, key, senderId, start, end) {
+  for (let attempt = 0; ; attempt++) {
+    try { return await ebSeriesOnce(url, key, senderId, start, end); }
+    catch (e) { if (attempt >= 3) throw e; await new Promise(r => setTimeout(r, 1500 * (attempt + 1))); }
+  }
+}
+async function ebSeriesOnce(url, key, senderId, start, end) {
   const r = await fetch(`${url}/api/campaign-events/stats?start_date=${start}&end_date=${end}&sender_email_ids[]=${senderId}`,
     { headers: { Authorization: `Bearer ${key}`, Accept: "application/json" } });
   if (r.status === 422) return null;            // disconnected sender: EB has nothing
@@ -58,7 +67,7 @@ const creds = Object.fromEntries((await pool.query(
   `SELECT slug, email_bison_api_key AS key, email_bison_instance_url AS url FROM workspaces WHERE email_bison_api_key IS NOT NULL`
 )).rows.map(r => [r.slug, r]));
 
-for (const days of [1, 7, 14, 30]) {
+for (const days of (ONLY_DAYS ?? [1, 7, 14, 30])) {
   console.log(`\n=== ${days === 1 ? "24h" : days + "d"} ===`);
   const res = await fetch(`${BASE}/api/account-monitor?days=${days}`);
   if (!res.ok) { bad(`API returned ${res.status}`); continue; }
@@ -74,6 +83,7 @@ for (const days of [1, 7, 14, 30]) {
   }
 
   for (const w of api.workspaces) {
+    if (ONLY_WS && !ONLY_WS.includes(w.slug)) continue;
     const c = creds[w.slug];
     const accSum = w.accounts.reduce((a, x) => ({ sent: a.sent + x.emails_sent, bounced: a.bounced + x.bounces, replied: a.replied + x.replies }), { sent: 0, bounced: 0, replied: 0 });
     if (accSum.sent !== w.totalSent || accSum.bounced !== w.totalBounces || accSum.replied !== w.totalReplies) {
