@@ -139,7 +139,7 @@ async function fetchSenderSeriesSent(slug, instanceUrl, apiKey, senders, start, 
     while (queue.length) {
       const sender = queue.shift();
       let done = false;
-      for (let attempt = 0; attempt < 6 && !done; attempt++) {
+      for (let attempt = 0; attempt < 4 && !done; attempt++) {
         try {
           const res = await fetch(
             `${base}/api/campaign-events/stats?start_date=${start}&end_date=${end}&sender_email_ids[]=${sender.eb_sender_id}`,
@@ -157,7 +157,7 @@ async function fetchSenderSeriesSent(slug, instanceUrl, apiKey, senders, start, 
       if (!done) failed++;
     }
   };
-  await Promise.all(Array.from({ length: 4 }, worker));
+  await Promise.all(Array.from({ length: 8 }, worker));
   return failed === 0
     ? { slug, ok: true, emails_sent: total }
     : { slug, ok: false, error: `${failed} of ${senders.length} sender calls failed` };
