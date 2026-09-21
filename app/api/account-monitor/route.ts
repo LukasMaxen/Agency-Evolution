@@ -639,7 +639,36 @@ export async function GET(req: NextRequest) {
     for (const r of dailyStatsRes.rows) {
       dailyStatsByKey[`${r.workspace_slug}::${r.sender_email.toLowerCase()}`] = { sent: r.sent, bounced: r.bounced, replied: r.replied };
     }
+    // Per-workspace freshness gate. The cache is only trusted for a workspace
+    // once it reaches back to yesterday. A stale cache used to be applied
+    // anyway, so a window like 7d summed only the few frozen days it held
+    // (e.g. 22 sends for a workspace that really sent 5,174), while burns
+    // and bounces still came from live tables: that produced 495% burn
+    // rates. Stale workspaces fall back to the snapshot/legacy numbers and
+    // trigger a background refresh (throttled per workspace).
+    const cacheFreshRes = await pool.query(
+      `SELECT workspace_slug, (MAX(date) >= CURRENT_DATE - 1) AS fresh
+         FROM sender_daily_stats
+        ${workspace !== "all" ? "WHERE workspace_slug = $1" : ""}
+        GROUP BY workspace_slug`,
+      workspace !== "all" ? [workspace] : []
+    );
+    const freshBySlug = new Map<string, boolean>(cacheFreshRes.rows.map(r => [r.workspace_slug, r.fresh === true]));
+    const staleWorkspaces = [...new Set(accountRows.map(a => a.workspace_slug))]
+      .filter(slug => freshBySlug.get(slug) !== true);
+    if (staleWorkspaces.length > 0) {
+      const kicks: Map<string, number> = ((globalThis as any).__accountMonitorStaleKick ??= new Map());
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin;
+      for (const slug of staleWorkspaces) {
+        if (Date.now() - (kicks.get(slug) ?? 0) < 10 * 60_000) continue;
+        kicks.set(slug, Date.now());
+        fetch(`${baseUrl}/api/sync-sender-daily-stats?workspace=${encodeURIComponent(slug)}`, { method: "POST" })
+          .catch(err => console.error(`[account-monitor] background stats refresh failed for ${slug}:`, err));
+      }
+    }
+    const staleSet = new Set(staleWorkspaces);
     for (const acc of accountRows) {
+      if (staleSet.has(acc.workspace_slug)) continue;
       const live = dailyStatsByKey[`${acc.workspace_slug}::${acc.sender_email.toLowerCase()}`];
       if (!live) continue; // no cache entry yet (new sender, or sync hasn't run) -- keep local-DB fallback value
       acc.emails_sent = live.sent;
@@ -852,6 +881,9 @@ export async function GET(req: NextRequest) {
       ws.totalInterested = eb.interested;
       ws.avgReplyRate    = eb.sent > 0 ? Math.round((eb.replies / eb.sent) * 10000) / 100 : 0;
       ws.bouncePct       = eb.sent > 0 ? Math.round((eb.bounced / eb.sent) * 10000) / 100 : 0;
+      // burnPct was computed above from the pre-override send count and never
+      // refreshed, so it kept dividing by a stale denominator.
+      ws.burnPct         = eb.sent > 0 ? Math.round((ws.totalBurns / eb.sent) * 10000) / 100 : 0;
     }
 
     // ── Drop churned workspaces ────────────────────────────────────────────
@@ -982,6 +1014,7 @@ export async function GET(req: NextRequest) {
       days,
       warmupTrendPeriod: trendPeriod,
       lastSynced,
+      staleWorkspaces,
     });
 
   } catch (err: any) {
