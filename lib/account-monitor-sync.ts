@@ -1,11 +1,12 @@
+import { NextRequest } from "next/server";
 import pool from "@/lib/db";
 
 // Shared plumbing for the Account Monitor's data pipelines.
 //
-// Every heavy sync runs ONE WORKSPACE PER HTTP REQUEST. A single request that
-// walks every workspace takes minutes and gets cut off by the proxy after
-// roughly a minute, so only the first few alphabetical workspaces ever
-// finished and the rest sat frozen for weeks. Per-workspace requests finish in
+// Every heavy sync runs ONE WORKSPACE PER CALL. A single call that walks every
+// workspace takes minutes (and when it came in through the proxy it was cut off
+// after roughly a minute), so only the first few alphabetical workspaces ever
+// finished and the rest sat frozen for weeks. Per-workspace calls finish in
 // seconds and can be ordered stalest-first so progress carries across runs.
 
 // A workspace's numbers are considered current while its newest sync is
@@ -20,31 +21,44 @@ export const WARMUP_MAX_AGE_HOURS = 8;
 // monitored). Larsen Digital - Nicklas is larsen-digital, Lukas is acceler8rs.
 export const ALWAYS_SHOW_WORKSPACES = ["larsen-digital", "acceler8rs"];
 
-export function appBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-}
+type SyncPath = "/api/sync-sender-accounts" | "/api/sync-sender-daily-stats" | "/api/sync-sender-warmup-history";
 
-// POST one workspace's sync. Resolves true only when the request succeeded AND
-// the response reports no failed workspace, so callers never mistake a swallowed
+// The sync route handlers are called IN-PROCESS. They used to be reached by an
+// HTTP request from the server to itself (via NEXT_PUBLIC_APP_URL or
+// localhost:3000). That depends on the container's own address and port being
+// right and on the proxy not cutting the request, and when it was wrong every
+// background job failed silently, which is how the whole pipeline sat frozen
+// for weeks with nothing in the UI to show it. A direct function call has no
+// network, no port, no proxy and no request timeout to get wrong.
+const handlers: Record<SyncPath, () => Promise<{ POST: (req: NextRequest) => Promise<Response> }>> = {
+  "/api/sync-sender-accounts":       () => import("@/app/api/sync-sender-accounts/route"),
+  "/api/sync-sender-daily-stats":    () => import("@/app/api/sync-sender-daily-stats/route"),
+  "/api/sync-sender-warmup-history": () => import("@/app/api/sync-sender-warmup-history/route"),
+};
+
+// Sync one workspace. Resolves true only when the handler succeeded AND its
+// response reports no failed workspace, so callers never mistake a swallowed
 // per-workspace error for success.
 export async function postWorkspaceSync(
-  path: "/api/sync-sender-accounts" | "/api/sync-sender-daily-stats" | "/api/sync-sender-warmup-history",
+  path: SyncPath,
   slug: string,
-  opts: { lookback?: number; timeoutMs?: number; baseUrl?: string } = {}
+  opts: { lookback?: number; timeoutMs?: number } = {}
 ): Promise<boolean> {
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), opts.timeoutMs ?? 90_000);
   try {
     const qs = new URLSearchParams({ workspace: slug });
     if (opts.lookback) qs.set("lookback", String(opts.lookback));
-    const res = await fetch(`${opts.baseUrl ?? appBaseUrl()}${path}?${qs}`, { method: "POST", signal: ctl.signal });
-    if (!res.ok) return false;
+    const { POST } = await handlers[path]();
+    const req = new NextRequest(`http://internal${path}?${qs}`, { method: "POST" });
+    const res = await Promise.race([
+      POST(req),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), opts.timeoutMs ?? 90_000)),
+    ]);
+    if (!res || !res.ok) return false;
     const data = await res.json().catch(() => null);
     return !!data && (data.failed ?? 0) === 0 && data.ok !== false;
-  } catch {
+  } catch (err) {
+    console.error(`[account-monitor-sync] ${path} ${slug} threw:`, err);
     return false;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
@@ -110,14 +124,17 @@ export async function getFreshness(slugs: string[]): Promise<WorkspaceFreshness[
 // Bounded so a slow EmailBison cannot hang the page.
 export async function ensureFresh(slugs: string[]): Promise<void> {
   const fresh = await getFreshness(slugs);
-  const jobs: Promise<unknown>[] = [];
+  const queue: (() => Promise<unknown>)[] = [];
   for (const f of fresh) {
-    if (f.statsStale)    jobs.push(postWorkspaceSync("/api/sync-sender-daily-stats", f.slug, { lookback: 3, timeoutMs: 20_000 }));
-    if (f.accountsStale) jobs.push(postWorkspaceSync("/api/sync-sender-accounts", f.slug, { timeoutMs: 40_000 }));
+    if (f.statsStale)    queue.push(() => postWorkspaceSync("/api/sync-sender-daily-stats", f.slug, { lookback: 3, timeoutMs: 20_000 }));
+    if (f.accountsStale) queue.push(() => postWorkspaceSync("/api/sync-sender-accounts", f.slug, { timeoutMs: 40_000 }));
   }
-  if (jobs.length === 0) return;
+  if (queue.length === 0) return;
+  // A few at a time: each sync fans out to EmailBison and shares the same small
+  // database pool as the page read itself.
+  const worker = async () => { while (queue.length > 0) { const job = queue.shift(); if (job) await job(); } };
   await Promise.race([
-    Promise.allSettled(jobs),
+    Promise.all(Array.from({ length: 3 }, worker)),
     new Promise(resolve => setTimeout(resolve, 45_000)),
   ]);
 }

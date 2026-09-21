@@ -654,8 +654,9 @@ export async function GET(req: NextRequest) {
     // anyway, so a window like 7d summed only the few frozen days it held
     // (e.g. 22 sends for a workspace that really sent 5,174), while burns
     // and bounces still came from live tables: that produced 495% burn
-    // rates. Stale workspaces fall back to the snapshot/legacy numbers and
-    // trigger a background refresh (throttled per workspace).
+    // rates. Stale workspaces (only possible if the in-process refresh above
+    // failed) fall back to the snapshot/legacy numbers and are flagged in
+    // the response so the UI says so.
     const cacheFreshRes = await pool.query(
       `SELECT workspace_slug, (MAX(date) >= CURRENT_DATE - 1) AS fresh
          FROM sender_daily_stats
@@ -666,16 +667,6 @@ export async function GET(req: NextRequest) {
     const freshBySlug = new Map<string, boolean>(cacheFreshRes.rows.map(r => [r.workspace_slug, r.fresh === true]));
     const staleWorkspaces = [...new Set(accountRows.map(a => a.workspace_slug))]
       .filter(slug => freshBySlug.get(slug) !== true);
-    if (staleWorkspaces.length > 0) {
-      const kicks: Map<string, number> = ((globalThis as any).__accountMonitorStaleKick ??= new Map());
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin;
-      for (const slug of staleWorkspaces) {
-        if (Date.now() - (kicks.get(slug) ?? 0) < 10 * 60_000) continue;
-        kicks.set(slug, Date.now());
-        fetch(`${baseUrl}/api/sync-sender-daily-stats?workspace=${encodeURIComponent(slug)}`, { method: "POST" })
-          .catch(err => console.error(`[account-monitor] background stats refresh failed for ${slug}:`, err));
-      }
-    }
     const staleSet = new Set(staleWorkspaces);
     for (const acc of accountRows) {
       if (staleSet.has(acc.workspace_slug)) continue;
