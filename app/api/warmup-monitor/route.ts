@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
+import { getVisibleWorkspaceSlugs } from "@/lib/account-monitor-sync";
 
 // GET /api/warmup-monitor
 //
@@ -32,34 +33,16 @@ import pool from "@/lib/db";
 
 export async function GET() {
   try {
-    const CHURN_WINDOW_DAYS  = 7;
     const READY_MIN_DAYS     = 3;    // minimum warming days before rejoining
     const READY_SCORE_FLOOR  = 95;   // warmup score must be back above threshold
 
-    // Active workspaces (any send in the last 7 days), sourced live from EB
-    // per workspace instead of the local emails_sent table -- see the header
-    // comment for why. Cheap: one stats call per workspace, no per-sender
-    // fan-out.
-    const wsCreds = await pool.query(
-      `SELECT slug, email_bison_api_key AS key, email_bison_instance_url AS url
-         FROM workspaces
-        WHERE email_bison_api_key IS NOT NULL AND email_bison_instance_url IS NOT NULL`
-    );
-    const toYmd = (d: Date) => d.toISOString().slice(0, 10);
-    const churnEnd   = toYmd(new Date());
-    const churnStart = toYmd(new Date(Date.now() - CHURN_WINDOW_DAYS * 24 * 60 * 60 * 1000));
-    const activeSlugs: string[] = (await Promise.all(wsCreds.rows.map(async (w) => {
-      try {
-        const url = `${w.url}/api/workspaces/v1.1/stats?start_date=${churnStart}&end_date=${churnEnd}`;
-        const r = await fetch(url, { headers: { Authorization: `Bearer ${w.key}` } });
-        if (!r.ok) return null;
-        const body = await r.json();
-        return (body?.data?.emails_sent ?? 0) > 0 ? w.slug : null;
-      } catch (err) {
-        console.error(`[warmup-monitor] churn-check EB stats fetch failed for ${w.slug}:`, err);
-        return null;
-      }
-    }))).filter((s): s is string => s !== null);
+    // Visible workspaces: the same shared rule the account monitor uses
+    // (lib/account-monitor-sync.ts). It used to drop any workspace with zero
+    // sends in the last 7 days per EmailBison's live stats, with no exception,
+    // so a paused client that still has connected mailboxes (Larsen Digital -
+    // Nicklas) disappeared from the page, and a failed stats call hid a
+    // workspace the same way.
+    const activeSlugs: string[] = [...(await getVisibleWorkspaceSlugs())];
     if (activeSlugs.length === 0) {
       return NextResponse.json({ senders: [], summary: emptySummary(), workspaces: [] });
     }
@@ -264,7 +247,7 @@ export async function GET() {
       senders,
       summary,
       workspaces,
-      thresholds: { readyMinDays: READY_MIN_DAYS, readyScoreFloor: READY_SCORE_FLOOR, churnWindowDays: CHURN_WINDOW_DAYS },
+      thresholds: { readyMinDays: READY_MIN_DAYS, readyScoreFloor: READY_SCORE_FLOOR, churnWindowDays: 7 },
     });
   } catch (err: any) {
     console.error("[warmup-monitor] error:", err);

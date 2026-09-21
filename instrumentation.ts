@@ -103,28 +103,35 @@ export async function register() {
   console.log("[instrumentation] weekly feedback review hourly check started");
 
   // ── 5. Sender account sync ────────────────────────────────────────────────
-  // Fetches the full sender email list from EmailBison for every workspace,
-  // upserts into sender_accounts, and DELETES senders that no longer exist
-  // in EB. This keeps the Account Monitor in sync automatically — senders
-  // removed from EmailBison disappear from the UI after the next sync.
+  // Fetches the full sender list from EmailBison for each workspace, upserts
+  // into sender_accounts (status, warmup score, campaigns attached, limits) and
+  // DELETES senders that no longer exist in EB. Runs every 15 minutes, ONE
+  // WORKSPACE PER REQUEST, stalest first. A single all-workspaces request takes
+  // minutes and is cut off by the proxy partway through, which left the last
+  // few alphabetical workspaces frozen for days. Per-workspace requests finish
+  // in seconds and never get cut off.
+  const { postWorkspaceSync } = await import("@/lib/account-monitor-sync");
   let senderSyncRunning = false;
   const runSenderSync = async (label: string) => {
     if (senderSyncRunning) return;
     senderSyncRunning = true;
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-      const res = await fetch(`${baseUrl}/api/sync-sender-accounts`, { method: "POST" });
-      if (!res.ok) {
-        const err = await res.text();
-        console.error(`[instrumentation] ${label} sender sync HTTP error:`, err);
-        return;
-      }
-      const data = await res.json();
-      console.log(
-        `[instrumentation] ${label} sender sync: ` +
-        `+${data.totalAdded} added, -${data.totalRemoved} removed, ` +
-        `${data.synced}/${data.synced + data.failed} workspaces ok`
+      const { default: pool } = await import("@/lib/db");
+      const { rows } = await pool.query(
+        `SELECT w.slug
+           FROM workspaces w
+           LEFT JOIN (SELECT workspace_slug, MAX(synced_at) AS last_synced
+                        FROM sender_accounts GROUP BY workspace_slug) a
+             ON a.workspace_slug = w.slug
+          WHERE w.email_bison_api_key IS NOT NULL
+          ORDER BY a.last_synced ASC NULLS FIRST`
       );
+      let ok = 0, bad = 0;
+      for (const { slug } of rows) {
+        if (await postWorkspaceSync("/api/sync-sender-accounts", slug, { timeoutMs: 120_000 })) ok++;
+        else { bad++; console.error(`[instrumentation] ${label} sender sync failed for ${slug}`); }
+      }
+      console.log(`[instrumentation] ${label} sender sync: ${ok}/${ok + bad} workspaces ok`);
     } catch (err: any) {
       console.error(`[instrumentation] ${label} sender sync failed:`, err);
     } finally {
@@ -132,11 +139,10 @@ export async function register() {
     }
   };
 
-  // Run once 45s after boot (let other timers settle first), then every 1h
   setTimeout(() => void runSenderSync("initial"), 45_000);
-  setInterval(() => void runSenderSync("periodic"), 60 * 60_000);
+  setInterval(() => void runSenderSync("periodic"), 15 * 60_000);
 
-  console.log("[instrumentation] sender account sync started, 1h interval");
+  console.log("[instrumentation] sender account sync started, per-workspace, 15min interval");
 
   // ── 6. Slack health monitor ───────────────────────────────────────────────
   // Watchdog for the approval-card pipeline. Detects a dead deployed bot token
@@ -190,136 +196,90 @@ export async function register() {
   console.log("[instrumentation] Larsen weekly outreach tracker hourly check started");
 
   // ── 8. Sender daily stats sync ────────────────────────────────────────────
-  // Pulls each sender's real day-by-day Sent/Bounced/Replied history from
-  // EB's /api/campaign-events/stats into sender_daily_stats, which the
-  // account monitor dashboard reads instead of calling EB live on every
-  // page load (a full sweep at per-sender granularity takes ~50s, fine
-  // once a day, far too slow for a request). Added 2026-08-06 after the
-  // EMAIL_SENT webhook outage (see app/api/webhook/[workspace]/route.ts)
-  // showed the dashboard's old approach -- local tables fed only by that
-  // webhook -- had no safety net when EB stopped delivering it.
+  // Per-sender day-by-day Sent/Bounced/Replied/Interested history from EB's
+  // /api/campaign-events/stats into sender_daily_stats. This is the single
+  // source behind every number in every window (24h / 7d / 14d / 30d) of the
+  // account monitor, so it has to be current.
   //
-  // FIXED 2026-09-14: this used to be a single setTimeout 2min after boot
-  // plus a blind setInterval(24h). Coolify redeploys more often than every
-  // 24h (auto-sync commits land daily or more), which kills the process
-  // before the 24h interval ever gets a chance to fire -- the ONE boot-time
-  // attempt was the only shot this job ever got. When that one attempt hit
-  // any transient failure the cache went stale with no retry until the next
-  // redeploy, which hit the same fate. Result: sender_daily_stats and
-  // sender_warmup_periods silently froze at 2026-08-21 for 3+ weeks and the
-  // account monitor served stale sent/bounce/reply/warmup-trend numbers for
-  // any 14d/30d window without any error or indication. Fixed the same way
-  // job #5 (sender account sync) already self-heals: check the DB for how
-  // stale the cache actually is on a short poll interval, and only pay for
-  // the heavy EB sweep when it's actually due. This makes correctness
-  // depend on DB state, not on the container surviving 24h uninterrupted.
-  const DAILY_STATS_STALE_HOURS = 20;
+  // Every 10 minutes, one workspace per request, stalest first. Frequent runs
+  // refetch only the last 3 days (fast, and only recent days can change); the
+  // first run of each UTC day and the first run after boot refetch the full 32
+  // days so any late correction in EB is picked up. The whole sweep takes about
+  // 10 seconds, so running it this often is cheap.
+  //
+  // History: this used to be a single 24h timer, then a single request gated on
+  // a global MAX(synced_at). Both let workspaces sit frozen for weeks: a
+  // partial run made the global max look fresh, and one long request was cut
+  // off by the proxy partway through the workspace list.
   let dailyStatsSyncRunning = false;
-  let lastDailyStatsAttempt = 0;
+  let lastFullStatsDay = "";
   const runDailyStatsSync = async (label: string) => {
     if (dailyStatsSyncRunning) return;
     dailyStatsSyncRunning = true;
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-      const res = await fetch(`${baseUrl}/api/sync-sender-daily-stats`, { method: "POST" });
-      if (!res.ok) {
-        const err = await res.text();
-        console.error(`[instrumentation] ${label} sender daily stats sync HTTP error:`, err);
-        return;
-      }
-      const data = await res.json();
-      console.log(
-        `[instrumentation] ${label} sender daily stats sync: ` +
-        `${data.synced}/${data.synced + data.failed} workspaces ok`
+      const { default: pool } = await import("@/lib/db");
+      const today = new Date().toISOString().slice(0, 10);
+      const full = lastFullStatsDay !== today;
+      const { rows } = await pool.query(
+        `SELECT w.slug
+           FROM workspaces w
+           LEFT JOIN (SELECT workspace_slug, MAX(synced_at) AS last_synced
+                        FROM sender_daily_stats GROUP BY workspace_slug) s
+             ON s.workspace_slug = w.slug
+          WHERE w.email_bison_api_key IS NOT NULL
+            AND EXISTS (SELECT 1 FROM sender_accounts a WHERE a.workspace_slug = w.slug)
+          ORDER BY s.last_synced ASC NULLS FIRST`
       );
+      let ok = 0, bad = 0;
+      for (const { slug } of rows) {
+        if (await postWorkspaceSync("/api/sync-sender-daily-stats", slug, { lookback: full ? 32 : 3, timeoutMs: 90_000 })) ok++;
+        else { bad++; console.error(`[instrumentation] ${label} daily stats sync failed for ${slug}`); }
+      }
+      if (bad === 0) lastFullStatsDay = today;
+      console.log(`[instrumentation] ${label} daily stats sync (${full ? "full 32d" : "recent 3d"}): ${ok}/${ok + bad} workspaces ok`);
     } catch (err: any) {
-      console.error(`[instrumentation] ${label} sender daily stats sync failed:`, err);
+      console.error(`[instrumentation] ${label} daily stats sync failed:`, err);
     } finally {
       dailyStatsSyncRunning = false;
     }
   };
-  const tryDailyStatsSync = async (label: string) => {
-    try {
-      const { default: pool } = await import("@/lib/db");
-      // Staleness = the STALEST workspace, not the global MAX. A global MAX
-      // let one partial or single-workspace run (a manual sync, the UI Sync
-      // button, a run that died mid-way) mark every other workspace fresh,
-      // which is how most workspaces sat frozen for weeks. Workspaces with
-      // no cache rows at all count as stale.
-      const { rows } = await pool.query(
-        `SELECT MIN(COALESCE(s.last_synced, 'epoch'::timestamptz)) AS last_synced
-           FROM (SELECT DISTINCT workspace_slug FROM sender_accounts) a
-           LEFT JOIN (SELECT workspace_slug, MAX(synced_at) AS last_synced
-                        FROM sender_daily_stats GROUP BY workspace_slug) s
-             USING (workspace_slug)`
-      );
-      const lastSynced = rows[0]?.last_synced ? new Date(rows[0].last_synced).getTime() : 0;
-      if (Date.now() - lastSynced < DAILY_STATS_STALE_HOURS * 60 * 60_000) return;
-      // Cooldown so a workspace that can never produce rows doesn't
-      // retrigger the full sweep every 30 minutes.
-      if (Date.now() - lastDailyStatsAttempt < 3 * 60 * 60_000) return;
-    } catch (err: any) {
-      console.error("[instrumentation] daily stats staleness check failed, attempting sync anyway:", err);
-    }
-    lastDailyStatsAttempt = Date.now();
-    await runDailyStatsSync(label);
-  };
 
-  // Check every 30min (cheap: one MAX() query) but only actually run the
-  // heavy EB sweep once the cache is >20h old, so it survives redeploys
-  // that land more often than once a day.
-  setTimeout(() => void tryDailyStatsSync("initial"), 120_000);
-  setInterval(() => void tryDailyStatsSync("periodic"), 30 * 60_000);
+  setTimeout(() => void runDailyStatsSync("initial"), 120_000);
+  setInterval(() => void runDailyStatsSync("periodic"), 10 * 60_000);
 
-  console.log("[instrumentation] sender daily stats sync started, staleness-checked every 30min (>20h triggers a real sync)");
+  console.log("[instrumentation] sender daily stats sync started, per-workspace, 10min interval");
 
   // ── 9. Sender warmup history sync ─────────────────────────────────────────
-  // Pulls current + prior 3/7/10/30-day warmup_score windows per sender
-  // from EB into sender_warmup_periods, so the account monitor can show a
-  // trend delta (e.g. "+2.1" or "-3.4") without any live EB calls at read
-  // time. 8 EB calls per sender (4 periods x current+prior), so staggered
-  // even later than the daily stats sync to avoid piling both heavy jobs
-  // on top of each other right at boot.
-  //
-  // FIXED 2026-09-14: same staleness-checked pattern as job #8 above, same
-  // reason -- see that comment. This table froze on the same date (2026-08-21)
-  // for the same root cause.
-  const WARMUP_HISTORY_STALE_HOURS = 20;
+  // Current + prior 3/7/10/30-day warmup_score windows per sender from EB into
+  // sender_warmup_periods, for the trend delta on the account monitor. 8 EB
+  // calls per sender, so it is the heaviest job: checked every 30 minutes, but
+  // only workspaces older than WARMUP_MAX_AGE_HOURS are synced, one workspace
+  // per request, stalest first, so a run that gets interrupted still leaves
+  // the stalest workspaces closest to done. (The current warmup score itself
+  // comes from job 5, every 15 minutes.)
+  const { WARMUP_MAX_AGE_HOURS } = await import("@/lib/account-monitor-sync");
   let warmupHistorySyncRunning = false;
-  let lastWarmupHistoryAttempt = 0;
   const runWarmupHistorySync = async (label: string) => {
     if (warmupHistorySyncRunning) return;
     warmupHistorySyncRunning = true;
     try {
-      // One request PER WORKSPACE, stalest first. A single all-workspaces
-      // request takes minutes (8 EB calls per sender) and the request dies
-      // partway when a proxy/idle timeout cuts it (~40-60s), so only the
-      // first few alphabetical workspaces ever synced and the rest stayed
-      // frozen for weeks. Per-workspace calls finish in ~10s each, and
-      // stalest-first means progress carries across runs even if one dies.
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
       const { default: pool } = await import("@/lib/db");
-      const { rows: stale } = await pool.query(
-        `SELECT a.workspace_slug
+      const { rows } = await pool.query(
+        `SELECT a.workspace_slug AS slug
            FROM (SELECT DISTINCT workspace_slug FROM sender_accounts WHERE warmup_score > 0) a
            LEFT JOIN (SELECT workspace_slug, MAX(synced_at) AS last_synced
                         FROM sender_warmup_periods GROUP BY workspace_slug) s
              USING (workspace_slug)
-          WHERE s.last_synced IS NULL OR s.last_synced < NOW() - INTERVAL '${WARMUP_HISTORY_STALE_HOURS} hours'
-          ORDER BY s.last_synced ASC NULLS FIRST`
+          WHERE s.last_synced IS NULL
+             OR s.last_synced < NOW() - ($1 || ' hours')::interval
+          ORDER BY s.last_synced ASC NULLS FIRST`,
+        [WARMUP_MAX_AGE_HOURS]
       );
+      if (rows.length === 0) return;
       let ok = 0, bad = 0;
-      for (const { workspace_slug } of stale) {
-        try {
-          const res = await fetch(
-            `${baseUrl}/api/sync-sender-warmup-history?workspace=${encodeURIComponent(workspace_slug)}`,
-            { method: "POST" }
-          );
-          if (res.ok) ok++; else { bad++; console.error(`[instrumentation] ${label} warmup history ${workspace_slug} HTTP ${res.status}`); }
-        } catch (err: any) {
-          bad++;
-          console.error(`[instrumentation] ${label} warmup history ${workspace_slug} failed:`, err);
-        }
+      for (const { slug } of rows) {
+        if (await postWorkspaceSync("/api/sync-sender-warmup-history", slug, { timeoutMs: 120_000 })) ok++;
+        else { bad++; console.error(`[instrumentation] ${label} warmup history sync failed for ${slug}`); }
       }
       console.log(`[instrumentation] ${label} warmup history sync: ${ok}/${ok + bad} workspaces ok`);
     } catch (err: any) {
@@ -328,33 +288,11 @@ export async function register() {
       warmupHistorySyncRunning = false;
     }
   };
-  const tryWarmupHistorySync = async (label: string) => {
-    try {
-      const { default: pool } = await import("@/lib/db");
-      // Same stalest-workspace rule as the daily stats job. Only workspaces
-      // that actually have a scored sender count, since the sync skips
-      // senders with no score and would otherwise look stale forever.
-      const { rows } = await pool.query(
-        `SELECT MIN(COALESCE(s.last_synced, 'epoch'::timestamptz)) AS last_synced
-           FROM (SELECT DISTINCT workspace_slug FROM sender_accounts WHERE warmup_score > 0) a
-           LEFT JOIN (SELECT workspace_slug, MAX(synced_at) AS last_synced
-                        FROM sender_warmup_periods GROUP BY workspace_slug) s
-             USING (workspace_slug)`
-      );
-      const lastSynced = rows[0]?.last_synced ? new Date(rows[0].last_synced).getTime() : 0;
-      if (Date.now() - lastSynced < WARMUP_HISTORY_STALE_HOURS * 60 * 60_000) return;
-      if (Date.now() - lastWarmupHistoryAttempt < 6 * 60 * 60_000) return;
-    } catch (err: any) {
-      console.error("[instrumentation] warmup history staleness check failed, attempting sync anyway:", err);
-    }
-    lastWarmupHistoryAttempt = Date.now();
-    await runWarmupHistorySync(label);
-  };
 
-  setTimeout(() => void tryWarmupHistorySync("initial"), 240_000);
-  setInterval(() => void tryWarmupHistorySync("periodic"), 30 * 60_000);
+  setTimeout(() => void runWarmupHistorySync("initial"), 240_000);
+  setInterval(() => void runWarmupHistorySync("periodic"), 30 * 60_000);
 
-  console.log("[instrumentation] sender warmup history sync started, staleness-checked every 30min (>20h triggers a real sync)");
+  console.log("[instrumentation] sender warmup history sync started, per-workspace, staleness-checked every 30min");
 
   // ── 10. Fillout cancellation sweep ────────────────────────────────────────
   // Fillout (WithPebble's booking tool) has no cancellation webhook — see
