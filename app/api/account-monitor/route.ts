@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { checkMxMissing } from "@/lib/dns-mx-cache";
+import { ensureFresh, getFreshness, getVisibleWorkspaceSlugs } from "@/lib/account-monitor-sync";
 
 // GET /api/account-monitor?days=7&workspace=all
 //
@@ -201,6 +202,12 @@ export async function GET(req: NextRequest) {
   const T = volumeThresholds(days);
 
   try {
+    // Never serve a window from stale data. Normally a no-op (the scheduler
+    // keeps everything current); if a workspace has aged past its limit it is
+    // refreshed here first.
+    const visibleSlugs = await getVisibleWorkspaceSlugs();
+    await ensureFresh([...visibleSlugs]);
+
     const wsFilter   = workspace !== "all" ? "AND es.workspace_slug = $2" : "";
     const wsFilterR  = workspace !== "all" ? "AND workspace_slug = $2" : "";
     const wsFilterB  = workspace !== "all" ? "AND eb.workspace_slug = $2" : "";
@@ -501,6 +508,7 @@ export async function GET(req: NextRequest) {
       warmup_score:             number | null;
       warmup_trend:             number | null;
       provider_type:            string | null;
+      interested:               number;
       emails_sent:              number;
       bounces:                  number;
       burns:                    number;
@@ -554,6 +562,7 @@ export async function GET(req: NextRequest) {
         warmup_score:             r.warmup_score != null ? parseFloat(r.warmup_score) : null,
         warmup_trend:             warmupTrendMap.get(`${r.workspace_slug}::${(r.sender_email as string).toLowerCase()}`) ?? null,
         provider_type:            r.provider_type ?? null,
+        interested:               0,
         emails_sent:              sent,
         bounces, burns, replies,
         bounce_rate:              bounceRate,
@@ -628,16 +637,17 @@ export async function GET(req: NextRequest) {
     // them there. EB's campaign-events/stats has no such gap.
     const dailyStatsRes = await pool.query(
       `SELECT workspace_slug, sender_email,
-              SUM(sent)::int AS sent, SUM(bounced)::int AS bounced, SUM(replied)::int AS replied
+              SUM(sent)::int AS sent, SUM(bounced)::int AS bounced, SUM(replied)::int AS replied,
+              SUM(interested)::int AS interested
          FROM sender_daily_stats
         WHERE date >= (CURRENT_DATE - ($1 || ' days')::interval)
           ${workspace !== "all" ? "AND workspace_slug = $2" : ""}
         GROUP BY workspace_slug, sender_email`,
       workspace !== "all" ? [days, workspace] : [days]
     );
-    const dailyStatsByKey: Record<string, { sent: number; bounced: number; replied: number }> = {};
+    const dailyStatsByKey: Record<string, { sent: number; bounced: number; replied: number; interested: number }> = {};
     for (const r of dailyStatsRes.rows) {
-      dailyStatsByKey[`${r.workspace_slug}::${r.sender_email.toLowerCase()}`] = { sent: r.sent, bounced: r.bounced, replied: r.replied };
+      dailyStatsByKey[`${r.workspace_slug}::${r.sender_email.toLowerCase()}`] = { sent: r.sent, bounced: r.bounced, replied: r.replied, interested: r.interested };
     }
     // Per-workspace freshness gate. The cache is only trusted for a workspace
     // once it reaches back to yesterday. A stale cache used to be applied
@@ -674,6 +684,7 @@ export async function GET(req: NextRequest) {
       acc.emails_sent = live.sent;
       acc.bounces     = live.bounced;
       acc.replies     = live.replied;
+      acc.interested  = live.interested;
       acc.bounce_rate = live.sent > 0 ? Math.round((live.bounced / live.sent) * 10000) / 100 : 0;
       acc.burn_rate    = live.sent > 0 ? Math.round((acc.burns   / live.sent) * 10000) / 100 : 0;
       acc.reply_rate   = live.sent > 0 ? Math.round((live.replied / live.sent) * 10000) / 100 : 0;
@@ -789,7 +800,7 @@ export async function GET(req: NextRequest) {
       );
 
       // Workspace-level totals: kept as DB-derived here. EB stats API
-      // overrides these below (see `ebStatsBySlug`) so the numbers shown
+      // recomputes these below from the per-sender series so the numbers shown
       // on the summary cards match EB's dashboard exactly.
       const wsSent      = ws.totalSent;
       const wsBounceRate = wsSent > 0 ? Math.round((ws.totalBounces / wsSent) * 10000) / 100 : 0;
@@ -832,101 +843,31 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // ── Override workspace-level totals with EB stats API ─────────────────
-    // The /api/workspaces/v1.1/stats endpoint returns the same numbers the
-    // EB dashboard shows (emails_sent, unique_replies_per_contact, bounced,
-    // interested) for an arbitrary date window. We surface those on the
-    // workspace summary cards so what we display matches EB exactly.
-    const toYmd = (d: Date) => d.toISOString().slice(0, 10);
-    const endDate   = new Date();
-    const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
-    const startYmd  = toYmd(startDate);
-    const endYmd    = toYmd(endDate);
-
-    const ebCreds = await pool.query(
-      `SELECT slug, email_bison_api_key AS key, email_bison_instance_url AS url
-       FROM workspaces
-       WHERE email_bison_api_key IS NOT NULL
-         AND email_bison_instance_url IS NOT NULL
-         ${workspace !== "all" ? "AND slug = $1" : ""}`,
-      workspace !== "all" ? [workspace] : []
-    );
-
-    type EbStats = { sent: number; replies: number; bounced: number; interested: number };
-    const ebStatsBySlug: Record<string, EbStats> = {};
-    await Promise.all(ebCreds.rows.map(async (w) => {
-      try {
-        const url = `${w.url}/api/workspaces/v1.1/stats?start_date=${startYmd}&end_date=${endYmd}`;
-        const r = await fetch(url, { headers: { Authorization: `Bearer ${w.key}` } });
-        if (!r.ok) return;
-        const body = await r.json();
-        const d = body?.data ?? {};
-        ebStatsBySlug[w.slug] = {
-          sent:       d.emails_sent ?? 0,
-          replies:    d.unique_replies_per_contact ?? 0,
-          bounced:    d.bounced ?? 0,
-          interested: d.interested ?? 0,
-        };
-      } catch (err) {
-        console.error(`[account-monitor] EB stats fetch failed for ${w.slug}:`, err);
-      }
-    }));
-
+    // ── Workspace totals: one source, always equal to the sum of the rows ───
+    // Totals used to be overridden with EmailBison's workspace-level stats
+    // endpoint while the rows underneath came from per-sender data. Those two
+    // disagree whenever a campaign has been deleted in EmailBison: the
+    // workspace stats forget its sends, but the mailboxes really sent them.
+    // (GN Motion: workspace stats said 716 for a week, per-sender activity
+    // said 2,546, webhook rows agreed with per-sender.) A deliverability
+    // monitor has to count what the mailboxes actually sent, so every total is
+    // now the sum of its accounts from the per-sender series. The header,
+    // workspace cards, domains and rows can no longer contradict each other.
     for (const ws of workspaces) {
-      const eb = ebStatsBySlug[ws.slug];
-      if (!eb) continue;
-      ws.totalSent       = eb.sent;
-      ws.totalReplies    = eb.replies;
-      ws.totalBounces    = eb.bounced;
-      ws.totalInterested = eb.interested;
-      ws.avgReplyRate    = eb.sent > 0 ? Math.round((eb.replies / eb.sent) * 10000) / 100 : 0;
-      ws.bouncePct       = eb.sent > 0 ? Math.round((eb.bounced / eb.sent) * 10000) / 100 : 0;
-      // burnPct was computed above from the pre-override send count and never
-      // refreshed, so it kept dividing by a stale denominator.
-      ws.burnPct         = eb.sent > 0 ? Math.round((ws.totalBurns / eb.sent) * 10000) / 100 : 0;
+      const interested = ws.accounts.reduce((sum, a) => sum + (a.interested ?? 0), 0);
+      ws.totalInterested = interested;
+      ws.avgReplyRate    = ws.totalSent > 0 ? Math.round((ws.totalReplies / ws.totalSent) * 10000) / 100 : 0;
+      ws.bouncePct       = ws.totalSent > 0 ? Math.round((ws.totalBounces / ws.totalSent) * 10000) / 100 : 0;
+      ws.burnPct         = ws.totalSent > 0 ? Math.round((ws.totalBurns   / ws.totalSent) * 10000) / 100 : 0;
     }
 
-    // ── Drop churned workspaces ────────────────────────────────────────────
-    // A workspace with zero sends in the last 7 days is treated as inactive
-    // (paused client, ended engagement, etc.) and hidden entirely. This used
-    // to query the local emails_sent table, which silently churned out
-    // every workspace while the EMAIL_SENT webhook was down (their local
-    // send count looked like zero even though they were sending fine) --
-    // fetched live from EB instead so it can't be fooled by local DB gaps.
-    // Independent fixed 7-day window, not tied to `days` (the display
-    // window), since churn detection is a separate question from "how much
-    // to show."
-    const CHURN_WINDOW_DAYS = 7;
-    const churnEnd   = toYmd(new Date());
-    const churnStart = toYmd(new Date(Date.now() - CHURN_WINDOW_DAYS * 24 * 60 * 60 * 1000));
-    const churnSentBySlug: Record<string, number> = {};
-    await Promise.all(ebCreds.rows.map(async (w) => {
-      try {
-        const url = `${w.url}/api/workspaces/v1.1/stats?start_date=${churnStart}&end_date=${churnEnd}`;
-        const r = await fetch(url, { headers: { Authorization: `Bearer ${w.key}` } });
-        if (!r.ok) return;
-        const body = await r.json();
-        churnSentBySlug[w.slug] = body?.data?.emails_sent ?? 0;
-      } catch (err) {
-        console.error(`[account-monitor] churn-check EB stats fetch failed for ${w.slug}:`, err);
-      }
-    }));
-    // Workspaces that stay visible even with zero sends in the churn window
-    // (e.g. a paused sending stretch on a live client we still monitor).
-    const ALWAYS_SHOW_WORKSPACES = ["larsen-digital"];
-    // A workspace whose churn check FAILED (rate limit, EB hiccup) is unknown,
-    // not inactive: keep it visible. Previously a failed fetch left it out of
-    // churnSentBySlug and it silently vanished from the dashboard.
-    const activeWorkspaces = new Set([
-      ...Object.entries(churnSentBySlug).filter(([, sent]) => sent > 0).map(([slug]) => slug),
-      ...ebCreds.rows.map(w => w.slug as string).filter(slug => !(slug in churnSentBySlug)),
-      ...ALWAYS_SHOW_WORKSPACES,
-    ]);
-    const filteredWorkspaces = workspaces.filter(w => activeWorkspaces.has(w.slug));
-    // Replace `workspaces` with the filtered list so all downstream summary
-    // math is computed against active workspaces only.
+    // ── Which workspaces are shown ─────────────────────────────────────────
+    // Same rule as the warmup monitor (lib/account-monitor-sync.ts): connected
+    // senders, or recent sends, or always-show. Decided from our own synced
+    // data, so an EmailBison hiccup can no longer make a workspace vanish.
+    const shown = workspaces.filter(w => visibleSlugs.has(w.slug));
     workspaces.length = 0;
-    workspaces.push(...filteredWorkspaces);
+    workspaces.push(...shown);
 
     // Workspace order: disconnected first, then burn count desc, then
     // list-issue count desc, then sent desc.
@@ -939,12 +880,11 @@ export async function GET(req: NextRequest) {
 
     // Restrict accountRows used for global summary math to active workspaces
     // only (matches the workspaces[] filter above).
-    const activeAccountRows = accountRows.filter(a => activeWorkspaces.has(a.workspace_slug));
+    const activeAccountRows = accountRows.filter(a => visibleSlugs.has(a.workspace_slug));
 
     const totalAccounts   = activeAccountRows.length;
-    // Workspace-level totals already overridden with EB stats above. Sum
-    // those instead of the DB-derived account rows so the global summary
-    // also matches EB's dashboard numbers.
+    // Sum of the workspace totals, which are themselves sums of their
+    // accounts, so the summary always equals the rows beneath it.
     const totalSent       = workspaces.reduce((s, w) => s + w.totalSent,       0);
     const totalReplies    = workspaces.reduce((s, w) => s + w.totalReplies,    0);
     const totalBounces    = workspaces.reduce((s, w) => s + w.totalBounces,    0);
@@ -986,6 +926,19 @@ export async function GET(req: NextRequest) {
       healthy:             allDomains.filter(d => d.status === "healthy").length,
     };
 
+    // The exact date range this view covers, so the label on screen is the
+    // same range the numbers were computed over (calendar dates, both ends
+    // included, "today" being the current date so far).
+    const winRes = await pool.query(`SELECT (CURRENT_DATE - $1::int)::text AS start, CURRENT_DATE::text AS "end"`, [days]);
+    const windowInfo = { days, start: winRes.rows[0].start as string, end: winRes.rows[0].end as string };
+
+    // Per-pipeline freshness for everything on screen. `oldestSync` is the
+    // stalest stats/accounts timestamp across the visible workspaces: the
+    // honest "data as of" time for the whole page.
+    const freshness = await getFreshness(workspaces.map(w => w.slug));
+    const syncTimes = freshness.flatMap(f => [f.statsSyncedAt, f.accountsSyncedAt]).filter((t): t is string => !!t);
+    const oldestSync = syncTimes.length > 0 ? syncTimes.reduce((a, b) => (a < b ? a : b)) : null;
+
     return NextResponse.json({
       workspaces,
       summary: {
@@ -1016,8 +969,10 @@ export async function GET(req: NextRequest) {
         criticalMinSend:     T.CRITICAL_MIN_SEND,
       },
       days,
+      window: windowInfo,
+      freshness,
       warmupTrendPeriod: trendPeriod,
-      lastSynced,
+      lastSynced: oldestSync ?? lastSynced,
       staleWorkspaces,
     });
 

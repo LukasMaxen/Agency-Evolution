@@ -20,6 +20,9 @@ import pool from "@/lib/db";
 //  - From the Account Monitor UI "Sync" button, for an immediate refresh
 
 const LOOKBACK_DAYS = 32; // covers the 30d UI option with a day of margin
+// Frequent scheduled runs pass ?lookback=3 to refetch only recent days; a full
+// 32-day pass still runs daily and from the UI Sync button.
+const MIN_LOOKBACK_DAYS = 1;
 
 function toYmd(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -33,6 +36,10 @@ interface EventSeries {
 export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const targetSlug = searchParams.get("workspace");
+  const requested  = parseInt(searchParams.get("lookback") ?? "", 10);
+  const lookbackDays = Number.isFinite(requested)
+    ? Math.min(Math.max(requested, MIN_LOOKBACK_DAYS), LOOKBACK_DAYS)
+    : LOOKBACK_DAYS;
 
   try {
     const wsQuery = targetSlug
@@ -45,7 +52,7 @@ export async function POST(req: NextRequest) {
     }
 
     const endYmd   = toYmd(new Date());
-    const startYmd = toYmd(new Date(Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000));
+    const startYmd = toYmd(new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000));
 
     const results: { workspace: string; senders: number; rowsUpserted: number; failed: number; error?: string }[] = [];
 
@@ -86,6 +93,7 @@ export async function POST(req: NextRequest) {
             try {
               const url = `${instanceUrl}/api/campaign-events/stats?start_date=${startYmd}&end_date=${endYmd}&sender_email_ids[]=${sender.eb_sender_id}`;
               const r = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } });
+              if (r.status === 422) continue; // disconnected sender: EB has no stats to return, not a failure
               if (!r.ok) { failed++; continue; }
               const body = await r.json();
               const series: EventSeries[] = body?.data ?? [];
