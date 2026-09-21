@@ -221,7 +221,8 @@ async function main() {
   const { rows: workspaces } = await pool.query(
     "SELECT slug, name, email_bison_instance_url, email_bison_api_key FROM workspaces ORDER BY slug"
   );
-  const seriesSlugs = CONFIG.reportLines.filter((l) => l.sendsSource === "senderSeries").flatMap((l) => l.workspaceSlugs);
+  const sendsSourceOf = (line) => line.sendsSource ?? CONFIG.defaultSendsSource ?? "senderSeries";
+  const seriesSlugs = CONFIG.reportLines.filter((l) => sendsSourceOf(l) === "senderSeries").flatMap((l) => l.workspaceSlugs);
   const sendersBySlug = {};
   if (seriesSlugs.length) {
     const { rows } = await pool.query(
@@ -293,7 +294,7 @@ async function main() {
       const r = ebBySlug[slug];
       if (r?.ok) { sent += r.emails_sent; replies += r.replies; interested += r.interested; }
     }
-    if (cfg.sendsSource === "senderSeries") {
+    if (sendsSourceOf(cfg) === "senderSeries") {
       let seriesSent = 0, seriesOk = true;
       for (const slug of cfg.workspaceSlugs) {
         const sr = seriesBySlug[slug];
@@ -302,7 +303,13 @@ async function main() {
       }
       if (seriesOk) {
         if (seriesSent !== sent) dataNotes.push(`${cfg.label}: Emails Sent is counted from per-sender activity (${fmtInt(seriesSent)}); EmailBison's workspace stats show ${fmtInt(sent)} because they drop the sends of campaigns deleted in EmailBison. Replies and interested still come from workspace stats.`);
-        sent = seriesSent;
+        if (seriesSent < sent) {
+          // Sender coverage gap (sender missing from sender_accounts, or filtered out). Per-sender can
+          // never legitimately be BELOW workspace stats, so never report the lower number.
+          warnings.push(`${cfg.label}: per-sender sends (${fmtInt(seriesSent)}) came out BELOW EmailBison workspace stats (${fmtInt(sent)}). Sender list is probably incomplete (sender_accounts). Reporting the higher workspace number, which may still miss deleted campaigns. Verify before sending.`);
+        } else {
+          sent = seriesSent;
+        }
       }
     }
     const meetingsRes = meetingResults[i];

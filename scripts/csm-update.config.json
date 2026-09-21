@@ -1,4 +1,5 @@
 {
+  "defaultSendsSource": "senderSeries",
   "excludedSlugs": [
     "micro-nordic",
     "sro-consulting",
