@@ -879,9 +879,13 @@ export async function GET(req: NextRequest) {
         console.error(`[account-monitor] churn-check EB stats fetch failed for ${w.slug}:`, err);
       }
     }));
-    const activeWorkspaces = new Set(
-      Object.entries(churnSentBySlug).filter(([, sent]) => sent > 0).map(([slug]) => slug)
-    );
+    // Workspaces that stay visible even with zero sends in the churn window
+    // (e.g. a paused sending stretch on a live client we still monitor).
+    const ALWAYS_SHOW_WORKSPACES = ["larsen-digital"];
+    const activeWorkspaces = new Set([
+      ...Object.entries(churnSentBySlug).filter(([, sent]) => sent > 0).map(([slug]) => slug),
+      ...ALWAYS_SHOW_WORKSPACES,
+    ]);
     const filteredWorkspaces = workspaces.filter(w => activeWorkspaces.has(w.slug));
     // Replace `workspaces` with the filtered list so all downstream summary
     // math is computed against active workspaces only.
