@@ -1034,7 +1034,14 @@ async function regenerateReplyDraft(draft: ReplyDraftRow, reviewerName: string, 
   const reply = replyResult.rows[0];
 
   const CLIENT_FILE_ALIASES: Record<string, string> = { "internal-campaigns": "agency-evolution" };
-  const fileSlug = CLIENT_FILE_ALIASES[draft.workspace_slug] ?? draft.workspace_slug;
+  // MP Consulting shares the ah-consulting EmailBison workspace for sending capacity
+  // only (see isMPConsultingReply in processor.ts) — content-sniff the same way here so
+  // a Slack revise on an MP Consulting draft pulls the right client file instead of
+  // silently falling back to AEO Consulting's.
+  const isMPConsultingDraft = /\bmp consulting\b|independent optometry practices|mpc-maddie|mackenzie poteat/i.test(
+    `${reply.campaign ?? ""}\n${reply.subject ?? ""}\n${reply.message ?? ""}`
+  );
+  const fileSlug = isMPConsultingDraft ? "mp-consulting" : (CLIENT_FILE_ALIASES[draft.workspace_slug] ?? draft.workspace_slug);
   const clientFile = readContextFile(`clients/${fileSlug}.md`);
   const replyContext = readContextFile(`1. Departments/reply-management/CONTEXT_Replies.md`);
   const skillFile = readContextFile(`1. Departments/reply-management/SKILL_Reply-Management.md`);

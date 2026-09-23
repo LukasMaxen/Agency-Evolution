@@ -655,6 +655,31 @@ function isBustemReply(campaign: string | null | undefined, subject: string, mes
 }
 
 /**
+ * MP Consulting detector. MP Consulting runs on the SAME EmailBison workspace as
+ * AEO Consulting / Austin Heaton (`ah-consulting` slug) purely because those sender
+ * accounts have warmed-up capacity, not because it's an AEO Consulting offer (see
+ * clients/mp-consulting.md). The outreach is sent under the "Austin Heaton" sender
+ * identity/copy, but the booking link and the person who actually takes the call
+ * (Maddie) are MP Consulting's, not Austin's, and the offer itself (optometry-practice
+ * digital marketing) is completely unrelated to AEO. resolveClientSlug has no branch
+ * for this, so without this check every MP Consulting reply would silently draft as
+ * an AEO Consulting reply (wrong offer, wrong booking link, wrong call-taker).
+ * Campaign name is checked as a secondary signal; content-sniffing the cold email /
+ * reply for MP Consulting's distinctive language is the primary signal since campaign
+ * naming on this account has not been confirmed reliable (see isBustemReply for the
+ * same caution on acceler8rs). Onboarded 2026-09-23.
+ */
+function isMPConsultingReply(campaign: string | null | undefined, subject: string, message: string, coldEmailBody?: string | null): boolean {
+  const text = `${campaign ?? ""}\n${subject ?? ""}\n${message ?? ""}\n${coldEmailBody ?? ""}`.toLowerCase();
+  return (
+    /\bmp consulting\b/.test(text) ||
+    /independent optometry practices/.test(text) ||
+    /mpc-maddie/.test(text) ||
+    /mackenzie poteat/.test(text)
+  );
+}
+
+/**
  * Conservative bulk-newsletter detector. Only matches mail carrying unambiguous
  * mass-send markers (List-Unsubscribe style footers, "view in browser", "manage
  * preferences", "Issue #N", explicit "Newsletter" subjects). Deliberately does
@@ -1299,13 +1324,15 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   // ── Forwarding path ───────────────────────────────────────────────────────────
   // acceler8rs is split by campaign: Pathfinder (buy-side) keeps its own file, every
   // other acceler8rs campaign represents Larsen Digital. See resolveClientSlug.
-  // Bustem is checked FIRST and overrides both: it shares the acceler8rs sending
-  // account but is a completely unrelated offer with no branch in resolveClientSlug
-  // yet (see isBustemReply). messageText already includes the quoted cold email in
-  // most cases, so this content-sniff usually sees the original Bustem language even
+  // Bustem and MP Consulting are checked FIRST and override everything else: both
+  // share a sending account with an unrelated client (acceler8rs / ah-consulting
+  // respectively) purely for capacity, with no branch in resolveClientSlug (see
+  // isBustemReply, isMPConsultingReply). messageText already includes the quoted cold
+  // email in most cases, so this content-sniff usually sees the original language even
   // on a first reply.
   const isBustem = isBustemReply(reply.campaign, reply.subject ?? "", messageText);
-  const fileSlug = isBustem ? "bustem" : resolveClientSlug(workspaceSlug, reply.campaign);
+  const isMPConsulting = isMPConsultingReply(reply.campaign, reply.subject ?? "", messageText);
+  const fileSlug = isBustem ? "bustem" : isMPConsulting ? "mp-consulting" : resolveClientSlug(workspaceSlug, reply.campaign);
   // Pathfinder (buy-side) resolves to the acceler8rs playbook. In that mode we suppress
   // the sell-side "what made [BRAND] stand out" framing and the website-scraped exit
   // signals, which otherwise push the drafter to describe the lead's brand back and
