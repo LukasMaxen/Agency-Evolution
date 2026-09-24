@@ -98,5 +98,5 @@ See `icp` in REPLY QUICK REFERENCE above. Current live campaign: independent opt
   - No compliance details beyond "HIPAA-compliant websites" as a bare fact.
   - No pricing confirmed as a specific cold-email entry offer (three tiers exist but no single number to lead with).
   - No confirmation of who runs the account/relationship after Maddie's intro call.
-  - Meeting tracking: Calendly token + Airtable base now provided (2026-09-24) and wired into `lib/meetings-tracker.ts`, but not live — Maddie's Calendly account needs to be upgraded to Standard before the webhook can be registered (see note above). No dedicated Slack meetings channel yet either.
+  - Meeting tracking: live via polling as of 2026-09-24 (see note above), no historical backfill by design. No dedicated Slack meetings channel yet.
 - Full GTM/campaign-copy interview (`1. Departments/operations/SKILL_IntakeClient.md`) not yet run — this file only covers what's needed to route replies correctly and avoid fabrication, not the full case-study/psychological-driver brief.
