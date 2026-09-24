@@ -17,7 +17,7 @@
       "meetings": { "baseId": "appECObQrdSRjeXeM", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting Booked Date" }
     },
     {
-      "label": "AH Consulting",
+      "label": "MP Consulting",
       "workspaceSlugs": ["ah-consulting-2", "ah-consulting"],
       "meetings": { "baseId": "appZhEsVN52VXPZ66", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
     },
