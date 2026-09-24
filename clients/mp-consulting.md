@@ -10,6 +10,8 @@
 > **Standard automation tier** (default, not fully automated): interested/needs_info replies go to human review in `#reply-approval`, ambiguous ones to `#manual-replies`, same as every client except Larsen Digital, Acceler8rs, and ACT Capital.
 >
 > **Calendly is plain-link-only for now, no live slot suggestions.** `CALENDLY_CLIENT_CONFIG` (in `lib/calendly.ts`) and the auto-reply slot-suggestion code in `processor.ts` / `slack/events/route.ts` key off `workspace_slug`, which for this campaign is `ah-consulting` — already mapped to Austin's own Calendly account. Adding an entry there would either collide with Austin's real config or wrongly suggest slots off his calendar for MP Consulting leads. Until Maddie's Calendly gets its own integration (separate token, keyed by `mp-consulting` fileSlug rather than workspace_slug — needs a small code change, not just a config entry), replies must only ever share the plain booking link below, never a fabricated or live-suggested time.
+>
+> **Meeting tracking (2026-09-24): wired but NOT live yet.** Maddie's own Calendly token is stored (`MP_CONSULTING_CALENDLY_TOKEN`), her Calendly account is fully separate from Austin's (maddie@mpconsultingfirm.com), and the Airtable base she created ("MP Consulting", `apphW2yI5MyGDOLs9`, "Meetings" table) is wired into `lib/meetings-tracker.ts` under the `mp-consulting` key. **Blocked:** registering the Calendly webhook subscription failed with `403 Please upgrade your Calendly account to Standard` — her account is on Calendly's free tier, which doesn't support webhook subscriptions via the API at all. Until she upgrades to Calendly Standard (or above), no booking on her link will be tracked automatically anywhere in this app; bookings must be logged into the Airtable base manually in the meantime. Also still needed: a dedicated Slack `#mp-consulting-meetings` channel (currently falls back to the shared internal alert channel).
 
 ---
 
@@ -96,5 +98,5 @@ See `icp` in REPLY QUICK REFERENCE above. Current live campaign: independent opt
   - No compliance details beyond "HIPAA-compliant websites" as a bare fact.
   - No pricing confirmed as a specific cold-email entry offer (three tiers exist but no single number to lead with).
   - No confirmation of who runs the account/relationship after Maddie's intro call.
-  - Meeting tracking (Calendly API / Airtable) not connected yet for this client as of 2026-09-23 — Kasper says it will be done soon. Until then, meetings booked via the plain Calendly link have no automatic tracking in this app; confirmed bookings need to be tracked manually or flagged to Kasper.
+  - Meeting tracking: Calendly token + Airtable base now provided (2026-09-24) and wired into `lib/meetings-tracker.ts`, but not live — Maddie's Calendly account needs to be upgraded to Standard before the webhook can be registered (see note above). No dedicated Slack meetings channel yet either.
 - Full GTM/campaign-copy interview (`1. Departments/operations/SKILL_IntakeClient.md`) not yet run — this file only covers what's needed to route replies correctly and avoid fabrication, not the full case-study/psychological-driver brief.

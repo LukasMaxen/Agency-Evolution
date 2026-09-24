@@ -223,6 +223,40 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     // Heaton AEO Consultant") should be tracked to Airtable/Slack as ah-consulting meetings.
     eventNameContains: "AEO Consultant",
   },
+  // MP Consulting (2026-09-24). Own separate Calendly account (Maddie Poteat,
+  // maddie@mpconsultingfirm.com, org 18f15298-7d40-406c-be47-054e866f1b71) — entirely
+  // unrelated to Austin Heaton's, even though MP Consulting's outreach sends through
+  // Austin's `ah-consulting` EmailBison workspace for capacity (see clients/mp-consulting.md).
+  // Airtable base "MP Consulting" (apphW2yI5MyGDOLs9) confirmed live via API 2026-09-24,
+  // "Meetings" table (tblTnxArHDVMNOxSI) uses the same simple schema as GN Motion/Sonaro.
+  // Only event type on her account as of 2026-09-24 is "MPC Chat" (the one booking link
+  // in the client file) — eventNameContains kept as a guard in case she adds others later.
+  //
+  // ** NOT LIVE YET: webhook registration blocked. ** POSTing to /webhook_subscriptions
+  // with her token returned 403 "Please upgrade your Calendly account to Standard" — her
+  // account is on Calendly's free tier, which does not support the API webhook scope at
+  // all. Until Maddie upgrades to Calendly Standard (or above), NO booking on this link
+  // will hit our /api/webhook/calendly endpoint, so this config is inert (nothing calls
+  // trackMeeting for "mp-consulting" yet). Bookings must be tracked manually in Airtable
+  // until then. Once upgraded, register with:
+  //   POST https://api.calendly.com/webhook_subscriptions
+  //   { url: "https://inbox.agencyevolution.eu/api/webhook/calendly?ws=mp-consulting",
+  //     events: ["invitee.created","invitee.canceled"],
+  //     organization: "https://api.calendly.com/organizations/18f15298-7d40-406c-be47-054e866f1b71",
+  //     scope: "organization" }
+  // using the MP_CONSULTING_CALENDLY_TOKEN bearer token.
+  //
+  // slackChannel is the shared internal fallback (no dedicated #mp-consulting-meetings
+  // channel exists yet) — replace with a real channel id once Kasper creates one.
+  "mp-consulting": {
+    source: "calendly",
+    airtableBaseId: "apphW2yI5MyGDOLs9",          // "MP Consulting"
+    airtableTableId: "tblTnxArHDVMNOxSI",         // "Meetings"
+    slackChannel: FALLBACK_SLACK_CHANNEL,         // TODO: swap for a dedicated channel once created
+    fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
+    eventNameContains: "MPC Chat",
+    icpDescription: "Independent optometry practices (current campaign focus), across three size tiers: small local Nashville-area (1-10 employees), regional (11-50 employees, CMO/Marketing Director), and enterprise national brands (50+ employees). NOT a fit: businesses with no local/appointment-based online presence to build, or clearly outside the optometry niche unless the lead explicitly fits one of the other served industries (dental, chiropractic, insurance, real estate, salon/spa, interior design, restaurant, hospitality).",
+  },
 };
 
 export interface BookingInput {
