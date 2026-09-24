@@ -33,6 +33,20 @@ export const CALENDLY_CLIENT_CONFIG: Record<string, CalendlyClientConfig> = {
     eventTypeUrl: "https://calendly.com/austin-austinheaton/30min",
     defaultTz: "Europe/Chisinau",
   },
+  // MP Consulting (2026-09-24). Keyed by the resolved CLIENT FILE slug ("mp-consulting"),
+  // not the EmailBison workspace slug — that's "ah-consulting" (shared sending capacity
+  // with Austin Heaton's own AEO Consulting campaign, see clients/mp-consulting.md). Maddie
+  // has her own separate Calendly account/token, entirely unrelated to Austin's own
+  // "ah-consulting"/"ah-consulting-2" entries above. Nothing in the auto-reply live-slot
+  // path looks this up yet (that path is gated on isFullyAutomated, which MP Consulting is
+  // not, and it also keys off workspace_slug not fileSlug) — this entry exists so the
+  // Calendly webhook / meetings-tracker wiring and any future manual slot lookup can
+  // resolve the token by "mp-consulting".
+  "mp-consulting": {
+    tokenEnv: "MP_CONSULTING_CALENDLY_TOKEN",
+    eventTypeUrl: "https://calendly.com/mpc-maddie/mpc-interview-call-20-min-clone",
+    defaultTz: "America/Chicago",
+  },
 };
 
 export function resolveCalendlyToken(client?: string | null): string | undefined {
