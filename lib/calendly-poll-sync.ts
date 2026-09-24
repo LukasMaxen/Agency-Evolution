@@ -24,6 +24,14 @@ interface PollTarget {
   tokenEnv: string;
 }
 
+// Bookings CREATED before this cutoff are never tracked, even though the 30-day
+// scheduled_events lookback window below will still fetch them. Without this, the first
+// run after deploy would backfill every pre-existing booking in the window into
+// Airtable/Slack as if newly booked. Kasper confirmed 2026-09-24: only track bookings
+// made from here on, no backfill. Fixed (not "time since boot"), so a later app restart
+// doesn't reset it and re-open the backfill window.
+const TRACKING_CUTOFF_ISO = "2026-09-24T18:00:00Z";
+
 const POLL_TARGETS: PollTarget[] = [
   // MP Consulting (2026-09-24). See clients/mp-consulting.md and
   // lib/meetings-tracker.ts MEETING_CONFIG["mp-consulting"] for the rest of the wiring.
@@ -95,6 +103,9 @@ export async function pollCalendlyBookings(): Promise<void> {
         // registered later) — skip.
         const existing = await pool.query(`SELECT id FROM calls WHERE calendly_event_uri = $1 LIMIT 1`, [eventUri]);
         if (existing.rows.length > 0) continue;
+
+        // No backfill — only bookings created from TRACKING_CUTOFF_ISO onward are tracked.
+        if (event.created_at && new Date(event.created_at) < new Date(TRACKING_CUTOFF_ISO)) continue;
 
         const invitee = await fetchFirstInvitee(eventUri, token);
         const leadEmail: string = invitee?.email ?? "";
