@@ -313,4 +313,25 @@ export async function register() {
   }, 15 * 60_000);
 
   console.log("[instrumentation] fillout cancellation sweep started, 15min interval");
+
+  // ── 11. Calendly poll sync (free-tier fallback) ───────────────────────────
+  // Clients whose Calendly account can't run a webhook subscription (confirmed via a
+  // 403 "upgrade to Standard" — see lib/calendly-poll-sync.ts POLL_TARGETS, currently
+  // just MP Consulting/Maddie Poteat). Polls scheduled_events/invitees, a read-only
+  // endpoint that works on every plan tier, instead of waiting on an account upgrade.
+  const { pollCalendlyBookings } = await import("@/lib/calendly-poll-sync");
+
+  setTimeout(() => {
+    pollCalendlyBookings().catch(err =>
+      console.error("[instrumentation] initial calendly poll sync failed:", err)
+    );
+  }, 75_000);
+
+  setInterval(() => {
+    pollCalendlyBookings().catch(err =>
+      console.error("[instrumentation] periodic calendly poll sync failed:", err)
+    );
+  }, 10 * 60_000);
+
+  console.log("[instrumentation] calendly poll sync started, 10min interval");
 }
