@@ -16,6 +16,23 @@ export const RAW_REPLY_FEED_CHANNELS: Record<string, string> = {
   "ah-consulting": "C0BT77S0SJG",
 };
 
+// MP Consulting shares the ah-consulting EmailBison workspace for sending capacity only
+// (see clients/mp-consulting.md, isMPConsultingReply in app/api/auto-reply/processor.ts)
+// — its raw reply feed must never land in Austin Heaton's own AEO Consulting channel
+// above. Content-sniffed the same way, kept in sync manually since duplicating the
+// pattern here avoids importing the much heavier processor.ts module into this one.
+// Confirmed by Kasper 2026-09-24.
+const MP_CONSULTING_RAW_FEED_CHANNEL = "C0C486M0H1C";
+function isMPConsultingContent(subject: string, message: string): boolean {
+  const text = `${subject ?? ""}\n${message ?? ""}`.toLowerCase();
+  return (
+    /\bmp consulting\b/.test(text) ||
+    /independent optometry practices/.test(text) ||
+    /mpc-maddie/.test(text) ||
+    /mackenzie poteat/.test(text)
+  );
+}
+
 // Per-workspace cache of EmailBison sender_email_id -> email address and
 // campaign_id -> campaign name. The inbox-sync poller only gets numeric IDs
 // back from GET /api/replies, not the resolved objects the LEAD_REPLIED
@@ -101,7 +118,8 @@ export interface RawReplyFeedOpts {
 // Fires for every reply regardless of AI classification — this is the
 // unconditional visibility feed, not the AI approval-card flow.
 export async function postRawReplyFeed(opts: RawReplyFeedOpts): Promise<void> {
-  const channel = RAW_REPLY_FEED_CHANNELS[opts.workspaceSlug];
+  const isMPConsulting = opts.workspaceSlug === "ah-consulting" && isMPConsultingContent(opts.subject, opts.message);
+  const channel = isMPConsulting ? MP_CONSULTING_RAW_FEED_CHANNEL : RAW_REPLY_FEED_CHANNELS[opts.workspaceSlug];
   if (!channel) return;
 
   const [senderEmail, campaignName] = await Promise.all([

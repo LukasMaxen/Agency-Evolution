@@ -246,13 +246,11 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
   //     scope: "organization" }
   // using the MP_CONSULTING_CALENDLY_TOKEN bearer token.
   //
-  // slackChannel is the shared internal fallback (no dedicated #mp-consulting-meetings
-  // channel exists yet) — replace with a real channel id once Kasper creates one.
   "mp-consulting": {
     source: "calendly",
     airtableBaseId: "apphW2yI5MyGDOLs9",          // "MP Consulting"
     airtableTableId: "tblTnxArHDVMNOxSI",         // "Meetings"
-    slackChannel: FALLBACK_SLACK_CHANNEL,         // TODO: swap for a dedicated channel once created
+    slackChannel: "C0C3UPU25CP",                  // mp-consulting-meetings, confirmed 2026-09-24
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
     eventNameContains: "MPC Chat",
     icpDescription: "Independent optometry practices (current campaign focus), across three size tiers: small local Nashville-area (1-10 employees), regional (11-50 employees, CMO/Marketing Director), and enterprise national brands (50+ employees). NOT a fit: businesses with no local/appointment-based online presence to build, or clearly outside the optometry niche unless the lead explicitly fits one of the other served industries (dental, chiropractic, insurance, real estate, salon/spa, interior design, restaurant, hospitality).",
