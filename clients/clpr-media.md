@@ -2,30 +2,34 @@
 
 > This is the single source of truth for everything about this client.
 > When working on any task for this client (sourcing, enrichment, campaign strategy, reply management, onboarding), read this file first.
-> Source: Tally onboarding intake (Airtable Onboarding Library, Clients table, record recZtqPWvKuzn6Hxd, Tally ID kbgBL5J, submitted 2026-09-11).
+> Sources: Tally onboarding intake (Airtable Onboarding Library, Clients table, record recZtqPWvKuzn6Hxd, Tally ID kbgBL5J, submitted 2026-09-11) and Kasper's client brief (2026-09-28).
 
 ## REPLY QUICK REFERENCE
 
 campaign_type: agency / service (not M&A). Short-form video clipping and distribution.
-sender: Kevin Clavell, CLPR Media (sender name "Kevin | CLPR Media"). Kevin also takes every call himself, so always write in first person as Kevin, never refer to "Kevin" or "our team lead" in third person.
-offer: CLPR Media turns long-form content and raw footage (podcasts, streams, vlogs, music videos, brand and tourism footage) into short-form clips for TikTok, Instagram Reels, YouTube Shorts and Facebook Reels. Two options: Community Clipping (a network of 8,000 clippers creates and distributes clips at scale for reach) and In-house Clipping (tighter control over quality, strategy, branding and posting on the client's own pages). First step: a 30-minute online call.
+sender: Kevin Clavell, co-founder, CLPR Media (sender name "Kevin | CLPR Media"). Kevin takes every call himself, so always write in first person as Kevin, never refer to "Kevin" in third person.
+offer: CLPR Media turns long-form content and raw footage into short-form clips for TikTok, Instagram Reels, YouTube Shorts and Facebook Reels. Two options: Community Clipping (a network of 8,000+ clippers creates and distributes clips across thousands of independent accounts at the same time, built for reach) and In-house Clipping (tighter control over quality, strategy, branding and posting on the client's own pages, better for brands that care about consistency and brand safety). First step: a 30-minute online call.
 booking_link: https://calendly.com/clprmedia/30min
-icp: Founder-led creators, podcasts, streamers, lifestyle influencers, music artists/labels/managers, consumer brands (DTC, supplements, fitness, beauty, finance, automotive, gambling) and official tourism/destination brands that already have long-form content, raw footage or a content catalog. Best fit: 2+ long-form videos per week or a large existing catalog. Streamers must be established and high-earning, not new.
+icp: Founder-led creators, podcasts, streamers, lifestyle influencers, music artists/labels, consumer brands and tourism/destination brands that already have long-form content or raw footage. Strongest cold email fit: ecom and beauty brands. Founder must be willing to be on camera weekly.
+proof_points (only these, exact): Chris Koerner, 35M views. Based Bodyworks (DTC ecom brand). 50M+ total views across all campaigns. Network of 8,000+ clippers.
 
 reply_rules:
-- Lead asks HOW it works: explain the two models plainly. Community Clipping = our 8,000-clipper network makes and distributes clips at scale, built for maximum reach. In-house Clipping = our team edits and posts to their own pages, built for control, brand safety and consistency. Then offer the Calendly link.
-- Lead is a brand (DTC, supplements, finance, etc.): lead with In-house Clipping (brands care most about control, messaging and brand safety).
-- Lead is a music artist / label: mention both clipping existing footage (music videos, studio, tour, BTS) and UGC-style distribution through creators and clippers to push a release.
-- Lead is a tourism board / destination: frame it as making their existing footage feel native to social rather than corporate.
-- Objection "we already have a content system": acknowledge it, position CLPR as the layer that turns what they already produce into more short-form volume and distribution, not a replacement. Ask one light question about their current short-form output, then offer the call.
-- Lead asks about pricing: not in this file. Route to #manual-replies, do not invent numbers and do not deflect to "the call".
-- Lead asks for a case study: we do not have the case study file on hand yet. Route to #manual-replies, never describe results from memory.
+- Lead asks HOW it works: explain the two models plainly (Community Clipping for reach, In-house Clipping for control and brand safety), then offer the Calendly link.
+- Lead is a brand (ecom, beauty, DTC, supplements, etc.): lead with In-house Clipping. Based Bodyworks is the relevant proof point.
+- Lead is a creator or podcast: Chris Koerner (35M views) is the relevant proof point.
+- Lead is a music artist / label: mention clipping existing footage (music videos, studio, tour, BTS) and distribution through the clipper network to push a release.
+- Lead is a tourism board / destination: frame it as making existing footage feel native to social rather than corporate.
+- Lead asks about pricing: say pricing starts at $5,000/month and the exact scope depends on volume and goals, then offer the call. Never give any other price, tier or package detail.
+- Lead asks about guarantees, add-on pricing, or anything else commercial not listed here: route to #manual-replies.
+- Lead asks for a case study document: we do not have the PDF yet. Route to #manual-replies.
+- Lead says they already have a content system: this is NOT qualified per the client. Treat as not interested, no reply.
 - Meetings are online only (no phone calls).
 
 never:
-- Never invent capabilities, results, view counts, client names or case studies not confirmed in this file.
-- Never quote pricing, turnaround times or guarantees (none confirmed).
-- Never share the separate tools offer link or its password in a reply unless Kasper confirms it may be sent (see Internal Notes).
+- Never invent capabilities, results, view counts, client names or case studies beyond the proof_points above.
+- Never quote any price other than "starts at $5,000/month". No tiers, package names, video counts, view guarantees or add-on pricing.
+- Never promise revenue results or refunds.
+- Never share the separate tools offer link or its password unless Kasper confirms it may be sent (see Internal Notes).
 - Never suggest specific time slots. Calendly link only.
 
 ---
@@ -35,11 +39,13 @@ never:
 | Field | Value |
 |---|---|
 | **Status** | Onboarding In Progress |
-| **EmailBison slug** | `clpr-media` (pending, workspace not yet in DB) |
-| **EmailBison instance** | `https://send.emailagencyevolution.com` (pending confirmation) |
+| **Website** | clprmedia.co |
+| **Tagline** | "Be everywhere. All at once." |
+| **EmailBison slug** | TBD (pending, workspace not yet in DB) |
+| **EmailBison instance** | `https://send.shieldsoutbound.com` (Shields) |
 | **Signed date** | TBD |
-| **Monthly retainer** | TBD |
-| **Active campaigns** | None yet |
+| **Pricing (their offer)** | Starts at $5,000/month |
+| **Active campaigns** | None yet on our side |
 | **Automation tier** | Standard (interested/needs_info go to human review) |
 
 ---
@@ -48,59 +54,78 @@ never:
 
 | Name | Role | Email | Calendly | Timezone | Notes |
 |---|---|---|---|---|---|
-| Kevin Clavell | Founder, sender and call handler | clprmedia@gmail.com | https://calendly.com/clprmedia/30min | TBD | Primary contact. Online meetings only. |
+| Kevin Clavell | Co-founder. Video editing expert, YouTube strategist (150k subscribers, 100M+ organic views across faceless YouTube channels). Leads campaign playbooks and viral hook strategy. Sender and call handler. | clprmedia@gmail.com | https://calendly.com/clprmedia/30min | TBD | Primary contact for us. Online meetings only. |
+| Raul Vega | Co-founder. Post-production specialist with music artist experience. Oversees QA and creative direction. | TBD | | TBD | |
 
 ---
 
 ## Client Overview
 
-CLPR Media helps creators, music artists, brands, podcasts and official tourism authorities (national tourism boards, state travel offices, city destination teams) repurpose long-form content and raw footage into short-form videos built for attention and distribution across TikTok, Instagram, YouTube Shorts and Facebook Reels.
+CLPR Media helps creators, music artists, brands, podcasts and official tourism authorities repurpose long-form content and raw footage into short-form videos built for attention and distribution across TikTok, Instagram, YouTube Shorts and Facebook Reels.
 
-- **Community Clipping:** network of 8,000 clippers creates and distributes clips at scale to drive massive reach.
-- **In-house Clipping:** for creators and brands that want tighter control over quality, strategy, branding and posting on their own pages.
+- **Community Clipping:** 8,000+ clippers (via Whop) create and distribute clips at scale across thousands of independent accounts simultaneously. Built for reach.
+- **In-house Clipping:** tighter control over quality, strategy, branding and posting on the client's own pages. Better for brands that care about consistency and brand safety.
 
-Qualified lead definition (client's words): "Matches ICP and shows interest."
+Add-ons (no pricing to be shared):
+- **Production:** CLPR supplies talent, crew and camera.
+- **Commerce for CPG:** TikTok Shop setup, shop management, affiliate engine, LIVE selling.
+- **Performance pricing for CPG:** exists, details not for replies.
+
+Client requirements: films on schedule, approves within 48 hours, keeps account access live.
+
+Qualified lead: matches ICP and shows interest.
+Not qualified: already has a content system.
+Key requirement: founder must be willing to be on camera weekly.
 
 ---
 
 ## GTM Brief
 
 ### 1. The Offer
-See Client Overview. Concrete first step: 30-minute online call via Calendly.
+See Client Overview. Concrete first step: 30-minute online call via Calendly. Pricing starts at $5,000/month.
 
 ### 4. ICP Personas
 Client's summary: "Basically anything founder led." Must already have long-form content, raw footage or a large catalog.
 
 1. **High-output creators.** Large existing catalog or 2+ long-form videos per week.
-2. **Podcasts.** Posting more than once per week or large back catalog. Business, comedy, entertainment, sports, finance, creator, general conversation.
+2. **Podcasts.** Posting more than once per week or large back catalog.
 3. **Streamers.** Established, high-income, consistent content and existing audience. Not new streamers.
-4. **Lifestyle influencers.** Vlogs, BTS, travel, lifestyle, personal brand content, filming consistently but needing edits.
-5. **Music artists and entertainment.** Artists, labels, managers, producers, DJs, festivals, venues, entertainment brands. Strong fit: pushing a new song/album/project through short-form.
-6. **Brands.** Already producing content (product footage, founder-led, testimonials, podcasts, UGC, educational). DTC, supplements, creator-led, fitness, beauty, finance, automotive, gambling. In-house offer is strongest here.
-7. **Tourism authorities and destination brands.** Tourism boards, state travel offices, city destination teams, hotels, resorts, travel campaigns, regional destination brands.
+4. **Lifestyle influencers.** Vlogs, BTS, travel, lifestyle, personal brand content.
+5. **Music artists and entertainment.** Artists, labels, managers, producers, DJs, festivals, venues.
+6. **Brands.** DTC, ecom, beauty, supplements, creator-led, fitness, finance, automotive, gambling. In-house offer is strongest here.
+7. **Tourism authorities and destination brands.** Tourism boards, state travel offices, city destination teams, hotels, resorts.
 
+**Best for cold email: ecom and beauty brands** (proven by Shields campaign data below).
+Avoid: fashion and food and drink (high replies, near zero buying intent).
 Geography, titles, company size, revenue range: TBD.
-Never contact: none specified.
 
 ### 6. Proof Points & Case Studies
-- Case study PDF exists (CLPR_Case_Study_v6.pdf) but the intake only included a local file path on the client's machine. We do not have it. Request a shareable link from Kevin.
-- Referenceable: all case studies and the CLPR Media name.
+- Chris Koerner: 35M views.
+- Based Bodyworks: DTC ecom brand.
+- 50M+ total views across all campaigns.
+- Network of 8,000+ clippers via Whop.
+- Case study PDF (CLPR_Case_Study_v6.pdf) not accessible, need a shareable link from Kevin.
 
 ### 7. Objections & Reframes
-| Objection | Reframe |
+| Objection | Handling |
 |---|---|
-| "We already have a content system." | CLPR adds short-form volume and distribution on top of what they already produce, not a replacement. |
+| "We already have a content system." | Not qualified per client. No reply. |
+
+Full objection bank: not yet provided.
 
 ### 8. Language That Works / Doesn't Work
-- Never say / imply / promise: none specified by client (our global rules still apply).
+- Do-not-say list: blank from client (our global rules still apply).
 - Compliance requirements: none.
-- Past issues: none.
 
 ---
 
 ## Campaigns
 
-None yet.
+### Prior performance (Shields campaign)
+- 66,243 contacted, 69 interested (0.10%).
+- Best: Ecom (12 interested), Beauty (9 interested).
+- Worst: Fashion, F&D. High replies, near zero buying intent.
+- Biggest issue: data quality and bounce rates.
 
 ---
 
@@ -117,5 +142,4 @@ None logged yet.
 ## Internal Notes
 
 - **Separate offer (tools):** clprmedia.co/tools-qv090m, password `clprtools2026`. Purpose and whether it can be shared with leads is unconfirmed. Do not use in replies until Kasper confirms.
-- Case study PDF needs a shareable link from Kevin.
-- Sender profile photo is attached in the Airtable intake record.
+- Still missing: case study PDF link, full objection bank, add-on pricing, sender profile photo confirmation.
