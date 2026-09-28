@@ -11,17 +11,18 @@ sender: Kevin Clavell, co-founder, CLPR Media (sender name "Kevin | CLPR Media")
 offer: CLPR Media turns long-form content and raw footage into short-form clips for TikTok, Instagram Reels, YouTube Shorts and Facebook Reels. Two options: Community Clipping (a network of 8,000+ clippers creates and distributes clips across thousands of independent accounts at the same time, built for reach) and In-house Clipping (tighter control over quality, strategy, branding and posting on the client's own pages, better for brands that care about consistency and brand safety). First step: a 30-minute online call.
 booking_link: https://calendly.com/clprmedia/30min
 icp: Founder-led creators, podcasts, streamers, lifestyle influencers, music artists/labels, consumer brands and tourism/destination brands that already have long-form content or raw footage. Strongest cold email fit: ecom and beauty brands. Founder must be willing to be on camera weekly.
-proof_points (only these, exact): Chris Koerner, 35M views. Based Bodyworks (DTC ecom brand). 50M+ total views across all campaigns. Network of 8,000+ clippers.
+case_study_link: https://drive.google.com/file/d/1Dmgw8A3N_PWoe-_X215PK7dub-JZKUuO/view?usp=sharing
+proof_points (only these, exact, they match the case study PDF): The Koerner Office, Chris Koerner's business podcast: 16 dormant accounts revived, 29.3M views in 6 months from the done-for-you retainer plus 15.9M from a clipper community campaign. Albino, an upcoming Spanish-language music artist: 1.6M views from the clipper community, top clip 366K views. A lifestyle brand (confidential, never name it): 1.8M views from a 1-week clipper campaign. 48.6M total views, 2,700+ unique clips, 8,000+ clippers. Based Bodyworks (DTC ecom brand) may be named as a client but has no numbers on file.
 
 reply_rules:
 - Lead asks HOW it works: explain the two models plainly (Community Clipping for reach, In-house Clipping for control and brand safety), then offer the Calendly link.
-- Lead is a brand (ecom, beauty, DTC, supplements, etc.): lead with In-house Clipping. Based Bodyworks is the relevant proof point.
-- Lead is a creator or podcast: Chris Koerner (35M views) is the relevant proof point.
-- Lead is a music artist / label: mention clipping existing footage (music videos, studio, tour, BTS) and distribution through the clipper network to push a release.
+- Lead is a brand (ecom, beauty, DTC, supplements, etc.): lead with In-house Clipping. Relevant proof: the 1-week lifestyle brand test (1.8M views), and Based Bodyworks as a named client.
+- Lead is a creator or podcast: The Koerner Office is the relevant proof point (29.3M views in 6 months from the retainer).
+- Lead is a music artist / label: mention clipping existing footage (music videos, studio, tour, BTS) and distribution through the clipper network to push a release. Albino (1.6M views, top clip 366K) is the relevant proof point.
 - Lead is a tourism board / destination: frame it as making existing footage feel native to social rather than corporate.
 - Lead asks about pricing: say pricing starts at $5,000/month and the exact scope depends on volume and goals, then offer the call. Never give any other price, tier or package detail.
 - Lead asks about guarantees, add-on pricing, or anything else commercial not listed here: route to #manual-replies.
-- Lead asks for a case study (a document, examples or detailed results): route to #manual-replies until a case study link is added to this file. Do not describe results beyond the proof_points.
+- Lead asks for a case study, examples or results, or says yes to one being offered: send the case_study_link above with one line on the most relevant case for them, then the Calendly link. Do not restate the whole PDF. Do not send it again if it is already in the thread.
 - Lead says they already have a content system: this is NOT qualified per the client. Treat as not interested, no reply.
 - Meetings are online only (no phone calls).
 
@@ -103,11 +104,14 @@ Avoid: fashion and food and drink (high replies, near zero buying intent).
 Geography, titles, company size, revenue range: TBD.
 
 ### 6. Proof Points & Case Studies
-- Chris Koerner: 35M views.
-- Based Bodyworks: DTC ecom brand.
-- 50M+ total views across all campaigns.
+Case study PDF (7 pages, "How we turn creators into content engines"): https://drive.google.com/file/d/1Dmgw8A3N_PWoe-_X215PK7dub-JZKUuO/view?usp=sharing
+- **The Koerner Office (Chris Koerner, business podcast, 4 sub-brands, 16 accounts, all dormant at start).** Done-for-you, 6 months: 29.3M views, 695 unique clips, 2,780 posts. Clipper community campaign in parallel: 15.9M views, $0.29 effective CPM, $4,687 paid to clippers. Best clips: uncommon business ideas, weird-but-real business models, Chris in explain mode.
+- **Albino (upcoming Spanish-language music artist).** Clipper community: 1.6M views, $0.46 CPM, $750 paid to clippers, top clip 366K views.
+- **Confidential lifestyle brand (under NDA, never name).** 1-week clipper test: 1.8M views, $0.55 CPM, $1,000 budget, 1,322 clip submissions, 374 unique creators.
+- **Totals:** 48.6M views, 2,700+ unique clips, 8,000+ clippers.
+- **Based Bodyworks:** DTC ecom brand, named in the brief as a client, no numbers on file.
+- Note: the brief said "Chris Koerner, 35M views" and "50M+ total views". The PDF says 29.3M + 15.9M and 48.6M. Replies use the PDF figures so they match the link we send.
 - Network of 8,000+ clippers via Whop.
-- Case study PDF (CLPR_Case_Study_v6.pdf) not accessible, need a shareable link from Kevin.
 
 ### 7. Objections & Reframes
 | Objection | Handling |
@@ -144,5 +148,5 @@ None logged yet.
 
 ## Internal Notes
 
-- Still missing: case study link (Kasper will provide later), full objection bank, sender profile photo confirmation.
+- Still missing: full objection bank, sender profile photo confirmation.
 - Separate tools offer from the intake: disregarded per Kasper 2026-09-28, never mention it.
