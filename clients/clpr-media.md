@@ -48,6 +48,7 @@ never:
 | **Active campaigns** | None yet on our side |
 | **Airtable base** | CLPR Media (applnvVcAGLchrG2b), Meetings table tblTnxArHDVMNOxSI, CRM - Outbound table tble5jOq2n1zXSKIy |
 | **Slack channels** | #clpr-media-replies (C0C4GPN1PUP, raw reply feed) and #clpr-media-meetings (C0C5SFSTQ0G, meetings tracker). Approval cards still go to the global #reply-approval and #manual-replies. |
+| **Calendly** | Token in CLPR_MEDIA_CALENDLY_TOKEN. Free plan, so no webhook: bookings are picked up by lib/calendly-poll-sync.ts every 10 min (tracking from 2026-09-28 15:30 UTC, no backfill). One event type: "CLPR Media Discovery Call". |
 | **Automation tier** | Standard (interested/needs_info go to human review) |
 
 ---
@@ -143,5 +144,5 @@ None logged yet.
 
 ## Internal Notes
 
-- Still missing: case study link (Kasper will provide later), Calendly API token (Kasper will provide later), full objection bank, sender profile photo confirmation.
+- Still missing: case study link (Kasper will provide later), full objection bank, sender profile photo confirmation.
 - Separate tools offer from the intake: disregarded per Kasper 2026-09-28, never mention it.
