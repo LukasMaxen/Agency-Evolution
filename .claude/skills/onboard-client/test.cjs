@@ -25,9 +25,10 @@ if (!slug) { console.error('Usage: node test.cjs <slug>'); process.exit(1); }
   const { email_bison_api_key: key, email_bison_instance_url: instance } = ws.rows[0];
 
   try {
-    const r = await fetch(`${instance}/api/workspaces`, { headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' } });
+    // /api/users returns the key's active workspace. /api/workspaces lists every workspace the user can see, so [0] is not this one.
+    const r = await fetch(`${instance}/api/users`, { headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' } });
     const j = await r.json().catch(() => ({}));
-    const name = j?.data?.[0]?.name;
+    const name = j?.data?.workspace?.name;
     console.log(r.ok ? `[PASS] EmailBison auth -- HTTP ${r.status}, workspace name: ${name}` : `[FAIL] EmailBison auth -- HTTP ${r.status}`);
     if (!r.ok) pass = false;
   } catch (e) { console.log('[FAIL] EmailBison auth --', e.message); pass = false; }
