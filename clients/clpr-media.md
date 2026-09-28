@@ -12,7 +12,7 @@ offer: CLPR Media turns long-form content and raw footage into short-form clips 
 booking_link: https://calendly.com/clprmedia/30min
 icp: Founder-led creators, podcasts, streamers, lifestyle influencers, music artists/labels, consumer brands and tourism/destination brands that already have long-form content or raw footage. Strongest cold email fit: ecom and beauty brands. Founder must be willing to be on camera weekly.
 case_study_link: https://drive.google.com/file/d/1Dmgw8A3N_PWoe-_X215PK7dub-JZKUuO/view?usp=sharing
-proof_points (only these, exact, they match the case study PDF): The Koerner Office, Chris Koerner's business podcast: 16 dormant accounts revived, 29.3M views in 6 months from the done-for-you retainer plus 15.9M from a clipper community campaign. Albino, an upcoming Spanish-language music artist: 1.6M views from the clipper community, top clip 366K views. A lifestyle brand (confidential, never name it): 1.8M views from a 1-week clipper campaign. 48.6M total views, 2,700+ unique clips, 8,000+ clippers. Based Bodyworks (DTC ecom brand) may be named as a client but has no numbers on file.
+proof_points (only these, exact, they match the case study PDF): The Koerner Office, Chris Koerner's business podcast: 16 dormant accounts revived, 29.3M views in 6 months from the done-for-you retainer plus 15.9M from a clipper community campaign. Albino, an upcoming Spanish-language music artist: 1.6M views from the clipper community, top clip 366K views. A lifestyle brand (confidential, never name it): 1.8M views from a 1-week clipper campaign. 48.6M total views, 2,700+ unique clips, 8,000+ clippers. Based Bodyworks (DTC ecom brand, not under NDA) may be named as a client but has no numbers on file.
 
 reply_rules:
 - Lead asks HOW it works: explain the two models plainly (Community Clipping for reach, In-house Clipping for control and brand safety), then offer the Calendly link.
@@ -109,7 +109,7 @@ Case study PDF (7 pages, "How we turn creators into content engines"): https://d
 - **Albino (upcoming Spanish-language music artist).** Clipper community: 1.6M views, $0.46 CPM, $750 paid to clippers, top clip 366K views.
 - **Confidential lifestyle brand (under NDA, never name).** 1-week clipper test: 1.8M views, $0.55 CPM, $1,000 budget, 1,322 clip submissions, 374 unique creators.
 - **Totals:** 48.6M views, 2,700+ unique clips, 8,000+ clippers.
-- **Based Bodyworks:** DTC ecom brand, named in the brief as a client, no numbers on file.
+- **Based Bodyworks:** DTC ecom brand, named in the brief as a client, not under NDA (confirmed by Kasper 2026-09-28), no numbers on file.
 - Note: the brief said "Chris Koerner, 35M views" and "50M+ total views". The PDF says 29.3M + 15.9M and 48.6M. Replies use the PDF figures so they match the link we send.
 - Network of 8,000+ clippers via Whop.
 
