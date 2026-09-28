@@ -21,7 +21,7 @@ reply_rules:
 - Lead is a tourism board / destination: frame it as making existing footage feel native to social rather than corporate.
 - Lead asks about pricing: say pricing starts at $5,000/month and the exact scope depends on volume and goals, then offer the call. Never give any other price, tier or package detail.
 - Lead asks about guarantees, add-on pricing, or anything else commercial not listed here: route to #manual-replies.
-- Lead asks for a case study document: we do not have the PDF yet. Route to #manual-replies.
+- Lead asks for a case study (a document, examples or detailed results): route to #manual-replies until a case study link is added to this file. Do not describe results beyond the proof_points.
 - Lead says they already have a content system: this is NOT qualified per the client. Treat as not interested, no reply.
 - Meetings are online only (no phone calls).
 
@@ -29,7 +29,6 @@ never:
 - Never invent capabilities, results, view counts, client names or case studies beyond the proof_points above.
 - Never quote any price other than "starts at $5,000/month". No tiers, package names, video counts, view guarantees or add-on pricing.
 - Never promise revenue results or refunds.
-- Never share the separate tools offer link or its password unless Kasper confirms it may be sent (see Internal Notes).
 - Never suggest specific time slots. Calendly link only.
 
 ---
@@ -47,6 +46,7 @@ never:
 | **Pricing (their offer)** | Starts at $5,000/month |
 | **Sender domain** | clprmedialab.com (15 Kevin inboxes) |
 | **Active campaigns** | None yet on our side |
+| **Airtable base** | CLPR Media (applnvVcAGLchrG2b), Meetings table tblTnxArHDVMNOxSI, CRM - Outbound table tble5jOq2n1zXSKIy |
 | **Automation tier** | Standard (interested/needs_info go to human review) |
 
 ---
@@ -55,7 +55,7 @@ never:
 
 | Name | Role | Email | Calendly | Timezone | Notes |
 |---|---|---|---|---|---|
-| Kevin Clavell | Co-founder. Video editing expert, YouTube strategist (150k subscribers, 100M+ organic views across faceless YouTube channels). Leads campaign playbooks and viral hook strategy. Sender and call handler. | clprmedia@gmail.com | https://calendly.com/clprmedia/30min | TBD | Primary contact for us. Online meetings only. |
+| Kevin Clavell | Co-founder. Video editing expert, YouTube strategist (150k subscribers, 100M+ organic views across faceless YouTube channels). Leads campaign playbooks and viral hook strategy. Sender and call handler. | clprmedia@gmail.com | https://calendly.com/clprmedia/30min | US Eastern (Cleveland, Ohio area) | Primary contact for us. Online meetings only. |
 | Raul Vega | Co-founder. Post-production specialist with music artist experience. Oversees QA and creative direction. | TBD | | TBD | |
 
 ---
@@ -142,5 +142,5 @@ None logged yet.
 
 ## Internal Notes
 
-- **Separate offer (tools):** clprmedia.co/tools-qv090m, password `clprtools2026`. Purpose and whether it can be shared with leads is unconfirmed. Do not use in replies until Kasper confirms.
-- Still missing: case study PDF link, full objection bank, add-on pricing, sender profile photo confirmation.
+- Still missing: case study link (Kasper will provide later), Calendly API token (Kasper will provide later), meetings Slack channel, full objection bank, sender profile photo confirmation.
+- Separate tools offer from the intake: disregarded per Kasper 2026-09-28, never mention it.
