@@ -41,10 +41,11 @@ never:
 | **Status** | Onboarding In Progress |
 | **Website** | clprmedia.co |
 | **Tagline** | "Be everywhere. All at once." |
-| **EmailBison slug** | TBD (pending, workspace not yet in DB) |
+| **EmailBison slug** | `clpr-media` (DB row created 2026-09-28) |
 | **EmailBison instance** | `https://send.shieldsoutbound.com` (Shields) |
 | **Signed date** | TBD |
 | **Pricing (their offer)** | Starts at $5,000/month |
+| **Sender domain** | clprmedialab.com (15 Kevin inboxes) |
 | **Active campaigns** | None yet on our side |
 | **Automation tier** | Standard (interested/needs_info go to human review) |
 
