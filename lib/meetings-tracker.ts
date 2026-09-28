@@ -253,7 +253,7 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     slackChannel: "C0C3UPU25CP",                  // mp-consulting-meetings, confirmed 2026-09-24
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
     eventNameContains: "MPC Chat",
-    icpDescription: "Independent optometry practices (current campaign focus), across three size tiers: small local Nashville-area (1-10 employees), regional (11-50 employees, CMO/Marketing Director), and enterprise national brands (50+ employees). NOT a fit: businesses with no local/appointment-based online presence to build, or clearly outside the optometry niche unless the lead explicitly fits one of the other served industries (dental, chiropractic, insurance, real estate, salon/spa, interior design, restaurant, hospitality).",
+    icpDescription: "__MP_PLACEHOLDER__, across three size tiers: small local Nashville-area (1-10 employees), regional (11-50 employees, CMO/Marketing Director), and enterprise national brands (50+ employees). NOT a fit: businesses with no local/appointment-based online presence to build, or clearly outside the optometry niche unless the lead explicitly fits one of the other served industries (dental, chiropractic, insurance, real estate, salon/spa, interior design, restaurant, hospitality).",
   },
 };
 
