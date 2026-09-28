@@ -47,6 +47,14 @@ export const CALENDLY_CLIENT_CONFIG: Record<string, CalendlyClientConfig> = {
     eventTypeUrl: "https://calendly.com/mpc-maddie/mpc-interview-call-20-min-clone",
     defaultTz: "America/Chicago",
   },
+  // CLPR Media (2026-09-28). Kevin Clavell's own account, one event type
+  // ("CLPR Media Discovery Call"). Free plan, so meetings come in via
+  // lib/calendly-poll-sync.ts, not a webhook.
+  "clpr-media": {
+    tokenEnv: "CLPR_MEDIA_CALENDLY_TOKEN",
+    eventTypeUrl: "https://calendly.com/clprmedia/30min",
+    defaultTz: "America/New_York",
+  },
 };
 
 export function resolveCalendlyToken(client?: string | null): string | undefined {

@@ -317,7 +317,7 @@ export async function register() {
   // ── 11. Calendly poll sync (free-tier fallback) ───────────────────────────
   // Clients whose Calendly account can't run a webhook subscription (confirmed via a
   // 403 "upgrade to Standard" — see lib/calendly-poll-sync.ts POLL_TARGETS, currently
-  // just MP Consulting/Maddie Poteat). Polls scheduled_events/invitees, a read-only
+  // MP Consulting and CLPR Media). Polls scheduled_events/invitees, a read-only
   // endpoint that works on every plan tier, instead of waiting on an account upgrade.
   const { pollCalendlyBookings } = await import("@/lib/calendly-poll-sync");
 

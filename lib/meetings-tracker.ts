@@ -260,11 +260,10 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
   // "Meetings" table uses the same simple schema as MP Consulting. Slack channel
   // verified with conversations.info (bot is a member).
   //
-  // ** NOT LIVE YET: no Calendly webhook registered. ** Waiting on Kevin's Calendly
-  // token (CLPR_MEDIA_CALENDLY_TOKEN). Until then nothing calls trackMeeting for
-  // "clpr-media". Register with ?ws=clpr-media once the token arrives (account must be
-  // Calendly Standard or above, see mp-consulting above). Add eventNameContains if the
-  // account turns out to have event types other than /clprmedia/30min.
+  // Kevin's Calendly is on the free plan (webhook POST returned 403 "upgrade to Standard"
+  // 2026-09-28), so bookings arrive via lib/calendly-poll-sync.ts every 10 min instead.
+  // Only one event type on the account ("CLPR Media Discovery Call", /clprmedia/30min).
+  // If he upgrades, register a webhook with ?ws=clpr-media and drop the poll target.
   "clpr-media": {
     source: "calendly",
     airtableBaseId: "applnvVcAGLchrG2b",          // "CLPR Media"

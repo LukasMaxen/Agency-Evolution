@@ -22,6 +22,8 @@ interface PollTarget {
   workspaceSlug: string;
   userUri: string;
   tokenEnv: string;
+  /** Per-client no-backfill cutoff. Overrides TRACKING_CUTOFF_ISO for clients added later. */
+  trackFromISO?: string;
 }
 
 // Bookings CREATED before this cutoff are never tracked, even though the 30-day
@@ -39,6 +41,15 @@ const POLL_TARGETS: PollTarget[] = [
     workspaceSlug: "mp-consulting",
     userUri: "https://api.calendly.com/users/b58c74f0-f259-459b-939f-9e9bd89e525e",
     tokenEnv: "MP_CONSULTING_CALENDLY_TOKEN",
+  },
+  // CLPR Media (2026-09-28). Kevin Clavell's account is on Calendly's free plan, webhook
+  // registration returned the same 403. Own cutoff so his existing bookings (e.g. one
+  // created 2026-09-25) are not backfilled into Airtable/Slack on the first poll.
+  {
+    workspaceSlug: "clpr-media",
+    userUri: "https://api.calendly.com/users/6d00f84d-559d-4a65-8229-28c0e59a3b4e",
+    tokenEnv: "CLPR_MEDIA_CALENDLY_TOKEN",
+    trackFromISO: "2026-09-28T15:30:00Z",
   },
 ];
 
@@ -105,7 +116,7 @@ export async function pollCalendlyBookings(): Promise<void> {
         if (existing.rows.length > 0) continue;
 
         // No backfill — only bookings created from TRACKING_CUTOFF_ISO onward are tracked.
-        if (event.created_at && new Date(event.created_at) < new Date(TRACKING_CUTOFF_ISO)) continue;
+        if (event.created_at && new Date(event.created_at) < new Date(target.trackFromISO ?? TRACKING_CUTOFF_ISO)) continue;
 
         const invitee = await fetchFirstInvitee(eventUri, token);
         const leadEmail: string = invitee?.email ?? "";
