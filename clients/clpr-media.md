@@ -47,6 +47,7 @@ never:
 | **Sender domain** | clprmedialab.com (15 Kevin inboxes) |
 | **Active campaigns** | None yet on our side |
 | **Airtable base** | CLPR Media (applnvVcAGLchrG2b), Meetings table tblTnxArHDVMNOxSI, CRM - Outbound table tble5jOq2n1zXSKIy |
+| **Slack channels** | #clpr-media-replies (C0C4GPN1PUP, raw reply feed) and #clpr-media-meetings (C0C5SFSTQ0G, meetings tracker). Approval cards still go to the global #reply-approval and #manual-replies. |
 | **Automation tier** | Standard (interested/needs_info go to human review) |
 
 ---
@@ -142,5 +143,5 @@ None logged yet.
 
 ## Internal Notes
 
-- Still missing: case study link (Kasper will provide later), Calendly API token (Kasper will provide later), meetings Slack channel, full objection bank, sender profile photo confirmation.
+- Still missing: case study link (Kasper will provide later), Calendly API token (Kasper will provide later), full objection bank, sender profile photo confirmation.
 - Separate tools offer from the intake: disregarded per Kasper 2026-09-28, never mention it.

@@ -253,7 +253,25 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     slackChannel: "C0C3UPU25CP",                  // mp-consulting-meetings, confirmed 2026-09-24
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
     eventNameContains: "MPC Chat",
-    icpDescription: "__MP_PLACEHOLDER__, across three size tiers: small local Nashville-area (1-10 employees), regional (11-50 employees, CMO/Marketing Director), and enterprise national brands (50+ employees). NOT a fit: businesses with no local/appointment-based online presence to build, or clearly outside the optometry niche unless the lead explicitly fits one of the other served industries (dental, chiropractic, insurance, real estate, salon/spa, interior design, restaurant, hospitality).",
+    icpDescription: "Independent optometry practices (current campaign focus), across three size tiers: small local Nashville-area (1-10 employees), regional (11-50 employees, CMO/Marketing Director), and enterprise national brands (50+ employees). NOT a fit: businesses with no local/appointment-based online presence to build, or clearly outside the optometry niche unless the lead explicitly fits one of the other served industries (dental, chiropractic, insurance, real estate, salon/spa, interior design, restaurant, hospitality).",
+  },
+  // CLPR Media (2026-09-28). Own workspace on the Shields EmailBison instance.
+  // Airtable base "CLPR Media" (applnvVcAGLchrG2b) confirmed live via API 2026-09-28,
+  // "Meetings" table uses the same simple schema as MP Consulting. Slack channel
+  // verified with conversations.info (bot is a member).
+  //
+  // ** NOT LIVE YET: no Calendly webhook registered. ** Waiting on Kevin's Calendly
+  // token (CLPR_MEDIA_CALENDLY_TOKEN). Until then nothing calls trackMeeting for
+  // "clpr-media". Register with ?ws=clpr-media once the token arrives (account must be
+  // Calendly Standard or above, see mp-consulting above). Add eventNameContains if the
+  // account turns out to have event types other than /clprmedia/30min.
+  "clpr-media": {
+    source: "calendly",
+    airtableBaseId: "applnvVcAGLchrG2b",          // "CLPR Media"
+    airtableTableId: "tblTnxArHDVMNOxSI",         // "Meetings"
+    slackChannel: "C0C5SFSTQ0G",                  // #clpr-media-meetings, confirmed 2026-09-28
+    fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
+    icpDescription: "Founder-led creators, podcasts, streamers, lifestyle influencers, music artists/labels, consumer brands (strongest: ecom and beauty) and tourism/destination brands that already produce long-form content or raw footage, and whose founder is willing to be on camera weekly. NOT a fit: companies that already have a content/clipping system in place, new streamers with no audience, or businesses with no content to repurpose. Fashion and food/drink brands are a weak fit.",
   },
 };
 
