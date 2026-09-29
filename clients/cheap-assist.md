@@ -22,6 +22,8 @@ reply_rules:
 - Lead asks about security, data privacy, confidentiality, HIPAA, SOC 2, attorney-client privilege or compliance: route to #manual-replies. Never claim any certification.
 - Lead asks about Enterprise, custom pricing, contracts or the fine print of the guarantee: route to #manual-replies.
 - Meetings are online only.
+- Fully automated client, so the bar for auto-sending is certainty. If the reply needs any fact not in this file, or the intent is at all ambiguous, route to #manual-replies.
+- Lead wants a call, asks to talk, proposes times or shares their own booking link: route to #manual-replies, no AI draft.
 
 never:
 - Never invent capabilities, integrations, results, customer names or case studies. There are no case studies on file. Do not reference any.
@@ -41,14 +43,15 @@ never:
 | **Company / product** | Cheap Assist / Arlo |
 | **Websites** | cheapassist.com, arlo.sh |
 | **Tagline** | "Just Ask. Consider it done." |
-| **EmailBison slug** | `cheap-assist` (tentative, confirm against the EmailBison workspace name) |
-| **EmailBison instance** | TBD |
+| **EmailBison slug** | `cheap-assist` (confirmed 2026-09-29, EmailBison workspace name "Cheap Assist") |
+| **EmailBison instance** | `https://send.shieldsoutbound.com` (Shields) |
 | **Signed date** | TBD |
 | **Monthly retainer** | TBD |
 | **Active campaigns** | Law firms (built: 5 step 1 variants, 2 step 2s, 2 step 3s, built around the 7-day guarantee) |
 | **Booking** | https://calendly.com/idanmann10/personal (online only) |
-| **Meetings tracking** | Not set up yet |
-| **Automation tier** | Standard (interested/needs_info go to human review) |
+| **Meetings tracking** | Airtable workspace "Cheap Assist" + Slack C0C64VCQDUY. Waiting on Idan's Calendly API token. |
+| **Automation tier** | Fully automated (Kasper 2026-09-29). Any uncertainty or any call/scheduling intent goes to #manual-replies. |
+| **Slack channels** | Raw reply feed C0C5CGUPRL1, meetings C0C64VCQDUY. Approval cards and manual replies use the global #reply-approval and #manual-replies. |
 
 ---
 
@@ -57,8 +60,6 @@ never:
 | Name | Role | Email | Calendly | Timezone | Notes |
 |---|---|---|---|---|---|
 | Idan Mann | Co-founder | idanmann10@gmail.com | https://calendly.com/idanmann10/personal | TBD | Main contact. Handles all calls. Also a sender. |
-| a'shon | Sender | TBD | | TBD | Additional sender. Full name and role TBD. |
-| rok | Sender | TBD | | TBD | Additional sender. Full name and role TBD. |
 
 ---
 
@@ -89,7 +90,7 @@ Capabilities (confirmed in brief):
 **What they can never say / promise:**
 No do-not-say list from the client yet. Our global rules apply (see REPLY QUICK REFERENCE `never`).
 
-**Slack channel:** TBD
+**Slack channels:** replies C0C5CGUPRL1, meetings C0C64VCQDUY
 
 ---
 
@@ -149,7 +150,6 @@ Still missing (as of 2026-09-29):
 - Do-not-say list
 - Full objection bank (only pricing so far)
 - PDF of offers (couldn't access)
-- Meeting tracking not set up
+- Meeting tracking: waiting on Idan's Calendly API token
 - Sender profile photo not confirmed
-- Full names and roles for a'shon and rok
 - Reply signature: always {SENDER_EMAIL_SIGNATURE} alone, nothing like "Best" before it (global rule, confirmed for this client in the brief)
