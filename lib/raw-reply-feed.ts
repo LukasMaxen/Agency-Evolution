@@ -15,6 +15,7 @@ export const RAW_REPLY_FEED_CHANNELS: Record<string, string> = {
   "with-pebble": "C0BSXAE4JLB",
   "ah-consulting": "C0BT77S0SJG",
   "clpr-media": "C0C4GPN1PUP", // #clpr-media-replies, added 2026-09-28
+  "cheap-assist": "C0C5CGUPRL1", // Cheap Assist replies feed, added 2026-09-29
 };
 
 // MP Consulting shares the ah-consulting EmailBison workspace for sending capacity only
