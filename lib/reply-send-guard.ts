@@ -81,3 +81,42 @@ export async function weSpokeLast(
     return false;
   }
 }
+
+/**
+ * True if our own DB already recorded a reply to this lead AFTER `receivedAt`. Covers
+ * sends EmailBison's search API does not return yet: a human replying by hand in the
+ * EmailBison UI is recorded within a second by the MANUAL_EMAIL_SENT webhook (emails_sent
+ * 'manual-%'), but can take minutes to show up in /api/replies?search. That lag is how
+ * Pietro @ QuietLab (CLPR Media, 2026-09-29) got an approval card 90s after Kevin had
+ * already answered by hand, and then a second reply from us on top.
+ *
+ * Checks every address the lead is known by (lead_email + preferred_recipient_email)
+ * because EmailBison records the send against the lead record, while the lead may
+ * write in from a different address. Campaign sequence sends ('sent-%') are excluded,
+ * they are not replies. Fails OPEN like the other guards in this file.
+ */
+export async function answeredLocallySince(
+  workspaceSlug: string,
+  emails: Array<string | null | undefined>,
+  receivedAt: Date | string | null,
+): Promise<{ at: Date; source: string } | null> {
+  const addrs = [...new Set(emails.filter((e): e is string => !!e).map(e => e.toLowerCase()))];
+  if (!workspaceSlug || !addrs.length || !receivedAt) return null;
+  try {
+    const r = await pool.query<{ sent_at: Date; source: string }>(
+      `SELECT sent_at, source FROM (
+         SELECT sent_at, 'emailbison_manual' AS source FROM emails_sent
+          WHERE workspace_slug = $1 AND id LIKE 'manual-%' AND lower(lead_email) = ANY($2)
+         UNION ALL
+         SELECT sent_at, COALESCE(email_type, 'reply') AS source FROM sent_emails
+          WHERE workspace_slug = $1 AND lower(lead_email) = ANY($2)
+       ) s
+       WHERE sent_at > $3::timestamptz + INTERVAL '2 seconds'
+       ORDER BY sent_at ASC LIMIT 1`,
+      [workspaceSlug, addrs, receivedAt],
+    );
+    return r.rows[0] ? { at: new Date(r.rows[0].sent_at), source: r.rows[0].source } : null;
+  } catch {
+    return null;
+  }
+}
