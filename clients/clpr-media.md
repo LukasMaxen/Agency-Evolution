@@ -46,7 +46,7 @@ never:
 | **EmailBison instance** | `https://send.shieldsoutbound.com` (Shields) |
 | **Signed date** | TBD |
 | **Pricing (their offer)** | Avoid until the call. If the lead insists beforehand: starts at $5,000/month |
-| **Sender domains** | 400 Kevin inboxes, 100 each on clprmedialab.com, clprmediacentral.com, clprmedianetwork.com, clprmediateams.com (checked 2026-09-29) |
+| **Sender domains** | 400 Kevin inboxes, all Microsoft (Outlook), so not shown in Account Monitor (Google-only by design). 100 each on clprmedialab.com, clprmediacentral.com, clprmedianetwork.com, clprmediateams.com (checked 2026-09-29) |
 | **Active campaigns** | AE \| E-commerce Brands (id 732) and AE \| Beauty Brands (id 730), both active and sending as of 2026-09-28. Older CLPR Media campaigns (Medspas, Real Estate, Venues, Health, F&D, Fashion, Ecom, SAAS) are paused, completed or archived. |
 | **Airtable base** | CLPR Media (applnvVcAGLchrG2b), Meetings table tblTnxArHDVMNOxSI, CRM - Outbound table tble5jOq2n1zXSKIy |
 | **Slack channels** | #clpr-media-replies (C0C4GPN1PUP, raw reply feed) and #clpr-media-meetings (C0C5SFSTQ0G, meetings tracker). Approval cards still go to the global #reply-approval and #manual-replies. |
