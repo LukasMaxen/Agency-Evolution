@@ -118,10 +118,13 @@ export async function POST(req: NextRequest) {
 
         // 3a. Sync workspace name from EB so renaming in EB reflects here automatically.
         try {
-          const wsRes = await fetch(`${instanceUrl}/api/workspaces`, { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } });
+          // /api/users returns the key's own active workspace. /api/workspaces lists every
+          // workspace the user can see, so [0] renamed CLPR Media to "AustinHeaton AEO
+          // Consulting" on the Shields instance (fixed 2026-09-29).
+          const wsRes = await fetch(`${instanceUrl}/api/users`, { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } });
           if (wsRes.ok) {
             const wsBody = await wsRes.json();
-            const ebName: string | undefined = wsBody?.data?.[0]?.name;
+            const ebName: string | undefined = wsBody?.data?.workspace?.name;
             if (ebName) {
               await pool.query(`UPDATE workspaces SET name = $1 WHERE slug = $2 AND name != $1`, [ebName, slug]);
             }
