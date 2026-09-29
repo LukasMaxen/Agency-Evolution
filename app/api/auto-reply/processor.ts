@@ -2205,6 +2205,22 @@ ${messageText.slice(0, 8000)}`;
     }
   }
 
+  // ── ACT Capital summit link backstop ─────────────────────────────────────────
+  // 2026-09-29: a summit reply auto-sent a fabricated actcapitaladvisors.com/m-a-summit/
+  // URL (dead link) because the real link lived outside the quick reference the drafter
+  // sees. Any URL in a summit draft other than the exact details link or ACT's Calendly
+  // blocks the send and goes to a human.
+  if (isActCapitalSummitCampaign && result.reply_body) {
+    const allowed = [SUMMIT_DETAILS_LINK, "calendly.com/jzanardi-actcapitaladvisors/"];
+    const urls = result.reply_body.match(/(?:https?:\/\/|www\.)[^\s<>)"']+/gi) ?? [];
+    const bad = urls.find((u) => !allowed.some((a) => u.includes(a)));
+    if (bad) {
+      result.action = "manual";
+      result.manual_reason = `Summit draft contained an unapproved link (${bad}). Only ${SUMMIT_DETAILS_LINK} may be sent. Blocked.`;
+      console.warn(`[auto-reply] Blocked unapproved summit link "${bad}" for ${replyId} (${reply.lead_name})`);
+    }
+  }
+
   // ── Manual booking trigger backstop (fully-automated clients) ────────────────
   // Deterministic safety net behind the MANUAL BOOKING TRIGGER RULE in the system
   // prompt. These clients have no human review step anymore, so if Claude still

@@ -26,7 +26,7 @@ mandate_teasers:
 reply_rules:
 - sell_side_advisory leads: interested = send Calendly, no teaser. "Feel free to grab a time here: [calendly]"
 - mandate_buyer leads: interested = send correct teaser + Calendly. Match teaser to campaign using trigger keywords above.
-- summit_invite leads: yes/interested to receiving details = send the event details link (see Summit Invite section below) with a warm, friendly close ("Hope to see you there" or similar). No Calendly needed unless they specifically ask to speak with Jeff directly, in which case add the Calendly link too.
+- summit_invite leads: yes/interested to receiving details = send this EXACT event details link, character for character, and no other URL: https://exitseminars.com/seminar/lagunabeach-2026-10-15 (never an actcapitaladvisors.com summit/event page, those do not exist). Add a warm, friendly close ("Hope to see you there" or similar). No Calendly needed unless they specifically ask to speak with Jeff directly, in which case add the Calendly link too.
 - Buyer asks about financials, key deal details, or more information — and teaser has NOT yet been shared: embed the teaser link directly in the reply body. Do not direct them to a webpage to find it themselves. Send the asset to them.
 - Buyer asks about valuation: redirect to teaser and call. "Best discussed on a call."
 - Buyer asks who the seller is: NDA framing. "Standard practice to keep confidential before NDA."
