@@ -29,8 +29,18 @@ if (!slug) { console.error('Usage: node test.cjs <slug>'); process.exit(1); }
     const r = await fetch(`${instance}/api/users`, { headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' } });
     const j = await r.json().catch(() => ({}));
     const name = j?.data?.workspace?.name;
+    const user = j?.data?.email ?? '';
     console.log(r.ok ? `[PASS] EmailBison auth -- HTTP ${r.status}, workspace name: ${name}` : `[FAIL] EmailBison auth -- HTTP ${r.status}`);
     if (!r.ok) pass = false;
+    // A personal user token follows whatever workspace that person has open in the EmailBison
+    // dashboard, so it silently reads/writes other clients' data. Workspace tokens belong to a
+    // dedicated "...api-user-for-team-<id>@emailbison.com" user. (CLPR Media, 2026-09-29.)
+    if (r.ok && !/api-user-for-team-\d+@emailbison\.com$/i.test(user)) {
+      console.log(`[FAIL] Token scope -- belongs to personal user ${user}, not a workspace API user. Generate a workspace API token inside the client's workspace instead.`);
+      pass = false;
+    } else if (r.ok) {
+      console.log(`[PASS] Token scope -- workspace API user ${user}`);
+    }
   } catch (e) { console.log('[FAIL] EmailBison auth --', e.message); pass = false; }
 
   const testId = `onboarding-test-${slug}-${Date.now()}`;
