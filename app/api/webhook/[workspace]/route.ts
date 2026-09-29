@@ -2,6 +2,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import pool from "@/lib/db";
 import { processAutoReply } from "@/app/api/auto-reply/processor";
 import { isOwnSenderAddress } from "@/lib/own-outbound";
+import { supersedeAnsweredDrafts } from "@/lib/stale-reply-drafts";
 import { postRawReplyFeed, RAW_REPLY_FEED_CHANNELS } from "@/lib/raw-reply-feed";
 
 function extractCleanBody(textBody: string): string {
@@ -303,6 +304,10 @@ export async function POST(
           [reply.uuid]
         );
       }
+
+      // A human just answered this lead by hand. Close any approval card for an
+      // earlier inbound so nobody replies a second time off a stale card.
+      after(() => supersedeAnsweredDrafts(slug, lead?.email, new Date(), "Someone in EmailBison"));
 
       return NextResponse.json({ ok: true, event: "MANUAL_EMAIL_SENT" });
     }

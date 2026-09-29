@@ -20,6 +20,7 @@ import {
 import { daysUntilNextStep } from "@/lib/template-replies";
 import { sanitizeJsonControlChars } from "@/lib/utils";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
+import { answeredLocallySince } from "@/lib/reply-send-guard";
 import { readFileFromGitHub, commitFileToGitHub } from "@/lib/github-commit";
 import {
   WeeklyReviewPattern,
@@ -528,6 +529,33 @@ async function approveReplyDraft(draft: ReplyDraftRow, slackUserId: string, chan
 
   if (!draft.body) {
     await postToSlack({ channel, threadTs: ts, text: "Draft body missing, cannot send." });
+    return;
+  }
+
+  // Already-answered gate. If anyone replied to this lead after this inbound came in
+  // (hand-sent in EmailBison, or another card), approving this one double-messages them
+  // (Pietro @ QuietLab, CLPR Media, 2026-09-29). Block and close the card instead.
+  const answered = await answeredLocallySince(
+    draft.workspace_slug,
+    [reply.lead_email, reply.preferred_recipient_email],
+    reply.received_at ?? null,
+  );
+  if (answered) {
+    await pool.query(
+      `UPDATE reply_drafts SET status = 'superseded', reviewed_at = NOW(), reviewed_by = $1 WHERE id = $2`,
+      [slackUserId, draft.id]
+    );
+    await pool.query(
+      `UPDATE replies SET status = 'replied' WHERE id = $1 AND status IN ('new', 'awaiting_approval', 'awaiting_manual')`,
+      [draft.reply_id]
+    );
+    await addReaction(channel, ts, "no_entry_sign");
+    await postToSlack({
+      channel,
+      threadTs: ts,
+      text: `:no_entry_sign: *Not sent.* This lead was already answered at ${answered.at.toISOString().slice(0, 16).replace("T", " ")} UTC (${answered.source}), after this message came in. Sending would double-message them. Card closed.`,
+    });
+    console.warn(`[slack-events] BLOCKED approve of ${draft.id}: lead already answered at ${answered.at.toISOString()}`);
     return;
   }
 

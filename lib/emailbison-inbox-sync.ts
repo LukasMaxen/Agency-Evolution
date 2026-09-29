@@ -1,4 +1,5 @@
 import pool from "@/lib/db";
+import { supersedeAnsweredDrafts } from "@/lib/stale-reply-drafts";
 import { classifyBounce } from "@/lib/bounce-classifier";
 import { isOwnSenderAddress } from "@/lib/own-outbound";
 import { postRawReplyFeed, RAW_REPLY_FEED_CHANNELS } from "@/lib/raw-reply-feed";
@@ -407,7 +408,7 @@ export async function runEmailBisonInboxSync(): Promise<void> {
           const match = await pool.query(
             `SELECT id, lead_name FROM replies
              WHERE workspace_slug = $1
-               AND lead_email = $2
+               AND (lower(lead_email) = lower($2) OR lower(preferred_recipient_email) = lower($2))
                AND received_at <= $3
              ORDER BY received_at DESC
              LIMIT 1`,
@@ -445,6 +446,8 @@ export async function runEmailBisonInboxSync(): Promise<void> {
                AND status IN ('new', 'awaiting_approval', 'awaiting_manual')`,
             [matchedReplyId]
           );
+          // Backstop for the MANUAL_EMAIL_SENT webhook: close stale approval cards.
+          await supersedeAnsweredDrafts(ws.slug, recipient, sentAt, "Someone in EmailBison");
 
           totalSentIngested++;
         }

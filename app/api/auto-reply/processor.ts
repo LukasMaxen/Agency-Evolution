@@ -22,7 +22,7 @@ import { recordManualCard, closeManualCardsForLead } from "@/lib/manual-card";
 import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
 import { sanitizeJsonControlChars } from "@/lib/utils";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
-import { weSpokeLast, alreadySentBody } from "@/lib/reply-send-guard";
+import { weSpokeLast, alreadySentBody, answeredLocallySince } from "@/lib/reply-send-guard";
 import { trackInterestedLead } from "@/lib/airtable-cold-leads";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1290,9 +1290,17 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
       reply.received_at ?? null,
       workspaceSlug === "gn-motion",
     );
+    // EmailBison search can lag minutes behind a hand-sent reply, so also check our own
+    // DB (MANUAL_EMAIL_SENT webhook lands within a second). See answeredLocallySince.
+    const answeredLocally = guards.alreadyReplied ? null : await answeredLocallySince(
+      workspaceSlug,
+      [reply.lead_email, reply.preferred_recipient_email],
+      reply.received_at ?? null,
+    );
     const skip =
       guards.peterInThread ? "gn_motion_peter" :
       guards.alreadyReplied ? "already_replied" :
+      answeredLocally ? "already_replied_local" :
       null;
     if (skip) {
       await pool.query(`UPDATE replies SET status = 'read', ai_analysis = $1, ai_analyzed_at = NOW(), auto_reply_processed_at = NOW() WHERE id = $2`,
