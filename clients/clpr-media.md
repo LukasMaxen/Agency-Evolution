@@ -46,8 +46,8 @@ never:
 | **EmailBison instance** | `https://send.shieldsoutbound.com` (Shields) |
 | **Signed date** | TBD |
 | **Pricing (their offer)** | Avoid until the call. If the lead insists beforehand: starts at $5,000/month |
-| **Sender domain** | clprmedialab.com (15 Kevin inboxes) |
-| **Active campaigns** | None yet on our side |
+| **Sender domains** | 400 Kevin inboxes, 100 each on clprmedialab.com, clprmediacentral.com, clprmedianetwork.com, clprmediateams.com (checked 2026-09-29) |
+| **Active campaigns** | AE \| E-commerce Brands (id 732) and AE \| Beauty Brands (id 730), both active and sending as of 2026-09-28. Older CLPR Media campaigns (Medspas, Real Estate, Venues, Health, F&D, Fashion, Ecom, SAAS) are paused, completed or archived. |
 | **Airtable base** | CLPR Media (applnvVcAGLchrG2b), Meetings table tblTnxArHDVMNOxSI, CRM - Outbound table tble5jOq2n1zXSKIy |
 | **Slack channels** | #clpr-media-replies (C0C4GPN1PUP, raw reply feed) and #clpr-media-meetings (C0C5SFSTQ0G, meetings tracker). Approval cards still go to the global #reply-approval and #manual-replies. |
 | **Calendly** | Token in CLPR_MEDIA_CALENDLY_TOKEN. Free plan, so no webhook: bookings are picked up by lib/calendly-poll-sync.ts every 10 min (tracking from 2026-09-28 15:30 UTC, no backfill). One event type: "CLPR Media Discovery Call". |
