@@ -20,7 +20,8 @@ reply_rules:
 - Lead is a creator or podcast: The Koerner Office is the relevant proof point (29.3M views in 6 months from the retainer).
 - Lead is a music artist / label: mention clipping existing footage (music videos, studio, tour, BTS) and distribution through the clipper network to push a release. Albino (1.6M views, top clip 366K) is the relevant proof point.
 - Lead is a tourism board / destination: frame it as making existing footage feel native to social rather than corporate.
-- Lead asks about pricing: say pricing starts at $5,000/month and the exact scope depends on volume and goals, then offer the call. Never give any other price, tier or package detail.
+- Lead asks about pricing (first time): do not give a number. Say it depends on content volume and goals, that Kevin maps out exactly what we would do and what it would cost on a short call, then offer the Calendly link.
+- Lead insists on pricing before a call (asks again, or refuses a call without a number): say pricing starts at $5,000/month, then offer the call. Never give any other price, tier or package detail.
 - Lead asks about guarantees, add-on pricing, or anything else commercial not listed here: route to #manual-replies.
 - Lead asks for a case study, examples or results, or says yes to one being offered: send the case_study_link above with one line on the most relevant case for them, then the Calendly link. Do not restate the whole PDF. Do not send it again if it is already in the thread.
 - Lead says they already have a content system: this is NOT qualified per the client. Treat as not interested, no reply.
@@ -28,7 +29,7 @@ reply_rules:
 
 never:
 - Never invent capabilities, results, view counts, client names or case studies beyond the proof_points above.
-- Never quote any price other than "starts at $5,000/month". No tiers, package names, video counts, view guarantees or add-on pricing.
+- Never volunteer pricing. Only say "starts at $5,000/month" when the lead insists before a call, never any other price. No tiers, package names, video counts, view guarantees, CPMs as a price quote, or add-on pricing.
 - Never promise revenue results or refunds.
 - Never suggest specific time slots. Calendly link only.
 
@@ -44,7 +45,7 @@ never:
 | **EmailBison slug** | `clpr-media` (DB row created 2026-09-28) |
 | **EmailBison instance** | `https://send.shieldsoutbound.com` (Shields) |
 | **Signed date** | TBD |
-| **Pricing (their offer)** | Starts at $5,000/month |
+| **Pricing (their offer)** | Avoid until the call. If the lead insists beforehand: starts at $5,000/month |
 | **Sender domain** | clprmedialab.com (15 Kevin inboxes) |
 | **Active campaigns** | None yet on our side |
 | **Airtable base** | CLPR Media (applnvVcAGLchrG2b), Meetings table tblTnxArHDVMNOxSI, CRM - Outbound table tble5jOq2n1zXSKIy |
@@ -86,7 +87,7 @@ Key requirement: founder must be willing to be on camera weekly.
 ## GTM Brief
 
 ### 1. The Offer
-See Client Overview. Concrete first step: 30-minute online call via Calendly. Pricing starts at $5,000/month.
+See Client Overview. Concrete first step: 30-minute online call via Calendly. Pricing is discussed on the call. If a lead insists beforehand: starts at $5,000/month.
 
 ### 4. ICP Personas
 Client's summary: "Basically anything founder led." Must already have long-form content, raw footage or a large catalog.
@@ -110,7 +111,7 @@ Case study PDF (7 pages, "How we turn creators into content engines"): https://d
 - **Confidential lifestyle brand (under NDA, never name).** 1-week clipper test: 1.8M views, $0.55 CPM, $1,000 budget, 1,322 clip submissions, 374 unique creators.
 - **Totals:** 48.6M views, 2,700+ unique clips, 8,000+ clippers.
 - **Based Bodyworks:** DTC ecom brand, named in the brief as a client, not under NDA (confirmed by Kasper 2026-09-28), no numbers on file.
-- Note: the brief said "Chris Koerner, 35M views" and "50M+ total views". The PDF says 29.3M + 15.9M and 48.6M. Replies use the PDF figures so they match the link we send.
+- Numbers locked by Kasper 2026-09-28: always use the PDF figures above. The brief's "Chris Koerner, 35M views" and "50M+ total views" are superseded, never use them.
 - Network of 8,000+ clippers via Whop.
 
 ### 7. Objections & Reframes
