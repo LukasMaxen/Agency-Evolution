@@ -56,14 +56,14 @@ reply_rules:
   - Guarantee: first lead (interested prospect) within 30 hours, or we refund the setup fee. Use this exact framing, never "first meeting in 30 hours" and never a full-refund promise.
   - After the first lead: a steady weekly rhythm of meetings. Campaign data reviewed from day one to sharpen targeting and conversion.
   - Lists: manually verified accounts and decision makers matching their exact ICP.
-  - Who we work with: M&A firms, software companies, ecommerce brands, service operators. "The method holds, only the buyer changes."
+  - Who we work with: marketing and B2B agencies, M&A firms, software companies, ecommerce brands, service operators. "The method holds, only the buyer changes."
   - Social proof, anonymized only: 4x return on cash collected within the first 30 days (a B2B services client). 110 meetings scheduled in under 60 days (a SaaS client). 95% meeting qualification rate (an M&A client). Rated 5.0 on Trustpilot. Use at most one stat per reply, only when the lead asks about results or proof. Always say results vary.
   - Onboarding: they complete an onboarding form and we start building. We reply within 24 hours, Monday to Friday.
 - Never name any client or testimonial author (no Larsen, Nicklas, franchise client, investment bank, or any other name). Never quote testimonials verbatim.
 - Sender on the emails is Lukas Maxen, but the call is with Kasper Zacho. Every reply that shares the calendar link must say the call is with Kasper, in plain terms, no hype, no titles beyond "runs the company". Approved line: "The call will be with Kasper Zacho, who runs the company. He handles these first conversations himself, so you'll be talking to the person who'd run your campaigns." Write it from Lukas's perspective, never as if Kasper is sending.
 - Calendar link for this campaign, and only this link: https://calendly.com/kasperzacho-maxen-digital/30min . Never send any maxenlukas/ or lukasm-acceler8rs/ link to these leads.
 - Not in this file, route to manual, never invent: price per meeting, setup fee amount, minimums, contract length, what exactly counts as a qualified meeting, how reporting/alignment works, full case studies, named references, any result figure beyond the three above.
-- Never pitch M&A deal flow, Maxen Group, sell-side, or buy-side to these leads. M&A firms may only be mentioned as one of the client types we run outbound for.
+- Never pitch M&A deal flow, Maxen Group, sell-side, or buy-side to these leads. M&A firms may only be mentioned as one of the client types we run outbound for. When the lead is an agency, lead with agencies as a client type we work with.
 
 # SELL-SIDE rules (lead replied to Seller Campaign)
 - Sell-side, lead asks about success fee or engagement structure: answer with ballpark and push to call. "We work success-fee only, no upfront cost. Fee typically lands in the 3 to 6 percent range of deal value depending on size and complexity, with a 6 to 12 month exclusive mandate. Happy to walk you through the structure on a 30-min call." Then send sell-side Calendly.
