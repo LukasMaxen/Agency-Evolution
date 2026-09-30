@@ -11,7 +11,7 @@ sender: Kevin Clavell, co-founder, CLPR Media (sender name "Kevin | CLPR Media")
 offer: CLPR Media turns long-form content and raw footage into short-form clips for TikTok, Instagram Reels, YouTube Shorts and Facebook Reels. Two options: Community Clipping (a network of 8,000+ clippers creates and distributes clips across thousands of independent accounts at the same time, built for reach) and In-house Clipping (tighter control over quality, strategy, branding and posting on the client's own pages, better for brands that care about consistency and brand safety). First step: a 30-minute online call.
 booking_link: https://calendly.com/clprmedia/30min
 icp: Founder-led creators, podcasts, streamers, lifestyle influencers, music artists/labels, consumer brands and tourism/destination brands that already have long-form content or raw footage. Strongest cold email fit: ecom and beauty brands. Founder must be willing to be on camera weekly.
-case_study_link: https://drive.google.com/file/d/1Dmgw8A3N_PWoe-_X215PK7dub-JZKUuO/view?usp=sharing
+case_study_link: https://docs.google.com/document/d/1w-viPxIh3RYzlPUysM0bwGFlMz7ougZmf03Q8gl7nKA/edit?usp=sharing
 proof_points (only these, exact, they match the case study PDF): The Koerner Office, Chris Koerner's business podcast: 16 dormant accounts revived, 29.3M views in 6 months from the done-for-you retainer plus 15.9M from a clipper community campaign. Albino, an upcoming Spanish-language music artist: 1.6M views from the clipper community, top clip 366K views. A lifestyle brand (confidential, never name it): 1.8M views from a 1-week clipper campaign. 48.6M total views, 2,700+ unique clips, 8,000+ clippers. Based Bodyworks (DTC ecom brand, not under NDA) may be named as a client but has no numbers on file.
 
 reply_rules:
@@ -105,7 +105,7 @@ Avoid: fashion and food and drink (high replies, near zero buying intent).
 Geography, titles, company size, revenue range: TBD.
 
 ### 6. Proof Points & Case Studies
-Case study PDF (7 pages, "How we turn creators into content engines"): https://drive.google.com/file/d/1Dmgw8A3N_PWoe-_X215PK7dub-JZKUuO/view?usp=sharing
+Case study (Google Doc, "How we turn creators into content engines", same content as the earlier PDF, replaced it 2026-09-30): https://docs.google.com/document/d/1w-viPxIh3RYzlPUysM0bwGFlMz7ougZmf03Q8gl7nKA/edit?usp=sharing
 - **The Koerner Office (Chris Koerner, business podcast, 4 sub-brands, 16 accounts, all dormant at start).** Done-for-you, 6 months: 29.3M views, 695 unique clips, 2,780 posts. Clipper community campaign in parallel: 15.9M views, $0.29 effective CPM, $4,687 paid to clippers. Best clips: uncommon business ideas, weird-but-real business models, Chris in explain mode.
 - **Albino (upcoming Spanish-language music artist).** Clipper community: 1.6M views, $0.46 CPM, $750 paid to clippers, top clip 366K views.
 - **Confidential lifestyle brand (under NDA, never name).** 1-week clipper test: 1.8M views, $0.55 CPM, $1,000 budget, 1,322 clip submissions, 374 unique creators.
