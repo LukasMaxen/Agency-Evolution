@@ -52,6 +52,12 @@ export interface MeetingConfig {
   crm?: {
     dealSourceField: string;
     dealSource: string;
+    /**
+     * Optional. Deal Source for a booker who matches no reply row (so not from cold email,
+     * e.g. website or referral on a Calendly that takes every kind of booking). null leaves
+     * the field blank for a human to fill in. Omit to always use dealSource.
+     */
+    dealSourceUnmatched?: string | null;
     statusField: string;
     statusValue: string;      // "Intro Call Booked"
     nextStepField: string;
@@ -160,6 +166,28 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     },
     slackExtra: { website: "Website" },
     icpDescription: "Buy-side: PE firms, family offices, and strategic acquirers active in consumer/ecom or generalist lower-middle-market, sourcing $1M-$10M EBITDA targets. Sell-side: founders/owners of e-commerce and consumer brands, $1M+ EBITDA, exit-curious. NOT a fit: pre-revenue businesses, non-decision-makers, or industries with no plausible M&A angle.",
+  },
+  // Kasper's own Calendly (kasperzacho-maxen-digital, 2026-09-30). Booking link for the
+  // Agency Evolution "Marketing Agencies (US)" campaign on internal-campaigns, but tracks
+  // EVERY booking on his account (per Kasper), incl. website/referral. Not a workspace:
+  // the webhook is registered with ?wsDefault=internal-campaigns&tracker=internal-campaigns-kasper
+  // so calls rows stay on internal-campaigns while Airtable goes to his own table.
+  "internal-campaigns-kasper": {
+    source: "calendly",
+    airtableBaseId: "app9rWZ2iE4eWECEN",         // Agency Evolution CRM
+    airtableTableId: "tblB2jD5wc41H8ws6",        // Meetings / Deals Kasper
+    slackChannel: FALLBACK_SLACK_CHANNEL,        // #internal-meetings
+    workspaceLabel: "Kasper Zacho",
+    fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
+    crm: {
+      dealSourceField: "Deal Source", dealSource: "Cold email",
+      dealSourceUnmatched: null,                 // not from cold email: Kasper fills it in
+      statusField: "Status", statusValue: "Intro Call Booked",
+      nextStepField: "Next Step", nextStepValue: "Update Lead Info",
+      nextStepDateField: "Next Step Date",
+    },
+    slackExtra: { website: "Website" },
+    icpDescription: "B2B businesses that sell to other businesses and want more qualified sales calls: marketing and B2B agencies (current campaign focus), M&A firms, software companies, ecommerce brands, and service operators. NOT a fit: consumer-only businesses with no B2B buyer, pre-revenue, or non-decision-makers.",
   },
   // Simple template. Own Calendly org (dominik@sonaro.ai); leads not in the reply desk,
   // so its webhook is registered with ?ws=sonaro-ai. Only the engagement call is tracked.
@@ -287,6 +315,11 @@ export interface BookingInput {
   /** Every other Calendly questionnaire answer (revenue, sales channel, timeline to exit,
    *  phone, etc.), in the order Calendly asked them. Shown verbatim, never summarized. */
   qa?: Array<{ question: string; answer: string }>;
+  /** MEETING_CONFIG key to use instead of workspaceSlug (webhook `?tracker=`), for a
+   *  second calendar on the same workspace that writes to its own Airtable table. */
+  configKey?: string;
+  /** Whether the booker matched a reply row, i.e. came from cold email. */
+  matchedReply?: boolean;
 }
 
 async function airtable(method: string, path: string, body?: unknown): Promise<any> {
@@ -423,7 +456,7 @@ export async function trackCancellation(input: CancellationInput): Promise<boole
  * has no config yet. Never throws.
  */
 export async function trackMeeting(input: BookingInput): Promise<boolean> {
-  const cfg = MEETING_CONFIG[input.workspaceSlug];
+  const cfg = MEETING_CONFIG[input.configKey ?? input.workspaceSlug];
   if (!cfg) {
     // Never silently drop a booking — surface it so a human can attribute it manually.
     console.log(`[meetings-tracker] no config for ${input.workspaceSlug} — posting fallback alert`);
@@ -474,7 +507,10 @@ export async function trackMeeting(input: BookingInput): Promise<boolean> {
         [cfg.fields.bookedDate]: isoDate(input.bookedAtISO),
       };
       if (cfg.crm) {
-        rec[cfg.crm.dealSourceField] = cfg.crm.dealSource;
+        const dealSource = input.matchedReply === false && cfg.crm.dealSourceUnmatched !== undefined
+          ? cfg.crm.dealSourceUnmatched
+          : cfg.crm.dealSource;
+        if (dealSource) rec[cfg.crm.dealSourceField] = dealSource;
         rec[cfg.crm.statusField] = cfg.crm.statusValue;
         rec[cfg.crm.nextStepField] = cfg.crm.nextStepValue;
         rec[cfg.crm.nextStepDateField] = isoDate(input.bookedAtISO);

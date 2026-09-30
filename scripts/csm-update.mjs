@@ -304,9 +304,15 @@ async function main() {
   );
   const seriesBySlug = Object.fromEntries(seriesResults.map((r) => [r.slug, r]));
 
-  // Fetch Airtable meetings for every report line in one parallel batch.
+  // Fetch Airtable meetings for every report line in one parallel batch. A line's
+  // `meetings` may be an array of tables (e.g. Internal Campaigns: Lukas + Kasper), summed.
   const meetingResults = await Promise.all(
-    CONFIG.reportLines.map((line) => fetchAirtableMeetingCount(line.meetings, start, end))
+    CONFIG.reportLines.map(async (line) => {
+      const tables = Array.isArray(line.meetings) ? line.meetings : [line.meetings];
+      const rs = await Promise.all(tables.map((m) => fetchAirtableMeetingCount(m, start, end)));
+      const failed = rs.find((r) => !r.ok);
+      return failed ?? { ok: true, count: rs.reduce((n, r) => n + r.count, 0) };
+    })
   );
 
   if (unmapped.length) {

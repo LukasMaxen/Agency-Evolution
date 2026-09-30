@@ -35,7 +35,10 @@
     {
       "label": "Internal Campaigns",
       "workspaceSlugs": ["internal-campaigns"],
-      "meetings": { "baseId": "app9rWZ2iE4eWECEN", "tableId": "tblCATnaPTV9fb2Ab", "bookedDateField": "Meeting booked date" },
+      "meetings": [
+        { "baseId": "app9rWZ2iE4eWECEN", "tableId": "tblCATnaPTV9fb2Ab", "bookedDateField": "Meeting booked date" },
+        { "baseId": "app9rWZ2iE4eWECEN", "tableId": "tblB2jD5wc41H8ws6", "bookedDateField": "Meeting booked date" }
+      ],
       "alwaysInclude": true
     },
     {

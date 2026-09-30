@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
     //                     instead of resolving to "unknown" and being dropped.
     const wsOverride = req.nextUrl.searchParams.get("ws");
     const wsDefault  = req.nextUrl.searchParams.get("wsDefault");
+    //   ?tracker=<key>    MEETING_CONFIG key for the Airtable/Slack write, when a second
+    //                     calendar on a workspace has its own table (Kasper's Calendly).
+    const trackerKey = req.nextUrl.searchParams.get("tracker") ?? undefined;
 
     console.log(`[calendly webhook] event: ${eventType}`);
 
@@ -203,6 +206,8 @@ export async function POST(req: NextRequest) {
         phone,
         website,
         qa: otherQA,
+        configKey: trackerKey,
+        matchedReply: !!replyId,
       }).catch((err: any) => console.error("[calendly webhook] trackMeeting failed:", err?.message ?? err));
 
       // ── High-value operating-partner booking alert (Kasper, 2026-08-18) ────────
