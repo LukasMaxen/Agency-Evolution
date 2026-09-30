@@ -26,6 +26,7 @@ reply_rules:
 - Lead asks for a case study, examples or results, or says yes to one being offered: send the case_study_link above with one line on the most relevant case for them, then the Calendly link. Do not restate the whole PDF. Do not send it again if it is already in the thread.
 - Lead says they already have a content system: this is NOT qualified per the client. Treat as not interested, no reply.
 - Meetings are online only (no phone calls).
+- Sign-off: end every reply with {SENDER_EMAIL_SIGNATURE} on its own line. Never type "Kevin" or any name as the sign-off, and no "Best" before it (Kasper, 2026-09-30).
 
 never:
 - Never invent capabilities, results, view counts, client names or case studies beyond the proof_points above.
