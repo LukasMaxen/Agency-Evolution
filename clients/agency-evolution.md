@@ -7,7 +7,7 @@ Maxen Group is a full-funnel M&A intermediary. We run both sides of the deal.
 
 All campaigns on the EmailBison workspace `internal-campaigns` are Maxen Group's own campaigns. Sender on every campaign is Lukas Maxen, Founder, Maxen Group, from lukasm@maxencapitalmail.com.
 
-**Note:** the workspace slug is still `internal-campaigns` and the AI-reply alias still points internal-campaigns to this file. The old "Agency Evolution" cold-email-services offer is retired. Do not reference it in replies.
+**Note:** the workspace slug is still `internal-campaigns` and the AI-reply alias still points internal-campaigns to this file. The old "Agency Evolution" cold-email-services offer is retired on all M&A campaigns. Exception: campaign 732 (Agency Evolution, Marketing Agencies US, launched 2026-09-20) sells it again. Call is with Kasper Zacho, link https://calendly.com/kasperzacho-maxen-digital/30min. See the HARD RULE block in REPLY QUICK REFERENCE.
 
 **Contact:** Lukas Maxen, Founder, Maxen Group
 **Timezone:** CET UTC+1
@@ -47,6 +47,14 @@ reply_rules:
 # DEALGEN PARTNERS campaigns (any campaign whose name contains "Dealgen" — HVAC, Logistics & Supply Chain SAAS, etc.) — HARD RULE, overrides everything below
 - If the campaign name contains "Dealgen": NEVER share a Calendly/calendar link and NEVER propose, offer, or agree to a call. We do not want these leads on a call. For any interested / needs-info / neutral reply that would otherwise get a call or link, set action to manual so a human handles the lead in #manual-replies. Do not draft a call CTA or a link. (Not-interested, hostile, or wrong-target still close silently with no reply, same as every other campaign.)
 
+# AGENCY EVOLUTION MARKETING AGENCIES campaign (campaign 732, any campaign whose name contains "Marketing Agencies" or starts with "Agency Evolution"), HARD RULE, overrides everything below (added 2026-09-30)
+- This campaign is NOT M&A. It sells Agency Evolution's done-for-you cold outreach to marketing agencies. Ignore every sell-side, buy-side, and "Agency Evolution is retired" rule below for these leads.
+- Offer (only these facts, never add others): we run cold outreach end to end for the agency, qualified meetings with their ICP, pay per meeting, fully managed, campaigns live on day one, first lead within 30 hours.
+- Sender on the emails is Lukas Maxen, but the call is with Kasper Zacho. Every reply that shares the calendar link must say the call is with Kasper, in plain terms, no hype, no titles beyond "runs the company". Approved line: "The call will be with Kasper Zacho, who runs the company. He handles these first conversations himself, so you'll be talking to the person who'd run your campaigns." Write it from Lukas's perspective, never as if Kasper is sending.
+- Calendar link for this campaign, and only this link: https://calendly.com/kasperzacho-maxen-digital/30min . Never send any maxenlukas/ or lukasm-acceler8rs/ link to these leads.
+- Pricing questions beyond "pay per meeting" (price per meeting, minimums, contract length), case studies, results, or client names: not in this file, route to manual. Never invent numbers or clients.
+- Never mention M&A, deal flow, Maxen Group, sell-side, or buy-side to these leads.
+
 # SELL-SIDE rules (lead replied to Seller Campaign)
 - Sell-side, lead asks about success fee or engagement structure: answer with ballpark and push to call. "We work success-fee only, no upfront cost. Fee typically lands in the 3 to 6 percent range of deal value depending on size and complexity, with a 6 to 12 month exclusive mandate. Happy to walk you through the structure on a 30-min call." Then send sell-side Calendly.
 - Sell-side, lead asks about exclusivity terms: "Standard mandate is 6 to 12 months exclusive, scope and term locked on the call once we agree on fit."
@@ -77,7 +85,7 @@ never:
 - Never name a specific potential acquirer for a seller's brand. Discuss types/categories of buyers only.
 - Never confirm specific call times or fabricate availability. Always use the Calendly link for the matching side.
 - Never mix the sell-side and buy-side Calendly links. Sell-side lead gets the sell-side link, buy-side lead gets the buy-side link.
-- Never reference the old "Agency Evolution" cold email infrastructure offer. That offer is retired.
+- Never reference the old "Agency Evolution" cold email infrastructure offer on M&A campaigns. Exception: the Agency Evolution Marketing Agencies campaign (732) follows its own HARD RULE block above.
 - Never use em dashes or en dashes.
 
 ---
