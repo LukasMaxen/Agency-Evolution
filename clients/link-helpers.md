@@ -11,7 +11,7 @@ sender: Brandon Aleckson, Co-Founder, Link Helpers (sender name "Brandon | Link 
 offer: Link Helpers manages Maps, AI search, traditional Google, website, reviews and conversion together, and measures the work by actual customer activity (calls, forms, inquiries), not rankings, traffic or tasks. Two options: Search Growth (all of the above managed together) and Search Growth + Opportunities (the same plus anonymous website visitor identification, up to 100 identified visitors per month, with a 14-day trial at no charge). Commitment is 90 days to build, then month-to-month, and the client owns everything built. First step: a 10 Minute Map Growth Review, online.
 booking_link: https://calendly.com/linkhelpers/10-min-map-growth-review
 icp: Single-location or small multi-location service businesses in competitive metro or suburban markets. $750K to $5M revenue, 3 to 50 employees, average job value $1,500+, already investing in some marketing, active website and Google Business Profile, 25 to 50+ reviews, growth-minded. Current campaign: HVAC.
-proof_points (only these, exact): Hurtado (dentist): 31 to 110 calls per month. A local HVAC company (anonymous, never name it): 184% increase in tracked calls. Chaney's Auto Collision (auto body, 3 locations): 50 to 93% call volume improvement per location, Maps reach expanded from under 1 mile to over 5 miles, 80% AI visibility score. Sunpac Shipping (shipping containers): 100% increase in call volume. EPS Security (security services): 105 commercially relevant page-one rankings. Mr. Mister (backyard misting): 3X website traffic, dominates local searches within 10 miles. AZ ATV Adventures (tour company): fully booked during peak season, dominates ATV tour searches within 10 miles. Bear Viewing Alaska (tour company): wins every Maps and AI search for bear viewing tours in Alaska.
+proof_points (only these, exact): Hurtado (dentist): 31 to 110 calls per month. A local HVAC company (anonymous, never name it): 184% increase in tracked calls. Chaney's Auto Collision (auto body, 3 locations): 50 to 93% call volume improvement per location, Maps reach expanded from under 1 mile to over 5 miles, 80% AI visibility score. Sunpac Shipping (shipping containers): 100% increase in call volume. EPS Security (private security): 105 commercially relevant page-one rankings, Maps share of voice from 30% to 95%+, AI visibility from 43% to 77.1%, 31.4% organic recovery. Mr. Mister (backyard misting): 3X website traffic, dominates local searches within 10 miles. AZ ATV Adventures (tour company): fully booked during peak season, dominates ATV tour searches within 10 miles. Bear Viewing Alaska (tour company): wins every Maps and AI search for bear viewing tours in Alaska.
 
 reply_rules:
 - Lead asks HOW it works: explain plainly that Maps, AI search, Google, the website and reviews are managed together and judged on calls, forms and inquiries rather than rankings. Then offer the Calendly link for the 10 Minute Map Growth Review.
@@ -142,7 +142,7 @@ Referenceable names: all case studies and anything shown on the Link Helpers web
 | Local HVAC (anonymous) | HVAC | 184% increase in tracked calls |
 | Chaney's Auto Collision | Auto body, 3 locations | 50 to 93% call volume improvement per location, Maps expanded from under 1 mile to over 5 miles, 80% AI visibility score |
 | Sunpac Shipping | Shipping containers | 100% increase in call volume |
-| EPS Security | Security services | Tracking above $5M revenue target, 85% AI visibility score, 105 commercially relevant page-one rankings |
+| EPS Security | Private security | 105 commercially relevant page-one rankings, Maps share of voice 30% to 95%+, AI visibility 43% to 77.1%, 31.4% organic recovery (pricing page figures, locked by Kasper 2026-10-04) |
 | Mr. Mister | Backyard misting | 3X website traffic, dominates local searches within 10 miles |
 | AZ ATV Adventures | Tour company | Fully booked during peak season, dominates ATV tour searches within 10 miles |
 | Bear Viewing Alaska | Tour company | Wins every Maps and AI search for bear viewing tours in Alaska |
@@ -151,7 +151,7 @@ Note: the Hurtado "350% lift" is quoted from the client. 31 to 110 calls is roug
 
 Internal source sheet (not approved to send to leads): https://docs.google.com/spreadsheets/d/1IkDOmGuT-skXJ8ONJtemkgGs7TDvxqL-pxrdcSfUfUs/edit?gid=0#gid=0
 
-Website pricing page figures (2026-10-04) that differ from the brief: EPS shows AI visibility 43% to 77.1% (brief says 85% AI visibility score), plus Maps share of voice 30% to 95%+ and 31.4% organic recovery. Until Brandon confirms which AI visibility number is current, replies use only "105 commercially relevant page-one rankings" for EPS. The site calls the HVAC client "regional", the brief says "local", same 184% figure.
+EPS numbers locked by Kasper 2026-10-04: always use the pricing page figures above. The brief's "85% AI visibility score" and "tracking above $5M revenue target" are superseded, never use them. The site calls the HVAC client "regional", the brief says "local", same 184% figure.
 
 ### Pricing page facts (linkhelpers.com, 2026-10-04)
 - Both plans include the same Search Growth work: Google Search, Maps, AI search, website and content improvements, conversion work, technical SEO, reviews and authority, ongoing reporting.
@@ -226,5 +226,5 @@ None logged yet.
 
 ## Internal Notes
 
-- Still missing: multi-location pricing, confirmation of the EPS AI visibility number (85% in the brief vs 77.1% on the site), full objection bank, Brandon's Calendly API token (LINK_HELPERS_CALENDLY_TOKEN, then meetings tracker to Airtable + Slack C0C6N9SSA73), monthly retainer, signed date.
+- Still missing: multi-location pricing, full objection bank, Brandon's Calendly API token (LINK_HELPERS_CALENDLY_TOKEN, then meetings tracker to Airtable + Slack C0C6N9SSA73), monthly retainer, signed date.
 - Sender profile photo: attached to the Airtable intake record (uploaded 2026-09-11), not verified in EmailBison.
