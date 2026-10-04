@@ -1494,7 +1494,7 @@ If no LEAD COMPANY CONTEXT block appears (because the site was unreachable), fal
   // back on the same basis as the non-fully-automated clients, every interested
   // reply goes to #reply-approval or #manual-replies, no more direct auto-send.
   // Cheap Assist added 2026-09-29 (Kasper: automate it, uncertainty or call intent -> manual).
-  const FULLY_AUTOMATED_WORKSPACES = new Set(["larsen-digital", "acceler8rs", "act-capital", "cheap-assist"]);
+  const FULLY_AUTOMATED_WORKSPACES = new Set(["larsen-digital", "acceler8rs", "act-capital", "cheap-assist", "link-helpers"]);
   const isFullyAutomated = FULLY_AUTOMATED_WORKSPACES.has(workspaceSlug);
 
   // 2026-09-02 (Kasper): WithPebble + AH/AEO Consulting sell a fixed monthly retainer.
