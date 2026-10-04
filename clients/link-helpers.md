@@ -7,7 +7,7 @@
 ## REPLY QUICK REFERENCE
 
 campaign_type: agency / service (not M&A). Local search growth (Maps, AI search, Google, website, reviews) for service businesses.
-sender: Brandon Aleckson, owner, Link Helpers (sender name "Brandon | Link Helpers"). Brandon takes every call himself, so always write in first person as Brandon, never refer to "Brandon" in third person.
+sender: Brandon Aleckson, Co-Founder, Link Helpers (sender name "Brandon | Link Helpers", campaign copy signs as "Co-Founder, Link Helpers"). Brandon takes every call himself, so always write in first person as Brandon, never refer to "Brandon" in third person.
 offer: Link Helpers manages Maps, AI search, traditional Google, website, reviews and conversion together, and measures the work by actual customer activity (calls, forms, inquiries), not rankings, traffic or tasks. Two options: Search Growth (all of the above managed together) and Search Growth + Opportunities (the same plus anonymous website visitor identification, up to 100 identified visitors per month, with a 14-day trial at no charge). Commitment is 90 days to build, then month-to-month, and the client owns everything built. First step: a 10 Minute Map Growth Review, online.
 booking_link: https://calendly.com/linkhelpers/10-min-map-growth-review
 icp: Single-location or small multi-location service businesses in competitive metro or suburban markets. $750K to $5M revenue, 3 to 50 employees, average job value $1,500+, already investing in some marketing, active website and Google Business Profile, 25 to 50+ reviews, growth-minded. Current campaign: HVAC.
@@ -22,6 +22,8 @@ reply_rules:
 - Lead asks about contracts or commitment: 90 days to build, month-to-month after that, no six or twelve month contract after the initial 90 days, and the client owns everything built.
 - Lead says they already have an SEO agency: do not attack the agency. The angle is "Your SEO agency says you're winning. Your phone says otherwise." Offer the 10 minute review as a second look at whether calls are actually going up.
 - Lead says they do not see a need right now (the main objection): acknowledge it, offer the 10 minute review as a quick look at where buyers are searching and who they are finding instead, no pressure. If they repeat it or say no, stop. A clear not interested gets no reply.
+- Lead wants a call, agrees to a call, or shows any scheduling intent: route to #manual-replies (Kasper, 2026-10-04). This client is fully automated, so the MANUAL BOOKING TRIGGER applies.
+- If in doubt about anything (tone, what the lead is asking, whether a fact is confirmed here): route to #manual-replies (Kasper, 2026-10-04).
 - Lead asks about pricing: pricing is NOT confirmed in this file. Never give a number. Route to #manual-replies.
 - Lead asks for a guarantee, or anything commercial or technical not listed here: route to #manual-replies.
 - Lead asks for a case study or examples: give the one or two most relevant proof_points above in plain text, then the Calendly link. There is no approved case study link to send.
@@ -45,16 +47,16 @@ never:
 | **Status** | Onboarding In Progress |
 | **Website** | linkhelpers.com |
 | **Tagline** | "Your SEO agency says you're winning. Your phone says otherwise." |
-| **EmailBison slug** | `link-helpers` (DB row not created yet, waiting on workspace API key) |
-| **EmailBison instance** | TBD |
+| **EmailBison slug** | `link-helpers` (DB row created 2026-10-04, EmailBison workspace id 64, workspace token id 390) |
+| **EmailBison instance** | `https://send.shieldsoutbound.com` (Shields) |
 | **Signed date** | TBD |
 | **Monthly retainer** | TBD |
 | **Pricing (their offer)** | Not confirmed. Never quote. Pricing questions go to #manual-replies. |
 | **Active campaigns** | HVAC: 5 step 1 variants (3 Maps visibility/proof angle, 2 visitor identity trial angle), step 2, step 3 |
-| **Airtable base** | TBD (meetings tracker not set up) |
-| **Slack channels** | TBD |
+| **Airtable base** | Link Helpers (app7rrb8blczU9tgX), Meetings table tblTnxArHDVMNOxSI, CRM - Outbound table tble5jOq2n1zXSKIy. Meetings tracker not wired yet (needs the Calendly token). |
+| **Slack channels** | Replies feed C0C6N9QQ0BT (raw reply feed, wired) and meetings C0C6N9SSA73 (meetings tracker, pending Calendly token). Manual cards go to the global #manual-replies. |
 | **Calendly** | https://calendly.com/linkhelpers/10-min-map-growth-review ("10 Minute Map Growth Review"). No API token on file, so plain link only, no live slots. |
-| **Automation tier** | Standard (interested/needs_info go to human review) |
+| **Automation tier** | Fully automated (Kasper, 2026-10-04). No human review on sends. In doubt or the lead wants a call: #manual-replies. |
 
 ---
 
@@ -62,7 +64,7 @@ never:
 
 | Name | Role | Email | Calendly | Timezone | Notes |
 |---|---|---|---|---|---|
-| Brandon Aleckson | Owner. Campaign sender and call handler. | brandon@linkhelpers.com | https://calendly.com/linkhelpers/10-min-map-growth-review | US Mountain (Phoenix, Arizona, no daylight saving) | Primary contact. Phone (602) 557-2655, internal use only, never share with leads. Online meetings only. |
+| Brandon Aleckson | Co-Founder. Campaign sender and call handler. | brandon@linkhelpers.com | https://calendly.com/linkhelpers/10-min-map-growth-review | US Mountain (Phoenix, Arizona, no daylight saving) | Primary contact. Phone (602) 557-2655, internal use only, never share with leads. Online meetings only. |
 
 ---
 
@@ -163,13 +165,34 @@ Full objection bank: not yet provided.
 
 ### Campaign: HVAC
 
-**Status:** Built
+**Status:** Running (confirmed by Kasper 2026-10-04)
 **Calendly link for this campaign:** https://calendly.com/linkhelpers/10-min-map-growth-review
 
 - 5 step 1 variants: 3 on the Maps visibility/proof angle, 2 on the visitor identity trial angle.
 - Step 2 and step 3 built.
 - Subject lines: {Quick question|{FIRST_NAME}|Relevant?|Worth a look?|FYI}
 - Previously leveraged by the client: the AI SEO offer.
+- Sign-off in the cold copy: "Best, {SENDER_FULL_NAME}, Co-Founder, Link Helpers".
+
+Step 1, Maps visibility/proof angle (running copy):
+
+> Hi {FIRST_NAME},
+>
+> Most HVAC companies we talk to are paying for ads and leads but watching competitors answer the calls that should be theirs. The difference is almost always Maps visibility.
+>
+> We helped a local HVAC company increase tracked calls by 184%.
+>
+> Worth a quick call to see how we can do the same for yours?
+
+Step 1, visitor identity trial angle (running copy):
+
+> Hi {FIRST_NAME},
+>
+> Most people who visit your HVAC website never call. We can tell you exactly who they were, name, email, and contact details, so you can follow up directly.
+>
+> 14-day trial at no charge to see it for yourself. Worth a quick call?
+
+Reply context: a lead answering "yes" or "sure" to "Worth a quick call?" is agreeing to a call, which goes to #manual-replies. A lead replying to the visitor identity angle is asking about the 14-day trial, not about SEO.
 
 ---
 
@@ -185,5 +208,5 @@ None logged yet.
 
 ## Internal Notes
 
-- Still missing: pricing, full objection bank, meetings tracker setup, EmailBison workspace token, Slack channels, monthly retainer.
+- Still missing: pricing, full objection bank, Brandon's Calendly API token (LINK_HELPERS_CALENDLY_TOKEN, then meetings tracker to Airtable + Slack C0C6N9SSA73), monthly retainer, signed date.
 - Sender profile photo: attached to the Airtable intake record (uploaded 2026-09-11), not verified in EmailBison.
