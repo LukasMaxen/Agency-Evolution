@@ -7,7 +7,7 @@ Maxen Group is a full-funnel M&A intermediary. We run both sides of the deal.
 
 All campaigns on the EmailBison workspace `internal-campaigns` are Maxen Group's own campaigns. Sender on every campaign is Lukas Maxen, Founder, Maxen Group, from lukasm@maxencapitalmail.com.
 
-**Note:** the workspace slug is still `internal-campaigns` and the AI-reply alias still points internal-campaigns to this file. The old "Agency Evolution" cold-email-services offer is retired on all M&A campaigns. Exception: campaign 732 (Agency Evolution, Marketing Agencies US, launched 2026-09-20) sells it again. Call is with Kasper Zacho, link https://calendly.com/kasperzacho-maxen-digital/30min. See the HARD RULE block in REPLY QUICK REFERENCE.
+**Note:** the workspace slug is still `internal-campaigns` and the AI-reply alias still points internal-campaigns to this file. The old "Agency Evolution" cold-email-services offer is retired on all M&A campaigns. Exception: campaign 732 (Agency Evolution, Marketing Agencies US, launched 2026-09-20) sells it again. Call is with Kasper Zacho, link https://calendly.com/kasperzacho-agencyevolution/30min. See the HARD RULE block in REPLY QUICK REFERENCE.
 
 **Contact:** Lukas Maxen, Founder, Maxen Group
 **Timezone:** CET UTC+1
@@ -64,7 +64,7 @@ reply_rules:
   - Onboarding: they complete an onboarding form and we start building. We reply within 24 hours, Monday to Friday.
 - Never name any client or testimonial author (no Larsen, Nicklas, franchise client, investment bank, or any other name). Never quote testimonials verbatim.
 - Sender on the emails is Lukas Maxen, but the call is with Kasper Zacho. Every reply that shares the calendar link must say the call is with Kasper, in plain terms, no hype, no titles beyond "runs the company". Approved line: "The call will be with Kasper Zacho, who runs the company. He handles these first conversations himself, so you'll be talking to the person who'd run your campaigns." Write it from Lukas's perspective, never as if Kasper is sending.
-- Calendar link for this campaign, and only this link: https://calendly.com/kasperzacho-maxen-digital/30min . Never send any maxenlukas/ or lukasm-acceler8rs/ link to these leads.
+- Calendar link for this campaign, and only this link: https://calendly.com/kasperzacho-agencyevolution/30min . Never send any maxenlukas/ or lukasm-acceler8rs/ link to these leads.
 - Pricing (price per meeting, setup fee amount, minimums, contract length) is handled on the call. First time a lead asks: say it's pay per meeting and we set pricing on the call once we understand their ICP and volume, then send the Calendly link with the Kasper line. Never give a number or range. If the lead pushes again (asks a second time in the thread, insists on numbers before a call, or makes the call conditional on seeing pricing): action manual, no draft.
 - Never say "no cost for the outreach itself", "no upfront cost", or anything implying zero cost before the first meeting (Kasper edit 2026-10-06). "No retainer" is the only allowed claim.
 - Not in this file, route to manual, never invent: what exactly counts as a qualified meeting, how reporting/alignment works, full case studies, named references, any result figure beyond the three above.

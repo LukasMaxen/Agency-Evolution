@@ -167,7 +167,7 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     slackExtra: { website: "Website" },
     icpDescription: "Buy-side: PE firms, family offices, and strategic acquirers active in consumer/ecom or generalist lower-middle-market, sourcing $1M-$10M EBITDA targets. Sell-side: founders/owners of e-commerce and consumer brands, $1M+ EBITDA, exit-curious. NOT a fit: pre-revenue businesses, non-decision-makers, or industries with no plausible M&A angle.",
   },
-  // Kasper's own Calendly (kasperzacho-maxen-digital, 2026-09-30). Booking link for the
+  // Kasper's own Calendly (kasperzacho-agencyevolution, 2026-09-30). Booking link for the
   // Agency Evolution "Marketing Agencies (US)" campaign on internal-campaigns, but tracks
   // EVERY booking on his account (per Kasper), incl. website/referral. Not a workspace:
   // the webhook is registered with ?wsDefault=internal-campaigns&tracker=internal-campaigns-kasper
