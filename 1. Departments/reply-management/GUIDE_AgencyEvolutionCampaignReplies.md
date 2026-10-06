@@ -74,7 +74,7 @@ Use only these. If the lead asks something this list does not answer, see sectio
 **The service**
 - Done-for-you cold email and LinkedIn outreach, end to end.
 - We handle targeting, list building, copywriting, sending, deliverability, reply handling, and meeting booking. The lead's only job is to show up to the calls.
-- Lists are manually verified accounts and decision makers matching the lead's exact ICP.
+- Lists are verified accounts and decision makers matching the lead's exact ICP. Say "verified", never "manually verified".
 - Interested prospects are booked onto the lead's calendar as confirmed calls.
 
 **The commercial model**
@@ -133,6 +133,8 @@ Send nothing at all when:
 ## 7. Never
 
 - Never name a client, a testimonial author, or the consultant in the case study.
+- Never say "manually verify" or "manually verified" about lists. Say "build and verify the target list".
+- Never say "no cost for the outreach itself", "no upfront cost", or anything implying zero cost before the first meeting. "No retainer" is the only allowed claim.
 - Never mention M&A deal flow, Maxen Group, sell-side, or buy-side. That is a different business line. M&A firms may only appear as one of the client types we work with.
 - Never state a fact that is not in section 4.
 - Never use em dashes or en dashes. Use commas, periods, or parentheses.
