@@ -46,7 +46,27 @@ let running = false;
 interface AuthResult {
   ok: boolean;
   error?: string;
+  // true only when Slack itself answered and rejected the token. false means
+  // we never got a verdict (timeout, network error, 5xx, rate limit), which
+  // says nothing about whether the token is valid.
+  rejected?: boolean;
 }
+
+// Errors Slack returns when it reached a verdict on the token and said no.
+// Anything else (timeouts, DNS, 5xx, ratelimited, service_unavailable) is a
+// reachability problem, not a dead token.
+const TOKEN_REJECTED = new Set([
+  "invalid_auth",
+  "not_authed",
+  "token_revoked",
+  "token_expired",
+  "account_inactive",
+  "missing_scope",
+  "no_permission",
+  "org_login_required",
+  "ekm_access_denied",
+  "team_access_not_granted",
+]);
 
 async function pingAuthTest(token: string): Promise<AuthResult> {
   const ctrl = new AbortController();
@@ -56,27 +76,39 @@ async function pingAuthTest(token: string): Promise<AuthResult> {
       headers: { Authorization: `Bearer ${token}` },
       signal: ctrl.signal,
     });
-    const data = (await res.json().catch(() => ({}))) as AuthResult;
-    return { ok: data.ok === true, error: data.error };
+    const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+    if (data.ok === true) return { ok: true };
+    const error = data.error ?? `http_${res.status}`;
+    return { ok: false, error, rejected: TOKEN_REJECTED.has(error) };
   } catch (err: any) {
-    return { ok: false, error: err?.name === "AbortError" ? "auth_test_timeout" : err?.message };
+    return {
+      ok: false,
+      error: err?.name === "AbortError" ? "auth_test_timeout" : err?.message,
+      rejected: false,
+    };
   } finally {
     clearTimeout(t);
   }
 }
 
 // A single failed auth.test can be a transient network blip on the host
-// reaching slack.com, not a dead token. Retry once before declaring the
-// token dead, so a one-off timeout doesn't fire a false "pipeline DOWN"
-// alert. A genuinely dead/revoked token still fails both attempts.
+// reaching slack.com, not a dead token. Retry once within the tick. A token
+// Slack explicitly rejected is definitive and needs no retry.
 async function checkToken(): Promise<AuthResult> {
   const token = process.env.SLACK_BOT_TOKEN;
-  if (!token) return { ok: false, error: "no_token_in_env" };
+  if (!token) return { ok: false, error: "no_token_in_env", rejected: true };
   const first = await pingAuthTest(token);
-  if (first.ok) return first;
+  if (first.ok || first.rejected) return first;
   const retry = await pingAuthTest(token);
   return retry;
 }
+
+// Consecutive ticks where auth.test got no verdict from Slack. A back-to-back
+// timeout pair inside one tick fired a false "pipeline DOWN" on 2026-10-08
+// while cards were posting fine, so reachability failures only count as an
+// outage once they persist across this many 5-minute ticks (15 minutes).
+let unreachableTicks = 0;
+const UNREACHABLE_TICKS_BEFORE_ALERT = 3;
 
 // Best-effort alert. Tries the webhook (token-independent), then a bot-token
 // post, and always logs. Returns true if any Slack transport accepted it.
@@ -124,8 +156,23 @@ export async function runSlackHealthCheck(): Promise<void> {
       [EXCLUDED]
     );
     const cardsFailing = (recentFail.rows[0]?.n ?? 0) > 0;
-    const tokenDead = !auth.ok;
-    const unhealthy = tokenDead || cardsFailing;
+    const tokenDead = !auth.ok && auth.rejected === true;
+    const unreachableNow = !auth.ok && !tokenDead;
+    unreachableTicks = unreachableNow ? unreachableTicks + 1 : 0;
+    const slackUnreachable = unreachableTicks >= UNREACHABLE_TICKS_BEFORE_ALERT;
+    const unhealthy = tokenDead || slackUnreachable || cardsFailing;
+
+    if (unreachableNow && !unhealthy) {
+      // No verdict from Slack this tick and no failed cards. Not an outage
+      // yet: log it, hold the reflow (posting may fail too), and re-check on
+      // the next tick. Leaves wasUnhealthy alone so no recovery alert fires
+      // for something we never alerted on.
+      console.warn(
+        `[slack-health] auth.test got no answer from Slack (${auth.error ?? "unknown"}), ` +
+          `tick ${unreachableTicks}/${UNREACHABLE_TICKS_BEFORE_ALERT}, not alerting yet`
+      );
+      return;
+    }
 
     if (unhealthy) {
       // Count the full stranded backlog (any age) for the alert body.
@@ -141,12 +188,19 @@ export async function runSlackHealthCheck(): Promise<void> {
       const now = Date.now();
       if (now - lastAlertAt > ALERT_THROTTLE_MS) {
         const cause = tokenDead
-          ? `Deployed SLACK_BOT_TOKEN is not authenticating (auth.test: ${auth.error ?? "failed"}). Every Slack post is failing.`
-          : `Approval cards are failing to post (channel-level). The bot token authenticates but the approval channel is rejecting posts.`;
+          ? `Slack rejected the deployed SLACK_BOT_TOKEN (auth.test: ${auth.error ?? "failed"}). Every Slack post is failing.`
+          : slackUnreachable
+            ? `The server has not been able to reach Slack for ${unreachableTicks * 5} minutes (auth.test: ${auth.error ?? "failed"}). The token itself may be fine; this is a network or Slack-side problem.`
+            : `Approval cards are failing to post (channel-level). The bot token authenticates but the approval channel is rejecting posts.`;
+        const fix = tokenDead
+          ? `Fix the deployed Slack config in Coolify; the monitor auto-reflows the backlog once it recovers.`
+          : slackUnreachable
+            ? `Check the server's outbound network and status.slack.com; the monitor auto-reflows the backlog once it recovers.`
+            : `Check the bot is still in the approval channel; the monitor auto-reflows the backlog once it recovers.`;
         await sendAlert(
           `:rotating_light: Approval-card pipeline DOWN.\n${cause}\n` +
             `${stranded} interested repl${stranded === 1 ? "y is" : "ies are"} stranded at awaiting_manual (not in any Slack channel). ` +
-            `Fix the deployed Slack config in Coolify; the monitor auto-reflows the backlog once it recovers.`
+            fix
         );
         lastAlertAt = now;
       }
