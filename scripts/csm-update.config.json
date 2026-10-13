@@ -55,6 +55,11 @@
       "meetings": { "baseId": "appp8h0kv9DEHYpXR", "tableId": "tblkoizZek5r5wi45", "bookedDateField": "Meeting booked date", "dealSourceField": "Deal Source", "dealSourceValue": "Nicklas" }
     },
     {
+      "label": "Opkie",
+      "workspaceSlugs": ["opkie"],
+      "meetings": { "baseId": "app7LXrt82RJynd1B", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
+    },
+    {
       "label": "Sonaro AI",
       "workspaceSlugs": ["sonaro-ai"],
       "meetings": { "baseId": "appNMGCTwXVOLLzmA", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting Booked Date" }
