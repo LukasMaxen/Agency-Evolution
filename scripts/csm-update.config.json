@@ -18,8 +18,11 @@
     },
     {
       "label": "MP Consulting",
-      "workspaceSlugs": ["ah-consulting-2", "ah-consulting"],
-      "meetings": { "baseId": "appZhEsVN52VXPZ66", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
+      "workspaceSlugs": ["ah-consulting-2", "ah-consulting", "mp-consulting"],
+      "meetings": [
+        { "baseId": "appZhEsVN52VXPZ66", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" },
+        { "baseId": "apphW2yI5MyGDOLs9", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
+      ]
     },
     {
       "label": "GN Motion",

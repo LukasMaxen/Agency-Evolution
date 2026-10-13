@@ -18,15 +18,23 @@ export const RAW_REPLY_FEED_CHANNELS: Record<string, string> = {
   "cheap-assist": "C0C5CGUPRL1", // Cheap Assist replies feed, added 2026-09-29
   "link-helpers": "C0C6N9QQ0BT", // Link Helpers replies feed, added 2026-10-04
   "opkie": "C0C9P8C4UCQ", // #opkie-replies, added 2026-10-13
+  // MP Consulting's own dedicated Shields workspace (team 67), added 2026-10-13. Separate
+  // from the ah-consulting/ah-consulting-2 content-sniff below, which only matters for
+  // MP Consulting replies that land on Austin Heaton's shared workspaces.
+  "mp-consulting": "C0C486M0H1C",
 };
 
-// MP Consulting shares the ah-consulting EmailBison workspace for sending capacity only
-// (see clients/mp-consulting.md, isMPConsultingReply in app/api/auto-reply/processor.ts)
-// — its raw reply feed must never land in Austin Heaton's own AEO Consulting channel
-// above. Content-sniffed the same way, kept in sync manually since duplicating the
-// pattern here avoids importing the much heavier processor.ts module into this one.
-// Confirmed by Kasper 2026-09-24.
+// MP Consulting's EARLIER campaigns ran on Austin Heaton's shared workspaces for sending
+// capacity (verified 2026-10-13: actually ah-consulting-2, the AE instance, not Shields
+// ah-consulting as first assumed — see clients/mp-consulting.md and
+// isMPConsultingReply in app/api/auto-reply/processor.ts) before MP Consulting got its
+// own dedicated Shields workspace (slug "mp-consulting" above). Any reply that still
+// lands on either of Austin's shared workspaces must never fall into his own AEO
+// Consulting channel. Content-sniffed the same way processor.ts does, kept in sync
+// manually since duplicating the pattern here avoids importing the much heavier
+// processor.ts module into this one.
 const MP_CONSULTING_RAW_FEED_CHANNEL = "C0C486M0H1C";
+const MP_CONSULTING_SHARED_WORKSPACES = new Set(["ah-consulting", "ah-consulting-2"]);
 function isMPConsultingContent(subject: string, message: string): boolean {
   const text = `${subject ?? ""}\n${message ?? ""}`.toLowerCase();
   return (
@@ -122,7 +130,7 @@ export interface RawReplyFeedOpts {
 // Fires for every reply regardless of AI classification — this is the
 // unconditional visibility feed, not the AI approval-card flow.
 export async function postRawReplyFeed(opts: RawReplyFeedOpts): Promise<void> {
-  const isMPConsulting = opts.workspaceSlug === "ah-consulting" && isMPConsultingContent(opts.subject, opts.message);
+  const isMPConsulting = MP_CONSULTING_SHARED_WORKSPACES.has(opts.workspaceSlug) && isMPConsultingContent(opts.subject, opts.message);
   const channel = isMPConsulting ? MP_CONSULTING_RAW_FEED_CHANNEL : RAW_REPLY_FEED_CHANNELS[opts.workspaceSlug];
   if (!channel) return;
 
