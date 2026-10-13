@@ -48,7 +48,7 @@ never:
 | **Website** | opkie.com |
 | **Tagline** | "The growth you're looking for is already in your practice." |
 | **HQ** | Salt Lake City, UT |
-| **EmailBison slug** | `opkie` (DB row NOT created yet, waiting on the workspace API token) |
+| **EmailBison slug** | `opkie` (DB row created 2026-10-13, EmailBison workspace id 57, workspace token id 399) |
 | **EmailBison instance** | `https://send.shieldsoutbound.com` (Shields) |
 | **Signed date** | TBD |
 | **Monthly retainer** | TBD |
@@ -161,6 +161,6 @@ None logged yet.
 ## Internal Notes
 
 - Pricing discrepancy, needs Troy: $3,995/month plus $5,000 setup (form) vs $2,995/month with no setup fee (website). Guarantee also differs: 3x ROI in 60 days (form) vs first month back within 30 days (website). Until confirmed, replies state neither price nor guarantee.
-- Still missing: EmailBison workspace API token, Airtable base for meetings, automation tier decision, do-not-say list, full objection bank, compliance details, Taylor's title, Jeff's surname and email, monthly retainer, signed date.
+- Still missing: automation tier decision, do-not-say list, full objection bank, compliance details, Taylor's title, Jeff's surname and email, monthly retainer, signed date.
 - GoHighLevel token scope: the token can read calendars and appointments only. It cannot read contacts. Bookings made through the booking link carry the lead's email, so they are tracked. Bookings Troy creates by hand inside GoHighLevel have no email on the appointment, so they are skipped until Troy adds the "View Contacts" scope to the private integration.
 - Sender profile photo: attached to the Airtable intake record, not verified in EmailBison.
