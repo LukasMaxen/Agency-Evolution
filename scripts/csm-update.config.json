@@ -8,7 +8,9 @@
     "zebs-ibs",
     "wrobel-capital",
     "itg-group",
-    "911-restoration"
+    "911-restoration",
+    "ah-consulting",
+    "ah-consulting-2"
   ],
   "reportLines": [
     {
@@ -18,11 +20,8 @@
     },
     {
       "label": "MP Consulting",
-      "workspaceSlugs": ["ah-consulting-2", "ah-consulting", "mp-consulting"],
-      "meetings": [
-        { "baseId": "appZhEsVN52VXPZ66", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" },
-        { "baseId": "apphW2yI5MyGDOLs9", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
-      ]
+      "workspaceSlugs": ["mp-consulting"],
+      "meetings": { "baseId": "apphW2yI5MyGDOLs9", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
     },
     {
       "label": "GN Motion",
