@@ -10,13 +10,24 @@
     "itg-group",
     "911-restoration",
     "ah-consulting",
-    "ah-consulting-2"
+    "ah-consulting-2",
+    "link-helpers"
   ],
   "reportLines": [
     {
       "label": "ACT Capital",
       "workspaceSlugs": ["act-capital"],
       "meetings": { "baseId": "appECObQrdSRjeXeM", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting Booked Date" }
+    },
+    {
+      "label": "Cheap Assist",
+      "workspaceSlugs": ["cheap-assist"],
+      "meetings": { "baseId": "appkX7wBB1wOXrs1s", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
+    },
+    {
+      "label": "CLPR Media",
+      "workspaceSlugs": ["clpr-media"],
+      "meetings": { "baseId": "applnvVcAGLchrG2b", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
     },
     {
       "label": "MP Consulting",
