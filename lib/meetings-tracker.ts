@@ -300,6 +300,19 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
     icpDescription: "Founder-led creators, podcasts, streamers, lifestyle influencers, music artists/labels, consumer brands (strongest: ecom and beauty) and tourism/destination brands that already produce long-form content or raw footage, and whose founder is willing to be on camera weekly. NOT a fit: companies that already have a content/clipping system in place, new streamers with no audience, or businesses with no content to repurpose. Fashion and food/drink brands are a weak fit.",
   },
+  // Opkie (2026-10-13). Own workspace on the Shields EmailBison instance. Books through
+  // GoHighLevel, not Calendly, so bookings arrive via lib/ghl-poll-sync.ts every 5 min
+  // (no webhook route). Airtable base "Opkie" confirmed live via API 2026-10-13, same
+  // simple "Meetings" schema as MP Consulting. Slack channel verified with
+  // conversations.info (bot is a member).
+  "opkie": {
+    source: "ghl",
+    airtableBaseId: "app7LXrt82RJynd1B",          // "Opkie"
+    airtableTableId: "tblTnxArHDVMNOxSI",         // "Meetings"
+    slackChannel: "C0C8NL1K8P5",                  // #opkie-meetings, confirmed 2026-10-13
+    fields: { email: "Email", meetingDate: "Date Of Meeting", bookedDate: "Meeting booked date" },
+    icpDescription: "Independent general dentists or orthodontists in the US who own their practice, single location or small group, roughly $800K to $2M annual production. NOT a fit: DSO-affiliated practices, brand new practices, practices with no existing patient base, or consultants and marketing firms.",
+  },
 };
 
 export interface BookingInput {

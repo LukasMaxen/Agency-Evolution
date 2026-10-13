@@ -54,7 +54,7 @@ never:
 | **Monthly retainer** | TBD |
 | **Pricing (their offer)** | UNCONFIRMED. Onboarding form: $3,995/month, ad spend included, setup fee $5,000 (reduced to $2,500 if they commit within about 3 days). Website: $2,995/month, no setup fee. Never quote either until Troy confirms. |
 | **Active campaigns** | None yet |
-| **Airtable base** | Not created yet. Meetings tracker needs a base with the standard "Meetings" table. |
+| **Airtable base** | Opkie (app7LXrt82RJynd1B), Meetings table tblTnxArHDVMNOxSI. Wired in lib/meetings-tracker.ts 2026-10-13. |
 | **Slack channels** | Replies feed C0C9P8C4UCQ (#opkie-replies, raw reply feed, wired) and meetings C0C8NL1K8P5 (#opkie-meetings). Bot is a member of both (verified 2026-10-13). Manual cards go to the global #manual-replies. |
 | **Booking tool** | GoHighLevel (LeadConnector), NOT Calendly. Link https://link.opkie.com/widget/bookings/opkie-strategy-call, calendar "(Qualified) Strategy Call" (id BRL34eYzQ16BNOIiLz3F), location vmzEamyXqsd9g2bEFYGu. Token in OPKIE_GHL_TOKEN. Bookings are polled by lib/ghl-poll-sync.ts. No live slots. |
 | **Automation tier** | Standard (default). Interested and needs_info replies go to human review. Not confirmed otherwise by Kasper. |
