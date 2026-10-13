@@ -24,10 +24,10 @@ reply_rules:
 - Lead is part of a DSO, has a brand new practice, or has no existing patient base: not a fit. Do not push a call. Route to #manual-replies if unsure.
 - Lead is an office manager or practice administrator, not the owner: fine to engage, but the owner needs to be on the call. Say so plainly when offering the link.
 - Lead is a consultant, marketing firm or vendor: never contact. No reply.
-- Lead proposes a specific time, asks us to send times, or shares their own scheduling link: route to #manual-replies.
+- Lead wants a call, agrees to a call, proposes a time, asks us to send times, shares their own scheduling link, or shows any scheduling intent: route to #manual-replies (Kasper, 2026-10-13). This client is fully automated, so the MANUAL BOOKING TRIGGER applies.
 - Meetings are online only (Google Meet or Zoom). No phone calls, do not give out any phone number.
 - Anything commercial, technical or compliance-related (HIPAA, patient data, integrations with practice software) not listed here: route to #manual-replies.
-- If in doubt about anything (tone, what the lead is asking, whether a fact is confirmed here): route to #manual-replies.
+- If in doubt about anything (tone, what the lead is asking, whether a fact is confirmed here), or the lead asks anything this file does not answer: route to #manual-replies (Kasper, 2026-10-13). Never guess.
 - Sign-off: end every reply with {SENDER_EMAIL_SIGNATURE} on its own line. Never type a name as the sign-off, and no "Best" before it.
 
 never:
@@ -57,7 +57,7 @@ never:
 | **Airtable base** | Opkie (app7LXrt82RJynd1B), Meetings table tblTnxArHDVMNOxSI. Wired in lib/meetings-tracker.ts 2026-10-13. |
 | **Slack channels** | Replies feed C0C9P8C4UCQ (#opkie-replies, raw reply feed, wired) and meetings C0C8NL1K8P5 (#opkie-meetings). Bot is a member of both (verified 2026-10-13). Manual cards go to the global #manual-replies. |
 | **Booking tool** | GoHighLevel (LeadConnector), NOT Calendly. Link https://link.opkie.com/widget/bookings/opkie-strategy-call, calendar "(Qualified) Strategy Call" (id BRL34eYzQ16BNOIiLz3F), location vmzEamyXqsd9g2bEFYGu. Token in OPKIE_GHL_TOKEN. Bookings are polled by lib/ghl-poll-sync.ts. No live slots. |
-| **Automation tier** | Standard (default). Interested and needs_info replies go to human review. Not confirmed otherwise by Kasper. |
+| **Automation tier** | Fully automated (Kasper, 2026-10-13). No human review on sends. Pricing, anything unknown, or the lead wants a call: #manual-replies. |
 
 ---
 
@@ -161,6 +161,6 @@ None logged yet.
 ## Internal Notes
 
 - Pricing discrepancy, needs Troy: $3,995/month plus $5,000 setup (form) vs $2,995/month with no setup fee (website). Guarantee also differs: 3x ROI in 60 days (form) vs first month back within 30 days (website). Until confirmed, replies state neither price nor guarantee.
-- Still missing: automation tier decision, do-not-say list, full objection bank, compliance details, Taylor's title, Jeff's surname and email, monthly retainer, signed date.
+- Still missing: do-not-say list, full objection bank, compliance details, Taylor's title, Jeff's surname and email, monthly retainer, signed date.
 - GoHighLevel token scope: the token can read calendars and appointments only. It cannot read contacts. Bookings made through the booking link carry the lead's email, so they are tracked. Bookings Troy creates by hand inside GoHighLevel have no email on the appointment, so they are skipped until Troy adds the "View Contacts" scope to the private integration.
 - Sender profile photo: attached to the Airtable intake record, not verified in EmailBison.
