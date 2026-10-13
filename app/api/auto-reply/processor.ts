@@ -2272,7 +2272,9 @@ ${messageText.slice(0, 8000)}`;
     // that isn't an unambiguous hard close must go through #reply-approval or
     // #manual-replies, no exceptions, including neutral. These three clients are pulled
     // out of the global neutral-auto-send rule below.
-    const STRICT_REVIEW_WORKSPACES = new Set(["ah-consulting", "ah-consulting-2", "with-pebble", "with-pebble-2", "gn-motion"]);
+    // 2026-10-13: mp-consulting added. MP Consulting moved off Austin Heaton AE onto its own
+    // Shields workspace and keeps the same strict review it had there.
+    const STRICT_REVIEW_WORKSPACES = new Set(["ah-consulting", "ah-consulting-2", "with-pebble", "with-pebble-2", "gn-motion", "mp-consulting"]);
     const alwaysAutoSend = STRICT_REVIEW_WORKSPACES.has(workspaceSlug)
       ? new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested"])
       : new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested","neutral"]);
