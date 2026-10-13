@@ -334,4 +334,24 @@ export async function register() {
   }, 10 * 60_000);
 
   console.log("[instrumentation] calendly poll sync started, 10min interval");
+
+  // ── 12. GoHighLevel poll sync ─────────────────────────────────────────────
+  // Clients who book through GoHighLevel (see lib/ghl-poll-sync.ts POLL_TARGETS,
+  // currently Opkie). A private integration token cannot register a webhook, so
+  // bookings, reschedules and cancellations are picked up by polling the calendar.
+  const { pollGhlBookings } = await import("@/lib/ghl-poll-sync");
+
+  setTimeout(() => {
+    pollGhlBookings().catch(err =>
+      console.error("[instrumentation] initial ghl poll sync failed:", err)
+    );
+  }, 85_000);
+
+  setInterval(() => {
+    pollGhlBookings().catch(err =>
+      console.error("[instrumentation] periodic ghl poll sync failed:", err)
+    );
+  }, 5 * 60_000);
+
+  console.log("[instrumentation] ghl poll sync started, 5min interval");
 }

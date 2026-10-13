@@ -26,7 +26,7 @@ const FALLBACK_SLACK_CHANNEL = process.env.MEETINGS_FALLBACK_CHANNEL ?? "C05SEP3
 
 export interface MeetingConfig {
   /** Booking tool whose webhook fires for this client. */
-  source: "calendly" | "iclosed" | "fillout";
+  source: "calendly" | "iclosed" | "fillout" | "ghl";
   airtableBaseId: string;
   airtableTableId: string;
   /** Slack channel id for this client's "-meetings" channel. */
