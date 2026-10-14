@@ -138,6 +138,10 @@ function resolveClientSlug(workspaceSlug: string, campaign: string | null | unde
   if (/pathfinder/i.test(String(campaign ?? ""))) return "acceler8rs";
   // acceler8rs's non-Pathfinder (growth/exit) campaigns represent Larsen Digital.
   if (workspaceSlug === "acceler8rs") return "larsen-digital";
+  // Cheap Assist inboxes also send internal Agency Evolution outreach from ONE campaign,
+  // "AE - Outreach" (Kasper, 2026-10-14). Those replies draw the internal playbook.
+  // Every other Cheap Assist campaign (all also "AE - ...") stays Cheap Assist.
+  if (isCheapAssistAEOutreach(workspaceSlug, campaign)) return "agency-evolution";
   return CLIENT_FILE_ALIASES[workspaceSlug] ?? workspaceSlug;
 }
 
@@ -1502,7 +1506,9 @@ If no LEAD COMPANY CONTEXT block appears (because the site was unreachable), fal
   // reply goes to #reply-approval or #manual-replies, no more direct auto-send.
   // Cheap Assist added 2026-09-29 (Kasper: automate it, uncertainty or call intent -> manual).
   const FULLY_AUTOMATED_WORKSPACES = new Set(["larsen-digital", "acceler8rs", "act-capital", "cheap-assist", "link-helpers", "opkie"]);
-  const isFullyAutomated = FULLY_AUTOMATED_WORKSPACES.has(workspaceSlug);
+  // Cheap Assist "AE - Outreach" is internal Agency Evolution outreach on Cheap Assist
+  // inboxes: interested/needs_info go through #reply-approval like internal (Kasper 2026-10-14).
+  const isFullyAutomated = FULLY_AUTOMATED_WORKSPACES.has(workspaceSlug) && !isCheapAssistAEOutreach(workspaceSlug, reply.campaign);
 
   // 2026-09-02 (Kasper): WithPebble + AH/AEO Consulting sell a fixed monthly retainer.
   // A lead who states their own budget is below that (or that they otherwise don't
