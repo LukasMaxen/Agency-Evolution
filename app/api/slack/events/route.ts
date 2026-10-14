@@ -21,6 +21,7 @@ import { daysUntilNextStep } from "@/lib/template-replies";
 import { sanitizeJsonControlChars } from "@/lib/utils";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
 import { answeredLocallySince } from "@/lib/reply-send-guard";
+import { applyCampaignSignoff } from "@/lib/campaign-signoff";
 import { readFileFromGitHub, commitFileToGitHub } from "@/lib/github-commit";
 import {
   WeeklyReviewPattern,
@@ -97,6 +98,8 @@ async function sendViaEmailBison(
     lead_name: string | null;
     lead_email: string | null;
     to_email: string | null;
+    workspace_slug?: string | null;
+    campaign?: string | null;
     preferred_recipient_email?: string | null;
     preferred_recipient_name?: string | null;
   },
@@ -121,6 +124,12 @@ async function sendViaEmailBison(
   // drafts stored before the normalize fix shipped, or by any un-normalized path.
   // Idempotent for already-clean drafts.
   if (body) body = normalizeSignature(body);
+  // Per-campaign sign-off override (Cheap Assist "AE - Outreach" signs as Agency Evolution).
+  if (body) {
+    const signed = await applyCampaignSignoff(body, reply, instanceUrl, apiKey);
+    if (signed === null) return false;
+    body = signed;
+  }
   // Recipient resolution: prefer override (set when forward/redirect detected),
   // fall back to lead. Never use to_email, that is OUR sender address.
   const recipientEmail = reply.preferred_recipient_email ?? reply.lead_email;

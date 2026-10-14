@@ -8,6 +8,7 @@ import {
 } from "@/lib/slack-approval";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
+import { applyCampaignSignoff } from "@/lib/campaign-signoff";
 import {
   daysUntilNextStep,
 } from "@/lib/template-replies";
@@ -166,6 +167,11 @@ async function sendReplyToEmailBison(
   // Recipient resolution: prefer override (set when forward/redirect was detected
   // by the auto-reply processor), fall back to lead's email. Never use to_email,
   // that is OUR sender address from the EmailBison webhook.
+  // Per-campaign sign-off override (Cheap Assist "AE - Outreach" signs as Agency Evolution).
+  const signed = await applyCampaignSignoff(body, reply, instanceUrl, apiKey);
+  if (signed === null) return false;
+  body = signed;
+
   const recipientEmail = reply.preferred_recipient_email ?? reply.lead_email;
   const recipientName = reply.preferred_recipient_name ?? reply.lead_name ?? null;
   const toEmails = [{

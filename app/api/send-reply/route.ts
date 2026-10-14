@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { normalizeSignature } from "@/lib/slack-approval";
+import { applyCampaignSignoff } from "@/lib/campaign-signoff";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
 import { weSpokeLast, alreadySentBody } from "@/lib/reply-send-guard";
 
@@ -77,7 +78,12 @@ export async function POST(req: NextRequest) {
 
     // Strip any hand-written sign-off so only {SENDER_EMAIL_SIGNATURE} is sent,
     // never a duplicated signature. Applies to manual composer sends too.
-    const cleanMessage = normalizeSignature(message);
+    const normalized = normalizeSignature(message);
+    // Per-campaign sign-off override (Cheap Assist "AE - Outreach" signs as Agency Evolution).
+    const cleanMessage = await applyCampaignSignoff(normalized, reply, instanceUrl, apiKey);
+    if (cleanMessage === null) {
+      return NextResponse.json({ error: "Not sent: could not resolve the sender name for this campaign's custom sign-off." }, { status: 502 });
+    }
 
     // Resolve merge tags in the message
     const resolvedMessage = resolveMergeTags(

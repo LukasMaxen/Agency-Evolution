@@ -24,6 +24,7 @@ import { sanitizeJsonControlChars } from "@/lib/utils";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
 import { weSpokeLast, alreadySentBody, answeredLocallySince } from "@/lib/reply-send-guard";
 import { trackInterestedLead } from "@/lib/airtable-cold-leads";
+import { applyCampaignSignoff, isCheapAssistAEOutreach } from "@/lib/campaign-signoff";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -937,6 +938,12 @@ async function sendToEmailBison(reply: Record<string, any>, body: string, ccEmai
     console.warn(`[auto-reply] Blocked reply to ${reply.lead_email}: identical message already sent to this lead (reply ${reply.id}).`);
     return false;
   }
+
+  // Per-campaign sign-off override (e.g. Cheap Assist "AE - Outreach" signs as Agency
+  // Evolution). null = override applies but sender name unresolved, never send then.
+  const signed = await applyCampaignSignoff(body, reply, url, key);
+  if (signed === null) return false;
+  body = signed;
 
   const recipientEmail = reply.preferred_recipient_email ?? reply.lead_email;
   const recipientName = reply.preferred_recipient_name ?? reply.lead_name ?? null;
