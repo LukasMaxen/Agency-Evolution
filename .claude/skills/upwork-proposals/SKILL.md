@@ -100,23 +100,24 @@ No domain findable → do not guess or search. Mark website "not verified".
 ### 4. Draft (max 8)
 
 Pick the template below that best fits the post (rotate, do not use the same one for every card). Rules:
-- Opener: `Hi <FirstName>, I'm Kasper.` when a name was found, otherwise `Hi, I'm Kasper.`
+- Opener: `Hi <FirstName>, I'm Kasper.` ONLY when the name is certain (one name, clearly the client). Any doubt (several names, unclear who) → `Hi, I'm Kasper.`
+- **Nothing unverifiable.** Every statement about the client must be stated in their post or profile. No guesses about their company, market or situation. Never call us a "small team".
 - Replace `[personal line]` with ONE short sentence about something specific in their post (their market, their goal, a detail they mentioned). It must prove we read the post. Never invent facts about Kasper.
 - Keep the template structure: who we are, approach, social proof, call question. Short sentences, everyday words.
 - Say "call", never "Upwork call". No links, no email addresses, no phone numbers.
 - **Never mention any price, fee amount or per-meeting amount.** Only the pricing model wording already in the templates.
 - No em dashes or en dashes.
-- Only these facts may be claimed: Agency Evolution books sales calls for B2B companies through cold email and LinkedIn; we handle the list, writing, sending and replies; pay per qualified lead that shows up, no retainer; campaigns go live day one; first lead usually within about 30 hours, setup fee refunded if no lead in 30 hours; a B2B consultant got 18 qualified meetings in under a month (case study in portfolio); we take on max 20 clients at a time; we handle the targeting and positioning, manually verified decision-maker lists, the technical side (domain warm-up, multiple mailboxes, SPF/DKIM/DMARC, deliverability monitoring) and A/B testing; we work with M&A firms, B2B SaaS, e-commerce brands and professional service firms.
+- Only these facts may be claimed: Agency Evolution books sales calls for B2B companies through cold email and LinkedIn; we handle the list, writing, sending and replies; pay per qualified lead that shows up, no retainer; campaigns go live day one; first lead usually within about 30 hours, setup fee refunded if no lead in 30 hours; our most recent client had 18 calls booked in under 20 days, all interested leads fitting their exact ICP (case study in portfolio); we take on max 20 clients at a time; we handle the targeting and positioning, manually verified decision-maker lists, the technical side (domain warm-up, multiple mailboxes, SPF/DKIM/DMARC, deliverability monitoring) and A/B testing; we work with M&A firms, B2B SaaS, e-commerce brands and professional service firms.
 - Screening questions: answer each in 1 to 3 sentences using only the facts above. If a question needs a fact we don't have, answer `[KASPER TO ANSWER]`.
 
 Templates:
 
 **T1**
-Hi, I'm Kasper. I run Agency Evolution, a small team that books sales calls for B2B companies. In plain terms, we find the right people for you, reach out by email and LinkedIn, and put the ones who are interested on your calendar. [personal line]
+Hi, I'm Kasper. I run Agency Evolution. We book sales calls for B2B companies. In plain terms, we find the right people for you, reach out by email and LinkedIn, and put the ones who are interested on your calendar. [personal line]
 
 Your post sounds like exactly that kind of work. We take care of the list, the writing, the sending and the replies, so all you do is show up to the calls.
 
-To give you an idea, one client, a B2B consultant, got 18 qualified meetings in under a month, with the first lead in about 30 hours. The full case study is in my portfolio.
+Our most recent client had 18 calls booked on their calendar in under 20 days, all interested leads who fit their exact ICP. The full case study is in my portfolio.
 
 Would you be up for a quick call this week?
 
@@ -134,11 +135,11 @@ Happy to walk you through how it would work for you. Got time for a short call t
 Kasper
 
 **T3**
-Hi, I'm Kasper. I run a small outbound team called Agency Evolution. We don't sell lists. We do the outreach ourselves and only put people who've said yes on your calendar. [personal line]
+Hi, I'm Kasper. I run an outbound agency called Agency Evolution. We don't sell lists. We do the outreach ourselves and only put people who've said yes on your calendar. [personal line]
 
 I mention that because a lot of people who post jobs like this have been burned before, paying for "leads" that never turned into a single call. With us, you only pay for qualified leads who actually show up.
 
-One B2B consultant got 18 meetings in under a month working this way. The details are in my portfolio.
+Our most recent client had 18 calls booked on their calendar in under 20 days, all interested leads who fit their exact ICP. The full case study is in my portfolio.
 
 We only take on 20 clients at a time, so I'd like to hear about your business first. Could we do a quick call?
 
@@ -149,7 +150,7 @@ Hi, I'm Kasper. I help B2B companies get more sales calls, and my team handles a
 
 We build the list, write the emails and LinkedIn messages, send them, deal with the replies and book the interested ones onto your calendar. You pay per qualified lead that shows up, with no retainer.
 
-It tends to move fast. Campaigns go out on day one, and the first lead usually comes in within 30 hours. There's a case study in my portfolio with 18 meetings in under a month.
+It tends to move fast. Campaigns go out on day one, and the first lead usually comes in within 30 hours. Our most recent client had 18 calls booked on their calendar in under 20 days, all interested leads who fit their exact ICP. The full case study is in my portfolio.
 
 If that sounds like what you're after, I'd be glad to jump on a quick call.
 
@@ -160,7 +161,7 @@ Hi, I'm Kasper. I run Agency Evolution, where we book sales calls for B2B compan
 
 Before telling you whether we can help, I'd want to know two things: who's your ideal client, and how many new ones could you take on each month?
 
-I ask because we only work with 20 clients at a time and prefer to stay with them long term, so a quick fit check saves us both time. For reference, one B2B consultant got 18 meetings in under a month with us. That case study is in my portfolio.
+I ask because we only work with 20 clients at a time and prefer to stay with them long term, so a quick fit check saves us both time. Our most recent client had 18 calls booked on their calendar in under 20 days, all interested leads who fit their exact ICP. The full case study is in my portfolio.
 
 Are you free for a short call?
 
