@@ -2,6 +2,7 @@
 //   node upwork.cjs unseen <id> <id> ...   prints ids not evaluated before (does NOT mark them)
 //   node upwork.cjs mark <id> <id> ...     marks ids as evaluated (call for every job you dropped or carded)
 //   node upwork.cjs post <cards.json>      posts one approval card per job to #upwork-approval
+//   node upwork.cjs update <ts> <card.json> rewrites an existing card in place (ts, thread, reactions kept)
 //   node upwork.cjs approved               prints approved, not yet submitted cards as JSON
 //   node upwork.cjs spent                  prints Connects spent today (local date)
 //   node upwork.cjs done <ts> <connects>   marks a card submitted (rocket) and adds to today's spend
@@ -41,8 +42,10 @@ const [cmd, ...args] = process.argv.slice(2);
     return;
   }
 
-  if (cmd === 'post') {
-    const cards = JSON.parse(fs.readFileSync(args[0], 'utf8'));
+  if (cmd === 'post' || cmd === 'update') {
+    // post <cards.json> | update <ts> <cards.json with one card>: update rewrites a card in place (keeps ts, thread, reactions)
+    const file = cmd === 'post' ? args[0] : args[1];
+    const cards = JSON.parse(fs.readFileSync(file, 'utf8'));
     for (const c of cards) {
       const draft = noDash(c.draft);
       const meta = [c.type, c.budget, c.client, c.proposals, `${c.connects} connects`].filter(Boolean).join('  |  ');
@@ -54,11 +57,12 @@ const [cmd, ...args] = process.argv.slice(2);
         blocks.push({ type: 'section', text: { type: 'mrkdwn', text: '*Screening answers*\n' + c.answers.map((a, i) => `A${i + 1}. _${noDash(a.q)}_\n${noDash(a.a)}`).join('\n\n').slice(0, 2900) } });
       }
       blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: '✅ submit  |  ❌ skip  |  thread reply: full new text replaces the draft, a short note gets applied as an instruction, `A1: ...` overrides a screening answer. Then ✅' }] });
-      const r = await slack('chat.postMessage', {
+      const body = {
         channel: CH, text: `Upwork: ${noDash(c.title)}`, blocks, unfurl_links: false,
         metadata: { event_type: 'upwork_proposal', event_payload: { id: c.id, draft, answers: JSON.stringify(c.answers || []) } },
-      });
-      console.log(r.ok ? 'posted ' + c.id : 'FAILED ' + c.id + ' ' + r.error);
+      };
+      const r = cmd === 'post' ? await slack('chat.postMessage', body) : await slack('chat.update', { ...body, ts: args[0] });
+      console.log(r.ok ? cmd + 'ed ' + c.id : 'FAILED ' + c.id + ' ' + r.error);
     }
     return;
   }
@@ -117,5 +121,5 @@ const [cmd, ...args] = process.argv.slice(2);
     return;
   }
 
-  console.log('usage: unseen | mark | post <file> | approved | spent | done <ts> <connects> | fail <ts> <reason>');
+  console.log('usage: unseen | mark | post <file> | update <ts> <file> | approved | spent | done <ts> <connects> | fail <ts> <reason>');
 })();
