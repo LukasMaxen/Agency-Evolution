@@ -14,7 +14,7 @@ Two commands, both triggered manually by Kasper. Uses Claude in Chrome on his lo
 - Batch browser calls with `browser_batch` wherever possible. Close the tab when done.
 - Current budget (set 2026-10-15): **825 Connects over 5 working days = 165 Connects per day, about 6 boosted proposals a day.** Scan posts max **8 cards** so Kasper can pick the best ~6. Submit stops once **today** has spent 165 Connects (tracked by the script across runs). Skip any job costing more than 25 Connects to apply.
 
-Helper script: `node .claude/skills/upwork-proposals/upwork.cjs <cmd>` (Slack channel C0C9JHB59FU, seen list in `~/.upwork-proposals/seen.txt`).
+Helper script: `node .claude/skills/upwork-proposals/upwork.cjs <cmd>`. **Always single-quote job ids** (`'~0221...'`), zsh expands a bare `~` (Slack channel C0C9JHB59FU, seen list in `~/.upwork-proposals/seen.txt`).
 
 Javascript output rule: never return URLs or `key=value` strings from page scripts (the extension blocks the whole result). Every snippet below strips `= ? &` from text it returns via `c()`. If a result still comes back BLOCKED, rerun with shorter slices, never fall back to screenshots.
 
