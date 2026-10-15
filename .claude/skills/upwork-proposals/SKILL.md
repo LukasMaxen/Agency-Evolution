@@ -74,7 +74,7 @@ const body=document.body.innerText, c=x=>(x||'').replace(/[=?&]/g,' ');
  company:c(g('[data-qa="client-company-profile"]').slice(0,200)),
  desc:c(g('[data-test="Description"]').slice(0,1800)),
  history:c((s?.innerText||'').replace(/\s+/g,' ').slice(0,1200)),
- connects:(body.match(/Send a proposal for: (\d+) Connects/)||[])[1],
+ connects:(body.match(/Send a proposal for: (\d+) Connects|Required Connects to submit a proposal: (\d+)/)||[]).slice(1).find(Boolean),
  questions:c((body.match(/answer the following questions[^\n]*\n([\s\S]{0,800}?)(?:\n\s*\n[A-Z]|$)/i)||[])[1]||'')})
 ```
 
