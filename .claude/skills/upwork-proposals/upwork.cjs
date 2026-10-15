@@ -62,7 +62,7 @@ const [cmd, ...args] = process.argv.slice(2);
         metadata: { event_type: 'upwork_proposal', event_payload: { id: c.id, draft, answers: JSON.stringify(c.answers || []) } },
       };
       const r = cmd === 'post' ? await slack('chat.postMessage', body) : await slack('chat.update', { ...body, ts: args[0] });
-      console.log(r.ok ? cmd + 'ed ' + c.id : 'FAILED ' + c.id + ' ' + r.error);
+      console.log(r.ok ? (cmd === 'post' ? 'posted ' : 'updated ') + c.id : 'FAILED ' + c.id + ' ' + r.error);
     }
     return;
   }
