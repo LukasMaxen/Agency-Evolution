@@ -76,6 +76,25 @@ const body=document.body.innerText;
 
 Drop if hire rate is under 50% (a new client with 0 hires is OK only if spend and description are strong), or if the full description shows a poor fit or a budget too small to afford us.
 
+### 3b. Website check (only for jobs still in after 3)
+
+Find the company website: a domain or company name in `desc` or `client` (company profile). If a domain is found, open it and run ONE read:
+```js
+await new Promise(r=>setTimeout(r,2000));
+({title:document.title, meta:document.querySelector('meta[name="description"]')?.content||'', text:document.body.innerText.replace(/\s+/g,' ').slice(0,1500)})
+```
+No domain findable → do not guess or search. Mark website "not verified".
+
+### 3c. ICP score (Kasper's 5 criteria, score each 1 to 5)
+
+1. **Lead acquisition intent:** they want new B2B customers/meetings/pipeline from outbound, not a tool setup, copy-only, list-only or a staff hire.
+2. **Big TAM:** thousands of reachable B2B buyers (e.g. SaaS selling to SMBs, agencies, M&A, IT/ops services). Niche local or tiny markets score low.
+3. **Can pay:** client spend, budget/rate, company size, deal value implied by the offer. Must comfortably afford a premium done-for-you service.
+4. **Strong website:** professional, clear, credible (real product, clients, proof). "Not verified" = 3 at most, and the card must say so.
+5. **GREAT offer:** clear, specific, high-value outcome for a defined buyer, with proof or a reason to buy now. Vague "we do marketing" or commodity offers score low.
+
+**Gates:** drop if criterion 1 or 3 is below 4, or ANY criterion is 2 or lower, or the total is under 18/25. Rank by total. Put the scores in the card's `why` line, e.g. `Intent 5 · TAM 4 · Pay 5 · Site 4 · Offer 4 = 22`, plus one short reason.
+
 **Client first name:** look in `history` for freelancer reviews that name the client ("working with Chris", "Thanks Sarah"). Only use a name that clearly refers to the client. If unsure, no name.
 
 ### 4. Draft (max 8)
