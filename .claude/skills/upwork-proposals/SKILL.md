@@ -12,7 +12,7 @@ Two commands, both triggered manually by Kasper. Uses Claude in Chrome on his lo
 - Do not read client files, memory files or other docs for this skill. Everything needed is in this file.
 - No logging beyond the seen list the script keeps. No reports, no summaries beyond a few lines at the end.
 - Batch browser calls with `browser_batch` wherever possible. Close the tab when done.
-- Hard cap: **3 cards per scan** (budget: about 650 Connects a month, roughly 1 to 2 submits a day). Skip any job costing more than 20 Connects to apply.
+- Current budget (set 2026-10-15): **825 Connects over 5 working days = 165 Connects per day, about 6 boosted proposals a day.** Scan posts max **8 cards** so Kasper can pick the best ~6. Submit stops once this run has spent 165 Connects. Skip any job costing more than 25 Connects to apply.
 
 Helper script: `node .claude/skills/upwork-proposals/upwork.cjs <cmd>` (Slack channel C0C9JHB59FU, seen list in `~/.upwork-proposals/seen.txt`).
 
@@ -78,7 +78,7 @@ Drop if hire rate is under 50% (a new client with 0 hires is OK only if spend an
 
 **Client first name:** look in `history` for freelancer reviews that name the client ("working with Chris", "Thanks Sarah"). Only use a name that clearly refers to the client. If unsure, no name.
 
-### 4. Draft (max 3)
+### 4. Draft (max 8)
 
 Pick the template below that best fits the post (rotate, do not use the same one for every card). Rules:
 - Opener: `Hi <FirstName>, I'm Kasper.` when a name was found, otherwise `Hi, I'm Kasper.`
@@ -187,8 +187,8 @@ const b=document.body.innerText;
    - Screening question textareas (if `textareas` > 1): fill in order with the card's answers the same way. If any answer is `[KASPER TO ANSWER]` → `fail` with "needs Kasper's answer" and skip this job.
    - Rate/bid field: leave whatever Upwork prefilled. Never type a price.
    - Fixed-price jobs: choose "By project", and if a duration select is required pick "1 to 3 months". Use `find` + click for these, no screenshots.
-   - **Boost** only if the client has spent $10K+ AND hire rate is 60%+; otherwise no boost. Target 4th place. If the boost text shows a bid for 4th place, set bid = that + 1. If fewer than 4 bids exist, bid the minimum Upwork shows. Skip boosting if the bid would be over 10 Connects. Click "Set bid" after typing.
-   - Check `send` + boost ≤ `balance`. If not → `fail` with "not enough connects" and stop the whole run.
+   - **Boost every submitted proposal** (Kasper approved each one). Target 4th place. If the boost text shows a bid for 4th place, set bid = that + 1. If fewer than 4 bids exist, bid the minimum Upwork shows. Skip boosting if the bid would be over 10 Connects. Click "Set bid" after typing.
+   - Keep a running total of Connects spent this run (send + boost). If the next one would push it over 165, stop the run and leave the rest approved for tomorrow. Check `send` + boost ≤ `balance`. If not → `fail` with "not enough connects" and stop the whole run.
 4. Click the "Send for N Connects" button (`find` it, then click). Then verify with one JS read that the page shows a confirmation or navigated away from `/apply/`. If a captcha, login or unexpected dialog appears, take ONE screenshot, `fail` the card with what you saw, and stop the run so Kasper can handle it.
 5. On success: `upwork.cjs done <ts>`.
 6. Close the tab and reply in 2 lines max: submitted N, failed N (with reasons), connects left.
