@@ -27,7 +27,7 @@ Javascript output rule: never return URLs or `key=value` strings from page scrip
 Base URL, swap in each query:
 `https://www.upwork.com/nx/search/jobs/?q=QUERY&contractor_tier=3&payment_verified=1&proposals=0-4,5-9,10-14,15-19,20-49&sort=recency&per_page=50`
 
-Queries: `cold%20email`, `lead%20generation`, `appointment%20setting`, `outbound%20sales`
+Queries (12): `cold%20email`, `lead%20generation`, `appointment%20setting`, `outbound%20sales`, `b2b%20lead%20generation`, `book%20meetings`, `sales%20meetings`, `outbound%20agency`, `cold%20outreach`, `linkedin%20outreach`, `sdr`, `pipeline%20generation`. Run them all in ONE `browser_batch` (navigate + snippet per query).
 
 On each page run this (it waits for load, applies the hard filters, returns compact rows):
 
