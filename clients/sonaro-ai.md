@@ -367,3 +367,9 @@ When compliance is raised, always state: we operate fully in line with GDPR and 
 Never mention a 30-day free trial in any reply — Sonaro AI does not offer one.
 
 _Reviewer notes: there is no 30 day free trial, dont ever mention that._
+
+### 2026-10-15: Send-time learning from dominik
+
+When explaining the pricing model, clarify that clients pay only a fraction (percentage) on the EXTRA/incremental bookings Sonaro generates for them — not on all bookings. There is no trial period and no upfront costs. This distinction is important: the client only pays on the additional revenue Sonaro creates, making it zero-risk.
+
+_Reviewer notes: Theres no trial period. They pay only a fraction on the extra bookings that we get them. No upfront costs_
