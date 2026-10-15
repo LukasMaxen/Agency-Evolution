@@ -71,12 +71,19 @@ const [cmd, ...args] = process.argv.slice(2);
     for (const m of (h.messages || []).reverse()) { // oldest first, so older approvals go out first
       if (m.metadata?.event_type !== 'upwork_proposal') continue;
       const rx = (m.reactions || []).map(r => r.name);
-      if (!rx.some(r => APPROVE.has(r)) || rx.some(r => STOP.has(r))) continue;
+      if (!rx.some(r => APPROVE.has(r)) || rx.some(r => r !== 'warning' && STOP.has(r))) continue;
       const p = m.metadata.event_payload;
       const answers = JSON.parse(p.answers || '[]');
       let text = p.draft; const notes = [];
+      if (rx.includes('warning') && !m.reply_count) continue;
       if (m.reply_count) {
         const t = await slack('conversations.replies', { channel: CH, ts: m.ts });
+        // a failed card (warning) is retried only once Kasper has replied after the last failure note
+        if (rx.includes('warning')) {
+          const msgs = (t.messages || []).slice(1);
+          const lastFail = Math.max(0, ...msgs.filter(x => x.bot_id).map(x => +x.ts));
+          if (!msgs.some(x => !x.bot_id && +x.ts > lastFail)) continue;
+        }
         for (const x of (t.messages || []).slice(1).filter(x => !x.bot_id && x.text)) {
           const body = unslack(x.text).trim();
           if (/^A\d+:/.test(body)) {
