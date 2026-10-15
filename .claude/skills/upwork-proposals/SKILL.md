@@ -27,7 +27,9 @@ Javascript output rule: never return URLs or `key=value` strings from page scrip
 Base URL, swap in each query:
 `https://www.upwork.com/nx/search/jobs/?q=QUERY&contractor_tier=3&payment_verified=1&proposals=0-4,5-9,10-14,15-19,20-49&sort=recency&per_page=50`
 
-Queries (12): `cold%20email`, `lead%20generation`, `appointment%20setting`, `outbound%20sales`, `b2b%20lead%20generation`, `book%20meetings`, `sales%20meetings`, `outbound%20agency`, `cold%20outreach`, `linkedin%20outreach`, `sdr`, `pipeline%20generation`. Run them all in ONE `browser_batch` (navigate + snippet per query).
+Queries (11): `cold%20email`, `lead%20generation`, `appointment%20setting`, `outbound%20sales`, `b2b%20lead%20generation`, `book%20meetings`, `sales%20meetings`, `outbound%20agency`, `cold%20outreach`, `linkedin%20outreach`, `sdr`. Run them all in ONE `browser_batch` (navigate + snippet per query).
+
+**Cheap mode:** on the FIRST page, wrap the snippet below in an async IIFE string, save it with `localStorage.setItem('upwScan', SRC)` and run `await eval(SRC)`; on every later page just run `await eval(localStorage.getItem('upwScan'))`. Add a `SEEN` id list inside the snippet (from `~/.upwork-proposals/seen.txt`, ids without `~`) so seen jobs never come back. An empty `[]` is normal when nothing new passed.
 
 On each page run this (it waits for load, applies the hard filters, returns compact rows):
 
