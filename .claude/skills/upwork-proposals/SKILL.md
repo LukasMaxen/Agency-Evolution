@@ -94,7 +94,7 @@ No domain findable → do not guess or search. Mark website "not verified". Only
 
 1. **Lead acquisition intent:** they want new B2B customers/meetings/pipeline from outbound, not a tool setup, copy-only, list-only or a staff hire.
 2. **Big TAM:** thousands of reachable B2B buyers (e.g. SaaS selling to SMBs, agencies, M&A, IT/ops services). Niche local or tiny markets score low.
-3. **Can pay:** client spend, budget/rate, company size, deal value implied by the offer. Must comfortably afford a premium done-for-you service.
+3. **Can pay:** passing the $10K+ spend filter is enough evidence (Kasper's rule). Do NOT penalize low average hourly rate paid, low pilot budgets or early stage. Score 4 by default; 5 for $100K+ spend; below 4 only if the post itself says there is no budget (commission-only, unpaid, equity-only).
 4. **Strong website:** professional, clear, credible (real product, clients, proof). "Not verified" = 3 at most, and the card must say so.
 5. **GREAT offer:** clear, specific, high-value outcome for a defined buyer, with proof or a reason to buy now. Vague "we do marketing" or commodity offers score low.
 
