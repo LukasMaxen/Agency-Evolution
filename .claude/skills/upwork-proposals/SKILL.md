@@ -24,6 +24,8 @@ Javascript output rule: never return URLs or `key=value` strings from page scrip
 
 ### 1. Search (one page per query, Upwork does the first filtering)
 
+**Login check first (always):** on the first search page run `({out:/Log in/.test(document.querySelector('header')?.innerText||''), n:document.querySelectorAll('article').length})`. If `out` is true, or `n` is 0 on a query that normally has results, STOP: tell Kasper Upwork is logged out in Chrome and to log in himself, then rerun. Never type credentials. An empty result list is only trusted when `n` > 0.
+
 Base URL, swap in each query:
 `https://www.upwork.com/nx/search/jobs/?q=QUERY&contractor_tier=3&payment_verified=1&proposals=0-4,5-9,10-14,15-19,20-49&sort=recency&per_page=50`
 
