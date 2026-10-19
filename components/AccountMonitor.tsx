@@ -7,6 +7,7 @@ import {
   Settings, Info, Zap, Tag, Calendar, Shield, AlertCircle,
 } from "lucide-react";
 import { useWorkspaces, findWorkspace } from "@/lib/workspaces-context";
+import { timeAgo } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -918,7 +919,31 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
     setLocalAccounts(prev => ({ ...prev, [acc.sender_email]: { ...(prev[acc.sender_email] ?? acc), ...patch } }));
   }
 
+  // Optimistic: the row moves tabs the moment you click, EmailBison does its
+  // part behind it. If EB rejects any step the row is put back and the error
+  // says which step failed. The spinner stays on the row until EB answers.
   async function runAction(senderEmail: string, action: "pause_outbound_and_warmup" | "attach_to_all" | "enable_warmup") {
+    const acc         = ws.accounts.find(a => a.sender_email === senderEmail);
+    const prevLocal   = localAccounts[senderEmail];
+    const wasInPaused = pausedSet.has(senderEmail);
+    if (action === "pause_outbound_and_warmup") {
+      setPausedSet(prev => new Set([...prev, senderEmail]));
+      patchLocal(acc, { warming_since: new Date().toISOString(), warmup_enabled: true });
+    } else if (action === "attach_to_all") {
+      setPausedSet(prev => { const s = new Set(prev); s.delete(senderEmail); return s; });
+      patchLocal(acc, { warming_since: null });
+    } else {
+      patchLocal(acc, { warmup_enabled: true });
+    }
+    const revert = () => {
+      setPausedSet(prev => { const s = new Set(prev); if (wasInPaused) s.add(senderEmail); else s.delete(senderEmail); return s; });
+      setLocalAccounts(prev => {
+        const next = { ...prev };
+        if (prevLocal) next[senderEmail] = prevLocal; else delete next[senderEmail];
+        return next;
+      });
+    };
+
     setLoadingMap(prev => ({ ...prev, [senderEmail]: action }));
     try {
       const res = await fetch("/api/account-monitor/action", {
@@ -928,24 +953,20 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
+        revert();
         const detail = data.error ?? [data.throttle_error && `daily limit: ${data.throttle_error}`, data.resume_error && `daily limit: ${data.resume_error}`, data.warmup?.startsWith?.("failed") && `warmup ${data.warmup}`, data.warmup_limit?.startsWith?.("failed") && `warmup limit ${data.warmup_limit}`, data.failed && `${data.failed} campaign attach(es) failed`].filter(Boolean).join("; ");
         onActionDone(`${senderEmail}: ${detail || "Action failed"}`, "error");
         return;
       }
-      const acc = ws.accounts.find(a => a.sender_email === senderEmail);
       if (action === "pause_outbound_and_warmup") {
-        setPausedSet(prev => new Set([...prev, senderEmail]));
-        patchLocal(acc, { warming_since: new Date().toISOString(), warmup_enabled: true });
         onActionDone(`${senderEmail}: paused outbound, warmup enabled.`, "success");
       } else if (action === "attach_to_all") {
-        setPausedSet(prev => { const s = new Set(prev); s.delete(senderEmail); return s; });
-        patchLocal(acc, { warming_since: null });
         onActionDone(`${senderEmail}: re-added to all campaigns.`, "success");
       } else {
-        patchLocal(acc, { warmup_enabled: true });
         onActionDone(`${senderEmail}: warmup enabled.`, "success");
       }
     } catch (err: any) {
+      revert();
       onActionDone(err.message ?? "Network error", "error");
     } finally {
       setLoadingMap(prev => ({ ...prev, [senderEmail]: null }));
@@ -1298,7 +1319,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
 export function AccountMonitor() {
   const workspaces = useWorkspaces();
   const [days, setDays]       = useState(10);
-  const [data, setData]       = useState<{ workspaces: WorkspaceData[]; summary: Summary } | null>(null);
+  const [data, setData]       = useState<{ workspaces: WorkspaceData[]; summary: Summary; lastSynced?: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const [selected, setSelected] = useState<WorkspaceData | null>(null);
@@ -1363,6 +1384,11 @@ export function AccountMonitor() {
             {selectedWs
               ? `${resolveWsName(workspaces, selectedWs.slug)}, sending domains`
               : "Sender-level connection, spam, and reply rate monitoring across all workspaces"}
+            {data?.lastSynced && (
+              <span title={`Synced from EmailBison ${new Date(data.lastSynced).toLocaleString()}. Stale workspaces refresh in the background.`}>
+                {` · data as of ${timeAgo(new Date(data.lastSynced))}`}
+              </span>
+            )}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { checkMxMissing } from "@/lib/dns-mx-cache";
-import { ensureFresh, getFreshness, getVisibleWorkspaceSlugs } from "@/lib/account-monitor-sync";
+import { ensureFreshInBackground, getFreshness, getVisibleWorkspaceSlugs } from "@/lib/account-monitor-sync";
 
 // GET /api/account-monitor?days=7&workspace=all
 //
@@ -202,11 +202,12 @@ export async function GET(req: NextRequest) {
   const T = volumeThresholds(days);
 
   try {
-    // Never serve a window from stale data. Normally a no-op (the scheduler
-    // keeps everything current); if a workspace has aged past its limit it is
-    // refreshed here first.
+    // Serve what is already synced and refresh any stale workspace in the
+    // background (the 15-min scheduler normally keeps everything current).
+    // Blocking on this made every reload wait up to 45s on EmailBison. The
+    // response carries lastSynced so the page shows how old the data is.
     const visibleSlugs = await getVisibleWorkspaceSlugs();
-    await ensureFresh([...visibleSlugs]);
+    ensureFreshInBackground([...visibleSlugs]);
 
     const wsFilter   = workspace !== "all" ? "AND es.workspace_slug = $2" : "";
     const wsFilterR  = workspace !== "all" ? "AND workspace_slug = $2" : "";

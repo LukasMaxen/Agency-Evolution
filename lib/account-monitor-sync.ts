@@ -138,3 +138,14 @@ export async function ensureFresh(slugs: string[]): Promise<void> {
     new Promise(resolve => setTimeout(resolve, 45_000)),
   ]);
 }
+
+// Non-blocking variant for the dashboard read: the page is served from what is
+// already synced (with its "data as of" time) while stale workspaces refresh
+// behind it. One run at a time, so repeated reloads don't stack EmailBison syncs.
+let backgroundRefresh: Promise<void> | null = null;
+export function ensureFreshInBackground(slugs: string[]): void {
+  if (backgroundRefresh) return;
+  backgroundRefresh = ensureFresh(slugs)
+    .catch(err => console.error("[account-monitor-sync] background refresh failed:", err))
+    .finally(() => { backgroundRefresh = null; });
+}
