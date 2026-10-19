@@ -901,13 +901,21 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
   const [tab, setTab] = useState<"active" | "warming">("active");
   const [domainBatch, setDomainBatch] = useState<Record<string, "pause_outbound_and_warmup" | null>>({});
 
-  const isWarming = (a: Account) => a.emails_sent === 0;
-  const isActive  = (a: Account) => a.emails_sent > 0;
+  function resolveAccount(acc: Account): Account {
+    return localAccounts[acc.sender_email] ? { ...acc, ...localAccounts[acc.sender_email] } : acc;
+  }
+
+  // Paused = outbound throttled + warmup on. warming_since is the DB-backed
+  // marker (survives reloads); pausedSet covers the moment before a refetch.
+  const isPausedAcc = (a: Account) => pausedSet.has(a.sender_email) || !!resolveAccount(a).warming_since;
+  const isWarming = (a: Account) => isPausedAcc(a) || a.emails_sent === 0;
+  const isActive  = (a: Account) => !isWarming(a);
   const activeCount  = ws.accounts.filter(isActive).length;
   const warmingCount = ws.accounts.filter(isWarming).length;
 
-  function resolveAccount(acc: Account): Account {
-    return localAccounts[acc.sender_email] ? { ...acc, ...localAccounts[acc.sender_email] } : acc;
+  function patchLocal(acc: Account | undefined, patch: Partial<Account>) {
+    if (!acc) return;
+    setLocalAccounts(prev => ({ ...prev, [acc.sender_email]: { ...(prev[acc.sender_email] ?? acc), ...patch } }));
   }
 
   async function runAction(senderEmail: string, action: "pause_outbound_and_warmup" | "attach_to_all" | "enable_warmup") {
@@ -920,16 +928,21 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        onActionDone(data.error ?? "Action failed", "error");
+        const detail = data.error ?? [data.throttle_error && `daily limit: ${data.throttle_error}`, data.resume_error && `daily limit: ${data.resume_error}`, data.warmup?.startsWith?.("failed") && `warmup ${data.warmup}`, data.warmup_limit?.startsWith?.("failed") && `warmup limit ${data.warmup_limit}`, data.failed && `${data.failed} campaign attach(es) failed`].filter(Boolean).join("; ");
+        onActionDone(`${senderEmail}: ${detail || "Action failed"}`, "error");
         return;
       }
+      const acc = ws.accounts.find(a => a.sender_email === senderEmail);
       if (action === "pause_outbound_and_warmup") {
         setPausedSet(prev => new Set([...prev, senderEmail]));
+        patchLocal(acc, { warming_since: new Date().toISOString(), warmup_enabled: true });
         onActionDone(`${senderEmail}: paused outbound, warmup enabled.`, "success");
       } else if (action === "attach_to_all") {
         setPausedSet(prev => { const s = new Set(prev); s.delete(senderEmail); return s; });
+        patchLocal(acc, { warming_since: null });
         onActionDone(`${senderEmail}: re-added to all campaigns.`, "success");
       } else {
+        patchLocal(acc, { warmup_enabled: true });
         onActionDone(`${senderEmail}: warmup enabled.`, "success");
       }
     } catch (err: any) {
@@ -940,7 +953,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
   }
 
   async function runDomainBatch(domain: string, accounts: Account[], action: "pause_outbound_and_warmup") {
-    const eligible = accounts.filter(a => !pausedSet.has(a.sender_email));
+    const eligible = accounts.filter(a => !isPausedAcc(a));
     if (eligible.length === 0) { onActionDone(`No active senders left to act on in ${domain}.`, "error"); return; }
 
     const senderIds = eligible.map(a => a.eb_sender_id).filter(Boolean) as number[];
@@ -1118,7 +1131,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                     <td style={{ padding: "8px 10px", textAlign: "center" }} onClick={e => e.stopPropagation()}>
                       {(() => {
                         const batchAction = domainBatch[dom.domain];
-                        const eligible    = sortedAccounts.filter(a => !pausedSet.has(a.sender_email));
+                        const eligible    = sortedAccounts.filter(a => !isPausedAcc(a));
                         const isRed   = dom.status === "burned" || dom.status === "critical_low_replies";
                         const isAmber = dom.status === "list_issue";
 
@@ -1168,7 +1181,7 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                   {/* Account rows */}
                   {isDomExpanded && sortedAccounts.map((rawAcc, aIdx) => {
                     const acc         = resolveAccount(rawAcc);
-                    const isPaused    = pausedSet.has(acc.sender_email);
+                    const isPaused    = isPausedAcc(rawAcc);
                     const isExpanded  = expandedEmail === acc.sender_email;
                     const loadingAct  = loadingMap[acc.sender_email] ?? null;
                     const isLoading   = loadingAct !== null;
@@ -1240,11 +1253,14 @@ function DomainTable({ ws, days, onBack, onActionDone }: {
                                 ) : <span style={{ color: "#9ca3af", fontSize: 11 }}>Reconnect in EmailBison</span>;
                               })() : isPaused ? (
                                 <ActionButton label="Re-add to campaigns" icon={Wifi} onClick={() => runAction(acc.sender_email, "attach_to_all")} loading={isLoading && loadingAct === "attach_to_all"} variant="success" disabled={isLoading} />
-                              ) : (acc.status === "burned" || acc.status === "critical_low_replies" || acc.status === "list_issue") ? (
-                                <ActionButton label="Pause + warmup" icon={Flame} onClick={() => runAction(acc.sender_email, "pause_outbound_and_warmup")} loading={isLoading && loadingAct === "pause_outbound_and_warmup"} variant="warmup" disabled={isLoading} />
-                              ) : acc.warmup_enabled === false ? (
-                                <ActionButton label="Enable warmup" icon={Wifi} onClick={() => runAction(acc.sender_email, "enable_warmup")} loading={isLoading && loadingAct === "enable_warmup"} variant="success" disabled={isLoading} />
-                              ) : null}
+                              ) : (
+                                <>
+                                  <ActionButton label="Pause + warmup" icon={Flame} onClick={() => runAction(acc.sender_email, "pause_outbound_and_warmup")} loading={isLoading && loadingAct === "pause_outbound_and_warmup"} variant="warmup" disabled={isLoading} />
+                                  {acc.warmup_enabled === false && (
+                                    <ActionButton label="Enable warmup" icon={Wifi} onClick={() => runAction(acc.sender_email, "enable_warmup")} loading={isLoading && loadingAct === "enable_warmup"} variant="success" disabled={isLoading} />
+                                  )}
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>
