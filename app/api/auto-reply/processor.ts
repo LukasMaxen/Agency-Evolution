@@ -647,6 +647,25 @@ function isNoActionReply(message: string): boolean {
  * not started receiving replies as of 2026-08-13) — treat as best-effort until confirmed
  * against live traffic.
  */
+/**
+ * Internal Campaigns sender persona for one thread. Campaign names carry it for the
+ * per-person campaigns ("Marketing Agencies (Kasper Accounts)" / "(Lukas Accounts)");
+ * otherwise the signature on the cold email we sent, then the sender address.
+ */
+function resolveInternalSender(campaign: string | null | undefined, coldEmailBody: string | null | undefined, senderEmail: string | null | undefined): "kasper" | "lukas" | null {
+  const c = String(campaign ?? "");
+  if (/kasper/i.test(c)) return "kasper";
+  if (/lukas/i.test(c)) return "lukas";
+  const cold = String(coldEmailBody ?? "");
+  const kasperSig = /kasper\s+zacho/i.test(cold), lukasSig = /lukas\s+maxen/i.test(cold);
+  if (kasperSig && !lukasSig) return "kasper";
+  if (lukasSig && !kasperSig) return "lukas";
+  const local = String(senderEmail ?? "").toLowerCase().split("@")[0];
+  if (/kasper|kzacho/.test(local)) return "kasper";
+  if (/lukas/.test(local)) return "lukas";
+  return null;
+}
+
 function isBustemReply(campaign: string | null | undefined, subject: string, message: string, coldEmailBody?: string | null): boolean {
   const text = `${campaign ?? ""}\n${subject ?? ""}\n${message ?? ""}\n${coldEmailBody ?? ""}`.toLowerCase();
   return (
@@ -1878,10 +1897,23 @@ USE THE HOOK LINE ABOVE, NOT THE CATEGORY OR EXIT SIGNALS LINES. The HOOK line i
     ? `SENDER OVERRIDE (this is an Acceler8rs account, sender is Lukas Maxen himself): NEVER write a hand-off line such as "I'll set you up with Lukas Maxen", "our Head of Corporate Development", or "he handles all of our M&A and capital markets conversations" — you cannot hand a call off to yourself. When the M&A / sell-side Calendly link applies, frame it directly in the first person and send the link, with NO third-person reference to Lukas. Every other rule, all wording, and all case studies still apply unchanged.\n\n`
     : "";
 
+  // Internal Campaigns (Agency Evolution) sends from two people: Lukas Maxen accounts
+  // (call is handed to Kasper) and Kasper Zacho accounts (Kasper IS the sender and takes
+  // the call himself). The client file's "the call will be with Kasper Zacho" line is only
+  // right for Lukas threads. Will Foley, 2026-10-19: a Kasper-sent thread got "The call
+  // would be with Kasper Zacho, our CEO". Resolve the sender per thread: campaign name
+  // first, then the signature on the cold email we actually sent, then the sender address.
+  const internalSender = workspaceSlug === "internal-campaigns" ? resolveInternalSender(reply.campaign, coldEmailBody, reply.sender_email) : null;
+  const internalSenderOverride = internalSender === "kasper"
+    ? `SENDER OVERRIDE (this thread was sent by Kasper Zacho himself, check the cold email signature): Kasper runs Agency Evolution and takes the call himself. Write in the first person as Kasper. NEVER mention Kasper in the third person: no "the call would be with Kasper Zacho", no "our CEO", no "he'll be the one running your campaigns", no hand-off line of any kind. Frame the call in the first person, e.g. "I usually do an informal 30 minute call, just to see whether we're able to help you." This overrides every Kasper-line rule in REPLY QUICK REFERENCE.\n\n`
+    : internalSender === "lukas"
+    ? `SENDER OVERRIDE (this thread was sent by Lukas Maxen, check the cold email signature): write in the first person as Lukas. The call is with Kasper Zacho, not Lukas, so use the Kasper line from REPLY QUICK REFERENCE when sharing the link. Never write anything that implies Lukas joins the call, such as "we can go through that on a call with Kasper".\n\n`
+    : "";
+
   const userMessage = `REPLY QUICK REFERENCE:
 ${quickRef}
 
-${accelerSenderOverride}${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${ccBlock}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
+${accelerSenderOverride}${internalSenderOverride}${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${ccBlock}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
 ${threadHistory}
 
 INBOUND REPLY TO RESPOND TO:
@@ -2265,6 +2297,13 @@ ${messageText.slice(0, 8000)}`;
   // (2026-07-10 instruction: "we do not want them on a call"). Force any reply-worthy
   // Dealgen draft to #manual-replies for a human. Hard-close intents already closed
   // silently above, so this only catches interested/needs_info/neutral auto-sends.
+  // Backstop for the sender override above: a Kasper-sent thread must never hand the
+  // call off to Kasper in the third person. Park it for a human instead of sending.
+  if (internalSender === "kasper" && result.action === "auto_send" && /kasper zacho|\bwith kasper\b|\bour ceo\b|\bhe'll be the one\b/i.test(result.reply_body ?? "")) {
+    result.action = "manual";
+    result.manual_reason = "Kasper is the sender on this thread, but the draft referred to Kasper in the third person. Rewrite in the first person before sending.";
+    console.log(`[auto-reply] Kasper-sender third-person handoff caught, routed to manual for ${replyId}`);
+  }
   if (/dealgen/i.test((reply.campaign ?? "").toString()) && result.action === "auto_send") {
     result.action = "manual";
     result.manual_reason = result.manual_reason ?? "Dealgen Partners campaign: no call or calendar link. Human handles this lead directly.";
