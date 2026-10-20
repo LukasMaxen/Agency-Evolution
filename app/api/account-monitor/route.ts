@@ -212,7 +212,6 @@ export async function GET(req: NextRequest) {
     const wsFilter   = workspace !== "all" ? "AND es.workspace_slug = $2" : "";
     const wsFilterR  = workspace !== "all" ? "AND workspace_slug = $2" : "";
     const wsFilterB  = workspace !== "all" ? "AND eb.workspace_slug = $2" : "";
-    const wsFilterSnap = workspace !== "all" ? "AND workspace_slug = $2" : "";
     const params: (number | string)[] = [days];
     if (workspace !== "all") params.push(workspace);
 
@@ -260,24 +259,33 @@ export async function GET(req: NextRequest) {
         -- 0 (blanks every rate column, since reply/bounce/burn rate is a
         -- percentage OF sends) or the sender's full lifetime total (a
         -- wildly inflated one-time spike on rollout day).
+        --
+        -- Both lookups are per active sender via LATERAL so they ride
+        -- idx_sender_stats_snapshots_lookup (workspace_slug, sender_email,
+        -- snapshot_at DESC). The table gets a row per sender every 15 min
+        -- and is never pruned; the old DISTINCT ON (sender_email,
+        -- workspace_slug) form could not use that index and sorted the
+        -- whole table on every page load, which made this tab take 7-30s.
         SELECT
-          latest.sender_email,
-          latest.workspace_slug,
+          sa.sender_email,
+          sa.workspace_slug,
           (baseline.emails_sent_count IS NOT NULL) AS has_baseline,
           GREATEST(latest.emails_sent_count - COALESCE(baseline.emails_sent_count, 0), 0)::int AS emails_sent
-        FROM (
-          SELECT DISTINCT ON (sender_email, workspace_slug)
-            sender_email, workspace_slug, emails_sent_count
-          FROM sender_stats_snapshots
-          WHERE emails_sent_count IS NOT NULL
-            ${wsFilterSnap}
-          ORDER BY sender_email, workspace_slug, snapshot_at DESC
-        ) latest
+        FROM active_senders sa
+        JOIN LATERAL (
+          SELECT s1.emails_sent_count
+          FROM sender_stats_snapshots s1
+          WHERE s1.workspace_slug    = sa.workspace_slug
+            AND s1.sender_email      = sa.sender_email
+            AND s1.emails_sent_count IS NOT NULL
+          ORDER BY s1.snapshot_at DESC
+          LIMIT 1
+        ) latest ON TRUE
         LEFT JOIN LATERAL (
           SELECT s2.emails_sent_count
           FROM sender_stats_snapshots s2
-          WHERE s2.sender_email      = latest.sender_email
-            AND s2.workspace_slug    = latest.workspace_slug
+          WHERE s2.sender_email      = sa.sender_email
+            AND s2.workspace_slug    = sa.workspace_slug
             AND s2.emails_sent_count IS NOT NULL
             AND s2.snapshot_at      <= DATE_TRUNC('day', NOW()) - ($1 || ' days')::interval
           ORDER BY s2.snapshot_at DESC
@@ -461,11 +469,34 @@ export async function GET(req: NextRequest) {
       ORDER BY sa.workspace_slug ASC, COALESCE(sc.emails_sent, 0) DESC
     `;
 
-    const result = await pool.query(sql, params);
-
-    const syncResult = await pool.query(
-      `SELECT MAX(synced_at) AS last_synced FROM sender_accounts`
+    // The follow-up reads below don't depend on the main query, so they are
+    // started now and run alongside it instead of one round-trip at a time.
+    const dailyStatsPromise = pool.query(
+      `SELECT workspace_slug, sender_email,
+              SUM(sent)::int AS sent, SUM(bounced)::int AS bounced, SUM(replied)::int AS replied,
+              SUM(interested)::int AS interested
+         FROM sender_daily_stats
+        WHERE date >= (CURRENT_DATE - ($1 || ' days')::interval)
+          ${workspace !== "all" ? "AND workspace_slug = $2" : ""}
+        GROUP BY workspace_slug, sender_email`,
+      workspace !== "all" ? [days, workspace] : [days]
     );
+    const cacheFreshPromise = pool.query(
+      `SELECT workspace_slug, (MAX(date) >= CURRENT_DATE - 1) AS fresh
+         FROM sender_daily_stats
+        ${workspace !== "all" ? "WHERE workspace_slug = $1" : ""}
+        GROUP BY workspace_slug`,
+      workspace !== "all" ? [workspace] : []
+    );
+    const winPromise = pool.query(`SELECT (CURRENT_DATE - $1::int)::text AS start, CURRENT_DATE::text AS "end"`, [days]);
+    // If an earlier await throws, these would reject unobserved; the real
+    // awaits further down still see the error.
+    for (const p of [dailyStatsPromise, cacheFreshPromise, winPromise]) p.catch(() => {});
+
+    const [result, syncResult] = await Promise.all([
+      pool.query(sql, params),
+      pool.query(`SELECT MAX(synced_at) AS last_synced FROM sender_accounts`),
+    ]);
     const lastSynced = syncResult.rows[0]?.last_synced ?? null;
 
     // Warmup trend: current-vs-prior-period score delta, sourced from
@@ -636,16 +667,7 @@ export async function GET(req: NextRequest) {
     // the reply-management inbox workflow, not for a complete send-level
     // event log, so most replies never get a sender_email attached to
     // them there. EB's campaign-events/stats has no such gap.
-    const dailyStatsRes = await pool.query(
-      `SELECT workspace_slug, sender_email,
-              SUM(sent)::int AS sent, SUM(bounced)::int AS bounced, SUM(replied)::int AS replied,
-              SUM(interested)::int AS interested
-         FROM sender_daily_stats
-        WHERE date >= (CURRENT_DATE - ($1 || ' days')::interval)
-          ${workspace !== "all" ? "AND workspace_slug = $2" : ""}
-        GROUP BY workspace_slug, sender_email`,
-      workspace !== "all" ? [days, workspace] : [days]
-    );
+    const dailyStatsRes = await dailyStatsPromise;
     const dailyStatsByKey: Record<string, { sent: number; bounced: number; replied: number; interested: number }> = {};
     for (const r of dailyStatsRes.rows) {
       dailyStatsByKey[`${r.workspace_slug}::${r.sender_email.toLowerCase()}`] = { sent: r.sent, bounced: r.bounced, replied: r.replied, interested: r.interested };
@@ -658,13 +680,7 @@ export async function GET(req: NextRequest) {
     // rates. Stale workspaces (only possible if the in-process refresh above
     // failed) fall back to the snapshot/legacy numbers and are flagged in
     // the response so the UI says so.
-    const cacheFreshRes = await pool.query(
-      `SELECT workspace_slug, (MAX(date) >= CURRENT_DATE - 1) AS fresh
-         FROM sender_daily_stats
-        ${workspace !== "all" ? "WHERE workspace_slug = $1" : ""}
-        GROUP BY workspace_slug`,
-      workspace !== "all" ? [workspace] : []
-    );
+    const cacheFreshRes = await cacheFreshPromise;
     const freshBySlug = new Map<string, boolean>(cacheFreshRes.rows.map(r => [r.workspace_slug, r.fresh === true]));
     const staleWorkspaces = [...new Set(accountRows.map(a => a.workspace_slug))]
       .filter(slug => freshBySlug.get(slug) !== true);
@@ -921,7 +937,7 @@ export async function GET(req: NextRequest) {
     // The exact date range this view covers, so the label on screen is the
     // same range the numbers were computed over (calendar dates, both ends
     // included, "today" being the current date so far).
-    const winRes = await pool.query(`SELECT (CURRENT_DATE - $1::int)::text AS start, CURRENT_DATE::text AS "end"`, [days]);
+    const winRes = await winPromise;
     const windowInfo = { days, start: winRes.rows[0].start as string, end: winRes.rows[0].end as string };
 
     // Per-pipeline freshness for everything on screen. `oldestSync` is the
