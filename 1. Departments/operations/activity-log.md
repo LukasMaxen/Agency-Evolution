@@ -4,6 +4,12 @@ Running record of significant actions, decisions, and corrections. Append to the
 
 ---
 
+## 2026-10-20
+
+### ACT Capital auto-reply falsely said "no retainers" (fee claim backstop added)
+
+Kevin Outcalt (ACT) flagged that the 2026-10-19 auto-reply to Ben Bellucci (ben@bba315.com) said ACT works "success-fee basis, no upfront costs, no retainers". False: ACT charges a small monthly service fee/retainer. Ben asked about fees directly, ACT is fully automated, and the client file had no fee facts, so the model invented the answer. Same false claim went to Waqas (waqas@clewpouches.com) on 2026-09-04. Fixes: fee structure fact + "fee questions go to manual" added to ACT quick reference. New global backstop `containsUnconfirmedFeeClaim` in processor.ts blocks any no-retainer/no-upfront/success-fee-only/only-paid-at-close claim to manual unless the client quick reference has `fee_claims_confirmed: true` (only agency-evolution.md has it). Same fabrication had already hit Larsen and Acceler8rs before.
+
 ## 2026-08-26
 
 ### Larsen Digital auto-reply: information-first gate rule added after Nik Mellett incident
