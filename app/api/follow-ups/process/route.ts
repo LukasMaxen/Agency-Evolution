@@ -8,6 +8,7 @@ import {
 } from "@/lib/slack-approval";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
+import { containsUnconfirmedFeeClaim } from "@/lib/fee-claim-guard";
 import { applyCampaignSignoff } from "@/lib/campaign-signoff";
 import {
   daysUntilNextStep,
@@ -367,6 +368,8 @@ NEVER DRAFT IF: the lead said anything resembling not interested, no thanks, not
 
 NEVER REPEAT: any angle, link, case study, or stat already used in the thread.
 
+NEVER DESCRIBE FEES: never say how the client charges (no retainer, no upfront cost, success-fee only, performance-based, "only paid when it closes") unless the client file states it explicitly.
+
 FIRST PERSON: never refer to the sender by name. Always "I", "me", "we".
 
 NO DASHES: no em dashes, en dashes, or hyphens as punctuation.
@@ -465,6 +468,19 @@ Draft FU step ${nextStep} now.`;
   // Signature guard: strip any hand-written sign-off and guarantee exactly one
   // {SENDER_EMAIL_SIGNATURE} at the end so it never doubles EmailBison's resolved signature.
   draft.body = normalizeSignature(draft.body);
+
+  // Unconfirmed fee claim guard (see lib/fee-claim-guard.ts). FUs auto-send with no
+  // review, so a "no retainer / no upfront cost" line the client file does not confirm
+  // never goes out. Retry in 24h with a fresh draft rather than dropping the step.
+  const feeClaim = containsUnconfirmedFeeClaim(draft.body, clientFileRaw);
+  if (feeClaim) {
+    await pool.query(
+      `UPDATE follow_ups SET next_fu_due = NOW() + INTERVAL '24 hours' WHERE id = $1`,
+      [fu.id]
+    );
+    console.warn(`[fu-process] BLOCKED send: unconfirmed fee claim "${feeClaim}" for ${fu.workspace_slug} / ${fu.lead_name} step ${nextStep}, rescheduled 24h`);
+    return { status: "failed", reason: `unconfirmed fee claim: ${feeClaim}` };
+  }
 
   // FU emails auto-send directly — no approval queue.
   const sent = await sendReplyToEmailBison(reply, draft.body);

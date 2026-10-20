@@ -4,6 +4,7 @@
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
 ## REPLY QUICK REFERENCE
+fee_claims_confirmed: true (Sonaro really is 15% per recovered confirmed appointment, no flat fee, no upfront cost. See Fee Model section. Lets the processor fee-claim check pass these claims.)
 campaign_type: ai-clinic-automation
 sender: Manuele Giamminola, Co-founder, Sonaro AI
 sender_email: manuelg@sonaroassist.com

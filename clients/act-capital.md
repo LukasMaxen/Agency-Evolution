@@ -4,6 +4,7 @@
 > When working on any task for this client — sourcing, enrichment, campaign strategy, reply management, or onboarding — read this file first.
 
 ## REPLY QUICK REFERENCE
+fee_questions_to_manual: true (Kevin Outcalt 2026-10-20: ACT charges a monthly service fee, terms not on file. Any lead asking about fees, retainer, commission or upfront cost goes to a human, no draft. Enforced in code.)
 campaign_type: mixed — check campaign name carefully
 sender: Jeff Zanardi, Managing Director, ACT Capital Advisors
 calendly: https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting

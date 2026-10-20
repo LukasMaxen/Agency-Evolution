@@ -22,6 +22,7 @@ import { recordManualCard, closeManualCardsForLead } from "@/lib/manual-card";
 import { getLeadCompanyContext, resolveLeadDomain } from "@/lib/fetch-lead-website";
 import { sanitizeJsonControlChars } from "@/lib/utils";
 import { containsBannedCaseStudy } from "@/lib/banned-case-studies";
+import { containsUnconfirmedFeeClaim, asksAboutOurFees, feeQuestionsToManual } from "@/lib/fee-claim-guard";
 import { weSpokeLast, alreadySentBody, answeredLocallySince } from "@/lib/reply-send-guard";
 import { trackInterestedLead } from "@/lib/airtable-cold-leads";
 import { applyCampaignSignoff, isCheapAssistAEOutreach } from "@/lib/campaign-signoff";
@@ -739,33 +740,6 @@ function isBulkNewsletter(subject: string, message: string): boolean {
  * scheduling asks. Originally Larsen-only (2026-08-13), extended to ACT Capital, GN
  * Motion, and Bustem 2026-08-17.
  */
-/**
- * Detects a draft that describes the client's fee model as free to start: no retainer,
- * no upfront cost, success-fee/commission only, or "we only get paid when it closes".
- * The model reaches for this as a reassuring default for any M&A-shaped client, and it
- * has been false every time it was caught: Larsen, Acceler8rs, and ACT Capital (CLEW
- * Pouches 2026-09-04, bba315 2026-10-19, corrected by ACT's Kevin Outcalt). Only a
- * client file carrying `fee_claims_confirmed: true` in its quick reference may say it.
- */
-function containsUnconfirmedFeeClaim(body: string, quickRef: string): string | null {
-  if (!body || /fee_claims_confirmed:\s*true/i.test(quickRef)) return null;
-  const patterns = [
-    /\bno (?:upfront|up-front|up front) (?:costs?|fees?|payments?)\b/i,
-    /\bno (?:monthly )?retainers?\b/i,
-    /\bnot (?:on )?a retainer\b/i,
-    /\bwithout (?:a |any )?retainer\b/i,
-    /\b(?:success[- ]fee|performance[- ]based|commission)[- ]only\b/i,
-    /\bon a (?:pure |purely )?(?:success[- ]fee|commission|contingency)(?: basis)?\b/i,
-    /\bonly (?:get )?paid (?:if|when|once|at)\b/i,
-    /\bno cost to you\b/i,
-  ];
-  for (const p of patterns) {
-    const m = body.match(p);
-    if (m) return m[0];
-  }
-  return null;
-}
-
 function hasSchedulingTrigger(message: string): boolean {
   if (!message) return false;
   const m = message.toLowerCase();
@@ -1670,6 +1644,7 @@ When the lead's message contains a real question or a concern (anything beyond a
 1. ACKNOWLEDGE what they actually said. Not a generic opener. Restate the specific question or concern in your own words so it is obvious you read it and understood it. It has to read like a person who genuinely engaged with their point. BANNED as acknowledgments (they are superficial filler): "Great question", "Good question", "Thanks for flagging", "I completely understand", "I hear you", "Totally get it", or any "Fair [noun]," opener used on its own ("Fair point", "Fair distinction", "Fair enough", "Fair ask"), or any line that could be pasted onto any reply. This is a pattern, not a fixed list: any opener that concedes their phrasing was correct before pivoting to the answer reads like a debate judge, not a person, and is banned regardless of which noun fills it in. A genuine acknowledgment names the actual thing they raised (their pricing worry, their wholesale-vs-D2C point, their timing, the exact detail they asked about). If you cannot name the specific thing, you have not read closely enough. Acknowledge the QUESTION or CONCERN only, never the tangential market commentary they add alongside it.
 
 2. ANSWER their question directly and honestly. Give the real answer, do not dodge straight to the call. If you genuinely do not have the specific (exact pricing, a number, a legal specific), give the honest high-level answer and say the precise detail is easiest to cover live. NEVER invent a fact, number, or specific to fill the answer. A truthful "here is the shape of it, the exact figure depends on X and is quickest to walk through on a call" beats a confident wrong answer every time. This also covers REASONING, not just facts: never invent a chain of logic connecting a fact about their brand to a claim about what will happen (e.g. "an audience that is actively looking for something like this", "buyers are increasingly drawn to X") unless that claim is directly stated somewhere in the thread or LEAD COMPANY CONTEXT. A specific true fact stated plainly beats a fact wrapped in invented marketing logic every time, the invented logic is what makes a reply read as AI-generated.
+   FEE MODEL RULE: never describe how the client charges (retainer or no retainer, upfront cost or none, success fee, commission, performance-based, "we only get paid when it closes", who pays the fee) unless the client file states it explicitly. That reassuring line is a guess and has been wrong for several clients. If the lead asks about fees and the client file has no fee facts, set action "manual". A coded check blocks any such claim the file does not confirm.
 
 3. ASK for the next step (the call), earned by the answer you just gave, not bolted on. Calibrate the ask:
    - Normal question or concern: a clear, warm ask with the Calendly line.
@@ -2281,13 +2256,22 @@ ${messageText.slice(0, 8000)}`;
   // 2026-10-20: ACT Capital auto-sent "success-fee basis, no upfront costs, no retainers"
   // to a seller. ACT charges a monthly service fee. Any draft describing a fee model as
   // free to start is blocked unless the client file confirms it. See containsUnconfirmedFeeClaim.
+  // Checked against the WHOLE client file: Sonaro's confirmed fee model lives outside its quick reference.
   if (result.reply_body) {
-    const feeClaim = containsUnconfirmedFeeClaim(result.reply_body, quickRef);
+    const feeClaim = containsUnconfirmedFeeClaim(result.reply_body, clientFileRaw);
     if (feeClaim) {
       result.action = "manual";
       result.manual_reason = `Draft made a fee claim not confirmed in the client file ("${feeClaim}"). Blocked from sending. A human must answer pricing/fee questions.`;
       console.warn(`[auto-reply] Blocked unconfirmed fee claim "${feeClaim}" for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
     }
+  }
+  // Clients flagged `fee_questions_to_manual: true` (ACT Capital): a lead asking what we
+  // charge always gets a human, no draft, whatever the draft says.
+  if (feeQuestionsToManual(clientFileRaw) && asksAboutOurFees(leadNewText) && result.action !== "manual" && result.reply_body) {
+    result.action = "manual";
+    result.manual_reason = "Lead asked about our fees/retainer/commission. This client's fee terms must be answered by a human.";
+    result.reply_body = undefined;
+    console.log(`[auto-reply] Fee-question backstop fired for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
   }
 
   // ── ACT Capital summit link backstop ─────────────────────────────────────────
