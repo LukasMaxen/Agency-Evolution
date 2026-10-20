@@ -739,6 +739,33 @@ function isBulkNewsletter(subject: string, message: string): boolean {
  * scheduling asks. Originally Larsen-only (2026-08-13), extended to ACT Capital, GN
  * Motion, and Bustem 2026-08-17.
  */
+/**
+ * Detects a draft that describes the client's fee model as free to start: no retainer,
+ * no upfront cost, success-fee/commission only, or "we only get paid when it closes".
+ * The model reaches for this as a reassuring default for any M&A-shaped client, and it
+ * has been false every time it was caught: Larsen, Acceler8rs, and ACT Capital (CLEW
+ * Pouches 2026-09-04, bba315 2026-10-19, corrected by ACT's Kevin Outcalt). Only a
+ * client file carrying `fee_claims_confirmed: true` in its quick reference may say it.
+ */
+function containsUnconfirmedFeeClaim(body: string, quickRef: string): string | null {
+  if (!body || /fee_claims_confirmed:\s*true/i.test(quickRef)) return null;
+  const patterns = [
+    /\bno (?:upfront|up-front|up front) (?:costs?|fees?|payments?)\b/i,
+    /\bno (?:monthly )?retainers?\b/i,
+    /\bnot (?:on )?a retainer\b/i,
+    /\bwithout (?:a |any )?retainer\b/i,
+    /\b(?:success[- ]fee|performance[- ]based|commission)[- ]only\b/i,
+    /\bon a (?:pure |purely )?(?:success[- ]fee|commission|contingency)(?: basis)?\b/i,
+    /\bonly (?:get )?paid (?:if|when|once|at)\b/i,
+    /\bno cost to you\b/i,
+  ];
+  for (const p of patterns) {
+    const m = body.match(p);
+    if (m) return m[0];
+  }
+  return null;
+}
+
 function hasSchedulingTrigger(message: string): boolean {
   if (!message) return false;
   const m = message.toLowerCase();
@@ -2247,6 +2274,19 @@ ${messageText.slice(0, 8000)}`;
       result.action = "manual";
       result.manual_reason = `Draft referenced a deactivated case study ("${banned}"). Blocked from sending. Rewrite with an approved reference before sending.`;
       console.warn(`[auto-reply] Blocked banned case study "${banned}" in draft for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
+    }
+  }
+
+  // ── Unconfirmed fee claim backstop ───────────────────────────────────────────
+  // 2026-10-20: ACT Capital auto-sent "success-fee basis, no upfront costs, no retainers"
+  // to a seller. ACT charges a monthly service fee. Any draft describing a fee model as
+  // free to start is blocked unless the client file confirms it. See containsUnconfirmedFeeClaim.
+  if (result.reply_body) {
+    const feeClaim = containsUnconfirmedFeeClaim(result.reply_body, quickRef);
+    if (feeClaim) {
+      result.action = "manual";
+      result.manual_reason = `Draft made a fee claim not confirmed in the client file ("${feeClaim}"). Blocked from sending. A human must answer pricing/fee questions.`;
+      console.warn(`[auto-reply] Blocked unconfirmed fee claim "${feeClaim}" for ${replyId} (${workspaceSlug} / ${reply.lead_name})`);
     }
   }
 

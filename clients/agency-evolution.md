@@ -18,6 +18,7 @@ All campaigns on the EmailBison workspace `internal-campaigns` are Maxen Group's
 
 ## REPLY QUICK REFERENCE
 
+fee_claims_confirmed: true (the fee claims below are real for this file, the processor's fee-claim backstop lets them through)
 campaign_type: ma_intermediary
 sender: Lukas Maxen, Founder, Maxen Group
 sender_email: lukasm@maxencapitalmail.com
