@@ -118,6 +118,7 @@ Pick the template below that best fits the post (rotate, do not use the same one
 - Say "call", never "Upwork call". No links, no email addresses, no phone numbers.
 - **Upwork-safe: say NOTHING about how we charge.** No prices, fees, setup fee, refunds, retainers, "pay per lead/meeting/show", "no hourly", "not for hours worked", invoicing, or anything hinting at billing, contracts or contact outside Upwork. Results claims are fine ("we measure ourselves on qualified calls that show up"). Pricing only ever comes up on the call.
 - No em dashes or en dashes.
+- Always end with this exact signature (3 lines): `Best,` / `Kasper Zacho` / `Co-Owner | Agency Evolution`.
 - Only these facts may be claimed: Agency Evolution books sales calls for B2B companies through cold email and LinkedIn; we handle the list, writing, sending and replies; we measure ourselves on qualified calls that show up, not emails sent; campaigns go live day one; first lead usually within about 30 hours; our most recent client had 18 calls booked in under 20 days, all interested leads fitting their exact ICP (case study in portfolio); we take on max 20 clients at a time; we handle the targeting and positioning, manually verified decision-maker lists, the technical side (domain warm-up, multiple mailboxes, SPF/DKIM/DMARC, deliverability monitoring) and A/B testing; we work with M&A firms, B2B SaaS, e-commerce brands and professional service firms.
 - Screening questions: answer each in 1 to 3 sentences using only the facts above. If a question needs a fact we don't have, answer `[KASPER TO ANSWER]`.
 
@@ -132,7 +133,9 @@ Our most recent client had 18 calls booked on their calendar in under 20 days, a
 
 Would you be up for a quick call this week?
 
-Kasper
+Best,
+Kasper Zacho
+Co-Owner | Agency Evolution
 
 **T2**
 Hi, I'm Kasper. I run outbound for B2B companies, which basically means I fill their calendars with sales calls so they don't have to chase leads themselves. [personal line]
@@ -143,7 +146,9 @@ Campaigns go live on day one, and the first lead usually comes in within 30 hour
 
 Happy to walk you through how it would work for you. Got time for a short call this week?
 
-Kasper
+Best,
+Kasper Zacho
+Co-Owner | Agency Evolution
 
 **T3**
 Hi, I'm Kasper. I run an outbound agency called Agency Evolution. We don't sell lists. We do the outreach ourselves and only put people who've said yes on your calendar. [personal line]
@@ -154,7 +159,9 @@ Our most recent client had 18 calls booked on their calendar in under 20 days, a
 
 We only take on 20 clients at a time, so I'd like to hear about your business first. Could we do a quick call?
 
-Kasper
+Best,
+Kasper Zacho
+Co-Owner | Agency Evolution
 
 **T4**
 Hi, I'm Kasper. I help B2B companies get more sales calls, and my team handles all the outreach behind it. [personal line]
@@ -165,7 +172,9 @@ It tends to move fast. Campaigns go out on day one, and the first lead usually c
 
 If that sounds like what you're after, I'd be glad to jump on a quick call.
 
-Kasper
+Best,
+Kasper Zacho
+Co-Owner | Agency Evolution
 
 **T5**
 Hi, I'm Kasper. I run Agency Evolution, where we book sales calls for B2B companies through cold email and LinkedIn. [personal line]
@@ -176,7 +185,9 @@ I ask because we only work with 20 clients at a time and prefer to stay with the
 
 Are you free for a short call?
 
-Kasper
+Best,
+Kasper Zacho
+Co-Owner | Agency Evolution
 
 ### 5. Post
 
