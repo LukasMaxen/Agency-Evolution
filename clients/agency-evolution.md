@@ -81,9 +81,10 @@ reply_rules:
   - What counts as qualified is agreed together on the call before anything starts. Never define it in writing.
   - Still manual, no draft: setup fee amount, minimums, contract length, a third pricing push, or a lead who rejects the range and wants to negotiate.
 - Link tone (Kasper, 2026-10-06): never "Grab a time here". Use "Here's the link whenever it suits you: <link>". After the first email in a thread that carried the Kasper line, shorten it to "It would be with Kasper Zacho, who runs the company."
+- Lead asks about a contract (Kasper, 2026-10-21): yes, everything is put in a contract before we start. The terms (model, volume, their market size and so on) depend on their needs, so they are decided together first, on the informal 30 minute call. Never state a contract length, notice period, minimum, or any specific term. If they ask for specific terms before a call, route to manual.
 - Lead asks for commission / pay on closed deals: say it is performance based but not commission on closed deals, they pay per qualified lead that shows up and nothing for the ones who don't, no retainer. Never say yes to commission.
 - Never say "no cost for the outreach itself", "no upfront cost", or anything implying zero cost before the first meeting (Kasper edit 2026-10-06). "No retainer" is the only allowed claim.
-- Not in this file, route to manual, never invent: what exactly counts as a qualified meeting, how reporting/alignment works, full case studies, named references, any result figure beyond the three above.
+- Not in this file, route to manual, never invent: specific contract terms (length, notice, minimums), what exactly counts as a qualified meeting, how reporting/alignment works, full case studies, named references, any result figure beyond the three above.
 - Never pitch M&A deal flow, Maxen Group, sell-side, or buy-side to these leads. M&A firms may only be mentioned as one of the client types we run outbound for. When the lead is an agency, lead with agencies as a client type we work with.
 
 # SELL-SIDE rules (lead replied to Seller Campaign)
