@@ -5,7 +5,9 @@ description: Daily Upwork proposal run in Kasper's logged-in Chrome. "upwork sca
 
 # Upwork Proposals
 
-Two commands, both triggered manually by Kasper. Uses Claude in Chrome on his logged-in Upwork account (Kasper Z, Cold Email & Outbound profile).
+Two commands, both triggered manually by Kasper.
+
+**Browser fallback:** if Claude in Chrome tools are missing, use the Chrome DevTools MCP browser (`new_page`/`navigate_page`/`evaluate_script` with inline `function`, scripts from the scratchpad are not allowed). It is a separate Chrome profile: if it shows the Upwork login page, Kasper logs in himself, never type credentials. Same snippets work; pass them as `async () => {...}`. Uses Claude in Chrome on his logged-in Upwork account (Kasper Z, Cold Email & Outbound profile).
 
 **Credit rules (hard):**
 - Never take screenshots unless a step is stuck. Read pages only with the `javascript_tool` snippets below.
