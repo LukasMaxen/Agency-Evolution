@@ -252,3 +252,10 @@ const b=document.body.innerText;
 4. Click the "Send for N Connects" button (`find` it, then click). Then verify with one JS read that the page shows a confirmation or navigated away from `/apply/`. If a captcha, login or unexpected dialog appears, take ONE screenshot, `fail` the card with what you saw, and stop the run so Kasper can handle it.
 5. On success: `upwork.cjs done <ts> <send + boost connects>` (records today's spend).
 6. Close the tab and reply in 2 lines max: submitted N, failed N (with reasons), connects left.
+
+**Form facts learned 2026-10-21 (DevTools browser):**
+- Screening questions often appear ONLY on the apply page, not the job page. Always read the apply page first, then split content per the no-repeat rule.
+- Fill every field with the DevTools `fill` tool by uid (from `take_snapshot`). Setting textarea values by JS does not register with Upwork's validation ("Value is required").
+- Hourly jobs show "Schedule a rate increase": open the combobox labelled by `up-sri-form-cadenceMonths-dropdown` and pick **Never** (JS mouse events on the combobox, then the "Never" option, work).
+- Fixed price: accept whatever amount Upwork prefills. Hourly: leave the prefilled profile rate. Never type a price.
+- Boost: the bid field defaults to the 1st-place amount; ignore it unless you click "Set bid". When ranks 2 to 4 are empty, Upwork may only enable "Set bid" at the 1st-place threshold. Kasper may set a total boost budget per batch (e.g. "max 34 overall"); spend it where it buys a top-4 rank.
