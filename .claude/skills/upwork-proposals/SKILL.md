@@ -1,6 +1,6 @@
 ---
 name: upwork-proposals
-description: Daily Upwork proposal run in Kasper's logged-in Chrome. "upwork scan" finds and filters new jobs, drafts proposals, posts approval cards to #upwork-approval. "upwork submit" submits the cards Kasper approved with ✅. Invoke when the user says "upwork scan", "upwork submit", "run upwork", or similar.
+description: Daily Upwork proposal run in Kasper's logged-in Chrome. "upwork scan" finds and filters new jobs, drafts proposals, posts approval cards to #upwork-approval. "upwork submit" submits only cards Kasper marked 📤 (✅ means he already sent it manually, never submit those). Invoke when the user says "upwork scan", "upwork submit", "run upwork", or similar.
 ---
 
 # Upwork Proposals
@@ -218,7 +218,7 @@ Then `node .claude/skills/upwork-proposals/upwork.cjs post <path>/cards.json`, t
 
 ## upwork submit
 
-1. `upwork.cjs spent` gives Connects already spent today; if 165 or more, say so and stop. Then `upwork.cjs approved` lists approved, unsubmitted cards, oldest first. `text` already includes a full-text edit from the thread. If `notes` is non-empty, apply those short instructions from Kasper to `text` yourself (keep every draft rule: no prices, nothing unverifiable, no dashes, no links). `answers` already include his `A1:` overrides. None approved → say so and stop.
+1. `upwork.cjs spent` gives Connects already spent today; if 165 or more, say so and stop. Then `upwork.cjs approved` lists cards marked 📤 (outbox_tray) that are not yet 🚀/❌/✅, oldest first. ✅ = Kasper sent it manually himself: never submit, never count as pending. `text` already includes a full-text edit from the thread. If `notes` is non-empty, apply those short instructions from Kasper to `text` yourself (keep every draft rule: no prices, nothing unverifiable, no dashes, no links). `answers` already include his `A1:` overrides. None approved → say so and stop.
 2. For each card, open `https://www.upwork.com/nx/proposals/job/<id>/apply/` and run one read:
 
 ```js

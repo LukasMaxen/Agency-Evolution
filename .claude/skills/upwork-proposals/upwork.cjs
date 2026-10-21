@@ -15,8 +15,9 @@ const CH = 'C0C9JHB59FU'; // #upwork-approval
 const DIR = path.join(os.homedir(), '.upwork-proposals');
 const SEEN = path.join(DIR, 'seen.txt');
 const SPEND = path.join(DIR, 'spend.json'); // { "YYYY-MM-DD": connects }
-const APPROVE = new Set(['white_check_mark', 'heavy_check_mark', '+1', 'ballot_box_with_check']);
-const STOP = new Set(['rocket', 'x', 'warning', 'no_entry']);
+// ✅ = Kasper already sent it manually (2026-10-21). Only 📤 asks the bot to submit.
+const APPROVE = new Set(['outbox_tray']);
+const STOP = new Set(['rocket', 'x', 'warning', 'no_entry', 'white_check_mark', 'heavy_check_mark', 'ballot_box_with_check']);
 fs.mkdirSync(DIR, { recursive: true });
 
 const slack = async (m, p) => (await fetch('https://slack.com/api/' + m, {
@@ -56,7 +57,7 @@ const [cmd, ...args] = process.argv.slice(2);
       if (c.answers && c.answers.length) {
         blocks.push({ type: 'section', text: { type: 'mrkdwn', text: '*Screening answers*\n' + c.answers.map((a, i) => `A${i + 1}. _${noDash(a.q)}_\n${noDash(a.a)}`).join('\n\n').slice(0, 2900) } });
       }
-      blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: '✅ submit  |  ❌ skip  |  thread reply: full new text replaces the draft, a short note gets applied as an instruction, `A1: ...` overrides a screening answer. Then ✅' }] });
+      blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: '✅ = I sent it manually  |  📤 = submit it for me  |  ❌ skip  |  thread reply: full new text replaces the draft, a short note gets applied as an instruction, `A1: ...` overrides a screening answer' }] });
       const body = {
         channel: CH, text: `Upwork: ${noDash(c.title)}`, blocks, unfurl_links: false,
         metadata: { event_type: 'upwork_proposal', event_payload: { id: c.id, draft, answers: JSON.stringify(c.answers || []) } },
