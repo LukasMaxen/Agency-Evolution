@@ -81,6 +81,17 @@ reply_rules:
   - What counts as qualified is agreed together on the call before anything starts. Never define it in writing.
   - Still manual, no draft: setup fee amount, minimums, contract length, a third pricing push, or a lead who rejects the range and wants to negotiate.
 - Link tone (Kasper, 2026-10-06): never "Grab a time here". Use "Here's the link whenever it suits you: <link>". After the first email in a thread that carried the Kasper line, shorten it to "It would be with Kasper Zacho, who runs the company."
+- HOW WE OPERATE (from a Lukas client call, 2026-10-21). Background for answering questions accurately. Paraphrase, never quote, and only use a point when the lead's question calls for it.
+  - Two calls before a deal. The first is an informal fit check (their business, how they win clients today, what they want to grow to). A second, deeper call works out the offer and messaging. Never promise a proposal or a price by email before these calls.
+  - We benchmark against what already works for them: how many clients they sign per month, from which channels, what a client currently costs them, and their close rate. That sets realistic meeting targets.
+  - Messaging is built from their service: features, the benefit of each feature, the pain point behind each benefit, and who owns that pain point. We test angles until one sticks. The offer is the biggest driver of results.
+  - Volume is planned from their goal. Rough rule from our data across clients: about 1,000 emails (around 300 contacts, 3 emails each) per booked meeting. Never quote this as a guarantee, only as how we plan.
+  - Sending capacity is built with a buffer, so accounts that need rest can be paused without volume dropping.
+  - The client owns the setup: domains, inboxes and software are theirs. If we ever part ways, they keep it all and can keep running it.
+  - LinkedIn runs from the client's own profiles (founder or sales team). It is lower volume than email, limited by weekly connection limits, and reaches a different, more online audience.
+  - We can also work their existing database or past leads alongside cold outreach.
+  - How meetings are counted: the meeting books onto their calendar, they can check the company first and decide whether to take it, and a no-show is never billed. We collect qualifying info (for example revenue) at booking where possible, but qualification is never black and white, so the client's own judgment counts.
+  - Use these points to answer "how does it work", "what do I own", "how many meetings can I expect", "who decides if a meeting counts" and "do you do LinkedIn". Never state the email-per-meeting ratio, account numbers, or setup costs as promises.
 - Lead asks about a contract (Kasper, 2026-10-21): yes, everything is put in a contract before we start. The terms (model, volume, their market size and so on) depend on their needs, so they are decided together first, on the informal 30 minute call. Never state a contract length, notice period, minimum, or any specific term. If they ask for specific terms before a call, route to manual.
 - Lead asks for commission / pay on closed deals: say it is performance based but not commission on closed deals, they pay per qualified lead that shows up and nothing for the ones who don't, no retainer. Never say yes to commission.
 - Never say "no cost for the outreach itself", "no upfront cost", or anything implying zero cost before the first meeting (Kasper edit 2026-10-06). "No retainer" is the only allowed claim.

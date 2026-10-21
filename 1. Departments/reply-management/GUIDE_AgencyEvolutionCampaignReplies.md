@@ -110,6 +110,19 @@ Use only these. If the lead asks something this list does not answer, see sectio
 
 ---
 
+## 4a. How we operate (background, paraphrase only)
+
+Use these only when the lead's question calls for them, and always in your own words.
+
+- **Calls.** The first call is an informal fit check about their business and goals. A second call works out the offer and messaging. Never promise a written proposal or a price before that.
+- **Benchmarks.** We plan targets from what already works for them: clients signed per month, the channels they come from, what a client costs them, and their close rate.
+- **Messaging.** Built from their service, its benefits, the pain points behind those benefits, and who has those pain points. We test angles until one works. The offer matters most.
+- **Volume.** Planned backwards from their goal. Our rough planning number is about 1,000 emails per booked meeting. It is a planning figure, never a promise.
+- **Ownership.** The client owns the domains, inboxes and software. If we part ways, they keep everything.
+- **LinkedIn.** Runs from the client's own profiles, lower volume than email, reaches a more online audience.
+- **Their own data.** We can also work their existing database or old leads.
+- **What counts as a meeting.** It books onto their calendar, they can check the company and choose whether to take it, and no-shows are never billed.
+
 ## 5. Pricing
 
 Pricing follows two steps. Never skip to step 2 on a first ask.
