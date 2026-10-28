@@ -28,6 +28,14 @@ Two commands, both triggered manually by Kasper.
 
 **Tools:** when relevant or asked, say what we actually use: Apollo for data, EmailBison for sending, and our own internally developed verification software (plus our own enrichment builds). Never claim expertise in tools we don't use (GoHighLevel, HubSpot, Clay, etc.).
 
+**Tonality source (Kasper, 2026-10-28): the Agency Evolution email reply rules, adapted for Upwork.**
+- Warm, kind, plain English, short paragraphs, like a real person writing from their inbox. Thorough when they raise a real concern, brief otherwise.
+- Acknowledge fair points honestly ("Makes total sense", "Completely agree"), but don't overdo it.
+- No pressure, no exit lines ("if not, no worries"), no guilt lines, no scripted or marketing-sounding sentences, no jargon or buzzwords.
+- Never say "manually verify". Never name clients or use 911 Restoration. Case study described generally only.
+- Facts we may use from those rules: we agree with the client up front what a qualified prospect looks like (industry, company size, decision maker); we build and verify the list, run the outreach and handle every reply ourselves; only people who show real interest get booked; meetings land on the client's calendar first so they can check the company before taking it; all outreach is written (email and LinkedIn), we don't make calls; outreach goes out from the client's own domains, inboxes and LinkedIn profile, in their name, and the messaging is approved by the client before anything is sent; the client keeps everything we set up; campaigns go live on day one; proof "one recent client, a B2B consultant, got 18 qualified meetings in under 20 days"; about 20 clients at a time; contract before we start (terms on the call).
+- Upwork differences that always win: short intro is allowed ("Hi, I'm Kasper from Agency Evolution"), no Calendly link or any link, sign with our signature (not {SENDER_EMAIL_SIGNATURE}), never mention pricing or how anyone pays (not even "pay for meetings"), no 30 hour claim, CTA is a quick video call.
+
 **No 30-hour claim (Kasper, 2026-10-28):** never mention "first lead within 30 hours" (or any first-lead timing) in proposals or answers. Older templates and examples that contain it are outdated; drop that sentence.
 
 **Only true statements (Kasper, 2026-10-28):** never write anything that isn't true for us. We do NOT use GoHighLevel (or HubSpot, Clay, Instantly, Smartlead, Mailgun etc.); if the job relies on one, be upfront that we run sending on our own setup. Don't promise reporting formats, consent tracking or processes that aren't in the facts list. When unsure, leave it out.
