@@ -28,6 +28,8 @@ Two commands, both triggered manually by Kasper.
 
 **Tools:** when relevant or asked, say what we actually use: Apollo for data, EmailBison for sending, and our own internally developed verification software (plus our own enrichment builds). Never claim expertise in tools we don't use (GoHighLevel, HubSpot, Clay, etc.).
 
+**Facts added 2026-10-28 (Kasper):** we've been doing this for 5+ years. We do the email setup ourselves end to end and bring our own software into it, so the client never has to teach or manage us. Convey that confidence ("we handle the setup ourselves", "more than five years"), never say it rudely or imply they'd have to explain things. Don't write that we'll set things up "together with your team" or that a platform "isn't our main platform".
+
 **Connects per application (2026-10-28):** max 85 Connects per application INCLUDING boost. Boost only exactly enough to reach 4th place (4th place bid + 1). If proposal cost + that boost would go over 85, don't boost. Never boost above 4th place.
 
 **Never mirror their post back (Kasper, 2026-10-28):** no "I saw you want...", "You need someone who...", "You're looking for...". The [personal line] in the old templates is dropped.
