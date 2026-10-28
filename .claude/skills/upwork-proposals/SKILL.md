@@ -279,6 +279,8 @@ const b=document.body.innerText;
 5. On success: `upwork.cjs done <ts> <send + boost connects>` (records today's spend).
 6. Close the tab and reply in 2 lines max: submitted N, failed N (with reasons), connects left.
 
+**Signature exception:** the signature stays exactly "Co-Owner | Agency Evolution" with the hyphen (confirmed by Kasper 2026-10-28). The no-dash rule applies to the body only.
+
 **Paragraph spacing (Kasper, 2026-10-28):** every proposal and answer must have a blank line between paragraphs, and between the last paragraph and the signature (signature lines themselves stay together). After filling the cover letter, read the textarea value back and confirm it contains "\n\n" between paragraphs and that the paragraph count matches the approved draft. If the line breaks got stripped, refill before sending.
 
 **Form facts learned 2026-10-21 (DevTools browser):**
