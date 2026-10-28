@@ -28,6 +28,8 @@ Two commands, both triggered manually by Kasper.
 
 **Tools:** when relevant or asked, say what we actually use: Apollo for data, EmailBison for sending, and our own internally developed verification software (plus our own enrichment builds). Never claim expertise in tools we don't use (GoHighLevel, HubSpot, Clay, etc.).
 
+**Only true statements (Kasper, 2026-10-28):** never write anything that isn't true for us. We do NOT use GoHighLevel (or HubSpot, Clay, Instantly, Smartlead, Mailgun etc.); if the job relies on one, be upfront that we run sending on our own setup. Don't promise reporting formats, consent tracking or processes that aren't in the facts list. When unsure, leave it out.
+
 **Facts added 2026-10-28 (Kasper):** we've been doing this for 5+ years. We do the email setup ourselves end to end and bring our own software into it, so the client never has to teach or manage us. Convey that confidence ("we handle the setup ourselves", "more than five years"), never say it rudely or imply they'd have to explain things. Don't write that we'll set things up "together with your team" or that a platform "isn't our main platform".
 
 **How we work, say it clearly (Kasper, 2026-10-28):** we do everything ourselves with our own software, from setup to sending to replies. Volume is never the limit on our side, we can push as much as they want, it only comes down to how big their market is (say "market", not "TAM"). We build toward whatever outcome they want: event or summit registrations, sales calls, sign ups. When it's calls, we set them up so all they do is show up, and every call is with an interested lead. Aim to impress with competence, stay friendly, and write as Kasper in the first person, like a good person talking to another business owner.
