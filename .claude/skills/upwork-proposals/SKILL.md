@@ -26,7 +26,13 @@ Two commands, both triggered manually by Kasper.
 
 **Tone:** human and a notch informal, down to earth, plain words anyone can follow. Still professional and clearly competent, especially when explaining the email side (deliverability, domains, warm-up, lists, replies). Short sentences, no corporate phrasing, no hype.
 
-**Tools:** still never claim expertise in a named tool (GoHighLevel, HubSpot, Clay, etc.). Talk about the work itself instead.
+**Tools:** when relevant or asked, say what we actually use: Apollo for data, EmailBison for sending, and our own internally developed verification software (plus our own enrichment builds). Never claim expertise in tools we don't use (GoHighLevel, HubSpot, Clay, etc.).
+
+**Connects per application (2026-10-28):** max 85 Connects per application INCLUDING boost. Boost only exactly enough to reach 4th place (4th place bid + 1). If proposal cost + that boost would go over 85, don't boost. Never boost above 4th place.
+
+**Writing rules (2026-10-28):** no em dashes, no en dashes, no normal hyphens/dashes, and no colons anywhere in the message body or answers (write "high volume", "follow up", "opt out", rephrase lists into sentences). Read the WHOLE post (expand "more") and make sure every concern or responsibility they list is answered somewhere, in plain words. Explain how we work.
+
+
 
 Helper script: `node .claude/skills/upwork-proposals/upwork.cjs <cmd>`. **Always single-quote job ids** (`'~0221...'`), zsh expands a bare `~` (Slack channel C0C9JHB59FU, seen list in `~/.upwork-proposals/seen.txt`).
 
