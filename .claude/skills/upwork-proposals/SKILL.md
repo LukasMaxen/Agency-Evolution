@@ -298,6 +298,8 @@ const b=document.body.innerText;
 
 **Signature exception:** the signature stays exactly "Co-Owner | Agency Evolution" with the hyphen (confirmed by Kasper 2026-10-28). The no-dash rule applies to the body only.
 
+**Claude in Chrome submit recipe (worked for 10/10 on 2026-10-28):** apply page, JS read (bids, minBid, cadence combobox, fixed price, textareas), `find` for refs, `form_input` for cover letter, answers and the bid number, click "Set bid", pick "Never" in the rate increase combobox via JS mouse events, verify paragraph count and "Bid to boost" summary, click Send. Fixed price shows a "3 things you need to know" dialog after Send: tick its checkbox and click "Continue". Fixed price: choose "By project", keep Upwork's prefilled amount, duration "1 to 3 months". When ranks 2 to 4 are empty, Upwork only accepts the shown minimum bid (the 1st place threshold); use that minimum if it fits the 85 cap. Skip jobs that require a Loom video.
+
 **Paragraph spacing (Kasper, 2026-10-28):** every proposal and answer must have a blank line between paragraphs, and between the last paragraph and the signature (signature lines themselves stay together). After filling the cover letter, read the textarea value back and confirm it contains "\n\n" between paragraphs and that the paragraph count matches the approved draft. If the line breaks got stripped, refill before sending.
 
 **Form facts learned 2026-10-21 (DevTools browser):**
