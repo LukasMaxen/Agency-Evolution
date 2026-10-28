@@ -28,6 +28,8 @@ Two commands, both triggered manually by Kasper.
 
 **Tools:** when relevant or asked, say what we actually use: Apollo for data, EmailBison for sending, and our own internally developed verification software (plus our own enrichment builds). Never claim expertise in tools we don't use (GoHighLevel, HubSpot, Clay, etc.).
 
+**No 30-hour claim (Kasper, 2026-10-28):** never mention "first lead within 30 hours" (or any first-lead timing) in proposals or answers. Older templates and examples that contain it are outdated; drop that sentence.
+
 **Only true statements (Kasper, 2026-10-28):** never write anything that isn't true for us. We do NOT use GoHighLevel (or HubSpot, Clay, Instantly, Smartlead, Mailgun etc.); if the job relies on one, be upfront that we run sending on our own setup. Don't promise reporting formats, consent tracking or processes that aren't in the facts list. When unsure, leave it out.
 
 **Facts added 2026-10-28 (Kasper):** we've been doing this for 5+ years. We do the email setup ourselves end to end and bring our own software into it, so the client never has to teach or manage us. Convey that confidence ("we handle the setup ourselves", "more than five years"), never say it rudely or imply they'd have to explain things. Don't write that we'll set things up "together with your team" or that a platform "isn't our main platform".
@@ -142,7 +144,7 @@ No domain findable → do not guess or search. Mark website "not verified". Only
 1. Intro: `Hi <Name>, I'm Kasper. I run Agency Evolution, we book sales calls for B2B companies. In plain terms, we find the right people, reach out to them, and put the ones who are interested on your calendar.`
 2. (Changed 2026-10-28) NO line restating what they're looking for. They wrote the post, they know. Go straight from the intro into how we'd do it, using their specifics (their tools, audience, problems) inside the steps.
 3. Channels: ALWAYS pitch email + LinkedIn together, even if they only ask for one. If they ask for LinkedIn: LinkedIn works but is heavily capped (each profile can only reach a limited number of people per week), so email runs alongside it for volume; people who see you on both reply more; "LinkedIn gives you the personal touch, and email gives you the volume." If they ask for email only: same logic in reverse (email for volume, LinkedIn adds the personal touch). Never state an exact weekly LinkedIn limit.
-4. `Here's how it would work.` then short paragraphs, one step each: (a) we build and verify the target list around their exact criteria; (b) we write the messaging from their offer (what it does, what that gives the customer, who has that pain) and test angles until one clearly works; (c) LinkedIn runs from their own profiles, email runs from domains and inboxes we set up and warm up, we handle SPF, DKIM, DMARC and deliverability monitoring, everything we set up is theirs to keep; (d) we handle every reply on both channels and book the meetings (they can take over LinkedIn conversations only if they prefer), only people who said yes reach their calendar, campaigns go out day one, first lead usually within 30 hours.
+4. `Here's how it would work.` then short paragraphs, one step each: (a) we build and verify the target list around their exact criteria; (b) we write the messaging from their offer (what it does, what that gives the customer, who has that pain) and test angles until one clearly works; (c) LinkedIn runs from their own profiles, email runs from domains and inboxes we set up and warm up, we handle SPF, DKIM, DMARC and deliverability monitoring, everything we set up is theirs to keep; (d) we handle every reply on both channels and book the meetings (they can take over LinkedIn conversations only if they prefer), only people who said yes reach their calendar, campaigns go out day one.
 5. Tie it to their post where it fits (e.g. "which is what keeps lead quality going up").
 6. Proof line (exact): the 18 calls in under 20 days sentence + portfolio.
 7. One direct question about a quick video call, then the signature.
@@ -159,7 +161,7 @@ Rules for every draft:
 - **Upwork-safe: say NOTHING about how we charge.** No prices, fees, setup fee, refunds, retainers, "pay per lead/meeting/show", "no hourly", "not for hours worked", invoicing, or anything hinting at billing, contracts or contact outside Upwork. Results claims are fine ("we measure ourselves on qualified calls that show up"). Pricing only ever comes up on the call.
 - No em dashes or en dashes.
 - Always end with this exact signature (3 lines): `Best,` / `Kasper Zacho` / `Co-Owner | Agency Evolution`.
-- Only these facts may be claimed: Agency Evolution books sales calls for B2B companies through cold email and LinkedIn; we handle the list, writing, sending and replies; we measure ourselves on qualified calls that show up, not emails sent; campaigns go live day one; first lead usually within about 30 hours; our most recent client had 18 calls booked in under 20 days, all interested leads fitting their exact ICP (case study in portfolio); we take on max 20 clients at a time; we handle the targeting and positioning, building and verifying the target list, the technical side (domain warm-up, multiple mailboxes, SPF/DKIM/DMARC, deliverability monitoring) and A/B testing; we work with M&A firms, B2B SaaS, e-commerce brands and professional service firms. LinkedIn is heavily capped per profile per week (no exact number), email is not capped the same way and gives the volume. We handle every reply on both channels and set up the meetings; the client only takes over LinkedIn conversations if they prefer.
+- Only these facts may be claimed: Agency Evolution books sales calls for B2B companies through cold email and LinkedIn; we handle the list, writing, sending and replies; we measure ourselves on qualified calls that show up, not emails sent; campaigns go live day one;  our most recent client had 18 calls booked in under 20 days, all interested leads fitting their exact ICP (case study in portfolio); we take on max 20 clients at a time; we handle the targeting and positioning, building and verifying the target list, the technical side (domain warm-up, multiple mailboxes, SPF/DKIM/DMARC, deliverability monitoring) and A/B testing; we work with M&A firms, B2B SaaS, e-commerce brands and professional service firms. LinkedIn is heavily capped per profile per week (no exact number), email is not capped the same way and gives the volume. We handle every reply on both channels and set up the meetings; the client only takes over LinkedIn conversations if they prefer.
 - If the job asks for a keyword or code word at the start, put just that word on the first line and move on. No clever line built on it.
 - Never claim tool expertise (Apify, Clay, HubSpot, etc.) or experience we can't back up. Apollo and EmailBison may be named only if a screening question asks what we use.
 - **No repetition across cover letter and screening answers (Kasper, 2026-10-21).** Each piece gets its own content. When a job has screening questions: the cover letter keeps intro, post line, channels and how it works, and DROPS the proof line; proof (18 calls case study) goes in the experience/results answer; planning facts (plan from what works for them, volume planned backwards, about 1,000 emails per booked meeting as a planning figure, existing database or old leads) go in a results/approach answer. Never restate the same fact or step twice.
@@ -188,7 +190,7 @@ Hi, I'm Kasper. I run outbound for B2B companies, which basically means I fill t
 
 We focus on results, not activity. What we measure ourselves on is qualified calls that actually show up on your calendar, not emails sent.
 
-Campaigns go live on day one, and the first lead usually comes in within 30 hours. There's a case study in my portfolio if you want to see real numbers.
+Campaigns go live on day one. There's a case study in my portfolio if you want to see real numbers.
 
 Happy to walk you through how it would work for you. Got time for a quick video call this week?
 
@@ -214,7 +216,7 @@ Hi, I'm Kasper. I help B2B companies get more sales calls, and my team handles a
 
 We build the list, write the emails and LinkedIn messages, send them, deal with the replies and book the interested ones onto your calendar. We measure ourselves on one thing: qualified calls that show up.
 
-It tends to move fast. Campaigns go out on day one, and the first lead usually comes in within 30 hours. Our most recent client had 18 calls booked on their calendar in under 20 days, all interested leads who fit their exact ICP. The full case study is in my portfolio.
+It tends to move fast. Our most recent client had 18 calls booked on their calendar in under 20 days, all interested leads who fit their exact ICP. The full case study is in my portfolio.
 
 If that sounds like what you're after, I'd be glad to jump on a quick video call.
 
