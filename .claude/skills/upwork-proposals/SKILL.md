@@ -16,6 +16,9 @@ Two commands, both triggered manually by Kasper.
 - Batch browser calls with `browser_batch` wherever possible. Close the tab when done.
 - Current budget (set 2026-10-15): **825 Connects over 5 working days = 165 Connects per day, about 6 boosted proposals a day.** Scan posts max **8 cards** so Kasper can pick the best ~6. Submit stops once **today** has spent 165 Connects (tracked by the script across runs). Skip any job costing more than 25 Connects to apply.
 
+## AUTONOMOUS MODE (Kasper, 2026-10-28). Default from now on.
+When Kasper asks for N applications ("send 10 applications today", "upwork run"), do it end to end WITHOUT Slack approval cards: scan, pick the N best fits, read each full post and apply page, draft per all rules below, fill the form, verify spacing, boost only to 4th place within 85 Connects total per application, send, then mark the job seen. Report at the end in a short table (job, Connects, boost, anything to check). Stop early only if Connects run out, Upwork logs out, or a captcha appears.
+
 ## METHOD UPDATE 2026-10-28 (Kasper). Overrides every older rule below where they conflict.
 
 **Who to apply to:** any job where the client wants someone to run their email sending for them: cold email, outbound email, email outreach, email deliverability, sending infrastructure, high-volume email operations. If they want someone to do email for them, that is exactly what we do. Client rating, hire rate, spend, country, budget, industry and the old ICP score do NOT matter anymore. Only skip: jobs we already applied to, closed jobs, pure cold calling / SMS / DM-only jobs, pure list-building or data entry, and full sales-closer roles. Reference example: job ~022113250923376148718 (high-volume email + deliverability for an events business).
