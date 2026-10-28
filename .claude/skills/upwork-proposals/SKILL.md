@@ -28,6 +28,8 @@ Two commands, both triggered manually by Kasper.
 
 **Tools:** when relevant or asked, say what we actually use: Apollo for data, EmailBison for sending, and our own internally developed verification software (plus our own enrichment builds). Never claim expertise in tools we don't use (GoHighLevel, HubSpot, Clay, etc.).
 
+**We build our own setup, we don't fix theirs (Kasper, 2026-10-28):** never offer to audit, diagnose or fix the client's existing sending platform (their Mailgun, GoHighLevel, ESP, IPs). We set up our own sending (domains, inboxes, SPF/DKIM/DMARC, warm up) on EmailBison with Apollo data and our own verification software, separate from their main domain. Keep every paragraph consistent with that.
+
 **Tonality source (Kasper, 2026-10-28): the Agency Evolution email reply rules, adapted for Upwork.**
 - Warm, kind, plain English, short paragraphs, like a real person writing from their inbox. Thorough when they raise a real concern, brief otherwise.
 - Acknowledge fair points honestly ("Makes total sense", "Completely agree"), but don't overdo it.
