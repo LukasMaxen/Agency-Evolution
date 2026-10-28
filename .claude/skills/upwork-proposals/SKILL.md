@@ -30,6 +30,8 @@ Two commands, both triggered manually by Kasper.
 
 **Connects per application (2026-10-28):** max 85 Connects per application INCLUDING boost. Boost only exactly enough to reach 4th place (4th place bid + 1). If proposal cost + that boost would go over 85, don't boost. Never boost above 4th place.
 
+**Never mirror their post back (Kasper, 2026-10-28):** no "I saw you want...", "You need someone who...", "You're looking for...". The [personal line] in the old templates is dropped.
+
 **Natural phrasing only (Kasper, 2026-10-28):** never write lines real people don't say, e.g. "I read through your post properly", "I read your post carefully", "To answer your questions directly", "Every address should earn its place", "I hope this finds you well". No meta comments about the proposal itself. Show you read the post by talking about their specifics, not by saying so.
 
 **Writing rules (2026-10-28):** no em dashes, no en dashes, no normal hyphens/dashes, and no colons anywhere in the message body or answers (write "high volume", "follow up", "opt out", rephrase lists into sentences). Read the WHOLE post (expand "more") and make sure every concern or responsibility they list is answered somewhere, in plain words. Explain how we work.
@@ -132,7 +134,7 @@ No domain findable → do not guess or search. Mark website "not verified". Only
 
 **Standard structure (Kasper, 2026-10-21). Every proposal follows this, the short templates further down are only for wording ideas:**
 1. Intro: `Hi <Name>, I'm Kasper. I run Agency Evolution, we book sales calls for B2B companies. In plain terms, we find the right people, reach out to them, and put the ones who are interested on your calendar.`
-2. One line that shows we read the post (their goal, market, buyers), from the post only.
+2. (Changed 2026-10-28) NO line restating what they're looking for. They wrote the post, they know. Go straight from the intro into how we'd do it, using their specifics (their tools, audience, problems) inside the steps.
 3. Channels: ALWAYS pitch email + LinkedIn together, even if they only ask for one. If they ask for LinkedIn: LinkedIn works but is heavily capped (each profile can only reach a limited number of people per week), so email runs alongside it for volume; people who see you on both reply more; "LinkedIn gives you the personal touch, and email gives you the volume." If they ask for email only: same logic in reverse (email for volume, LinkedIn adds the personal touch). Never state an exact weekly LinkedIn limit.
 4. `Here's how it would work.` then short paragraphs, one step each: (a) we build and verify the target list around their exact criteria; (b) we write the messaging from their offer (what it does, what that gives the customer, who has that pain) and test angles until one clearly works; (c) LinkedIn runs from their own profiles, email runs from domains and inboxes we set up and warm up, we handle SPF, DKIM, DMARC and deliverability monitoring, everything we set up is theirs to keep; (d) we handle every reply on both channels and book the meetings (they can take over LinkedIn conversations only if they prefer), only people who said yes reach their calendar, campaigns go out day one, first lead usually within 30 hours.
 5. Tie it to their post where it fits (e.g. "which is what keeps lead quality going up").
