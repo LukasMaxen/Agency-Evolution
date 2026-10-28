@@ -30,6 +30,8 @@ Two commands, both triggered manually by Kasper.
 
 **Connects per application (2026-10-28):** max 85 Connects per application INCLUDING boost. Boost only exactly enough to reach 4th place (4th place bid + 1). If proposal cost + that boost would go over 85, don't boost. Never boost above 4th place.
 
+**Natural phrasing only (Kasper, 2026-10-28):** never write lines real people don't say, e.g. "I read through your post properly", "I read your post carefully", "To answer your questions directly", "Every address should earn its place", "I hope this finds you well". No meta comments about the proposal itself. Show you read the post by talking about their specifics, not by saying so.
+
 **Writing rules (2026-10-28):** no em dashes, no en dashes, no normal hyphens/dashes, and no colons anywhere in the message body or answers (write "high volume", "follow up", "opt out", rephrase lists into sentences). Read the WHOLE post (expand "more") and make sure every concern or responsibility they list is answered somewhere, in plain words. Explain how we work.
 
 
