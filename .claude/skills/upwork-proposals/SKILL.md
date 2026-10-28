@@ -16,6 +16,18 @@ Two commands, both triggered manually by Kasper.
 - Batch browser calls with `browser_batch` wherever possible. Close the tab when done.
 - Current budget (set 2026-10-15): **825 Connects over 5 working days = 165 Connects per day, about 6 boosted proposals a day.** Scan posts max **8 cards** so Kasper can pick the best ~6. Submit stops once **today** has spent 165 Connects (tracked by the script across runs). Skip any job costing more than 25 Connects to apply.
 
+## METHOD UPDATE 2026-10-28 (Kasper). Overrides every older rule below where they conflict.
+
+**Who to apply to:** any job where the client wants someone to run their email sending for them: cold email, outbound email, email outreach, email deliverability, sending infrastructure, high-volume email operations. If they want someone to do email for them, that is exactly what we do. Client rating, hire rate, spend, country, budget, industry and the old ICP score do NOT matter anymore. Only skip: jobs we already applied to, closed jobs, pure cold calling / SMS / DM-only jobs, pure list-building or data entry, and full sales-closer roles. Reference example: job ~022113250923376148718 (high-volume email + deliverability for an events business).
+
+**Pricing:** never mention pricing, rates, fees or how we charge. If a screening question asks about pay, rate or structure, answer along the lines of: "We're flexible on how we set it up, so I'd rather find what works for you on a quick video call."
+
+**CTA:** always a video call. End with a direct question like "Would you be up for a quick video call this week?"
+
+**Tone:** human and a notch informal, down to earth, plain words anyone can follow. Still professional and clearly competent, especially when explaining the email side (deliverability, domains, warm-up, lists, replies). Short sentences, no corporate phrasing, no hype.
+
+**Tools:** still never claim expertise in a named tool (GoHighLevel, HubSpot, Clay, etc.). Talk about the work itself instead.
+
 Helper script: `node .claude/skills/upwork-proposals/upwork.cjs <cmd>`. **Always single-quote job ids** (`'~0221...'`), zsh expands a bare `~` (Slack channel C0C9JHB59FU, seen list in `~/.upwork-proposals/seen.txt`).
 
 Javascript output rule: never return URLs or `key=value` strings from page scripts (the extension blocks the whole result). Every snippet below strips `= ? &` from text it returns via `c()`. If a result still comes back BLOCKED, rerun with shorter slices, never fall back to screenshots.
@@ -29,9 +41,9 @@ Javascript output rule: never return URLs or `key=value` strings from page scrip
 **Login check first (always):** on the first search page run `({out:/Log in/.test(document.querySelector('header')?.innerText||''), n:document.querySelectorAll('article').length})`. If `out` is true, or `n` is 0 on a query that normally has results, STOP: tell Kasper Upwork is logged out in Chrome and to log in himself, then rerun. Never type credentials. An empty result list is only trusted when `n` > 0.
 
 Base URL, swap in each query:
-`https://www.upwork.com/nx/search/jobs/?q=QUERY&contractor_tier=3&payment_verified=1&proposals=0-4,5-9,10-14,15-19,20-49&sort=recency&per_page=50`
+`https://www.upwork.com/nx/search/jobs/?q=QUERY&sort=recency&per_page=50`
 
-Queries (11): `cold%20email`, `lead%20generation`, `appointment%20setting`, `outbound%20sales`, `b2b%20lead%20generation`, `book%20meetings`, `sales%20meetings`, `outbound%20agency`, `cold%20outreach`, `linkedin%20outreach`, `sdr`. Run them all in ONE `browser_batch` (navigate + snippet per query).
+Queries (14): `cold%20email`, `email%20deliverability`, `email%20outreach`, `cold%20email%20specialist`, `lead%20generation`, `appointment%20setting`, `outbound%20sales`, `b2b%20lead%20generation`, `book%20meetings`, `sales%20meetings`, `outbound%20agency`, `cold%20outreach`, `linkedin%20outreach`, `sdr`. Run them all in ONE `browser_batch` (navigate + snippet per query).
 
 **Cheap mode:** on the FIRST page, wrap the snippet below in an async IIFE string, save it with `localStorage.setItem('upwScan', SRC)` and run `await eval(SRC)`; on every later page just run `await eval(localStorage.getItem('upwScan'))`. Add a `SEEN` id list inside the snippet (from `~/.upwork-proposals/seen.txt`, ids without `~`) so seen jobs never come back. An empty `[]` is normal when nothing new passed.
 
@@ -47,7 +59,7 @@ const c=s=>(s||'').replace(/[=?&]/g,' ');
  const info=q('JobInfo'), spent=num(q('total-spent'))||0, loc=q('location').replace('Location ','');
  const fixed=/Fixed/.test(info), hi=[...info.matchAll(/\$([\d,.]+)/g)].map(m=>+m[1].replace(/,/g,'')), top=hi.length?Math.max(...hi):null;
  const id=((a.querySelector('a[href*="/jobs/"]')?.getAttribute('href')||'').match(/~\w+/)||[''])[0];
- const drop= spent<10000 ? 'spent' : BAD.test(loc) ? 'country' : (top!==null && (fixed? top<2000 : top<40)) ? 'budget' : '';
+ const drop=''; // 2026-10-28: no spend/country/budget filters anymore
  return drop?null:{id,t:c(q('job-tile-title-link')),info,spent,loc,posted:q('job-pubilshed-date').split('·')[0].trim(),p:q('proposals-tier').replace('Proposals: ',''),d:c(q('JobDescription').slice(0,220))};
 }).filter(Boolean)
 ```
@@ -117,7 +129,7 @@ No domain findable → do not guess or search. Mark website "not verified". Only
 4. `Here's how it would work.` then short paragraphs, one step each: (a) we build and verify the target list around their exact criteria; (b) we write the messaging from their offer (what it does, what that gives the customer, who has that pain) and test angles until one clearly works; (c) LinkedIn runs from their own profiles, email runs from domains and inboxes we set up and warm up, we handle SPF, DKIM, DMARC and deliverability monitoring, everything we set up is theirs to keep; (d) we handle every reply on both channels and book the meetings (they can take over LinkedIn conversations only if they prefer), only people who said yes reach their calendar, campaigns go out day one, first lead usually within 30 hours.
 5. Tie it to their post where it fits (e.g. "which is what keeps lead quality going up").
 6. Proof line (exact): the 18 calls in under 20 days sentence + portfolio.
-7. One direct question about a call, then the signature.
+7. One direct question about a quick video call, then the signature.
 Gold example: the EU payments card (job ~022112546601095497165) as approved by Kasper on 2026-10-21.
 
 **Keep learning:** whenever Kasper states a new fact or correction in chat, add it to the facts list / rules in this file right away (and to memory), then use it in every later draft.
@@ -149,7 +161,7 @@ Your post sounds like exactly that kind of work. We take care of the list, the w
 
 Our most recent client had 18 calls booked on their calendar in under 20 days, all interested leads who fit their exact ICP. The full case study is in my portfolio.
 
-Would you be up for a quick call this week?
+Would you be up for a quick video call this week?
 
 Best,
 Kasper Zacho
@@ -162,7 +174,7 @@ We focus on results, not activity. What we measure ourselves on is qualified cal
 
 Campaigns go live on day one, and the first lead usually comes in within 30 hours. There's a case study in my portfolio if you want to see real numbers.
 
-Happy to walk you through how it would work for you. Got time for a short call this week?
+Happy to walk you through how it would work for you. Got time for a quick video call this week?
 
 Best,
 Kasper Zacho
@@ -175,7 +187,7 @@ I mention that because a lot of people who post jobs like this have been burned 
 
 Our most recent client had 18 calls booked on their calendar in under 20 days, all interested leads who fit their exact ICP. The full case study is in my portfolio.
 
-We only take on 20 clients at a time, so I'd like to hear about your business first. Could we do a quick call?
+We only take on 20 clients at a time, so I'd like to hear about your business first. Would you be up for a quick video call?
 
 Best,
 Kasper Zacho
@@ -188,7 +200,7 @@ We build the list, write the emails and LinkedIn messages, send them, deal with 
 
 It tends to move fast. Campaigns go out on day one, and the first lead usually comes in within 30 hours. Our most recent client had 18 calls booked on their calendar in under 20 days, all interested leads who fit their exact ICP. The full case study is in my portfolio.
 
-If that sounds like what you're after, I'd be glad to jump on a quick call.
+If that sounds like what you're after, I'd be glad to jump on a quick video call.
 
 Best,
 Kasper Zacho
@@ -201,7 +213,7 @@ Before telling you whether we can help, I'd want to know two things: who's your 
 
 I ask because we only work with 20 clients at a time and prefer to stay with them long term, so a quick fit check saves us both time. Our most recent client had 18 calls booked on their calendar in under 20 days, all interested leads who fit their exact ICP. The full case study is in my portfolio.
 
-Are you free for a short call?
+Are you free for a quick video call this week?
 
 Best,
 Kasper Zacho
