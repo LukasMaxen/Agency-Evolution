@@ -295,6 +295,7 @@ export async function POST(req: NextRequest) {
           const website = qa.find(q => /website|url|site/i.test(q.question ?? ""))?.answer ?? undefined;
           void trackCancellation({
             workspaceSlug: row.workspace_slug,
+            configKey: trackerKey,
             leadEmail: row.lead_email,
             leadName: row.lead_name,
             meetingStartISO: new Date(row.scheduled_at).toISOString(),

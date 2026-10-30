@@ -178,6 +178,9 @@ export const MEETING_CONFIG: Record<string, MeetingConfig> = {
     airtableTableId: "tblB2jD5wc41H8ws6",        // Meetings / Deals Kasper
     slackChannel: FALLBACK_SLACK_CHANNEL,        // #internal-meetings
     workspaceLabel: "Kasper Zacho",
+    // Only the /30min link ("30 Minute Meeting"). The /30-minute-personal-huddle link
+    // ("30 Minute Personal Huddle") is never tracked (Kasper, 2026-10-30).
+    eventNameContains: "30 Minute Meeting",
     fields: { email: "Email", meetingDate: "Date Of Exploratory Call", bookedDate: "Meeting booked date" },
     crm: {
       dealSourceField: "Deal Source", dealSource: "Cold email",
@@ -422,6 +425,8 @@ function slackMessage(verb: "New meeting booked" | "Meeting rescheduled", i: Boo
 
 export interface CancellationInput {
   workspaceSlug: string;
+  /** MEETING_CONFIG key, when it differs from workspaceSlug (same as BookingInput.configKey). */
+  configKey?: string;
   leadEmail: string;
   leadName: string;
   meetingStartISO: string;
@@ -450,7 +455,9 @@ function cancellationMessage(i: CancellationInput, threadUrl?: string | null): s
  */
 export async function trackCancellation(input: CancellationInput): Promise<boolean> {
   if (!SLACK_BOT_TOKEN || !input.leadEmail) return false;
-  const cfg = MEETING_CONFIG[input.workspaceSlug];
+  const cfg = MEETING_CONFIG[input.configKey ?? input.workspaceSlug];
+  // Same event filter as trackMeeting: no cancellation notice for an event type we never tracked.
+  if (cfg?.eventNameContains && !(input.eventTypeName ?? "").toLowerCase().includes(cfg.eventNameContains.toLowerCase())) return false;
   const channel = cfg?.slackChannel ?? FALLBACK_SLACK_CHANNEL;
   try {
     const threadUrl = await getThreadUrl(input.workspaceSlug, input.leadEmail);
