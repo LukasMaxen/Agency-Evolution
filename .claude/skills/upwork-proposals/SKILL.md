@@ -14,10 +14,10 @@ Two commands, both triggered manually by Kasper.
 - Do not read client files, memory files or other docs for this skill. Everything needed is in this file.
 - No logging beyond the seen list the script keeps. No reports, no summaries beyond a few lines at the end.
 - Batch browser calls with `browser_batch` wherever possible. Close the tab when done.
-- Current budget (set 2026-10-15): **825 Connects over 5 working days = 165 Connects per day, about 6 boosted proposals a day.** Scan posts max **8 cards** so Kasper can pick the best ~6. Submit stops once **today** has spent 165 Connects (tracked by the script across runs). Skip any job costing more than 25 Connects to apply.
+- Current budget (set 2026-11-02): **657 Connects over 5 working days (Mon to Fri) = about 130 Connects per day, 5 proposals a day.** Stop once today has spent 130 Connects.
 
 ## AUTONOMOUS MODE (Kasper, 2026-10-28). Default from now on.
-When Kasper asks for N applications ("send 10 applications today", "upwork run"), do it end to end WITHOUT Slack approval cards: scan, pick the N best fits, read each full post and apply page, draft per all rules below, fill the form, verify spacing, boost only to 4th place within 85 Connects total per application, send, then mark the job seen. Report at the end in a short table (job, Connects, boost, anything to check). Stop early only if Connects run out, Upwork logs out, or a captcha appears.
+When Kasper asks for N applications ("send 10 applications today", "upwork run"), do it end to end WITHOUT Slack approval cards: scan, pick the N best fits, read each full post and apply page, draft per all rules below, fill the form, verify spacing, boost only to 4th place within 40 Connects total per application, send, then mark the job seen. Report at the end in a short table (job, Connects, boost, anything to check). Stop early only if Connects run out, Upwork logs out, or a captcha appears.
 
 ## TARGETING RULE 2026-11-02 (Kasper). Overrides everything below, including "Who to apply to".
 
@@ -63,7 +63,7 @@ Examples of wrong fits sent on 2026-10-30: the Mautic B2B Canada job (work insid
 
 **How we work, say it clearly (Kasper, 2026-10-28):** we do everything ourselves with our own software, from setup to sending to replies. Volume is never the limit on our side, we can push as much as they want, it only comes down to how big their market is (say "market", not "TAM"). We build toward whatever outcome they want: event or summit registrations, sales calls, sign ups. When it's calls, we set them up so all they do is show up, and every call is with an interested lead. Aim to impress with competence, stay friendly, and write as Kasper in the first person, like a good person talking to another business owner.
 
-**Connects per application (2026-10-28):** max 85 Connects per application INCLUDING boost. Boost only exactly enough to reach 4th place (4th place bid + 1). If proposal cost + that boost would go over 85, don't boost. Never boost above 4th place.
+**Connects per application (2026-10-28):** max 40 Connects per application INCLUDING boost (lowered from 85 on 2026-11-02). Boost only exactly enough to reach 4th place (4th place bid + 1). If proposal cost + that boost would go over 40, don't boost. Never boost above 4th place.
 
 **Never mirror their post back (Kasper, 2026-10-28):** no "I saw you want...", "You need someone who...", "You're looking for...". The [personal line] in the old templates is dropped.
 
@@ -312,7 +312,7 @@ const b=document.body.innerText;
 
 **Signature exception:** the signature stays exactly "Co-Owner | Agency Evolution" with the hyphen (confirmed by Kasper 2026-10-28). The no-dash rule applies to the body only.
 
-**Claude in Chrome submit recipe (worked for 10/10 on 2026-10-28):** apply page, JS read (bids, minBid, cadence combobox, fixed price, textareas), `find` for refs, `form_input` for cover letter, answers and the bid number, click "Set bid", pick "Never" in the rate increase combobox via JS mouse events, verify paragraph count and "Bid to boost" summary, click Send. Fixed price shows a "3 things you need to know" dialog after Send: tick its checkbox and click "Continue". Fixed price: choose "By project", keep Upwork's prefilled amount, duration "1 to 3 months". When ranks 2 to 4 are empty, Upwork only accepts the shown minimum bid (the 1st place threshold); use that minimum if it fits the 85 cap. Skip jobs that require a Loom video.
+**Claude in Chrome submit recipe (worked for 10/10 on 2026-10-28):** apply page, JS read (bids, minBid, cadence combobox, fixed price, textareas), `find` for refs, `form_input` for cover letter, answers and the bid number, click "Set bid", pick "Never" in the rate increase combobox via JS mouse events, verify paragraph count and "Bid to boost" summary, click Send. Fixed price shows a "3 things you need to know" dialog after Send: tick its checkbox and click "Continue". Fixed price: choose "By project", keep Upwork's prefilled amount, duration "1 to 3 months". When ranks 2 to 4 are empty, Upwork only accepts the shown minimum bid (the 1st place threshold); use that minimum if it fits the 40 cap. Skip jobs that require a Loom video.
 
 **Paragraph spacing (Kasper, 2026-10-28):** every proposal and answer must have a blank line between paragraphs, and between the last paragraph and the signature (signature lines themselves stay together). After filling the cover letter, read the textarea value back and confirm it contains "\n\n" between paragraphs and that the paragraph count matches the approved draft. If the line breaks got stripped, refill before sending.
 
