@@ -19,6 +19,20 @@ Two commands, both triggered manually by Kasper.
 ## AUTONOMOUS MODE (Kasper, 2026-10-28). Default from now on.
 When Kasper asks for N applications ("send 10 applications today", "upwork run"), do it end to end WITHOUT Slack approval cards: scan, pick the N best fits, read each full post and apply page, draft per all rules below, fill the form, verify spacing, boost only to 4th place within 85 Connects total per application, send, then mark the job seen. Report at the end in a short table (job, Connects, boost, anything to check). Stop early only if Connects run out, Upwork logs out, or a captcha appears.
 
+## TARGETING RULE 2026-11-02 (Kasper). Overrides everything below, including "Who to apply to".
+
+**Only apply when the client wants US to run cold outreach FOR them, done for you.** We find their prospects, send the outreach, handle replies and book meetings. Before applying, ask: "Does this client want someone to go out and get them new customers or meetings?" If no, skip.
+
+Skip every job about helping with their CURRENT setup, even if it says cold email or outreach:
+- set up, configure, fix, audit, migrate or manage their existing tool or platform (Mautic, Instantly, Smartlead, HubSpot, GoHighLevel, Mailgun, ESP, CRM, automations)
+- deliverability fixes, warm up help, DNS or IP work on their own sending
+- "sending partner", infrastructure provider, dedicated IPs, white label sending for their campaigns
+- consulting, training, strategy or coaching on how they should do outreach
+- AI SDR or automation builds, workflow builds, tool integrations
+- in house SDR or employee style roles where they run the process and we just fill a seat
+- copywriting only, list only, VA or data entry
+Examples of wrong fits sent on 2026-10-30: the Mautic B2B Canada job (work inside their Mautic), the 300k a month sending partner job, the AI automation services job.
+
 ## METHOD UPDATE 2026-10-28 (Kasper). Overrides every older rule below where they conflict.
 
 **Who to apply to:** any job where the client wants someone to run their email sending for them: cold email, outbound email, email outreach, email deliverability, sending infrastructure, high-volume email operations. If they want someone to do email for them, that is exactly what we do. Client rating, hire rate, spend, country, budget, industry and the old ICP score do NOT matter anymore. Only skip: jobs we already applied to, closed jobs, pure cold calling / SMS / DM-only jobs, pure list-building or data entry, and full sales-closer roles. Reference example: job ~022113250923376148718 (high-volume email + deliverability for an events business).
