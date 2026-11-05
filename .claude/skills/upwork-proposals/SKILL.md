@@ -19,6 +19,56 @@ Two commands, both triggered manually by Kasper.
 ## AUTONOMOUS MODE (Kasper, 2026-10-28). Default from now on.
 When Kasper asks for N applications ("send 10 applications today", "upwork run"), do it end to end WITHOUT Slack approval cards: scan, pick the N best fits, read each full post and apply page, draft per all rules below, fill the form, verify spacing, boost only to 4th place within 40 Connects total per application, send, then mark the job seen. Report at the end in a short table (job, Connects, boost, anything to check). Stop early only if Connects run out, Upwork logs out, or a captcha appears.
 
+## VALUE PLAN 2026-11-05 (Kasper). Overrides the old structure, pricing rule and length below.
+
+Kasper: "We need to add more value... we need way more interest on our applications." Proposals were reading as a process walkthrough with the same generic opening every time. From now on every cover letter sells VALUE first, then the how.
+
+**New facts (Kasper, 2026-11-05):**
+- We buy and set up the sending domains for the client (domains included, not just inboxes).
+- We get the client the sending inboxes for about a third of what they normally cost. Phrase it exactly along the lines of "we get you the sending inboxes for about a third of what they normally cost". Never give a price or number beyond "a third".
+- We're flexible with pricing. Say it in the cover letter: "We're flexible on pricing and happy to shape it around what works for you." Still never state a figure, a fee type (setup fee, retainer, pay per meeting, commission), or anything about paying outside Upwork.
+
+**Cover letter structure (replaces the old 7 step structure):**
+1. **Hook, first two lines (this is all the client sees in the proposal list).** Intro plus their buyers plus our strongest value, in one go. Pattern: "Hi, I'm Kasper from Agency Evolution. We'd get [their buyers, from the post] onto your calendar, and we handle every part of it ourselves, down to the domains and inboxes, which we get you for about a third of what they normally cost." Adapt it to the job, but never restate the post ("you're looking for...").
+2. **What you get with us.** One paragraph of concrete value, written as sentences. Pick the points that matter most for this job:
+   - we buy and set up the domains and inboxes, inboxes at about a third of the normal cost
+   - we handle SPF, DKIM, DMARC and warm up, and monitor deliverability the whole time
+   - our own verification software checks every contact, so bounces stay low (data from Apollo)
+   - everything we set up is theirs to keep
+3. **How it runs, short.** One or two paragraphs, not five:
+   - we write the messaging from their offer, they approve it, and it goes out in their name
+   - email for volume, LinkedIn alongside for the personal touch
+   - we handle every reply, and only interested people get booked
+   - meetings land on their calendar first so they can check the company
+4. **Proof.** Volume is never the limit, only the market. Add 5+ years, then ONE result that fits the job best:
+   - 18 qualified meetings in under 20 days for a B2B consultant
+   - 95% of booked meetings qualified for an M&A client
+   - 4x return in cash collected within the first 30 days for a B2B services client
+   - rated 5.0 on Trustpilot
+5. **Close.** "We're flexible on pricing and happy to shape it around what works for you. Would you be up for a quick video call this week?" Then the signature.
+
+**Length:** aim for 900 to 1,300 characters in the cover letter, no more than about 1,500. Shorter and value heavy beats long and procedural. Job specific honesty lines (we don't use Instantly, no calls, new vertical) still go in, one sentence each.
+
+**Screening answers:** when a question asks about pricing, rate or compensation, answer with "We're flexible on pricing and happy to shape it around what works for you. The setup side stays cheap too, since we get you the sending inboxes for about a third of what they normally cost. Easiest to agree the rest on a quick video call." All other rules still apply: no repeats between cover letter and answers, only true statements, no dashes or colons, blank lines between paragraphs.
+
+**Gold example (Ribit style job, cold email for a SaaS selling to car dealerships):**
+
+```
+Hi, I'm Kasper from Agency Evolution. We'd get dealership decision makers across the US and Canada onto your calendar, and we handle every part of it ourselves, down to the domains and inboxes, which we get you for about a third of what they normally cost.
+
+Here's what you get with us. We buy and set up the sending domains and inboxes, handle SPF, DKIM, DMARC and warm up, and watch deliverability the whole time. Our own verification software checks every contact before it's emailed, so bounces stay low. Everything we set up is yours to keep.
+
+We write the messaging from your offer, you approve it, and it goes out in your name by email, with LinkedIn alongside it for the personal touch. We handle every reply, and only people who actually want to talk get booked. Each meeting lands on your calendar first so you can check the dealership before taking it.
+
+Volume is never the limit on our side, only the size of your market. We've been doing this for more than five years, and one recent client, a B2B consultant, got 18 qualified meetings in under 20 days.
+
+We're flexible on pricing and happy to shape it around what works for you. Would you be up for a quick video call this week?
+
+Best,
+Kasper Zacho
+Co-Owner | Agency Evolution
+```
+
 ## TARGETING RULE 2026-11-02 (Kasper). Overrides everything below, including "Who to apply to".
 
 **Only apply when the client wants US to run cold outreach FOR them, done for you.** We find their prospects, send the outreach, handle replies and book meetings. Before applying, ask: "Does this client want someone to go out and get them new customers or meetings?" If no, skip.
@@ -37,7 +87,7 @@ Examples of wrong fits sent on 2026-10-30: the Mautic B2B Canada job (work insid
 
 **Who to apply to:** any job where the client wants someone to run their email sending for them: cold email, outbound email, email outreach, email deliverability, sending infrastructure, high-volume email operations. If they want someone to do email for them, that is exactly what we do. Client rating, hire rate, spend, country, budget, industry and the old ICP score do NOT matter anymore. Only skip: jobs we already applied to, closed jobs, pure cold calling / SMS / DM-only jobs, pure list-building or data entry, and full sales-closer roles. Reference example: job ~022113250923376148718 (high-volume email + deliverability for an events business).
 
-**Pricing:** never mention pricing, rates, fees or how we charge. If a screening question asks about pay, rate or structure, answer along the lines of: "We're flexible on how we set it up, so I'd rather find what works for you on a quick video call."
+**Pricing (UPDATED 2026-11-05, see VALUE PLAN above, which wins):** never give figures, fee types or how we charge, but DO say we're flexible on pricing and that we get the sending inboxes for about a third of what they normally cost. Old rule: never mention pricing, rates, fees or how we charge. If a screening question asks about pay, rate or structure, answer along the lines of: "We're flexible on how we set it up, so I'd rather find what works for you on a quick video call."
 
 **CTA:** always a video call. End with a direct question like "Would you be up for a quick video call this week?"
 
