@@ -34,6 +34,7 @@ When a user asks for any of the following, open the linked skill file FIRST and 
 | "Campaign QA", reviewing a campaign before launch | `1. Departments/cold email campaigns/SKILL_CampaignQA.md` |
 | "Write a script", drafting cold email copy | `1. Departments/cold email campaigns/SKILL_WriteScript.md` |
 | "Lead monitoring", checking sending health | `1. Departments/cold email campaigns/SKILL_LeadMonitoring.md` |
+| X account: "post", "comment", "reply", "schedule next week", "continue comments", any X comments/replies/posts request | `.claude/skills/x-account/SKILL.md` (invoke the `x-account` skill) |
 
 The CSM update is especially load-bearing: the numbers go into Slack and to clients. Always pull from the sources the skill specifies (EmailBison `/api/workspaces/v1.1/stats` for sends/replies/interested, Airtable for meetings). Do not query the `emails_sent` or `replies` PostgreSQL tables for the daily/weekly counts — the DB had an undercounting bug and the skill was rewritten to avoid it.
 
