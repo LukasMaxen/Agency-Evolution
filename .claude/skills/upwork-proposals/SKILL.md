@@ -14,10 +14,56 @@ Two commands, both triggered manually by Kasper.
 - Do not read client files, memory files or other docs for this skill. Everything needed is in this file.
 - No logging beyond the seen list the script keeps. No reports, no summaries beyond a few lines at the end.
 - Batch browser calls with `browser_batch` wherever possible. Close the tab when done.
-- Current budget (set 2026-11-02): **657 Connects over 5 working days (Mon to Fri) = about 130 Connects per day, 5 proposals a day.** Stop once today has spent 130 Connects.
+- Current budget (set 2026-11-09): **830 Connects over 5 working days (Mon to Fri) = 166 Connects per day, about 8 proposals a day** (average proposal costs about 19 Connects with boost). Stop once today has spent 166 Connects. Only fill the day with real fits, never pad with wrong ones.
 
 ## AUTONOMOUS MODE (Kasper, 2026-10-28). Default from now on.
 When Kasper asks for N applications ("send 10 applications today", "upwork run"), do it end to end WITHOUT Slack approval cards: scan, pick the N best fits, read each full post and apply page, draft per all rules below, fill the form, verify spacing, boost only to 4th place within 40 Connects total per application, send, then mark the job seen. Report at the end in a short table (job, Connects, boost, anything to check). Stop early only if Connects run out, Upwork logs out, or a captcha appears.
+
+## VOICE RULES 2026-11-09 (Kasper). Overrides the VALUE PLAN wording and gold example below where they conflict. Keep the VALUE PLAN facts.
+
+Kasper: "we gotta step up and make sure we dont sound AI."
+
+**Voice:** a 23 year old from Miami who is very experienced in cold email. Straightforward, no bullshit, friendly and kind. Professional but human. No forced slang or filler ("real talk", "lol", "nothing hidden"). If a sentence sounds like marketing copy, rewrite it. Banned framing: "Here's what you get with us", "Here's how it would work", "In plain terms", any line that announces what comes next.
+
+**Opening:** just "Hi, I'm Kasper." (or "Hi <Name>, I'm Kasper." when the name is certain). No "I run Agency Evolution, we book sales calls for B2B companies", no describing the company, no clever opener built on a word from their post. The second line goes straight to what we'd do for them.
+
+**Make Kasper look sharp:**
+- never state the obvious
+- never repeat a fact or point in the same proposal (or between cover letter and answers)
+- never write anything that makes him look unsure or unprepared ("I won't pretend otherwise", "I'd rather not guess", "I don't have numbers I could share")
+- state gaps plainly and confidently ("We haven't worked with manufacturers yet, the process is the same one we run every day", "Reply rates are tracked per campaign, close rates on the client's side")
+
+**Truth:** never assume or offer anything Kasper hasn't confirmed (screen shares, integrations, reports, guarantees). Only use stats that answer what the post asks. If the post doesn't ask for results or experience, one proof line at most, and only when it fits the job. No padding numbers.
+
+**911 Restoration (2026-11-08):** the ONLY client we may name. 54k trade owners reached, 1,073 replies, 234 interested. Never claim a meeting count for it. Best for home services, trades or contractor audiences. All other results stay unnamed.
+
+**Everything stays theirs:** domains, inboxes, software, lists and messaging.
+
+**CTA:** frame the first call as informal. "Would you be up for an informal 30 minute call this week?" No link (Upwork).
+
+**Banned phrases:** "manually verify", "no upfront cost", "success fee only", "I didn't give you a number", "our CEO".
+
+**Not for Upwork:** "they only pay for the meetings they take" from Kasper's email rules stays OUT of Upwork proposals (any billing structure risks the account). Say only that we're flexible on pricing.
+
+**Length:** 700 to 1,100 characters for the cover letter.
+
+**Gold example (new voice, SaaS selling to car dealerships):**
+
+```
+Hi, I'm Kasper.
+
+We'd run the whole thing for you, from finding dealership decision makers across the US and Canada to reaching out in your name and putting the interested ones on your calendar.
+
+We buy and set up the domains and inboxes ourselves, and we get the inboxes for about a third of what they normally cost. Warm up, SPF, DKIM and DMARC are handled, and every contact goes through our own verification software before it's emailed. Domains, inboxes, lists and messaging all stay yours.
+
+You approve the messaging before anything goes out. Email carries the volume and LinkedIn adds the personal touch. We handle every reply, and only people who actually want to talk land on your calendar, so you can look into each dealership before the call.
+
+We're flexible on pricing and happy to shape it around what works for you. Would you be up for an informal 30 minute call this week?
+
+Best,
+Kasper Zacho
+Co-Owner | Agency Evolution
+```
 
 ## VALUE PLAN 2026-11-05 (Kasper). Overrides the old structure, pricing rule and length below.
 
