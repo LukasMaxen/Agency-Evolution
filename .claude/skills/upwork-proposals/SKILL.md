@@ -19,6 +19,37 @@ Two commands, both triggered manually by Kasper.
 ## US ONLY (Kasper, 2026-11-10). Overrides every older rule, including "regardless of country".
 Only ever apply to US businesses. The client location on the job tile or "About the client" must be the United States (shown as "United States" or "USA"). Skip every other country, even if they sell into the US. In the scan, drop any row whose `loc` is not United States/USA before the fit check.
 
+## RUN PLAYBOOK ("upwork run", "upwork outreach", "send N applications"). Proven 2026-11-10, 8 sent for 154 Connects.
+Follow this exactly. It is the fastest, cheapest path. The older scan/submit sections below are reference only.
+
+**0. Setup (one round each).**
+- `node upwork.cjs spent` (stop if 166 or more) and `node upwork.cjs seenrecent 120` (ids for the SEEN list).
+- One ToolSearch: `select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__tabs_close_mcp,mcp__claude-in-chrome__javascript_tool,mcp__claude-in-chrome__browser_batch,mcp__claude-in-chrome__find,mcp__claude-in-chrome__form_input`
+- `tabs_context_mcp` with `createIfEmpty:true`, use that tab for the whole run.
+
+**1. Scan.** First page `cold%20email`: navigate, then one JS call that stores the scan snippet in `localStorage.upwScan`, resets `localStorage.upwDone` to `[]`, checks login (`/Log in/` in header, article count > 0), and runs it. Every later query is just `(await eval(localStorage.getItem('upwScan')))` in one `browser_batch` (4 to 5 queries per batch). The snippet must:
+- skip rows whose posted text is not minutes/hours ago or yesterday, ids in SEEN, ids already in `upwDone` (add returned ids to it, so each job comes back once across all queries)
+- **skip rows whose `loc` is not /United States|USA/** (US ONLY rule)
+- return each row as ONE compact string: `id.slice(0,9)+' '+id.slice(9) | title | spent | loc | info.slice(0,25) | desc.slice(0,90)`. **Ids must be split with a space**, a raw 21 digit id comes back `[BLOCKED: Base64 encoded data]`.
+- Queries that produced fits: cold email, email outreach, lead generation, appointment setting, cold outreach, book meetings, outbound agency, linkedin outreach, email deliverability. The rest are mostly noise but cheap, run them last.
+
+**2. Pick.** From the rows, keep done-for-you outreach jobs only (TARGETING RULE). Skip cold calling only, closers, audits, tool setups, operator gigs on their own tool with their own templates, in-house SDR seats. Take about 10 into detail.
+
+**3. Detail.** Store a job snippet once in `localStorage.upwJob` (title, hire, client 260 chars, desc 1300 chars, connects), then batch `navigate https://www.upwork.com/jobs/~<id>` + `await eval(localStorage.getItem('upwJob'))`, 6 jobs per batch. Tool output cuts long text near 1,000 chars, so for long posts read the rest with `.slice(1000,2200)`, and ALWAYS find the keyword line with `d.slice(d.indexOf('Start your'), +120)` (also look for "start your proposal with", "word"). Questions inside the post text must be answered in the cover letter.
+
+**4. Apply pages (read only).** Store an apply snippet in `localStorage.upwApply` returning send, balance, fixed, loom, question labels, and the boost table with `/Rank\s+Bid[\s\S]{0,250}/` (the older `Rank Bid` regex misses it). Batch 4 per round. Then plan the day: sum of sends first, boosts get what is left of 166.
+
+**5. Submit each job, then VERIFY before moving on.**
+1. Batch: navigate apply page, read boost table, `find` "cover letter textarea, screening question textareas, boost bid number input, Set bid button".
+2. Fixed price only: JS click the radio whose label starts with "By project" (keep the prefilled amount, never type one). Duration: `computer left_click` the "Select a duration" combobox ONCE, then JS click the `[role=option]` with text "1 to 3 months" (clicking the combobox twice closes it).
+3. Batch: `form_input` cover letter and each answer, `form_input` bid, click Set bid, then one JS read (and for hourly, set the rate increase combobox to Never with JS mouse events) returning length, paragraph count, the boost table and the "Send for N Connects" text.
+4. Boost rules learned: the bid is LOCKED once Set bid is clicked, decide first. Bid = 4th place + 1. When 4th is empty, bid 5 only if the 3rd place bid is above 5 (lands 4th); otherwise skip the boost. A bid of 1 is ignored. Never over 40 total per job.
+5. `find` the Send button, click it in its own call, then a SEPARATE JS call: wait 2.5s, check `/Your proposal was submitted/`. Never navigate in the same batch as the Send click (the check dies with "Inspected target navigated").
+6. Fixed price: after Send, the "3 things you need to know" dialog appears. JS tick the checkbox inside `[role=dialog]`, `find` Continue, click, then verify as above. If it is not confirmed, do not move on.
+7. "Sorry, we were unable to save your application ... active proposal" means it already went through. Count it as sent.
+
+**6. Wrap up.** `node upwork.cjs addspend <total>`, `node upwork.cjs mark '<~ids>'` for every job sent or dropped after detail (leave cap-cut fits unmarked for tomorrow), close the tab, then report the table (job, Connects, boost, anything to check).
+
 ## AUTONOMOUS MODE (Kasper, 2026-10-28). Default from now on.
 When Kasper asks for N applications ("send 10 applications today", "upwork run"), do it end to end WITHOUT Slack approval cards: scan, pick the N best fits, read each full post and apply page, draft per all rules below, fill the form, verify spacing, boost only to 4th place within 40 Connects total per application, send, then mark the job seen. Report at the end in a short table (job, Connects, boost, anything to check). Stop early only if Connects run out, Upwork logs out, or a captcha appears.
 
