@@ -5,6 +5,8 @@
 //   node upwork.cjs update <ts> <card.json> rewrites an existing card in place (ts, thread, reactions kept)
 //   node upwork.cjs approved               prints approved, not yet submitted cards as JSON
 //   node upwork.cjs spent                  prints Connects spent today (local date)
+//   node upwork.cjs addspend <connects>    adds to today's spend (autonomous runs, no Slack card)
+//   node upwork.cjs seenrecent [n]         prints the last n seen ids without ~, comma separated (default 120)
 //   node upwork.cjs done <ts> <connects>   marks a card submitted (rocket) and adds to today's spend
 //   node upwork.cjs fail <ts> "<reason>"   marks a card failed (warning reaction + thread note)
 const path = require('path'), fs = require('fs'), os = require('os');
@@ -110,6 +112,20 @@ const [cmd, ...args] = process.argv.slice(2);
 
   if (cmd === 'spent') { console.log(readSpend()[today()] || 0); return; }
 
+  if (cmd === 'addspend') {
+    const s = readSpend(); s[today()] = (s[today()] || 0) + (parseInt(args[0], 10) || 0);
+    fs.writeFileSync(SPEND, JSON.stringify(s));
+    console.log('spent today', s[today()]);
+    return;
+  }
+
+  if (cmd === 'seenrecent') {
+    const n = parseInt(args[0], 10) || 120;
+    let ids = []; try { ids = fs.readFileSync(path.join(DIR, 'seen.txt'), 'utf8').split('\n').map(x => x.trim().replace(/^~/, '')).filter(Boolean); } catch {}
+    console.log(ids.slice(-n).join(','));
+    return;
+  }
+
   if (cmd === 'done' || cmd === 'fail') {
     const [ts, extra] = args;
     await slack('reactions.add', { channel: CH, timestamp: ts, name: cmd === 'done' ? 'rocket' : 'warning' });
@@ -122,5 +138,5 @@ const [cmd, ...args] = process.argv.slice(2);
     return;
   }
 
-  console.log('usage: unseen | mark | post <file> | update <ts> <file> | approved | spent | done <ts> <connects> | fail <ts> <reason>');
+  console.log('usage: unseen | mark | post <file> | update <ts> <file> | approved | spent | addspend <n> | seenrecent [n] | done <ts> <connects> | fail <ts> <reason>');
 })();
