@@ -16,6 +16,9 @@ Two commands, both triggered manually by Kasper.
 - Batch browser calls with `browser_batch` wherever possible. Close the tab when done.
 - Current budget (set 2026-11-09): **830 Connects over 5 working days (Mon to Fri) = 166 Connects per day, about 8 proposals a day** (average proposal costs about 19 Connects with boost). Stop once today has spent 166 Connects. Only fill the day with real fits, never pad with wrong ones.
 
+## US ONLY (Kasper, 2026-11-10). Overrides every older rule, including "regardless of country".
+Only ever apply to US businesses. The client location on the job tile or "About the client" must be the United States (shown as "United States" or "USA"). Skip every other country, even if they sell into the US. In the scan, drop any row whose `loc` is not United States/USA before the fit check.
+
 ## AUTONOMOUS MODE (Kasper, 2026-10-28). Default from now on.
 When Kasper asks for N applications ("send 10 applications today", "upwork run"), do it end to end WITHOUT Slack approval cards: scan, pick the N best fits, read each full post and apply page, draft per all rules below, fill the form, verify spacing, boost only to 4th place within 40 Connects total per application, send, then mark the job seen. Report at the end in a short table (job, Connects, boost, anything to check). Stop early only if Connects run out, Upwork logs out, or a captcha appears.
 
