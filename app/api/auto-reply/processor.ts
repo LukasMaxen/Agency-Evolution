@@ -2421,12 +2421,7 @@ ${messageText.slice(0, 8000)}`;
     // 2026-10-13: mp-consulting added. MP Consulting moved off Austin Heaton AE onto its own
     // Shields workspace and keeps the same strict review it had there.
     const STRICT_REVIEW_WORKSPACES = new Set(["ah-consulting", "ah-consulting-2", "with-pebble", "with-pebble-2", "gn-motion", "mp-consulting"]);
-    // 2026-11-11 (Kasper): Internal Campaigns never sends a drafted reply unreviewed,
-    // every intent goes to #reply-approval or #manual-replies. Silent closes (no body)
-    // never reach this branch, so not-interested leads still get nothing.
-    const alwaysAutoSend = workspaceSlug === "internal-campaigns"
-      ? new Set<string>()
-      : STRICT_REVIEW_WORKSPACES.has(workspaceSlug)
+    const alwaysAutoSend = STRICT_REVIEW_WORKSPACES.has(workspaceSlug)
       ? new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested"])
       : new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested","neutral"]);
 
