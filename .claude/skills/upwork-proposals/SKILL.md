@@ -19,6 +19,9 @@ Two commands, both triggered manually by Kasper.
 ## US ONLY (Kasper, 2026-11-10). Overrides every older rule, including "regardless of country".
 Only ever apply to US businesses. The client location on the job tile or "About the client" must be the United States (shown as "United States" or "USA"). Skip every other country, even if they sell into the US. In the scan, drop any row whose `loc` is not United States/USA before the fit check.
 
+## NO FIXED PRICE UNDER $3,000 (Kasper, 2026-11-11)
+Skip any job where the fixed price is under $3,000. That covers the job's fixed price budget on the tile or job page, and any fixed amount named in the post itself (paid trial, pilot, test project, e.g. "$200 fixed price trial"). In the scan, read the budget from `info` and drop fixed price rows under $3,000 before the fit check. On the detail read, also drop the job if the description names a fixed price, trial or pilot amount under $3,000. Hourly jobs are not affected by this rule.
+
 ## RUN PLAYBOOK ("upwork run", "upwork outreach", "send N applications"). Proven 2026-11-10, 8 sent for 154 Connects.
 Follow this exactly. It is the fastest, cheapest path. The older scan/submit sections below are reference only.
 
