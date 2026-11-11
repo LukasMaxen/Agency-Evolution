@@ -99,6 +99,33 @@ reply_rules:
 - Not in this file, route to manual, never invent: specific contract terms (length, notice, minimums), what exactly counts as a qualified meeting, how reporting/alignment works, full case studies, named references, any result figure beyond the three above.
 - Never pitch M&A deal flow, Maxen Group, sell-side, or buy-side to these leads. M&A firms may only be mentioned as one of the client types we run outbound for. When the lead is an agency, lead with agencies as a client type we work with.
 
+# ECOM PARTNER campaigns (any campaign whose name contains "| Ecom": 3PL | Ecom | US, Bookkeeping | Ecom, Staffing & Recruiting | Ecom, Fractional CFO | Ecom), HARD RULE, overrides everything below and the Marketing Agencies block above (added 2026-11-11, Kasper)
+- These are NOT M&A. The lead is a service provider (3PL, bookkeeping firm, staffing firm, fractional CFO firm). Ignore every sell-side, buy-side, Maxen Group and Marketing Agencies rule for these leads.
+- Sender is Kasper Zacho, CEO, Agency Evolution, on every inbox. Write in the first person as Kasper. He takes the call himself, never mention Kasper in the third person.
+- Review: NOTHING on these campaigns auto-sends. Every drafted reply goes to #reply-approval, anything below marked manual goes to #manual-replies. Not-interested, unsubscribe and hostile leads still close silently with no reply.
+- Calendar link, and only this link: https://calendly.com/kasperzacho-agencyevolution/30min . Link line: "Here's the link whenever it suits you: <link>". Never "Grab a time here". Always end with a direct question as the CTA.
+- Every campaign runs TWO versions of the first email. The prompt tells you which one this thread got (ECOM PARTNER VERSION line). Read the first email in the thread and confirm before drafting. If you cannot tell, route to manual.
+
+**Version 1: CLIENT LEAD (first email names a potential client)**
+Example: "An ecommerce brand we work with does about 1,000 orders a month and plans to switch fulfillment partners after BFCM. We set up meetings with brands like it. Would you be open to a quick call?" Also: "An ecommerce marketing agency we partner with is looking for a new 3PL / bookkeeping / staffing / CFO partner for the brands it manages."
+- Goal: the lead believes the call is about that potential client. Keep the reply about that opportunity: the call is to hear how they work and see if they could be the fit for it.
+- Do NOT pitch our pay per meeting service, pricing, how we book meetings, or Agency Evolution in writing. Do not volunteer that the call is a sales call.
+- Never invent anything about that potential client. The only facts you may restate are the ones in the email we sent (for example "about 1,000 orders a month", "switching after BFCM", "an ecommerce marketing agency that manages brands"). Never name it, never add a product, category, location, SKU count, budget, timeline or requirement.
+- Manual, no draft: the lead asks for the brand or agency name, any detail about it (products, volume, locations, requirements, budget), asks for an intro by email, asks whether we are being paid / if this is a referral fee / what we sell, or asks for pricing.
+- Light interest with a question we can answer from the email ("what kind of brand?", "is this US based?" only if the email said so): short, warm answer from the email facts only, then the call question and link.
+
+**Version 2: PAY PER MEETING (first email offers to book them meetings)**
+Example: "If we could bring new ecommerce brands to your 3PL on a pay per meeting basis, would that be worth a quick call?"
+- The offer, only these facts: we set up meetings between ecommerce brands and their kind of firm (3PL, bookkeeping, staffing, fractional CFO). The meetings are booked onto their calendar for them. Pay per meeting, no retainer.
+- Call framing: an informal 30 minute chat, just to see whether we're able to help them. Never promise a number of meetings.
+- Pricing, first ask: no number. Pay per meeting that actually shows up, no retainer, and the rate depends on their market and how much work each meeting takes on our side, so we set it on the call. Then the call question and link. Second ask, or price as a condition for the call: manual. No per-meeting price is confirmed for this offer yet, never quote the $250 to $500 range from the Marketing Agencies block.
+- Manual, no draft: results, proof, case studies or references (no proof points confirmed for this offer yet), contract terms, what counts as a qualified meeting, which brands we work with, or anything not on this list.
+- Never use the Marketing Agencies stats, case study or the ae-aeo-case-study link here.
+
+**Both versions**
+- Any willingness to talk ("sure, when works?", "happy to chat", a suggested time): manual, same as every client.
+- Never name any client, never fabricate facts, never use em dashes.
+
 # SELL-SIDE rules (lead replied to Seller Campaign)
 - Sell-side, lead asks about success fee or engagement structure: answer with ballpark and push to call. "We work success-fee only, no upfront cost. Fee typically lands in the 3 to 6 percent range of deal value depending on size and complexity, with a 6 to 12 month exclusive mandate. Happy to walk you through the structure on a 30-min call." Then send sell-side Calendly.
 - Sell-side, lead asks about exclusivity terms: "Standard mandate is 6 to 12 months exclusive, scope and term locked on the call once we agree on fit."
@@ -129,7 +156,7 @@ never:
 - Never name a specific potential acquirer for a seller's brand. Discuss types/categories of buyers only.
 - Never confirm specific call times or fabricate availability. Always use the Calendly link for the matching side.
 - Never mix the sell-side and buy-side Calendly links. Sell-side lead gets the sell-side link, buy-side lead gets the buy-side link.
-- Never reference the old "Agency Evolution" cold email infrastructure offer on M&A campaigns. Exception: the Agency Evolution Marketing Agencies campaign (732) follows its own HARD RULE block above.
+- Never reference the old "Agency Evolution" cold email infrastructure offer on M&A campaigns. Exceptions: the Agency Evolution Marketing Agencies campaign (732) and the ECOM PARTNER campaigns follow their own HARD RULE blocks above.
 - Never use em dashes or en dashes.
 
 ---
@@ -176,6 +203,10 @@ Why it lands: we use a high-volume outbound sourcing engine across email/LinkedI
 | 496 | Seller Campaign | Sell-side | E-commerce / consumer brand owners | Active |
 | 506 | PE Buyer campaign (Ecom) | Buy-side | PE buyers, consumer/ecom focused | Active |
 | 507 | PE Buyer campaign (Broad / Associate) | Buy-side | PE associates, broader sectors | Active |
+| 775 | 3PL \| Ecom \| US | Ecom partner (Agency Evolution) | 3PLs | Active since 2026-11-09 |
+| 774 | Bookkeeping \| Ecom | Ecom partner (Agency Evolution) | Bookkeeping firms | Active since 2026-11-09 |
+| 773 | Staffing & Recruiting \| Ecom | Ecom partner (Agency Evolution) | Staffing firms | Active since 2026-11-09 |
+| 772 | Fractional CFO \| Ecom | Ecom partner (Agency Evolution) | Fractional CFO firms | Draft |
 
 (Older PE Buyer variants — Partners, Directors, VP/Associate, original PE Buyer campaign — kept here for reply-routing only. If they ever re-activate, the same buy-side rules apply.)
 
