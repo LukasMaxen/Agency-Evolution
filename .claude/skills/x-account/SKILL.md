@@ -49,6 +49,8 @@ Every post AND quote must pass all of these before it's even shown to Kasper. If
 
 **Good comment reference (Kasper praised):** on @MrColdEmail's SMTP post: "Most \"SMTP doesn't work\" stories end with \"then I sent 50k on day two\". Same thing kills Google and Microsoft setups too. Warmup and clean lists matter more than the provider. Curious how reply rates compare for you on the same copy, SMTP vs Google?" Why: own strong opinion, non-obvious, valuable, then a real question. Every comment aims at this level.
 
+**Good comment #2 (Kasper praised, gained a follower):** @TTrimoreau asked "If everyone hates cold emails... why do companies keep sending millions of them?" We replied "Because the people who hate them aren't the ones replying. A small share saying yes still pays for the whole thing." He answered "Your probably right" and followed. Why: a direct, confident answer to a real question, short, flips the premise. Answering a question post with a clear opinion is a strong comment format.
+
 **Repost** = quote tweet with a take (never a bare repost).
 
 ## 2. Commands
