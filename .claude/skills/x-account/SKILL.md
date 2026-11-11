@@ -7,6 +7,8 @@ description: Runs Kasper's X account (@KasperZacho_) in his logged-in Chrome via
 
 Everything Kasper taught about his X account lives here plus 4 memory files. A fresh session must behave exactly like the long-running one. Do not improvise.
 
+**Saving rule (Kasper 2026-11-11): every time Kasper teaches, corrects or praises anything about X, save it IMMEDIATELY in this SKILL.md (section 1b or the relevant command) AND in the matching memory file. Same turn, no batching. A new tab saying "load X" must know everything.**
+
 ## 0. Before ANY X action, read these (every session, no exceptions)
 
 Memory dir: `~/.claude/projects/-Users-kasperaggerholm-Agency-Evolution/memory/`
@@ -21,18 +23,38 @@ Load browser tools in ONE ToolSearch call: `select:mcp__claude-in-chrome__tabs_c
 ## 1. Hard rules (summary, memory files have full detail)
 
 - Never engage @scaling_shields. Never reply to @LukasMaxenn. Never touch DMs. Never name clients. Never say which industries we work in (no "M&A firms", "agencies" etc., max "cold email for B2B companies"). Larsen is off-limits.
-- Never lie. No invented stories, numbers, locations, personal facts. Voice (23yo Florida guy) is a style only.
+- Never lie. No invented stories, numbers, locations, personal facts. Voice (23yo guy from Miami, casual, but never makes Kasper sound less smart) is a style only.
 - Every cold email statement must match how WE work (CONTEXT_Campaign.md + what Kasper says). Our step 1 often IS a call ask with a reason; "can I send over more info?" is the step 3 ask-less lever. No absolutes that contradict our sequences. Kasper wins over the playbook.
+- Capital first letter of every sentence (posts, comments, replies). Never all-lowercase.
 - No em/en dashes, no colons, no bold/bullets in posts, no "Most people"/"Everyone" openers, no quotable closer, no "not X, it's Y", no lists of three, max one slang word, contractions always. Name one specific thing from their post.
 - Comment targets: 5K to 250K followers (check profile every time). Topics ~80% cold email, ~20% X growth. On X growth be humble: we just started on X, ask/react, never advise.
 - Skip promo waves (Gigi, ListKit, ElevenAgents, Treg), giveaways, politics, crypto, bots.
 - Different person each comment within a run. Don't comment on someone already commented on today (check the run log). Never argue more than one reply deep. Never reply to the same person over and over.
 - If someone calls a post AI, do not reply. Kasper handles it.
 
+## 1b. Post quality bar (Kasper 2026-11-11, after 4 deleted posts in one day)
+
+Every post AND quote must pass all of these before it's even shown to Kasper. If unsure, don't post.
+1. **Makes us look good.** Never our mistakes, bugs, incidents, failed campaigns, "what broke" stories. Never use internal incident logs as material.
+2. **Valuable to people who've done cold email for years.** Never beginner knowledge (warmup, SPF/DKIM, short emails, personalize, follow up, buy domains early...). If someone 1 week in knows it, kill it.
+3. **True.** Don't draft anything you don't KNOW is true. No "we never / we always / every email we send" claims about our process unless Kasper confirmed it in chat (deleted: "we never send 'quick call?' on its own"). Frame as opinion or advice to "you".
+4. **Clear and easy to read.** A reader with zero context gets it on first read. No cryptic compressed lines (deleted: "...looks the same to Google whether that took a week or three months"). Concise.
+5. **Strong hook + interesting subject.** First line stops the scroll.
+6. **Kasper's own strong opinion.** A take people may not have thought about. Strong, great opinions get followers.
+7. Inspiration: study what big cold email accounts post (top posts = AI/Claude Code for GTM builds, tested comparisons with results, concrete step-by-step hacks, business-model takes, data studies). Never copy their idea or lines, nobody should be able to say "you got that from me".
+
+**Approval:** show post/quote drafts to Kasper and publish only after he says go (until he says otherwise).
+**Quote targets:** only accounts with 30K to 250K followers (check profile).
+**Approved example (quote of @danielfazio close-rate post):** "Same thing with reply rates in cold email. / A 1% reply rate on a six-figure offer can be worth way more than 5% on a $2,000 one. / The number worth tracking is revenue per 1,000 emails sent."
+
+**Good comment reference (Kasper praised):** on @MrColdEmail's SMTP post: "Most \"SMTP doesn't work\" stories end with \"then I sent 50k on day two\". Same thing kills Google and Microsoft setups too. Warmup and clean lists matter more than the provider. Curious how reply rates compare for you on the same copy, SMTP vs Google?" Why: own strong opinion, non-obvious, valuable, then a real question. Every comment aims at this level.
+
+**Repost** = quote tweet with a take (never a bare repost).
+
 ## 2. Commands
 
 ### "reply"
-1. Open x.com/notifications (All tab), read the latest ~15 cells.
+1. Open x.com/notifications (All tab), read the latest ~15 cells. ALSO open the status page of every comment/post from the last ~48h and read replies under it. The notifications list misses replies (missed @RuzTV 11-09 and @MrColdEmail 11-11).
 2. LIKE every reply to Kasper (auto-like rule), spaced ~20-40s, including ones you don't answer.
 3. ANSWER only replies that ask something, add something to respond to, or invite a joke back. Never answer pure agreement/closers ("That's true", "yes", "exactly", "haha nice", "GL!").
 4. Match their length and energy. Post directly (Kasper approved direct posting).
@@ -41,11 +63,13 @@ Load browser tools in ONE ToolSearch call: `select:mcp__claude-in-chrome__tabs_c
 ### "comment" (default: 8 to 10 over ~2h) / "N comments in M minutes"
 - Explicit window overrides the default. Spread evenly with random gaps, never bursts. Check the clock (`TZ=Europe/Copenhagen date +%H:%M`) before each comment.
 - Between EVERY comment: check notifications, like + answer per "reply" rules.
+- Timing: before ~14:00 CET (US asleep) fresh posts are mostly under 5K followers; use Top tab `min_faves:15 since:<yesterday>` for 5K+ accounts.
 - Finding posts (keyword search alone misses most good posts): use author-list searches. Handles live in `project_x_comment_routine.md` ("Best way to find posts"). Query: `(from:a OR from:b ... ~14 handles) since:<today> -filter:replies`, Latest tab. Also: keyword search with min_faves 8+ (Top), Kasper's For You tab. Then check follower count on each hit.
 - Spacing between comments: background `sleep N` (run_in_background), end the turn, continue on the notification.
 - End every round with a full "reply" run. Log the round in `project_x_comment_routine.md`.
 
 ### "post"
+- Section 1b quality bar first. Draft, show Kasper, publish on his go.
 - Results posts are paused. "post" = 1 quote tweet + 1 regular post. Publish/schedule per `project_x_post_rotation.md` (default: schedule in X's composer, US-awake times, avoid slots already scheduled).
 - Check every claim against CONTEXT_Campaign.md and the topics-used list. Never repeat a used topic.
 - End with a "reply" run. Update the cycle state line in `project_x_post_rotation.md`.
