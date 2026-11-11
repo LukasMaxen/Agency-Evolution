@@ -45,6 +45,8 @@ Every post AND quote must pass all of these before it's even shown to Kasper. If
 
 **Approval:** show post/quote drafts to Kasper and publish only after he says go (until he says otherwise).
 **Quote targets:** only accounts with 30K to 250K followers (check profile).
+**How to use the examples below (Kasper 2026-11-11):** they show the BAR (why they worked), not a template. Leaning on them makes everything sound the same. Never reuse their structure, phrasing, openers ("Because...", "Most X stories...", "Same thing with...") or topics. Start every comment/post fresh from the specific post in front of you and think it through like the first time.
+
 **Approved example (quote of @danielfazio close-rate post):** "Same thing with reply rates in cold email. / A 1% reply rate on a six-figure offer can be worth way more than 5% on a $2,000 one. / The number worth tracking is revenue per 1,000 emails sent."
 
 **Good comment reference (Kasper praised):** on @MrColdEmail's SMTP post: "Most \"SMTP doesn't work\" stories end with \"then I sent 50k on day two\". Same thing kills Google and Microsoft setups too. Warmup and clean lists matter more than the provider. Curious how reply rates compare for you on the same copy, SMTP vs Google?" Why: own strong opinion, non-obvious, valuable, then a real question. Every comment aims at this level.
