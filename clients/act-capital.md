@@ -9,7 +9,7 @@ campaign_type: mixed — check campaign name carefully
 sender: Jeff Zanardi, Managing Director, ACT Capital Advisors
 calendly: https://calendly.com/jzanardi-actcapitaladvisors/45-minute-meeting
 always_send_calendly: false
-manual_booking_trigger: true (fully automated 2026-08-17, same pattern as Larsen Digital, see [[feedback_larsen_247_manual_booking]]. The AI cannot book calls. Any message where the lead wants to get on a call, general ("let's chat", "when are you free") or a specific day/time they name themselves, routes to action:manual with NO drafted reply, NO Calendly link, NO acknowledgment. Only non-scheduling replies (info requests, objections, valuation/NDA questions) are eligible to auto-send, and those may close with the Calendly link above.)
+manual_booking_trigger: link_first (changed 2026-11-11 by Kasper. Fully automated. Any lead open to talking, "let's chat", "when are you free", "send your calendar", or a broad window like "next week", gets a short warm reply with the Calendly link above, auto-sent. Route to manual ONLY when the lead names a specific day, date or time they want to talk, shares their own booking link, asks us to call a phone number, or asks something we cannot answer from this file.)
 fully_automated: true (no #reply-approval step for interested/needs_info, replies send directly once quality-checked)
 
 campaign_types_in_this_account:

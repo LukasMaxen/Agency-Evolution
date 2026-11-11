@@ -43,6 +43,7 @@ interface AutoReplyResult {
   recipient_email?: string;
   recipient_name?: string;
   cc_emails?: string[];
+  variant_label?: string;
 }
 
 // ─── Client file aliases ───────────────────────────────────────────────────────
@@ -667,6 +668,28 @@ function resolveInternalSender(campaign: string | null | undefined, coldEmailBod
   return null;
 }
 
+/**
+ * Internal "Ecom partner" campaigns (3PL | Ecom | US, Bookkeeping | Ecom, Staffing &
+ * Recruiting | Ecom, Fractional CFO | Ecom, launched 2026-11-09). Every campaign runs
+ * two kinds of first email (Kasper, 2026-11-11):
+ *  - "client_lead": names a specific potential client ("An ecommerce brand we work with
+ *    does about 1,000 orders a month and plans to switch...", "An ecommerce marketing
+ *    agency we partner with is looking for a new 3PL..."). The lead should feel the call
+ *    is about that potential client.
+ *  - "pay_per_meeting": plainly offers to book them meetings with ecom brands, pay per meeting.
+ * Variant is read from the FIRST email we sent in the thread (what the lead opened on).
+ */
+function isInternalEcomPartnerCampaign(workspaceSlug: string, campaign: string | null | undefined): boolean {
+  return workspaceSlug === "internal-campaigns" && /\|\s*ecom\b/i.test(String(campaign ?? ""));
+}
+
+function resolveInternalEcomVariant(coldEmailBody: string | null | undefined): "client_lead" | "pay_per_meeting" | null {
+  const cold = String(coldEmailBody ?? "");
+  if (!cold.trim()) return null;
+  if (/\b(?:brand|agency|client|company)\s+we\s+(?:work|partner)\s+with\b/i.test(cold) || /\bplans? to switch\b/i.test(cold) || /\bis looking for a (?:new )?[\w\s&-]{0,30}\bpartner\b/i.test(cold)) return "client_lead";
+  return "pay_per_meeting";
+}
+
 function isBustemReply(campaign: string | null | undefined, subject: string, message: string, coldEmailBody?: string | null): boolean {
   const text = `${campaign ?? ""}\n${subject ?? ""}\n${message ?? ""}\n${coldEmailBody ?? ""}`.toLowerCase();
   return (
@@ -1128,7 +1151,7 @@ async function postApprovalCard(opts: {
     { type: "header", text: { type: "plain_text", text: "Auto-reply draft, needs review", emoji: true } },
     { type: "section", fields: [
       { type: "mrkdwn", text: `*Client:*\n${slugToNameShared(workspaceSlug)}` },
-      { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign ?? "unknown"}` },
+      { type: "mrkdwn", text: `*Campaign:*\n${reply.campaign ?? "unknown"}${result.variant_label ? `\n_Version: ${result.variant_label}_` : ""}` },
     ]},
     { type: "section", text: { type: "mrkdwn", text: `${sendingToLine}${ccLine}\n*Intent:* ${result.intent}  ·  *FU:* ${result.fu_sequence_type}` } },
     { type: "section", text: { type: "mrkdwn", text: `*Subject:* ${reply.subject ?? "(no subject)"}` } },
@@ -1540,7 +1563,34 @@ If no LEAD COMPANY CONTEXT block appears (because the site was unreachable), fal
   const selfDisqualifyNoCallBlock = selfDisqualifyNoCallWorkspaces.has(workspaceSlug)
     ? `\nSELF-DISQUALIFICATION RULE (this client only): if the lead states, in their own words, a firm reason they don't qualify or can't proceed (a budget figure below what the offer costs, "we don't have $X in our budget", or a stated requirement of theirs we plainly do not meet), do NOT close with a call/booking ask. A call does not fix a budget mismatch, offering one anyway ignores what they just told you. Acknowledge the constraint honestly, answer anything else in their message, and end WITHOUT a CTA to book, no Calendly/Fillout link, no "grab a time here." If genuine, leave the door open with one plain low-pressure line ("if that changes down the road, happy to reconnect") but do not pair it with a booking link in the same reply. This overrides the general "every reply should move toward the call" guidance below for this specific case.\n`
     : "";
-  const manualBookingTriggerBlock = isFullyAutomated
+  // Link-first booking (Kasper 2026-11-11, ACT Capital): general willingness to talk
+  // ("let's chat", "when are you free?") gets the booking link and auto-sends. Only a
+  // lead naming a specific day/date/time, sharing their own booking link, asking to be
+  // phoned on a number, or something we can't answer goes to #manual-replies.
+  const LINK_FIRST_BOOKING_WORKSPACES = new Set(["act-capital"]);
+  const isLinkFirstBooking = isFullyAutomated && LINK_FIRST_BOOKING_WORKSPACES.has(workspaceSlug);
+  const linkFirstBookingBlock = `## LINK-FIRST BOOKING RULE (this client only, overrides the CALENDLY AND AVAILABILITY section below)
+
+The AI cannot book calls or send calendar invites, but for this client a lead who is open to talking simply gets the booking link. Do NOT route general scheduling willingness to manual.
+
+AUTO_SEND WITH THE BOOKING LINK — any willingness or openness to talk, however phrased: "let's chat", "happy to chat", "sure, let's do a call", "open to a conversation", "when are you available?", "what's your availability?", "can we set up a call?", "send me your calendar", "let me know a good time", or a broad window with no specific day or time ("sometime next week", "later this month", "after the holidays"). Draft a short, warm reply that answers anything else they asked (Triple A) and closes with the booking link from REPLY QUICK REFERENCE, e.g. "Feel free to grab a time that works here: [link]". If they gave a broad window, nod to it naturally ("grab whatever works for you next week here: [link]"). They already said yes to talking, so do not re-pitch and do not ask "worth a quick call?". Never propose, confirm, or invent specific times.
+
+ROUTE TO MANUAL (action "manual", reply_body empty, manual_reason one sentence) ONLY when:
+- The lead names a specific day, date, or clock time they want to talk ("Tuesday works", "how about 2pm Thursday?", "Monday morning?", "free on the 18th", "call me tomorrow at 10"). A human confirms that slot.
+- The lead shares their OWN scheduling/booking link (personal Calendly, Cal.com, HubSpot Meetings, Acuity, or similar, not ours) and asks us to book on it.
+- The lead asks us to call them and gives a phone number to call.
+- Anything covered by the UNCERTAINTY RULE or INFORMATION-FIRST GATE RULE below, or any question you cannot answer truthfully from REPLY QUICK REFERENCE or the thread.
+
+NOT A TRIGGER: the lead says they ALREADY booked or picked a time via our link ("just booked a time", "grabbed 2pm Thursday on your calendar", "booked it, see you then"). Set flag_meeting_booked true, action auto_send, short warm confirmation, no new booking link, no alternate times.
+
+`;
+  const manualBookingTriggerBlock = isLinkFirstBooking
+    ? linkFirstBookingBlock + `UNCERTAINTY RULE (fully-automated clients only): if you are ever uncertain, unclear tone, ambiguous ask, unclear which campaign/persona/booking link applies, or the thread is missing information you would need to answer confidently, do NOT guess and do NOT send anything. Set action "manual" with a one-sentence manual_reason explaining what is unclear. Never resolve uncertainty by picking the safest-sounding guess, an actual human reviews it instead.
+
+INFORMATION-FIRST GATE RULE (fully-automated clients only): if the lead explicitly conditions any further engagement on receiving specific facts, numbers, or terms in writing first, especially if they preemptively reject a vague or call-deflecting answer, do NOT answer with a call-first close. If the REPLY QUICK REFERENCE or thread genuinely contains the real detail they are asking for, answer it directly. If it does not (never invent a number), set action "manual" with manual_reason naming exactly what information the lead is demanding that we cannot answer from what's on file.
+
+`
+    : isFullyAutomated
     ? `## MANUAL BOOKING TRIGGER RULE (fully-automated clients only, overrides the CALENDLY AND AVAILABILITY section below)
 
 The AI cannot book calls or send calendar invites. Whenever the lead's reply makes it clear they want to get on a call, whether by asking generally or by suggesting a specific time, set action to "manual" and do NOT write a reply_body. A human takes over from here.
@@ -1654,7 +1704,7 @@ When the lead's message contains a real question or a concern (anything beyond a
 ${selfDisqualifyNoCallBlock}
 Triple A is a CONTENT checklist, not a three-paragraph template. Weave it naturally, stay under the 150-word cap, and never output literal "Acknowledge / Answer / Ask" labels. Acknowledge and answer can share a sentence. Do not pad.
 
-${manualBookingTriggerBlock}## CALENDLY AND AVAILABILITY${isFullyAutomated ? " (superseded above by MANUAL BOOKING TRIGGER RULE for this client)" : ""}
+${manualBookingTriggerBlock}## CALENDLY AND AVAILABILITY${isLinkFirstBooking ? " (superseded above by LINK-FIRST BOOKING RULE for this client)" : isFullyAutomated ? " (superseded above by MANUAL BOOKING TRIGGER RULE for this client)" : ""}
 
 Never confirm specific times. Never say "Thursday works" or "I have availability." Always use the Calendly link from the REPLY QUICK REFERENCE with a natural line: "Feel free to grab a time here: [link]"
 
@@ -1912,7 +1962,17 @@ USE THE HOOK LINE ABOVE, NOT THE CATEGORY OR EXIT SIGNALS LINES. The HOOK line i
     ? `SENDER OVERRIDE (this thread was sent by Lukas Maxen, check the cold email signature): write in the first person as Lukas. The call is with Kasper Zacho, not Lukas, so use the Kasper line from REPLY QUICK REFERENCE when sharing the link. Never write anything that implies Lukas joins the call, such as "we can go through that on a call with Kasper".\n\n`
     : "";
 
-  const userMessage = `REPLY QUICK REFERENCE:
+  // Ecom partner campaigns: tell the drafter which of the two first emails this lead got.
+  // Full rules live in the ECOM PARTNER block of clients/agency-evolution.md.
+  const ecomVariant = isInternalEcomPartnerCampaign(workspaceSlug, reply.campaign) ? resolveInternalEcomVariant(coldEmailBody) : null;
+  const ecomVariantDirective = !isInternalEcomPartnerCampaign(workspaceSlug, reply.campaign) ? ""
+    : ecomVariant === "client_lead"
+    ? `ECOM PARTNER VERSION FOR THIS THREAD: CLIENT LEAD. Our first email told this lead about a specific potential client (a brand or agency) that needs a provider like them. Follow the CLIENT LEAD rules in the ECOM PARTNER block of REPLY QUICK REFERENCE: keep the conversation about that potential client, the call is to see if they are the fit for it. Do not pitch our pay per meeting service in writing. Never invent any detail about that client beyond what our email said.\n\n`
+    : ecomVariant === "pay_per_meeting"
+    ? `ECOM PARTNER VERSION FOR THIS THREAD: PAY PER MEETING. Our first email offered to book this lead meetings with ecommerce brands, pay per meeting. Follow the PAY PER MEETING rules in the ECOM PARTNER block of REPLY QUICK REFERENCE.\n\n`
+    : `ECOM PARTNER VERSION FOR THIS THREAD: UNKNOWN (our first email could not be read). Set action to "manual" with manual_reason "Could not tell which Ecom partner version this lead received."\n\n`;
+
+  const userMessage = `${ecomVariantDirective}REPLY QUICK REFERENCE:
 ${quickRef}
 
 ${accelerSenderOverride}${internalSenderOverride}${companyContextBlock}${calendlyHint}${positiveExamples}${threadInterestDirective}${ccBlock}${alternateSender ? `${alternateSender}\n\n` : ""}${leadEnrichment ? `${leadEnrichment}\n\n` : ""}${coldEmailBlock}THREAD HISTORY — WHAT HAS BEEN SAID (oldest first, do not repeat anything already here):
@@ -2295,7 +2355,10 @@ ${messageText.slice(0, 8000)}`;
   // prompt. These clients have no human review step anymore, so if Claude still
   // returned auto_send for a message that clearly asks to schedule, force it to
   // manual rather than trust the model's classification alone. See hasSchedulingTrigger.
-  if (isFullyAutomated && result.action === "auto_send" && (hasSchedulingTrigger(leadNewText) || hasLeadSharedBookingLink(leadNewText, quickRef))) {
+  // Link-first clients (ACT Capital) skip the broad willingness regex, "let's chat"
+  // is supposed to auto-send the booking link there. Their own-booking-link check
+  // still applies via the standard-client backstop below.
+  if (isFullyAutomated && !isLinkFirstBooking && result.action === "auto_send" && (hasSchedulingTrigger(leadNewText) || hasLeadSharedBookingLink(leadNewText, quickRef))) {
     result.action = "manual";
     result.manual_reason = "Manual booking trigger detected (lead wants to schedule a call). AI cannot send calendar invites, routed to a human.";
     result.reply_body = undefined;
@@ -2309,7 +2372,7 @@ ${messageText.slice(0, 8000)}`;
   // link with no stated day/time slipped through that narrower rule (Merv/medialister.com,
   // AH Consulting, 2026-09-10). Kasper: "send those to manual." Deterministic backstop,
   // same pattern as the fully-automated one above.
-  if (!isFullyAutomated && result.action === "auto_send" && hasLeadSharedBookingLink(leadNewText, quickRef)) {
+  if ((!isFullyAutomated || isLinkFirstBooking) && result.action === "auto_send" && hasLeadSharedBookingLink(leadNewText, quickRef)) {
     result.action = "manual";
     result.manual_reason = "Lead shared their own scheduling link and wants us to book time on it. AI cannot place bookings on someone else's calendar, routed to a human.";
     result.reply_body = undefined;
@@ -2334,6 +2397,13 @@ ${messageText.slice(0, 8000)}`;
     console.log(`[auto-reply] Dealgen campaign — routed to manual (no call/calendar) for ${replyId} (${reply.campaign})`);
   }
 
+  // Ecom partner campaigns: show which first email the lead got on every Slack card.
+  if (ecomVariant || isInternalEcomPartnerCampaign(workspaceSlug, reply.campaign)) {
+    result.variant_label = ecomVariant === "client_lead" ? "Client lead (lead thinks call is about a potential client)"
+      : ecomVariant === "pay_per_meeting" ? "Pay per meeting offer" : "Unknown";
+    if (result.action === "manual") result.manual_reason = `[Version: ${result.variant_label}] ${result.manual_reason ?? ""}`.trim();
+  }
+
   // ── Route ─────────────────────────────────────────────────────────────────────
 
   if (result.action === "auto_send" && result.reply_body) {
@@ -2351,7 +2421,12 @@ ${messageText.slice(0, 8000)}`;
     // 2026-10-13: mp-consulting added. MP Consulting moved off Austin Heaton AE onto its own
     // Shields workspace and keeps the same strict review it had there.
     const STRICT_REVIEW_WORKSPACES = new Set(["ah-consulting", "ah-consulting-2", "with-pebble", "with-pebble-2", "gn-motion", "mp-consulting"]);
-    const alwaysAutoSend = STRICT_REVIEW_WORKSPACES.has(workspaceSlug)
+    // 2026-11-11 (Kasper): Internal Campaigns never sends a drafted reply unreviewed,
+    // every intent goes to #reply-approval or #manual-replies. Silent closes (no body)
+    // never reach this branch, so not-interested leads still get nothing.
+    const alwaysAutoSend = workspaceSlug === "internal-campaigns"
+      ? new Set<string>()
+      : STRICT_REVIEW_WORKSPACES.has(workspaceSlug)
       ? new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested"])
       : new Set(["unsubscribe","hard_no","wrong_target","hostile","not_interested","neutral"]);
 
