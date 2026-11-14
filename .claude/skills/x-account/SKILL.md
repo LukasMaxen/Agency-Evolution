@@ -41,6 +41,8 @@ Load browser tools in ONE ToolSearch call: `select:mcp__claude-in-chrome__tabs_c
 - Write so people want to reply: a take, a question, or a relatable moment.
 - No links in the main post (they get less reach). If a link is needed, put it in a reply under the post.
 - No hashtags, one max. No threads of generic tips.
+- **Real experience means Kasper's experience, not the playbook (Kasper 2026-11-14, "perfect example of a shitty post").** A post about P.S. opt-out lines got killed: we don't use P.S. lines at all ("nothing goes in our messaging that isn't necessary"), even though CONTEXT_Campaign.md has P.S. rules. CONTEXT_Campaign.md is NOT proof of current practice. Only post experience Kasper confirmed in chat, or numbers verified live in EmailBison/DB. If there's no confirmed experience for a topic, ask Kasper for one instead of drafting from the file.
+- Words he'd never use: "execs", "opt-out line". Say it how he'd say it (e.g. "founders", "the guy who owns the company").
 
 - Never engage @scaling_shields. Never reply to @LukasMaxenn. Never touch DMs. Never name clients. Never say which industries we work in (no "M&A firms", "agencies" etc., max "cold email for B2B companies"). Larsen is off-limits.
 - Never lie. No invented stories, numbers, locations, personal facts. Voice (23yo guy from Miami, casual, but never makes Kasper sound less smart) is a style only.
