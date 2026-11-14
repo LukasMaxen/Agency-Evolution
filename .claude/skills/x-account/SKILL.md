@@ -101,7 +101,7 @@ Every post AND quote must pass all of these before it's even shown to Kasper. If
 
 ### "post"
 - Section 1b quality bar first. Draft, show Kasper, publish on his go.
-- Results posts are paused. "post" = 1 quote tweet + 1 regular post. Publish/schedule per `project_x_post_rotation.md` (default: schedule in X's composer, US-awake times, avoid slots already scheduled).
+- Post cycle (Kasper 2026-11-14): each "post" = the NEXT type in the loop results -> regular -> repost (quote tweet with his opinion), then repeat. Check the cycle state line in project_x_post_rotation.md. Results numbers must be verified live (EmailBison/DB), never a client already used. Publish/schedule per `project_x_post_rotation.md` (default: schedule in X's composer, US-awake times, avoid slots already scheduled).
 - Check every claim against CONTEXT_Campaign.md and the topics-used list. Never repeat a used topic.
 - End with a "reply" run. Update the cycle state line in `project_x_post_rotation.md`.
 
