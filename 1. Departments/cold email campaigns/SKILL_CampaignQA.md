@@ -12,7 +12,7 @@ Run this before pushing any sequence update or launching a new campaign. Check e
 - [ ] No colons in email copy
 - [ ] No {COMPANY} variable — must use "your brand" for Acceler8rs
 - [ ] No rounded numbers — use specific figures ($6,342 not $6k)
-- [ ] No P.S. opt-out lines in Acceler8rs scripts
+- [ ] No P.S. lines in any script, any client (Kasper 2026-11-15)
 - [ ] Guarantee language present in Step 1 and Step 3 (where applicable)
 
 ## Audience & Currency

@@ -1,7 +1,7 @@
 # Skill: Write Campaign Script
 
 ## What this skill does
-Writes a cold email sequence (steps 1–3) for any client campaign. Outputs subject lines, body copy, and P.S. lines formatted and ready to paste into EmailBison. Also generates A/B variants and spintax subject lines on request.
+Writes a cold email sequence (steps 1–3) for any client campaign. Outputs subject lines and body copy formatted and ready to paste into EmailBison. Also generates A/B variants and spintax subject lines on request.
 
 ---
 
@@ -45,7 +45,7 @@ Ask Claude:
 2. Read `1. Departments/campaign/CONTEXT_Campaign.md` for global formatting and sequence rules
 3. Draft each step following the Step 1 / Step 2 / Step 3 structure
 4. Apply the correct CTA format for the client (phone call for 911, teaser for M&A, qualifying question for ITG, etc.)
-5. Apply the correct P.S. rule for the client type
+5. No P.S. lines, ever (Kasper 2026-11-15)
 6. Check for spam trigger words and flag any before outputting
 7. If A/B variants are requested: ensure at least 65–70% structural difference between variants
 
@@ -57,7 +57,6 @@ Ask Claude:
 Subject: [subject line or spintax block]
 Body:
 [email body — prose, no bullets, no em dashes]
-P.S. [opt-out line if applicable for this client type]
 
 **Step 2**
 Subject: [subject line]
@@ -68,7 +67,6 @@ Body:
 Subject: [subject line]
 Body:
 [re-engagement — informative, no "last note" language]
-P.S. [opt-out line if applicable]
 
 ---
 

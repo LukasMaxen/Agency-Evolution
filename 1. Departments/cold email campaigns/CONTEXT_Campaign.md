@@ -11,7 +11,8 @@
 - **NO em dashes** — ever, under any circumstances
 - **NO bullet points** in scripts
 - **NO "last note from me"** or any language signaling it is the final email
-- **NO P.S. opt-outs on cold consumer/DTC outreach** (Acceler8rs, Larsen Digital, GN Motion) — only use P.S. opt-outs for M&A, franchise, and professional audiences
+- **NO P.S. lines, ever, for any client** (Kasper 2026-11-15). Nothing goes in a message that isn't necessary
+- **NO "just say the word and I'll leave you alone"** on step 3, it signals end of sequence
 - **NO "genuinely," "honestly," "straightforward"**
 - **NO dollar signs or % symbols** when scripts are getting caught in spam — write out numbers in plain language
 - **NO "capital solutions," "free," "guaranteed," "best," "amazing"** — common spam triggers
@@ -117,15 +118,6 @@ There is no single right structure. Choose whichever fits the situation, or writ
 - Teaser/case study CTAs are lower friction than call CTAs — use when reply rate is the priority
 - "Want me to send over the teaser?" beats "would you be open to a call?" for cold outreach
 - For 911 Restoration: **always use an info CTA** ("Want me to send over more information on the franchise program?") — never push to a phone call in cold outreach. Info-first; call comes after they say yes to more info.
-
----
-
-## P.S. Line Rules
-
-- **M&A and professional audiences**: always include P.S. opt-out — busy executives want a clean out and it increases qualified replies
-- **Consumer/DTC founders (Acceler8rs, Larsen Digital, GN Motion)**: P.S. opt-out primes them to say no — omit entirely
-- **Franchise (911 Restoration)**: include P.S. but keep it simple — "If this isn't of interest, just let me know and I won't follow up."
-- **Never use**: "just say the word and I'll leave you alone" on step 3 — signals end of sequence
 
 ---
 
