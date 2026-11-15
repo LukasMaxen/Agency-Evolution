@@ -107,6 +107,7 @@ Every post AND quote must pass all of these before it's even shown to Kasper. If
 - Timing: before ~14:00 CET (US asleep) fresh posts are mostly under 5K followers; use Top tab `min_faves:15 since:<yesterday>` for 5K+ accounts.
 - Finding posts (keyword search alone misses most good posts): use author-list searches. Handles live in `project_x_comment_routine.md` ("Best way to find posts"). Query: `(from:a OR from:b ... ~14 handles) since:<today> -filter:replies`, Latest tab. Also: keyword search with min_faves 8+ (Top), Kasper's For You tab. Then check follower count on each hit.
 - Spacing between comments: background `sleep N` (run_in_background), end the turn, continue on the notification.
+- Freshness + persistence (Kasper 2026-11-15): target posts under 8 hours old; if those run out, widen to 16 hours. Don't stop a round short, keep searching (author lists, Top, Latest, wider keywords) until the full count is done.
 - End every round with a full "reply" run. Log the round in `project_x_comment_routine.md`.
 
 ### "post"
