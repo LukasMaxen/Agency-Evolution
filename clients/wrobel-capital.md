@@ -316,8 +316,7 @@ Non-owners, PE-backed businesses that already have an institutional buyer, outsi
 - Never use the word "guaranteed" or any performance promise
 - Keep Step 1 concise — business owners in this segment respond to brevity and directness
 
-**P.S. line:**
-[Fill in based on current active sequence — check EmailBison for live Step 1 copy]
+**P.S. line:** None. No P.S. lines, ever, for any client (Kasper 2026-11-16).
 
 ---
 
@@ -374,7 +373,7 @@ Revenue, EBITDA, company age, owner tenure, sector, state
 
 #### Follow-Up Sequence
 
-_All 5 FUs are AI-drafted per lead. The templates below are scaffolding — the structure, angle, and P.S. pattern are fixed, but every email is written fresh using what is known about the lead. No two FUs should read identically across different leads._
+_All 5 FUs are AI-drafted per lead. The templates below are scaffolding — the structure and angle are fixed, but every email is written fresh using what is known about the lead. No two FUs should read identically across different leads._
 
 _At send time the AI has access to: lead name, company, title, industry, state, original reply message, all previous FUs sent to this lead, and the full GTM Brief including personas, case studies, offer frames, and objection reframes._
 
@@ -384,7 +383,7 @@ _Rules that apply to every step:_
 - _Never repeat an angle already used in a previous FU to this lead_
 - _No dashes of any kind as punctuation. No colons in email body copy._
 - _Short paragraphs. One idea per paragraph._
-- _Always end with {SENDER_EMAIL_SIGNATURE} then a blank line then the P.S._
+- _Always end with {SENDER_EMAIL_SIGNATURE}. No P.S. line, ever._
 
 **Sequence:** FU1 (+2 days) → FU2 (+5 days) → FU3 (+7 days) → FU4 (+7 days) → FU5 (+14 days)
 
@@ -406,8 +405,6 @@ Are either of these times good for a quick call: {SLOT_1} or {SLOT_2}? Or grab a
 
 {SENDER_EMAIL_SIGNATURE}
 
-P.S. If the timing is not right, just let me know and I will step back.
-
 ---
 
 **FU2 (+5 days from FU1)**
@@ -428,8 +425,6 @@ If it makes sense: https://calendly.com/swrobel-wrobelcap/30min
 
 {SENDER_EMAIL_SIGNATURE}
 
-P.S. If now is not the right time, just let me know.
-
 ---
 
 **FU3 (+7 days from FU2)**
@@ -448,8 +443,6 @@ One thing worth knowing is that most transactions we have facilitated recently h
 
 {SENDER_EMAIL_SIGNATURE}
 
-P.S. If this is not relevant, just let me know.
-
 ---
 
 **FU4 (+7 days from FU3)**
@@ -467,8 +460,6 @@ The buyer we are working with is still actively looking and {COMPANY} remains on
 If a quick 15-minute call makes sense before we close out the process: https://calendly.com/swrobel-wrobelcap/30min
 
 {SENDER_EMAIL_SIGNATURE}
-
-P.S. If now is not the right time, just let me know and I will step back.
 
 ---
 

@@ -139,7 +139,7 @@ Say: _"Now let's go through each campaign one at a time. Starting with [Campaign
 17. What has worked — angles, lines, or framings that get replies?
 18. What has NOT worked — angles or framings to never repeat?
 19. Any formatting or spam rules specific to this campaign? (Symbols to avoid, words to never use, etc.)
-20. Does this campaign use a P.S. line? If so, what is it?
+20. (No P.S. lines are ever used, Kasper 2026-11-16. If the client asks for one, push back.)
 
 **Reply Guidelines:**
 21. What tone should replies have for this campaign?

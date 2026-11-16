@@ -105,7 +105,7 @@ _Info reply templates and FU templates for each client live in `clients/[slug].m
 
 ## Follow-Up Sequence Structure
 
-6-step sequence. All steps are AI-drafted per lead — not fixed templates. The client file contains scaffolding (structure, angle, P.S. pattern) but every email is written fresh using everything known about that specific lead.
+6-step sequence. All steps are AI-drafted per lead — not fixed templates. The client file contains scaffolding (structure, angle; never a P.S. line) but every email is written fresh using everything known about that specific lead.
 
 **What the AI uses to draft each FU:**
 - Lead's name, company, title, industry, and state

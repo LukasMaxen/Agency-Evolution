@@ -19,7 +19,7 @@ FORMATTING RULES — never violate any of these:
 - Short over long. Err toward fewer words. If in doubt, cut.
 - Direct, professional, no fluff. Conversational but not casual.
 - Never apologetic or defensive in framing.
-- No P.S. lines unless they were in the original.
+- No P.S. lines, ever.
 
 LIGHT REFRESH rules:
 Change ONLY: the opening line (different angle, same information), one sentence reworded or moved, CTA phrasing changed slightly.

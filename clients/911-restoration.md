@@ -138,8 +138,7 @@ Step 3 uses both levers together: give a new data point from the FDD (revenue nu
 **CTA strategy note (updated 1 May 2026):**
 All steps push toward sending more information — not a phone call or meeting. The goal is to get a yes to more info. Once they say yes, then move to a call.
 
-**P.S. line:**
-"If this isn't of interest, just let me know and I won't follow up."
+**P.S. line:** None. No P.S. lines, ever, for any client (Kasper 2026-11-16).
 
 **Hooks ranked by effectiveness:**
 1. Insurance-backed lead flow — no cold outreach required

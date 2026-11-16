@@ -154,8 +154,6 @@ Want me to send over the teaser?
 
 {SENDER_EMAIL_SIGNATURE}
 
-P.S. If this is not relevant for your mandate, feel free to let me know and I will not follow up.
-
 **Step 2**
 Subject: `TelcoLab`
 
@@ -179,8 +177,6 @@ This is an exclusive process led by Statera Capital. Qualified buyers receive th
 Happy to send the teaser if helpful.
 
 {SENDER_EMAIL_SIGNATURE}
-
-P.S. If this is not relevant for your mandate, feel free to let me know and I will not follow up.
 
 ---
 
@@ -214,8 +210,6 @@ Want me to send over the teaser?
 
 {SENDER_EMAIL_SIGNATURE}
 
-P.S. If this is not relevant for {COMPANY}, feel free to let me know and I will not follow up.
-
 **Step 2**
 Subject: `TelcoLab`
 
@@ -239,8 +233,6 @@ The deal is structured as a majority or full sale and is open to strategic and f
 Happy to send the teaser if helpful.
 
 {SENDER_EMAIL_SIGNATURE}
-
-P.S. If this is not relevant for {COMPANY}, feel free to let me know and I will not follow up.
 
 ---
 

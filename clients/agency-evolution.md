@@ -223,7 +223,7 @@ Why it lands: we use a high-volume outbound sourcing engine across email/LinkedI
 - "Success-fee only" and "no upfront cost" are core framing on both sides — use them.
 - Sell-side hook: "right acquirer for your brand in the next ~3 months, no upfront cost."
 - Buy-side hook: "proprietary off-market deals, $1M to $10M EBITDA, success-fee only."
-- P.S. opt-out line on every step: "Not relevant? Just let me know and I won't follow up."
+- No P.S. lines, ever (Kasper 2026-11-16).
 - Do not name specific acquirers or specific brands in outbound copy.
 
 ---

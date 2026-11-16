@@ -401,8 +401,7 @@ _Note on sends: This campaign may have multiple active EmailBison sends (e.g. "2
 **Formatting / spam rules specific to this campaign:**
 [e.g. remove $ signs, avoid ~ symbol, never use the word "guaranteed"]
 
-**P.S. line:**
-[Include the P.S. line if used, or note "No P.S. for this campaign"]
+**P.S. line:** None. No P.S. lines, ever, for any client (Kasper 2026-11-16).
 
 ---
 
