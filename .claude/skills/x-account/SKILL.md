@@ -101,6 +101,8 @@ Every post AND quote must pass all of these before it's even shown to Kasper. If
 1. Open x.com/notifications (All tab), read the latest ~15 cells. ALSO open the status page of every comment/post from the last ~48h and read replies under it. The notifications list misses replies (missed @RuzTV 11-09 and @MrColdEmail 11-11).
 2. LIKE every reply to Kasper (auto-like rule), spaced ~20-40s, including ones you don't answer.
 3. ANSWER only replies that ask something, add something to respond to, or invite a joke back. Never answer pure agreement/closers ("That's true", "yes", "exactly", "haha nice", "GL!").
+   - **If someone simply answers a question Kasper asked them, that is a closer: LIKE ONLY (Kasper 2026-11-17).** Never react to their answer with a take Kasper hasn't stated himself. Bad example: Brian Blum said he took under-market rates to get logos, and I replied "smart. the logos end up doing half the selling" = endorsed underpricing + invented "half". Kasper: "Why the fuck did you post this."
+   - Answers use the same guarded flow as comments (open the reply's own status page first, Step 1 to 3 in Mechanics).
 4. Match their length and energy. Post directly (Kasper approved direct posting).
 5. Log the run in `project_x_reply_routine.md`.
 
@@ -108,7 +110,8 @@ Every post AND quote must pass all of these before it's even shown to Kasper. If
 - Explicit window overrides the default. Spread evenly with random gaps, never bursts. Check the clock (`TZ=Europe/Copenhagen date +%H:%M`) before each comment.
 - **USE THE FULL WINDOW, NEVER FINISH EARLY (Kasper 2026-11-17).** The window exists so comments land at random times across it and don't look like spam. Before starting, write a plan: start time, end time, and N random gaps that add up to the whole window (last comment within ~3 min of the end). Before each comment check the clock against the plan; if ahead, wait (background `sleep`) until the next slot. Finishing a 1h round in 45 min is a failure, same as finishing late.
 - Between EVERY comment: check notifications, like + answer per "reply" rules.
-- Before EVERY comment, grep the handle against ALL of today's logs (every round's done file + every entry for today in `project_x_comment_routine.md`). A hand-kept "used today" list missed 6 people on 2026-11-17 and they got double comments.
+- Before EVERY comment, run `scripts/x_log.sh check <handle>` (Mechanics Step 0). It reads the shared per-day log that every session writes to. A hand-kept "used today" list missed 6 people on 2026-11-17 and they got double comments. Never use scratchpad lists as the source of truth.
+- Every comment goes through the guarded flow in Mechanics (Steps 0 to 4). No exceptions, no shortcuts when behind schedule. Being late is fine, a leaked post is not.
 - Timing: before ~14:00 CET (US asleep) fresh posts are mostly under 5K followers; use Top tab `min_faves:15 since:<yesterday>` for 5K+ accounts.
 - Finding posts (keyword search alone misses most good posts): use author-list searches. Handles live in `project_x_comment_routine.md` ("Best way to find posts"). Query: `(from:a OR from:b ... ~14 handles) since:<today> -filter:replies`, Latest tab. Also: keyword search with min_faves 8+ (Top), Kasper's For You tab. Then check follower count on each hit.
 - Spacing between comments: background `sleep N` (run_in_background), end the turn, continue on the notification.
@@ -129,13 +132,25 @@ Open x.com/compose/post/unsent/scheduled, read every post in full, fix anything 
 
 ## 3. Mechanics (tested)
 
-**Post a reply/comment**
+**Post a reply/comment: MANDATORY GUARDED FLOW (Kasper 2026-11-17: "That cannot happen again, I need to be able to trust you").**
+Why: on 2026-11-17 two comments went live as standalone POSTS on Kasper's profile because a status ID was hand-typed wrong. With a wrong/non-existent in_reply_to, X silently opens a normal "Post" composer. Tested 2026-11-17: valid ID -> dialog shows "Replying to @handle" and the button says "Reply"; wrong ID -> no "Replying to" and the button says "Post". The guard below refuses to click unless the reply context is there. The old unguarded snippet is BANNED.
+
+Step 0, duplicate check (bash, before drafting anything):
+`.claude/skills/x-account/scripts/x_log.sh check <handle>` -> BLOCKED means skip this person, no exceptions. The log is per Copenhagen day and holds every comment from every session.
+
+Step 1, open the TARGET POST's own status page (navigate to it, read the full text there). Then run, on that page (ID and handle come from the URL, never typed):
 ```js
-window.__t="<text>"; location.href='https://x.com/intent/post?in_reply_to=<ID>&text='+encodeURIComponent(window.__t); 1
-// wait 5s, then:
-const ta=document.querySelector('[role=dialog] [data-testid=tweetTextarea_0]'); const ok=ta&&ta.innerText.startsWith('<prefix>'); if(ok){document.querySelector('[role=dialog] [data-testid=tweetButton]').click()} ok
+const T="<comment text>"; const [,h,,id]=location.pathname.split('/'); sessionStorage.__p=JSON.stringify({h,id,t:T}); location.href='https://x.com/intent/post?in_reply_to='+id+'&text='+encodeURIComponent(T); h+' '+id.split('').join(' ')
 ```
-**NEVER hand-type status IDs (Kasper 2026-11-17, two comments went live as standalone posts).** If in_reply_to points to a wrong or non-existent ID, X silently publishes a normal POST on Kasper's profile. Before clicking tweetButton, the check MUST also confirm the dialog shows "Replying to @<handle>" (e.g. `/Replying to|Svarer/.test(dialog.innerText) && dialog.innerText.includes('@<handle>')`), not just the text prefix. Take IDs from the page (location.pathname on the status page), never retype digits. After every round, run `from:KasperZacho_ since:<today> -filter:replies` and delete anything that isn't a real post.
+Step 2, wait ~7s, then the guard (clicks ONLY if every check passes, returns what it saw):
+```js
+const p=JSON.parse(sessionStorage.__p||'{}'); const d=document.querySelector('[role=dialog]'); const ta=d&&d.querySelector('[data-testid=tweetTextarea_0]'); const b=d&&d.querySelector('[data-testid=tweetButton]'); const txt=d?d.innerText:''; const checks={dialog:!!d, replyCtx:/Replying to|Svarer/.test(txt), handle:txt.includes('@'+p.h), text:!!ta&&ta.innerText.trim()===(p.t||'').trim(), button:!!b&&/^(Reply|Svar)$/.test(b.innerText.trim()), url:location.href.includes('in_reply_to='+p.id)}; const ok=Object.values(checks).every(Boolean); if(ok){b.click(); sessionStorage.removeItem('__p')} JSON.stringify({ok,...checks})
+```
+If ok=false: do NOT click, do NOT retry with a typed ID. Navigate away and redo Step 1 from the target's status page.
+
+Step 3, log it immediately (bash): `.claude/skills/x-account/scripts/x_log.sh add <handle> <id> comment <short note>` (type `reply` for answers to people replying to Kasper).
+
+Step 4, END OF EVERY ROUND (and every "post"/"reply" run): open `https://x.com/search?q=from%3AKasperZacho_%20since%3A<today>%20-filter%3Areplies&f=live` and read every item. Anything that isn't an intended post/quote = a leaked comment: delete it at once and tell Kasper. Report this sweep result in the final message.
 Verify on x.com/KasperZacho_/with_replies. If "There's a new version of this post": get the new ID from the author's profile. Use navigate force:true to pass "Leave site?".
 
 **Like a reply**: on the reply's status page, find the article containing a time-link to `/status/<ID>`, click its `[data-testid=like]` (if `[data-testid=unlike]` exists it's already liked).
