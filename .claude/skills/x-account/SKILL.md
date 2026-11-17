@@ -135,6 +135,7 @@ window.__t="<text>"; location.href='https://x.com/intent/post?in_reply_to=<ID>&t
 // wait 5s, then:
 const ta=document.querySelector('[role=dialog] [data-testid=tweetTextarea_0]'); const ok=ta&&ta.innerText.startsWith('<prefix>'); if(ok){document.querySelector('[role=dialog] [data-testid=tweetButton]').click()} ok
 ```
+**NEVER hand-type status IDs (Kasper 2026-11-17, two comments went live as standalone posts).** If in_reply_to points to a wrong or non-existent ID, X silently publishes a normal POST on Kasper's profile. Before clicking tweetButton, the check MUST also confirm the dialog shows "Replying to @<handle>" (e.g. `/Replying to|Svarer/.test(dialog.innerText) && dialog.innerText.includes('@<handle>')`), not just the text prefix. Take IDs from the page (location.pathname on the status page), never retype digits. After every round, run `from:KasperZacho_ since:<today> -filter:replies` and delete anything that isn't a real post.
 Verify on x.com/KasperZacho_/with_replies. If "There's a new version of this post": get the new ID from the author's profile. Use navigate force:true to pass "Leave site?".
 
 **Like a reply**: on the reply's status page, find the article containing a time-link to `/status/<ID>`, click its `[data-testid=like]` (if `[data-testid=unlike]` exists it's already liked).
