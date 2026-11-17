@@ -106,6 +106,7 @@ Every post AND quote must pass all of these before it's even shown to Kasper. If
 
 ### "comment" (default: 8 to 10 over ~2h) / "N comments in M minutes"
 - Explicit window overrides the default. Spread evenly with random gaps, never bursts. Check the clock (`TZ=Europe/Copenhagen date +%H:%M`) before each comment.
+- **USE THE FULL WINDOW, NEVER FINISH EARLY (Kasper 2026-11-17).** The window exists so comments land at random times across it and don't look like spam. Before starting, write a plan: start time, end time, and N random gaps that add up to the whole window (last comment within ~3 min of the end). Before each comment check the clock against the plan; if ahead, wait (background `sleep`) until the next slot. Finishing a 1h round in 45 min is a failure, same as finishing late.
 - Between EVERY comment: check notifications, like + answer per "reply" rules.
 - Timing: before ~14:00 CET (US asleep) fresh posts are mostly under 5K followers; use Top tab `min_faves:15 since:<yesterday>` for 5K+ accounts.
 - Finding posts (keyword search alone misses most good posts): use author-list searches. Handles live in `project_x_comment_routine.md` ("Best way to find posts"). Query: `(from:a OR from:b ... ~14 handles) since:<today> -filter:replies`, Latest tab. Also: keyword search with min_faves 8+ (Top), Kasper's For You tab. Then check follower count on each hit.
