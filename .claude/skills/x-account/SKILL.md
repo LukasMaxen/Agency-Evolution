@@ -32,6 +32,7 @@ Load browser tools in ONE ToolSearch call: `select:mcp__claude-in-chrome__tabs_c
 - No fancy or crazy vocabulary, nothing he wouldn't normally say. Cold email terms are fine, just don't overdo anything.
 - Never corporate. Clever cold email takes, said in a dope way, not polished corporate lines.
 - Be direct. The point goes in the first line.
+- **Laugh words (Kasper 2026-11-18): stop ending comments with "lol".** Switch it up between "lol", "haha", "ahah", and most comments get none at all. Never the same laugh word on back-to-back comments, max ~1 in 4 comments has one.
 - Slang only when the situation fits. A few words max, decided by logic. Forced slang is obvious, avoid it at all costs.
 - No fake positivity ("Great question!", "Absolutely!", "Love this"). No motivational-guru tone. No "Here's the thing:".
 - Match the context. A joke post, a serious take and a question all get different energy.
