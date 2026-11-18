@@ -101,6 +101,7 @@ Every post AND quote must pass all of these before it's even shown to Kasper. If
 
 ### "reply"
 1. Open x.com/notifications (All tab), read the latest ~15 cells. ALSO open the status page of every comment/post from the last ~48h and read replies under it. The notifications list misses replies (missed @RuzTV 11-09 and @MrColdEmail 11-11).
+1b. ALSO (Kasper 2026-11-18: "also reply to comments on my posts"): open x.com/KasperZacho_ (Posts tab), and for every own post from the last ~7 days with a reply count (including the pinned post), open it and read every reply under it. Like every one. Answer new ones that ask or add something (same rules as below). Skip spam ("lets connect, followed"). Do this on every "reply" run and at the end of every comment round.
 2. LIKE every reply to Kasper (auto-like rule), spaced ~20-40s, including ones you don't answer.
 3. ANSWER only replies that ask something, add something to respond to, or invite a joke back. Never answer pure agreement/closers ("That's true", "yes", "exactly", "haha nice", "GL!").
    - **If someone simply answers a question Kasper asked them, that is a closer: LIKE ONLY (Kasper 2026-11-17).** Never react to their answer with a take Kasper hasn't stated himself. Bad example: Brian Blum said he took under-market rates to get logos, and I replied "smart. the logos end up doing half the selling" = endorsed underpricing + invented "half". Kasper: "Why the fuck did you post this."
