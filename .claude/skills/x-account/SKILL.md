@@ -33,6 +33,7 @@ Load browser tools in ONE ToolSearch call: `select:mcp__claude-in-chrome__tabs_c
 - Never corporate. Clever cold email takes, said in a dope way, not polished corporate lines.
 - Be direct. The point goes in the first line.
 - **Laugh words (Kasper 2026-11-18): stop ending comments with "lol".** Switch it up between "lol", "haha", "ahah", and most comments get none at all. Never the same laugh word on back-to-back comments, max ~1 in 4 comments has one.
+- **No ; : - characters, ever (Kasper 2026-11-18: "stop using shit like this ;:-").** No semicolons, colons or hyphens/dashes in any comment, reply, post or quote. Write times as "7.40" or "740am" style only if needed, ranges as "40 to 60%", compound words as two words or one ("follow up", "cold email"). Before posting, check the text with /[;:\-–—]/ and rewrite if it matches.
 - Slang only when the situation fits. A few words max, decided by logic. Forced slang is obvious, avoid it at all costs.
 - No fake positivity ("Great question!", "Absolutely!", "Love this"). No motivational-guru tone. No "Here's the thing:".
 - Match the context. A joke post, a serious take and a question all get different energy.
@@ -145,7 +146,7 @@ const T="<comment text>"; const [,h,,id]=location.pathname.split('/'); sessionSt
 ```
 Step 2, wait ~7s, then the guard (clicks ONLY if every check passes, returns what it saw):
 ```js
-const p=JSON.parse(sessionStorage.__p||'{}'); const d=document.querySelector('[role=dialog]'); const ta=d&&d.querySelector('[data-testid=tweetTextarea_0]'); const b=d&&d.querySelector('[data-testid=tweetButton]'); const txt=d?d.innerText:''; const checks={dialog:!!d, replyCtx:/Replying to|Svarer/.test(txt), handle:txt.includes('@'+p.h), text:!!ta&&ta.innerText.trim()===(p.t||'').trim(), button:!!b&&/^(Reply|Svar)$/.test(b.innerText.trim()), url:location.href.includes('in_reply_to='+p.id)}; const ok=Object.values(checks).every(Boolean); if(ok){b.click(); sessionStorage.removeItem('__p')} JSON.stringify({ok,...checks})
+const p=JSON.parse(sessionStorage.__p||'{}'); const d=document.querySelector('[role=dialog]'); const ta=d&&d.querySelector('[data-testid=tweetTextarea_0]'); const b=d&&d.querySelector('[data-testid=tweetButton]'); const txt=d?d.innerText:''; const checks={dialog:!!d, replyCtx:/Replying to|Svarer/.test(txt), handle:txt.includes('@'+p.h), text:!!ta&&ta.innerText.trim()===(p.t||'').trim(), button:!!b&&/^(Reply|Svar)$/.test(b.innerText.trim()), url:location.href.includes('in_reply_to='+p.id), punct:!/[;:\-\u2013\u2014]/.test(p.t||'')}; const ok=Object.values(checks).every(Boolean); if(ok){b.click(); sessionStorage.removeItem('__p')} JSON.stringify({ok,...checks})
 ```
 If ok=false: do NOT click, do NOT retry with a typed ID. Navigate away and redo Step 1 from the target's status page.
 
