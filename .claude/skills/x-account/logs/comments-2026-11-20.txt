@@ -87,3 +87,6 @@
 15:35 comment PatCarino 2123783786265473419 deal seen week one
 15:35 comment MaxHirsch13 2123634307486847278 few weeks in, what moved it
 15:35 comment cshapiro 2123783673820398043 taste picking well
+15:37 comment jimmykim 2123780116027179257 first yes smaller
+15:37 comment irabukht 2123681404429234181 legacy saas model releases
+15:37 comment iamshackelford 2123522201311932890 popup before first line
