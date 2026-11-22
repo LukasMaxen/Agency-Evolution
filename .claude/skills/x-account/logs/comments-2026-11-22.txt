@@ -187,3 +187,5 @@
 15:55 comment shipranotes 2124503174354448467 return the call
 15:55 comment ecom_joseph 2124168487702565039 email cant fix reorder
 15:56 comment rorynotsorry 2124202735944003990 selling into consolidation
+15:58 comment mikebeckhamsm 2124156030590366092 silence after launch is answer
+15:58 comment irentdumpsters 2124182052836712829 separate profiles per service
