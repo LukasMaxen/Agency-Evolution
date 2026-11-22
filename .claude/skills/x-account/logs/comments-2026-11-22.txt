@@ -164,3 +164,4 @@
 15:39 comment aribk24 2124282240402330023 funnel converts cold traffic
 15:39 comment jmrphy 2124313989777662244 list shows up after quiet
 15:39 comment suraj_sharma14 2124321975460090364 API keys cost most haha
+15:41 comment noahkagan 2124490843499221470 no bot joining call
