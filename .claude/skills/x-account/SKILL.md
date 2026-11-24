@@ -136,6 +136,8 @@ Open x.com/compose/post/unsent/scheduled, read every post in full, fix anything 
 
 ## 3. Mechanics (tested)
 
+**X DOM CHANGE (2026-11-24, overrides older selectors below):** no data-testid and no <time> on articles anymore. Status link = first `a[href]` matching `^/user/status/\d+$`, post text = `article.innerText`. Compose/reply dialog = `[role=dialog]` with a plain `<textarea>`; find the button by innerText ("Reply"/"Svar" or "Post"). Like = button whose aria-label ends with "Like". Guard checks: dialog, "Replying to"/"Svarer" in dialog text, "@handle" in dialog text, textarea value == text, button found, URL has in_reply_to=ID, no ;:- or dashes. Posts with restricted replies show no "Replying to", guard blocks them (correct).
+
 **Post a reply/comment: MANDATORY GUARDED FLOW (Kasper 2026-11-17: "That cannot happen again, I need to be able to trust you").**
 Why: on 2026-11-17 two comments went live as standalone POSTS on Kasper's profile because a status ID was hand-typed wrong. With a wrong/non-existent in_reply_to, X silently opens a normal "Post" composer. Tested 2026-11-17: valid ID -> dialog shows "Replying to @handle" and the button says "Reply"; wrong ID -> no "Replying to" and the button says "Post". The guard below refuses to click unless the reply context is there. The old unguarded snippet is BANNED.
 
