@@ -26,6 +26,7 @@ import { containsUnconfirmedFeeClaim, asksAboutOurFees, feeQuestionsToManual } f
 import { weSpokeLast, alreadySentBody, answeredLocallySince } from "@/lib/reply-send-guard";
 import { trackInterestedLead } from "@/lib/airtable-cold-leads";
 import { applyCampaignSignoff, isCheapAssistAEOutreach } from "@/lib/campaign-signoff";
+import { isOffboardedWorkspace, isSilencedReply } from "@/lib/offboarded-workspaces";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1217,6 +1218,18 @@ async function processAutoReplyImpl(replyId: string, workspaceSlug: string): Pro
   if (SKIP_WORKSPACES.has(workspaceSlug)) {
     await pool.query(`UPDATE replies SET status = 'read', auto_reply_processed_at = NOW() WHERE id = $1 AND status IN ('new','read')`, [replyId]);
     return;
+  }
+
+  // Offboarded clients (lib/offboarded-workspaces.ts): store only, never draft, send or
+  // post to Slack. MP Consulting stragglers on Austin's old workspaces still pass through.
+  if (isOffboardedWorkspace(workspaceSlug)) {
+    const row = await pool.query(`SELECT campaign, subject, message, thread_context::text AS thread FROM replies WHERE id = $1`, [replyId]);
+    const r = row.rows[0] ?? {};
+    if (isSilencedReply(workspaceSlug, r.campaign, r.subject, r.message, r.thread)) {
+      await pool.query(`UPDATE replies SET status = 'read', auto_reply_processed_at = NOW() WHERE id = $1 AND status IN ('new','read')`, [replyId]);
+      console.log(`[auto-reply] offboarded workspace ${workspaceSlug}, silenced ${replyId}`);
+      return;
+    }
   }
 
   // Atomic claim. Filter on status only — the dashboard's /api/analyze also writes

@@ -1,4 +1,5 @@
 import { postToSlack } from "@/lib/slack-approval";
+import { isSilencedReply } from "@/lib/offboarded-workspaces";
 
 // Temporary hardcoded workspace -> Slack channel map for the raw "every reply"
 // notification feed (mirrors Make.com's unfiltered "Reply received" post, one
@@ -130,6 +131,8 @@ export interface RawReplyFeedOpts {
 // Fires for every reply regardless of AI classification — this is the
 // unconditional visibility feed, not the AI approval-card flow.
 export async function postRawReplyFeed(opts: RawReplyFeedOpts): Promise<void> {
+  // Offboarded clients (lib/offboarded-workspaces.ts): no raw feed post, MP stragglers excepted.
+  if (isSilencedReply(opts.workspaceSlug, opts.subject, opts.message)) return;
   const isMPConsulting = MP_CONSULTING_SHARED_WORKSPACES.has(opts.workspaceSlug) && isMPConsultingContent(opts.subject, opts.message);
   const channel = isMPConsulting ? MP_CONSULTING_RAW_FEED_CHANNEL : RAW_REPLY_FEED_CHANNELS[opts.workspaceSlug];
   if (!channel) return;
