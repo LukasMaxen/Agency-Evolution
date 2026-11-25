@@ -195,7 +195,7 @@ def main():
 
     # Load workspace credentials
     # Offboarded clients (mirror of lib/offboarded-workspaces.ts), never alerted on.
-    raw = db_query("SELECT slug, email_bison_api_key, email_bison_instance_url FROM workspaces WHERE slug NOT IN ('ah-consulting', 'ah-consulting-2')")
+    raw = db_query("SELECT slug, email_bison_api_key, email_bison_instance_url FROM workspaces WHERE slug NOT IN ('ah-consulting', 'ah-consulting-2', 'mp-consulting')")
     workspaces = [tuple(l.split("\t")) for l in raw.splitlines() if len(l.split("\t")) == 3]
     print(f"Loaded {len(workspaces)} workspaces")
 
