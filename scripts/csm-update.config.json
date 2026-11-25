@@ -11,7 +11,8 @@
     "911-restoration",
     "ah-consulting",
     "ah-consulting-2",
-    "link-helpers"
+    "link-helpers",
+    "mp-consulting"
   ],
   "reportLines": [
     {
@@ -28,11 +29,6 @@
       "label": "CLPR Media",
       "workspaceSlugs": ["clpr-media"],
       "meetings": { "baseId": "applnvVcAGLchrG2b", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
-    },
-    {
-      "label": "MP Consulting",
-      "workspaceSlugs": ["mp-consulting"],
-      "meetings": { "baseId": "apphW2yI5MyGDOLs9", "tableId": "tblTnxArHDVMNOxSI", "bookedDateField": "Meeting booked date" }
     },
     {
       "label": "GN Motion",
