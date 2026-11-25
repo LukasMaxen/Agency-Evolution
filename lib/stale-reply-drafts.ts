@@ -1,5 +1,6 @@
 import pool from "@/lib/db";
 import { addReaction, approvalChannelFor, postToSlack } from "@/lib/slack-approval";
+import { isOffboardedWorkspace } from "@/lib/offboarded-workspaces";
 
 /**
  * A reply just went out to this lead outside the approval card (a human answered by
@@ -42,6 +43,8 @@ export async function supersedeAnsweredDrafts(
         WHERE id = ANY($1) AND status IN ('new', 'awaiting_approval', 'awaiting_manual')`,
       [r.rows.map(x => x.reply_id)],
     );
+
+    if (isOffboardedWorkspace(workspaceSlug)) return r.rows.length; // offboarded client, no Slack notice
 
     const channel = await approvalChannelFor(workspaceSlug);
     const when = sentAt.toISOString().slice(0, 16).replace("T", " ") + " UTC";

@@ -17,6 +17,7 @@
 import pool from "@/lib/db";
 import { buildEmailBisonUrl } from "@/lib/utils";
 import { buildMeetingContext } from "@/lib/meeting-context";
+import { isOffboardedWorkspace } from "@/lib/offboarded-workspaces";
 
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY ?? "";
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN ?? "";
@@ -455,6 +456,7 @@ function cancellationMessage(i: CancellationInput, threadUrl?: string | null): s
  */
 export async function trackCancellation(input: CancellationInput): Promise<boolean> {
   if (!SLACK_BOT_TOKEN || !input.leadEmail) return false;
+  if (isOffboardedWorkspace(input.configKey ?? input.workspaceSlug)) return false; // offboarded client, no Slack post
   const cfg = MEETING_CONFIG[input.configKey ?? input.workspaceSlug];
   // Same event filter as trackMeeting: no cancellation notice for an event type we never tracked.
   if (cfg?.eventNameContains && !(input.eventTypeName ?? "").toLowerCase().includes(cfg.eventNameContains.toLowerCase())) return false;
@@ -476,6 +478,13 @@ export async function trackCancellation(input: CancellationInput): Promise<boole
  * has no config yet. Never throws.
  */
 export async function trackMeeting(input: BookingInput): Promise<boolean> {
+  // Offboarded clients (lib/offboarded-workspaces.ts): no Airtable write, no Slack post,
+  // and no fallback "no workspace match" alert either. Austin Heaton's Calendly org
+  // webhook (?wsDefault=ah-consulting) keeps firing until someone deletes it.
+  if (isOffboardedWorkspace(input.configKey ?? input.workspaceSlug)) {
+    console.log(`[meetings-tracker] offboarded workspace ${input.configKey ?? input.workspaceSlug}, skipped ${input.leadEmail}`);
+    return false;
+  }
   const cfg = MEETING_CONFIG[input.configKey ?? input.workspaceSlug];
   if (!cfg) {
     // Never silently drop a booking — surface it so a human can attribute it manually.

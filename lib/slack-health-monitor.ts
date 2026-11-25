@@ -1,5 +1,6 @@
 import pool from "@/lib/db";
 import { postToSlack, REPLY_APPROVAL_CHANNEL } from "@/lib/slack-approval";
+import { OFFBOARDED_WORKSPACES } from "@/lib/offboarded-workspaces";
 
 // ── Slack health monitor ────────────────────────────────────────────────────
 // Background watchdog for the approval-card pipeline. The failure it exists to
@@ -20,7 +21,7 @@ import { postToSlack, REPLY_APPROVAL_CHANNEL } from "@/lib/slack-approval";
 
 // Workspaces excluded from auto-processing elsewhere; keep them out of the
 // failure counts and the reflow so the monitor matches sweeper behaviour.
-const EXCLUDED = ["itg-group", "sro-consulting"];
+const EXCLUDED = ["itg-group", "sro-consulting", ...OFFBOARDED_WORKSPACES];
 
 // Optional token-independent alert transport. A Slack incoming-webhook URL uses
 // its own secret, NOT the bot token, so it still delivers when the bot token is

@@ -1200,6 +1200,7 @@ export async function processAutoReply(replyId: string, workspaceSlug: string): 
   } catch (err: any) {
     console.error(`[auto-reply] CRASH for ${replyId} (${workspaceSlug}):`, err);
     try { await pool.query(`UPDATE replies SET status = 'errored' WHERE id = $1`, [replyId]); } catch { /* ignore */ }
+    if (isOffboardedWorkspace(workspaceSlug)) return; // no Slack crash card for offboarded clients
     try {
       const r = await pool.query(`SELECT r.lead_name, r.lead_email, r.subject, r.message, r.campaign, w.email_bison_instance_url FROM replies r LEFT JOIN workspaces w ON w.slug = r.workspace_slug WHERE r.id = $1`, [replyId]);
       const reply = r.rows[0] ?? {};
